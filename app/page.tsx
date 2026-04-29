@@ -113,7 +113,7 @@ type RouteAnalysis = {
   modular: number;
   hybrid: number;
   prep: number;
-  recommended: "Integrada" | "Modular" | "Hibrida" | "Preparacion";
+  recommended: "Integrada" | "Modular" | "Híbrida" | "Preparación";
   reason: string;
   warnings: string[];
   conflicts: string[];
@@ -121,7 +121,7 @@ type RouteAnalysis = {
 };
 
 const disclaimerText =
-  "FlyPath Career Planner ofrece orientacion educativa y herramientas de planificacion basadas en los datos introducidos por el usuario. No sustituye asesoramiento financiero, medico, legal ni informacion oficial de escuelas, autoridades o aerolineas. Los costes son estimaciones y pueden variar.";
+  "FlyPath Career Planner ofrece orientación educativa y herramientas de planificación basadas en los datos introducidos por el usuario. No sustituye asesoramiento financiero, médico, legal ni información oficial de escuelas, autoridades o aerolíneas. Los costes son estimaciones y pueden variar.";
 
 const defaultProfile: Profile = {
   nombre: "",
@@ -229,7 +229,7 @@ function computeRoute(profile: Profile): RouteAnalysis {
     prep += 45;
     integrated -= 20;
     hybrid -= 10;
-    warnings.push("No pagues escuela todavia: primero confirma Clase 1.");
+    warnings.push("No pagues escuela todavía: primero confirma Clase 1.");
   }
   if (profile.ingles === "bajo") {
     prep += 25;
@@ -240,7 +240,7 @@ function computeRoute(profile: Profile): RouteAnalysis {
   if (profile.dineroDisponible < 30000 && profile.financiacion === "no") {
     prep += 35;
     integrated -= 20;
-    warnings.push("Presupuesto bajo y sin financiacion confirmada.");
+    warnings.push("Presupuesto bajo y sin financiación confirmada.");
   }
   if (profile.necesitaTrabajar === "si") {
     modular += 20;
@@ -257,10 +257,10 @@ function computeRoute(profile: Profile): RouteAnalysis {
     hybrid += 10;
   }
   if (profile.urgencia === "alta" && profile.necesitaTrabajar === "si") {
-    conflicts.push("Quieres rapidez alta pero necesitas trabajar durante la formacion.");
+    conflicts.push("Quieres rapidez alta, pero necesitas trabajar durante la formación.");
   }
   if (profile.edad > 30 && profile.dineroDisponible >= 50000) {
-    warnings.push("No se penaliza la edad; enfoca la decision en coste de oportunidad.");
+    warnings.push("No se penaliza la edad; enfoca la decisión en coste de oportunidad.");
     integrated += 5;
     hybrid += 8;
   }
@@ -279,16 +279,16 @@ function computeRoute(profile: Profile): RouteAnalysis {
   const ordered = [
     { key: "Integrada", score: integrated },
     { key: "Modular", score: modular },
-    { key: "Hibrida", score: hybrid },
-    { key: "Preparacion", score: prep },
+    { key: "Híbrida", score: hybrid },
+    { key: "Preparación", score: prep },
   ].sort((a, b) => b.score - a.score);
 
   const recommended = ordered[0].key as RouteAnalysis["recommended"];
   const reasonMap: Record<RouteAnalysis["recommended"], string> = {
     Integrada: "Encaja por capacidad financiera y disponibilidad full-time.",
     Modular: "Encaja por flexibilidad y control de caja por fases.",
-    Hibrida: "Encaja para avanzar con flexibilidad sin frenar del todo.",
-    Preparacion: "Encaja para reducir riesgo antes de comprometer pagos altos.",
+    "Híbrida": "Encaja para avanzar con flexibilidad sin frenar del todo.",
+    "Preparación": "Encaja para reducir riesgo antes de comprometer pagos altos.",
   };
 
   const principalBlock =
@@ -412,7 +412,7 @@ function schoolAnalysis(school: School, totalRealista: number) {
   if (school.calendarioPagosClaro !== "si") redFlags.push("Calendario de pagos no claro.");
   if (school.contratoAntesPagar !== "si") redFlags.push("Contrato no confirmado antes del pago.");
   if (school.reembolsoClaro !== "si") redFlags.push("Politica de reembolso poco clara.");
-  if (school.estadoVerificacion !== "verificado") redFlags.push("Informacion insuficiente.");
+  if (school.estadoVerificacion !== "verificado") redFlags.push("Información insuficiente.");
 
   const preguntasPendientes: string[] = [];
   if (school.tasasIncluidas !== "si") preguntasPendientes.push("Confirmar tasas de examen.");
@@ -440,7 +440,7 @@ function schoolAnalysis(school: School, totalRealista: number) {
 }
 
 function buildSchoolEmail(school: School, nombreUsuario: string) {
-  return `Asunto: Solicitud de desglose completo de costes y condiciones - ${school.nombre}\n\nHola equipo de ${school.nombre},\n\nSoy ${nombreUsuario || "un aspirante a piloto"} y estoy evaluando opciones de formacion. Antes de tomar una decision, necesito confirmar por escrito la informacion economica y operativa.\n\nAgradeceria que me enviaran:\n\n1) Desglose completo de costes\n- Precio total del programa\n- Que incluye y que no incluye\n- Tasas de examen\n- Skill tests\n- MCC/JOC\n- Advanced UPRT\n- Alojamiento (si aplica)\n- Costes de repeticion\n\n2) Pagos y condiciones\n- Deposito requerido\n- Calendario de pagos\n- Politica de reembolso\n\n3) Operacion real del programa\n- Duracion media real del programa\n- Disponibilidad de flota e instructores\n- Posibilidad de hablar con alumnos actuales o antiguos\n\nSi tienen folleto actualizado, contrato tipo o anexo de condiciones, por favor incluyanlo en la respuesta.\n\nGracias por vuestra ayuda.\n\nUn saludo,\n${nombreUsuario || ""}`;
+  return `Asunto: Solicitud de desglose completo de costes y condiciones - ${school.nombre}\n\nHola equipo de ${school.nombre},\n\nSoy ${nombreUsuario || "un aspirante a piloto"} y estoy evaluando opciones de formación. Antes de tomar una decisión, necesito confirmar por escrito la información económica y operativa.\n\nAgradecería que me enviaran:\n\n1) Desglose completo de costes\n- Precio total del programa\n- Qué incluye y qué no incluye\n- Tasas de examen\n- Skill tests\n- MCC/JOC\n- Advanced UPRT\n- Alojamiento (si aplica)\n- Costes de repetición\n\n2) Pagos y condiciones\n- Depósito requerido\n- Calendario de pagos\n- Política de reembolso\n\n3) Operación real del programa\n- Duración media real del programa\n- Disponibilidad de flota e instructores\n- Posibilidad de hablar con alumnos actuales o antiguos\n\nSi tienen folleto actualizado, contrato tipo o anexo de condiciones, por favor incluyanlo en la respuesta.\n\nGracias por vuestra ayuda.\n\nUn saludo,\n${nombreUsuario || ""}`;
 }
 
 function copyText(text: string) {
@@ -559,7 +559,7 @@ export default function Page() {
 
   const stepMeta: Record<number, { title: string; desc: string }> = {
     1: { title: "Perfil", desc: "Define tu punto de partida profesional." },
-    2: { title: "Medical e ingles", desc: "Valida bloqueos operativos criticos." },
+    2: { title: "Medical e inglés", desc: "Valida bloqueos operativos críticos." },
     3: { title: "Presupuesto", desc: "Alinea capacidad economica y riesgo." },
     4: { title: "Disponibilidad", desc: "Calcula ritmo realista de progreso." },
     5: { title: "Escuelas", desc: "Carga referencias iniciales para comparar." },
@@ -580,7 +580,8 @@ export default function Page() {
 
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
             <div>
-              <h1 className="text-4xl font-semibold leading-tight md:text-6xl">Planifica tu ruta como piloto antes de tomar decisiones caras.</h1>
+              <p className="inline-flex rounded-full border border-[#c9a454]/35 bg-[#c9a454]/10 px-3 py-1 text-xs tracking-[0.16em] text-[#f2ddaa]">FLYPATH CAREER PLANNER</p>
+              <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Planifica tu ruta como piloto antes de tomar decisiones caras.</h1>
               <p className="mt-5 text-lg text-slate-200">Calcula costes reales, compara rutas y analiza escuelas antes de invertir miles de euros.</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="rounded-xl bg-[#c9a454] px-6 py-3 font-semibold text-[#0f1a33]">
@@ -594,7 +595,7 @@ export default function Page() {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <KpiMini label="Ruta recomendada" value={route.recommended} />
                 <KpiMini label="Coste realista" value={euro(costs.totalRealista)} />
-                <KpiMini label="Brecha de financiacion" value={euro(costs.brechaFinanciacion)} />
+                <KpiMini label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} />
                 <KpiMini label="Riesgo principal" value={route.principalBlock} />
               </div>
             </div>
@@ -602,13 +603,13 @@ export default function Page() {
 
           <div className="mt-16 grid gap-4 md:grid-cols-3">
             <LandingFeature title="El problema" text="Costes incompletos, promesas ambiguas y decisiones tomadas con poca evidencia." />
-            <LandingFeature title="Que hace el planner" text="Estructura datos, compara escenarios y reduce riesgo antes de pagar." />
-            <LandingFeature title="Como funciona" text="Onboarding guiado, analisis de rutas, comparador y reporte final accionable." />
+            <LandingFeature title="Qué hace el planner" text="Estructura datos, compara escenarios y reduce riesgo antes de pagar." />
+            <LandingFeature title="Cómo funciona" text="Onboarding guiado, análisis de rutas, comparador y reporte final accionable." />
           </div>
 
           <div className="mt-12 rounded-3xl border border-[#c9a454]/35 bg-[#0d1d3a] p-8 text-center">
             <h2 className="text-3xl font-semibold">Toma decisiones de carrera con claridad y criterio.</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-slate-200">No decidas por marketing ni presion comercial: decide por evidencia y planificacion.</p>
+            <p className="mx-auto mt-3 max-w-3xl text-slate-200">No decidas por marketing ni presión comercial: decide por evidencia y planificación.</p>
             <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="mt-6 rounded-xl bg-[#c9a454] px-6 py-3 font-semibold text-[#0f1a33]">Crear mi plan</button>
           </div>
 
@@ -628,12 +629,12 @@ export default function Page() {
             <p className="mt-1 text-sm text-slate-600">{stepMeta[onboardingStep].desc}</p>
             <div className="mt-4 rounded-full bg-slate-100 p-1"><Progress value={(onboardingStep / 6) * 100} tone="bg-[#0f1a33]" /></div>
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-              {onboardingStep === 1 && <div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={profile.nombre} onChange={(v)=>setProfile(p=>({...p,nombre:v}))} /><NumberField label="Edad" value={profile.edad} onChange={(v)=>setProfile(p=>({...p,edad:v}))} /><TextField label="Pais" value={profile.pais} onChange={(v)=>setProfile(p=>({...p,pais:v}))} /><SelectField label="Situacion laboral" value={profile.situacionLaboral} options={[{value:"estudiante",label:"Estudiante"},{value:"trabajando",label:"Trabajando"},{value:"desempleado",label:"Desempleado"},{value:"otro",label:"Otro"}]} onChange={(v)=>setProfile(p=>({...p,situacionLaboral:v as Profile["situacionLaboral"]}))} /><SelectField label="Objetivo" value={profile.objetivo} options={[{value:"aerolinea",label:"Aerolinea"},{value:"ejecutivo",label:"Ejecutivo"},{value:"instructor",label:"Instructor"},{value:"no_lo_se",label:"No lo se"}]} onChange={(v)=>setProfile(p=>({...p,objetivo:v as Profile["objetivo"]}))} /></div>}
-              {onboardingStep === 2 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Class 1" value={profile.class1} options={[{value:"si",label:"Si"},{value:"no",label:"No"},{value:"reservado",label:"Reservado"}]} onChange={(v)=>setProfile(p=>({...p,class1:v as Profile["class1"]}))} /><SelectField label="Class 2" value={profile.class2} options={[{value:"si",label:"Si"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,class2:v as Profile["class2"]}))} /><SelectField label="Nivel de ingles" value={profile.ingles} options={[{value:"bajo",label:"Bajo"},{value:"medio",label:"Medio"},{value:"alto",label:"Alto"}]} onChange={(v)=>setProfile(p=>({...p,ingles:v as Profile["ingles"]}))} /><SelectField label="ICAO level" value={profile.icaoLevel} options={[{value:"0",label:"0"},{value:"4",label:"4"},{value:"5",label:"5"},{value:"6",label:"6"},{value:"no_lo_se",label:"No lo se"}]} onChange={(v)=>setProfile(p=>({...p,icaoLevel:v as Profile["icaoLevel"]}))} /><SelectField label="Preocupacion por ingles" value={profile.preocupacionIngles} options={[{value:"si",label:"Si"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,preocupacionIngles:v as Profile["preocupacionIngles"]}))} /></div>}
-              {onboardingStep === 3 && <div className="grid gap-4 md:grid-cols-2"><NumberField label="Dinero disponible ahora" value={profile.dineroDisponible} onChange={(v)=>setProfile(p=>({...p,dineroDisponible:v}))} /><NumberField label="Ahorro mensual posible" value={profile.ahorroMensual} onChange={(v)=>setProfile(p=>({...p,ahorroMensual:v}))} /><SelectField label="Financiacion" value={profile.financiacion} options={[{value:"confirmada",label:"Confirmada"},{value:"posible",label:"Posible"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,financiacion:v as Profile["financiacion"]}))} /><SelectField label="Apoyo familiar" value={profile.apoyoFamiliar} options={[{value:"si",label:"Si"},{value:"parcial",label:"Parcial"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,apoyoFamiliar:v as Profile["apoyoFamiliar"]}))} /><NumberField label="Inversion maxima aceptable" value={profile.inversionMaxima} onChange={(v)=>setProfile(p=>({...p,inversionMaxima:v}))} /><SelectField label="Tolerancia riesgo financiero" value={profile.toleranciaRiesgo} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,toleranciaRiesgo:v as Profile["toleranciaRiesgo"]}))} /></div>}
-              {onboardingStep === 4 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Disponibilidad" value={profile.disponibilidad} options={[{value:"full-time",label:"Full-time"},{value:"part-time",label:"Part-time"}]} onChange={(v)=>setProfile(p=>({...p,disponibilidad:v as Profile["disponibilidad"]}))} /><NumberField label="Horas por semana" value={profile.horasSemana} onChange={(v)=>setProfile(p=>({...p,horasSemana:v}))} /><SelectField label="Necesita trabajar durante formacion" value={profile.necesitaTrabajar} options={[{value:"si",label:"Si"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,necesitaTrabajar:v as Profile["necesitaTrabajar"]}))} /><SelectField label="Movilidad" value={profile.movilidad} options={[{value:"solo_espana",label:"Solo Espana"},{value:"europa",label:"Europa"},{value:"mundial",label:"Mundial"}]} onChange={(v)=>setProfile(p=>({...p,movilidad:v as Profile["movilidad"]}))} /><SelectField label="Urgencia" value={profile.urgencia} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,urgencia:v as Profile["urgencia"]}))} /></div>}
-              {onboardingStep === 5 && <div className="space-y-4"><p className="text-sm text-slate-600">Puedes anadir hasta 3 escuelas iniciales.</p><div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} /><TextField label="Pais" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} /><NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} /><NumberField label="Duracion anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} /><SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo se"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} /><SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} /><TextField label="Fecha actualizacion" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} /><SelectField label="Estado verificacion" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} /></div><button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Anadir escuela inicial</button></div>}
-              {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razon principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha financiacion" value={euro(costs.brechaFinanciacion)} /></div>}
+              {onboardingStep === 1 && <div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={profile.nombre} onChange={(v)=>setProfile(p=>({...p,nombre:v}))} /><NumberField label="Edad" value={profile.edad} onChange={(v)=>setProfile(p=>({...p,edad:v}))} /><TextField label="País" value={profile.pais} onChange={(v)=>setProfile(p=>({...p,pais:v}))} /><SelectField label="Situación laboral" value={profile.situacionLaboral} options={[{value:"estudiante",label:"Estudiante"},{value:"trabajando",label:"Trabajando"},{value:"desempleado",label:"Desempleado"},{value:"otro",label:"Otro"}]} onChange={(v)=>setProfile(p=>({...p,situacionLaboral:v as Profile["situacionLaboral"]}))} /><SelectField label="Objetivo" value={profile.objetivo} options={[{value:"aerolinea",label:"Aerolínea"},{value:"ejecutivo",label:"Ejecutivo"},{value:"instructor",label:"Instructor"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,objetivo:v as Profile["objetivo"]}))} /></div>}
+              {onboardingStep === 2 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Class 1" value={profile.class1} options={[{value:"si",label:"Sí"},{value:"no",label:"No"},{value:"reservado",label:"Reservado"}]} onChange={(v)=>setProfile(p=>({...p,class1:v as Profile["class1"]}))} /><SelectField label="Class 2" value={profile.class2} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,class2:v as Profile["class2"]}))} /><SelectField label="Nivel de inglés" value={profile.ingles} options={[{value:"bajo",label:"Bajo"},{value:"medio",label:"Medio"},{value:"alto",label:"Alto"}]} onChange={(v)=>setProfile(p=>({...p,ingles:v as Profile["ingles"]}))} /><SelectField label="ICAO level" value={profile.icaoLevel} options={[{value:"0",label:"0"},{value:"4",label:"4"},{value:"5",label:"5"},{value:"6",label:"6"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,icaoLevel:v as Profile["icaoLevel"]}))} /><SelectField label="Preocupación por inglés" value={profile.preocupacionIngles} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,preocupacionIngles:v as Profile["preocupacionIngles"]}))} /></div>}
+              {onboardingStep === 3 && <div className="grid gap-4 md:grid-cols-2"><NumberField label="Dinero disponible ahora" value={profile.dineroDisponible} onChange={(v)=>setProfile(p=>({...p,dineroDisponible:v}))} /><NumberField label="Ahorro mensual posible" value={profile.ahorroMensual} onChange={(v)=>setProfile(p=>({...p,ahorroMensual:v}))} /><SelectField label="Financiación" value={profile.financiacion} options={[{value:"confirmada",label:"Confirmada"},{value:"posible",label:"Posible"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,financiacion:v as Profile["financiacion"]}))} /><SelectField label="Apoyo familiar" value={profile.apoyoFamiliar} options={[{value:"si",label:"Sí"},{value:"parcial",label:"Parcial"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,apoyoFamiliar:v as Profile["apoyoFamiliar"]}))} /><NumberField label="Inversión máxima aceptable" value={profile.inversionMaxima} onChange={(v)=>setProfile(p=>({...p,inversionMaxima:v}))} /><SelectField label="Tolerancia al riesgo financiero" value={profile.toleranciaRiesgo} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,toleranciaRiesgo:v as Profile["toleranciaRiesgo"]}))} /></div>}
+              {onboardingStep === 4 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Disponibilidad" value={profile.disponibilidad} options={[{value:"full-time",label:"Full-time"},{value:"part-time",label:"Part-time"}]} onChange={(v)=>setProfile(p=>({...p,disponibilidad:v as Profile["disponibilidad"]}))} /><NumberField label="Horas por semana" value={profile.horasSemana} onChange={(v)=>setProfile(p=>({...p,horasSemana:v}))} /><SelectField label="Necesita trabajar durante formación" value={profile.necesitaTrabajar} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,necesitaTrabajar:v as Profile["necesitaTrabajar"]}))} /><SelectField label="Movilidad" value={profile.movilidad} options={[{value:"solo_espana",label:"Solo España"},{value:"europa",label:"Europa"},{value:"mundial",label:"Mundial"}]} onChange={(v)=>setProfile(p=>({...p,movilidad:v as Profile["movilidad"]}))} /><SelectField label="Urgencia" value={profile.urgencia} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,urgencia:v as Profile["urgencia"]}))} /></div>}
+              {onboardingStep === 5 && <div className="space-y-4"><p className="text-sm text-slate-600">Puedes añadir hasta 3 escuelas iniciales.</p><div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} /><TextField label="País" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} /><NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} /><NumberField label="Duración anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} /><SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} /><SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} /><TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} /><SelectField label="Estado de verificación" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} /></div><button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Añadir escuela inicial</button></div>}
+              {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razón principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} /></div>}
             </div>
             <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5">
               <button onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))} disabled={onboardingStep === 1} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">Anterior</button>
@@ -679,16 +680,16 @@ export default function Page() {
               <SummaryCard label="Coste realista" value={euro(costs.totalRealista)} />
               <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
               <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
-              <SummaryCard label="Preparacion general" value={`${Math.round((route.integrated + route.modular + route.hybrid + route.prep) / 4)}%`} />
+              <SummaryCard label="Preparación general" value={`${Math.round((route.integrated + route.modular + route.hybrid + route.prep) / 4)}%`} />
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
                 <p className="font-medium">Siguiente paso prioritario</p>
-                <p className="mt-1 text-slate-700">{route.warnings[0] || "Pedir desglose y contrato antes de pagar deposito."}</p>
+                <p className="mt-1 text-slate-700">{route.warnings[0] || "Pedir desglose y contrato antes de pagar depósito."}</p>
               </div>
               {route.principalBlock === "Clase 1 no confirmada" && (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-                  <p className="font-medium">No pagar escuela todavia</p>
+                  <p className="font-medium">No pagar escuela todavía</p>
                   <p>Confirma Clase 1 primero para evitar compromisos de alto riesgo.</p>
                 </div>
               )}
@@ -700,11 +701,11 @@ export default function Page() {
                 <div className="grid gap-3 lg:grid-cols-4">
                   <RouteOption title="Integrada" value={route.integrated} />
                   <RouteOption title="Modular" value={route.modular} />
-                  <RouteOption title="Hibrida" value={route.hybrid} />
-                  <RouteOption title="Preparacion" value={route.prep} />
+                  <RouteOption title="Híbrida" value={route.hybrid} />
+                  <RouteOption title="Preparación" value={route.prep} />
                 </div>
                 <InfoCard label="Ruta recomendada" value={route.recommended} />
-                <InfoCard label="Razon principal" value={route.reason} />
+                <InfoCard label="Razón principal" value={route.reason} />
                 <InfoCard label="Bloqueo principal" value={route.principalBlock} />
                 {route.warnings.map((w) => <div key={w} className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">{w}</div>)}
                 {route.conflicts.map((c) => <div key={c} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">{c}</div>)}
@@ -754,7 +755,7 @@ export default function Page() {
                   <NumberField label="Buffer %" value={costInputs.bufferPct} onChange={(v) => setCostInputs((c) => ({ ...c, bufferPct: v }))} />
                 </CostBlock>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <SummaryCard label="Subtotal formacion" value={euro(costs.subtotalFormacion)} />
+                  <SummaryCard label="Subtotal formación" value={euro(costs.subtotalFormacion)} />
                   <SummaryCard label="Subtotal extras" value={euro(costs.subtotalExtras)} />
                   <SummaryCard label="Subtotal vida" value={euro(costs.subtotalVida)} />
                   <SummaryCard label="Buffer" value={euro(costs.buffer)} />
@@ -767,13 +768,13 @@ export default function Page() {
                 <button onClick={() => setSchools((prev) => prev.filter((s) => !s.isExample))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Eliminar ejemplos y empezar desde cero</button>
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                   <TextField label="Nombre" value={newSchool.nombre} onChange={(v) => setNewSchool((s) => ({ ...s, nombre: v }))} />
-                  <TextField label="Pais" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
+                  <TextField label="País" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
                   <TextField label="Ciudad" value={newSchool.ciudad} onChange={(v) => setNewSchool((s) => ({ ...s, ciudad: v }))} />
                   <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v) => setNewSchool((s) => ({ ...s, precioAnunciado: v }))} />
                   <NumberField label="Duracion meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
-                  <TextField label="Fecha actualizacion" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
+                  <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
                 </div>
-                <button onClick={() => addSchool(false)} className="rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white">Anadir escuela</button>
+                <button onClick={() => addSchool(false)} className="rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white">Añadir escuela</button>
                 {schoolStats.analyzed.map(({ school, analysis }) => (
                   <div key={school.id} className="rounded-xl border border-slate-200 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -789,10 +790,10 @@ export default function Page() {
                       <InfoCard label="Riesgo financiero" value={String(analysis.riesgoFinanciero)} />
                       <InfoCard label="Riesgo operacional" value={String(analysis.riesgoOperacional)} />
                       <InfoCard label="Riesgo de marketing" value={String(analysis.riesgoMarketing)} />
-                      <InfoCard label="Nivel de verificacion" value={String(analysis.verificacion)} />
+                      <InfoCard label="Nivel de verificación" value={String(analysis.verificacion)} />
                       <InfoCard label="Encaje general" value={String(analysis.encajeGeneral)} />
                     </div>
-                    <InfoList title="Red flags" items={analysis.redFlags} empty="informacion insuficiente" />
+                    <InfoList title="Red flags" items={analysis.redFlags} empty="información insuficiente" />
                     <InfoList title="Preguntas pendientes" items={analysis.preguntasPendientes} empty="sin preguntas pendientes" />
                     <InfoCard label="Recomendacion prudente" value={analysis.recomendacionPrudente} />
                     {emailDrafts[school.id] && (
@@ -807,9 +808,9 @@ export default function Page() {
             )}
             {tab === "plan" && (
               <div className="grid gap-4 lg:grid-cols-3">
-                <PlanColumn title="Proximos 7 dias" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir limite maximo de inversion."]} />
-                <PlanColumn title="Proximos 30 dias" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de ingles." : "Mantener practica semanal ATC."]} />
-                <PlanColumn title="Proximos 90 dias" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presion comercial."]} />
+                <PlanColumn title="Próximos 7 días" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir límite máximo de inversión."]} />
+                <PlanColumn title="Próximos 30 días" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de inglés." : "Mantener práctica semanal ATC."]} />
+                <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
               </div>
             )}
             {tab === "report" && (
@@ -819,31 +820,31 @@ export default function Page() {
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   <InfoCard label="Nombre del usuario" value={profile.nombre || "Usuario"} />
                   <InfoCard label="Ruta recomendada" value={route.recommended} />
-                  <InfoCard label="Razon principal" value={route.reason} />
+                  <InfoCard label="Razón principal" value={route.reason} />
                   <InfoCard label="Coste optimista" value={euro(costs.totalOptimista)} />
                   <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
                   <InfoCard label="Coste conservador" value={euro(costs.totalConservador)} />
-                  <InfoCard label="Brecha financiacion" value={euro(costs.brechaFinanciacion)} />
+                  <InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} />
                   <InfoCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
                   <InfoCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
-                  <InfoCard label="Riesgo medico" value={profile.class1 === "si" ? "Bajo" : profile.class1 === "reservado" ? "Medio" : "Alto"} />
-                  <InfoCard label="Riesgo ingles" value={profile.ingles === "alto" ? "Bajo" : profile.ingles === "medio" ? "Medio" : "Alto"} />
+                  <InfoCard label="Riesgo médico" value={profile.class1 === "si" ? "Bajo" : profile.class1 === "reservado" ? "Medio" : "Alto"} />
+                  <InfoCard label="Riesgo de inglés" value={profile.ingles === "alto" ? "Bajo" : profile.ingles === "medio" ? "Medio" : "Alto"} />
                   <InfoCard label="Principal bloqueo" value={route.principalBlock} />
                 </div>
                 </Panel>
                 <Panel title="2. Escuelas y fiabilidad de datos">
-                <InfoCard label="Mejor escuela segun datos actuales" value={schoolStats.bestSchool ? `${schoolStats.bestSchool.school.nombre} (${schoolStats.bestSchool.analysis.recomendacionPrudente})` : "informacion insuficiente"} />
+                <InfoCard label="Mejor escuela según datos actuales" value={schoolStats.bestSchool ? `${schoolStats.bestSchool.school.nombre} (${schoolStats.bestSchool.analysis.recomendacionPrudente})` : "información insuficiente"} />
                 <InfoList title="Red flags principales" items={[...route.warnings, ...(schoolStats.bestSchool?.analysis.redFlags || ["no decidir aun"])]} empty="sin red flags" />
                 <InfoList title="Preguntas pendientes" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["confirmar datos de costes y contrato"]} empty="sin pendientes" />
                 <div className="rounded-xl border border-slate-200 p-3 text-sm">
                   <p>Fuente principal de costes: {schools[0]?.fuentePrecio || "no disponible"}</p>
-                  <p>Fecha actualizacion: {schools[0]?.fechaActualizacion || "no disponible"}</p>
+                  <p>Fecha de actualización: {schools[0]?.fechaActualizacion || "no disponible"}</p>
                   <p>Escuelas comparadas: {schools.length}</p>
                   <p>Escuelas verificadas: {schoolStats.verifiedCount}</p>
                   <p>Escuelas pendientes: {schoolStats.pendingCount}</p>
                 </div>
                 </Panel>
-                <button onClick={() => copyText(`INFORME FLYPATH\\nUsuario: ${profile.nombre || "Usuario"}\\nRuta: ${route.recommended}\\nRazon: ${route.reason}\\nCoste optimista: ${euro(costs.totalOptimista)}\\nCoste realista: ${euro(costs.totalRealista)}\\nCoste conservador: ${euro(costs.totalConservador)}\\nBrecha: ${euro(costs.brechaFinanciacion)}\\nMeses: ${costs.mesesCerrarBrecha}\\nRiesgo financiero: ${costs.riesgoFinanciero}\\nBloqueo: ${route.principalBlock}\\nEscuelas: ${schools.length}\\nVerificadas: ${schoolStats.verifiedCount}\\nPendientes: ${schoolStats.pendingCount}\\n\\nNota: ${disclaimerText}`)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
+                <button onClick={() => copyText(`INFORME FLYPATH\\nUsuario: ${profile.nombre || "Usuario"}\\nRuta: ${route.recommended}\\nRazón: ${route.reason}\\nCoste optimista: ${euro(costs.totalOptimista)}\\nCoste realista: ${euro(costs.totalRealista)}\\nCoste conservador: ${euro(costs.totalConservador)}\\nBrecha: ${euro(costs.brechaFinanciacion)}\\nMeses: ${costs.mesesCerrarBrecha}\\nRiesgo financiero: ${costs.riesgoFinanciero}\\nBloqueo: ${route.principalBlock}\\nEscuelas: ${schools.length}\\nVerificadas: ${schoolStats.verifiedCount}\\nPendientes: ${schoolStats.pendingCount}\\n\\nNota: ${disclaimerText}`)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
               </div>
             )}
           </section>
