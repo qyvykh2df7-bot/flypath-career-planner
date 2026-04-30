@@ -1339,6 +1339,16 @@ ${riesgosAltos.length ? riesgosAltos.join("\n") : "- No hay riesgos altos/críti
 Información que falta antes de transferir dinero:
 ${pendientes.length ? pendientes.join("\n") : "- No hay pendientes críticos detectados en este momento."}
 
+Plan de acción:
+Próximos 7 días:
+${actionPlan.sevenDays.length ? actionPlan.sevenDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
+
+Próximos 30 días:
+${actionPlan.thirtyDays.length ? actionPlan.thirtyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
+
+Próximos 90 días:
+${actionPlan.ninetyDays.length ? actionPlan.ninetyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
+
 Preguntas clave para una escuela:
 - ¿Qué incluye exactamente el precio y qué no?
 - ¿Cuál es la política de reembolso por escrito?
@@ -1350,7 +1360,7 @@ Decisiones que conviene evitar por ahora:
 - Pagar por presión comercial sin contrato y condiciones por escrito.
 - Asumir promesas de empleo como garantía.
 - Firmar sin validar costes extra (tasas, skill tests, repeticiones, alojamiento).`;
-  }, [profile.nombre, costs.totalOptimista, costs.totalRealista, costs.totalConservador, costs.brechaFinanciacion, decisionReadiness.score, decisionReadiness.decision, decisionReadiness.faltanDatos, riskDiagnosis, shouldPayNow]);
+  }, [profile.nombre, costs.totalOptimista, costs.totalRealista, costs.totalConservador, costs.brechaFinanciacion, decisionReadiness.score, decisionReadiness.decision, decisionReadiness.faltanDatos, riskDiagnosis, shouldPayNow, actionPlan]);
 
   const informeCompletoText = useMemo(() => {
     return `INFORME FLYPATH CAREER PLANNER
@@ -1385,6 +1395,16 @@ ${decisionReadiness.faltanDatos.length ? decisionReadiness.faltanDatos.map((x) =
 Próximos pasos:
 ${decisionReadiness.proximosPasos.map((x) => `- ${x}`).join("\n")}
 
+Plan de acción:
+Próximos 7 días:
+${actionPlan.sevenDays.length ? actionPlan.sevenDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
+
+Próximos 30 días:
+${actionPlan.thirtyDays.length ? actionPlan.thirtyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
+
+Próximos 90 días:
+${actionPlan.ninetyDays.length ? actionPlan.ninetyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
+
 Disclaimer:
 ${disclaimerText}`;
   }, [
@@ -1407,6 +1427,7 @@ ${disclaimerText}`;
     schools.length,
     schoolStats.verifiedCount,
     schoolStats.pendingCount,
+    actionPlan,
   ]);
 
   const resetDemoData = () => {
