@@ -851,34 +851,26 @@ export default function Page() {
             <p className="text-sm text-slate-500">Perfil activo</p>
             <h1 className="text-2xl font-semibold">{profile.nombre || "Usuario"}</h1>
             <p className="text-sm text-slate-500">{profile.pais} · {profile.situacionLaboral} · Objetivo: {objetivoLabel(profile.objetivo)}</p>
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <SummaryCard label="Ruta recomendada" value={route.recommended} />
               <SummaryCard label="Coste realista" value={euro(costs.totalRealista)} />
               <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
               <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
-              <SummaryCard label="Preparación general" value={`${Math.round((route.integrated + route.modular + route.hybrid + route.prep) / 4)}%`} />
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                <p className="font-medium">Siguiente paso prioritario</p>
-                <p className="mt-1 text-slate-700">{route.warnings[0] || "Pedir desglose y contrato antes de pagar depósito."}</p>
-              </div>
-              <div className="rounded-xl border border-[#1d4ed8]/25 bg-gradient-to-r from-[#e9f1ff] via-white to-[#f5f9ff] p-3 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">¿Listo para pagar?</p>
-                <p className="mt-1 text-xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-sm font-semibold text-slate-500">/100</span></p>
-                <p className="mt-1 font-medium text-[#0f1a33]">{decisionReadiness.decision}</p>
-                <p className="mt-1 text-slate-600">{decisionReadiness.bloqueosCriticos[0] || "Sin bloqueos críticos"}</p>
-                <button onClick={() => setTab("readiness")} className="mt-2 rounded-md border border-[#1d4ed8]/30 bg-white px-2 py-1 text-xs font-medium text-[#1d4ed8]">
-                  Ver análisis
-                </button>
-              </div>
-              {route.principalBlock === "Clase 1 no confirmada" && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-                  <p className="font-medium">No pagar escuela todavía</p>
-                  <p>Confirma Clase 1 primero para evitar compromisos de alto riesgo.</p>
+            {tab === "route" && (
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                  <p className="font-medium">Siguiente paso prioritario</p>
+                  <p className="mt-1 text-slate-700">{route.warnings[0] || "Pedir desglose y contrato antes de pagar depósito."}</p>
                 </div>
-              )}
-            </div>
+                {route.principalBlock === "Clase 1 no confirmada" && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+                    <p className="font-medium">No pagar escuela todavía</p>
+                    <p>Confirma Clase 1 primero para evitar compromisos de alto riesgo.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </header>
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             {tab === "route" && (
@@ -906,10 +898,34 @@ export default function Page() {
                   <SummaryCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
                   <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-medium">Cobertura financiera</p>
-                  <div className="mt-2"><Progress value={costs.coverage} tone="bg-[#0f1a33]" /></div>
-                  <p className="mt-1 text-sm text-slate-600">{costs.coverage}% del escenario realista cubierto.</p>
+                <CostBreakdownBars
+                  totalRealista={costs.totalRealista}
+                  subtotalFormacion={costs.subtotalFormacion}
+                  subtotalExtras={costs.subtotalExtras}
+                  subtotalVida={costs.subtotalVida}
+                  buffer={costs.buffer}
+                />
+                <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <FinancialCoverageCard
+                    dineroDisponible={profile.dineroDisponible}
+                    totalRealista={costs.totalRealista}
+                    brechaFinanciacion={costs.brechaFinanciacion}
+                    coverage={costs.coverage}
+                  />
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-700">Meses para cerrar brecha</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <InfoCard label="Ahorro mensual actual" value={euro(profile.ahorroMensual)} />
+                      <InfoCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
+                      <InfoCard label="Meses estimados" value={String(costs.mesesCerrarBrecha)} />
+                    </div>
+                    {profile.ahorroMensual === 0 && costs.brechaFinanciacion > 0 && (
+                      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">
+                        No se puede estimar el tiempo para cerrar la brecha porque el ahorro mensual es 0.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <CostBlock title="Formación">
                   <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
@@ -1087,6 +1103,24 @@ export default function Page() {
                   )}
                   <InfoList title="Bloqueos críticos principales" items={decisionReadiness.bloqueosCriticos.slice(0, 3)} empty="Sin bloqueos críticos detectados." />
                 </Panel>
+                <Panel title="4. Resumen visual de costes">
+                  <div className="space-y-4">
+                    <CostBreakdownBars
+                      totalRealista={costs.totalRealista}
+                      subtotalFormacion={costs.subtotalFormacion}
+                      subtotalExtras={costs.subtotalExtras}
+                      subtotalVida={costs.subtotalVida}
+                      buffer={costs.buffer}
+                    />
+                    <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
+                    <FinancialCoverageCard
+                      dineroDisponible={profile.dineroDisponible}
+                      totalRealista={costs.totalRealista}
+                      brechaFinanciacion={costs.brechaFinanciacion}
+                      coverage={costs.coverage}
+                    />
+                  </div>
+                </Panel>
                 <button onClick={() => copyText(`INFORME FLYPATH\\nUsuario: ${profile.nombre || "Usuario"}\\nRuta: ${route.recommended}\\nRazón: ${route.reason}\\nCoste optimista: ${euro(costs.totalOptimista)}\\nCoste realista: ${euro(costs.totalRealista)}\\nCoste conservador: ${euro(costs.totalConservador)}\\nBrecha: ${euro(costs.brechaFinanciacion)}\\nMeses: ${costs.mesesCerrarBrecha}\\nRiesgo financiero: ${costs.riesgoFinanciero}\\nBloqueo: ${route.principalBlock}\\nEscuelas: ${schools.length}\\nVerificadas: ${schoolStats.verifiedCount}\\nPendientes: ${schoolStats.pendingCount}\\n\\nNota: ${disclaimerText}`)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
               </div>
             )}
@@ -1128,6 +1162,115 @@ function CostBlock({ title, children }: { title: string; children: React.ReactNo
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return <div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
+}
+
+function CostBreakdownBars({
+  totalRealista,
+  subtotalFormacion,
+  subtotalExtras,
+  subtotalVida,
+  buffer,
+}: {
+  totalRealista: number;
+  subtotalFormacion: number;
+  subtotalExtras: number;
+  subtotalVida: number;
+  buffer: number;
+}) {
+  const items = [
+    { label: "Formación", value: subtotalFormacion, tone: "bg-[#1d4ed8]" },
+    { label: "Extras", value: subtotalExtras, tone: "bg-[#0f766e]" },
+    { label: "Vida y logística", value: subtotalVida, tone: "bg-[#7c3aed]" },
+    { label: "Buffer", value: buffer, tone: "bg-[#c9a454]" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-700">Desglose visual del coste realista</p>
+      <div className="mt-3 space-y-3">
+        {items.map((item) => {
+          const percentage = totalRealista > 0 ? (item.value / totalRealista) * 100 : 0;
+          return (
+            <div key={item.label}>
+              <div className="mb-1 flex items-center justify-between text-sm">
+                <p className="font-medium text-slate-700">{item.label}</p>
+                <p className="text-slate-600">{euro(item.value)} · {Math.round(percentage)}%</p>
+              </div>
+              <div className="h-2 rounded-full bg-slate-200">
+                <div className={`h-2 rounded-full ${item.tone}`} style={{ width: `${clamp(percentage)}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ScenarioBars({
+  totalOptimista,
+  totalRealista,
+  totalConservador,
+}: {
+  totalOptimista: number;
+  totalRealista: number;
+  totalConservador: number;
+}) {
+  const maxValue = Math.max(totalOptimista, totalRealista, totalConservador, 1);
+  const scenarios = [
+    { label: "Optimista", value: totalOptimista, tone: "bg-[#0f766e]" },
+    { label: "Realista", value: totalRealista, tone: "bg-[#1d4ed8]" },
+    { label: "Conservador", value: totalConservador, tone: "bg-[#b45309]" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-sm font-semibold text-slate-700">Escenarios de coste (no hay un único número)</p>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {scenarios.map((scenario) => {
+          const height = (scenario.value / maxValue) * 100;
+          return (
+            <div key={scenario.label} className="rounded-lg border border-slate-200 p-3">
+              <p className="text-xs uppercase tracking-wide text-slate-500">{scenario.label}</p>
+              <p className="mt-1 text-sm font-semibold text-slate-700">{euro(scenario.value)}</p>
+              <div className="mt-3 h-24 rounded bg-slate-100 p-1">
+                <div className={`w-full rounded ${scenario.tone}`} style={{ height: `${clamp(height)}%`, marginTop: `${100 - clamp(height)}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FinancialCoverageCard({
+  dineroDisponible,
+  totalRealista,
+  brechaFinanciacion,
+  coverage,
+}: {
+  dineroDisponible: number;
+  totalRealista: number;
+  brechaFinanciacion: number;
+  coverage: number;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-700">Cobertura financiera</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <InfoCard label="Dinero disponible" value={euro(dineroDisponible)} />
+        <InfoCard label="Coste realista" value={euro(totalRealista)} />
+        <InfoCard label="Brecha de financiación" value={euro(brechaFinanciacion)} />
+        <InfoCard label="Porcentaje cubierto" value={`${coverage}%`} />
+      </div>
+      <div className="mt-3"><Progress value={coverage} tone="bg-[#0f1a33]" /></div>
+      <p className="mt-2 text-sm text-slate-600">Tu presupuesto actual cubre aproximadamente {coverage}% del escenario realista.</p>
+      {brechaFinanciacion > 0 && (
+        <p className="mt-1 text-sm text-slate-700">Te faltarían aproximadamente {euro(brechaFinanciacion)} para cubrir el escenario realista.</p>
+      )}
+    </div>
+  );
 }
 
 function InfoList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
