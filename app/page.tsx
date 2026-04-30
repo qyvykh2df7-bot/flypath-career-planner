@@ -2193,8 +2193,8 @@ ${disclaimerText}`;
                       <InfoCard label="Ruta" value={route.recommended} />
                       <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
                       <InfoCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-                      <InfoCard label="Bloqueo principal" value={route.principalBlock} />
-                      <InfoCard label="Próximo paso" value={decisionReadiness.proximosPasos[0] || "Confirmar datos críticos por escrito."} />
+                      <InfoCard label="Readiness" value={decisionReadiness.decision} />
+                      <InfoCard label="Score" value={`${decisionReadiness.score}/100`} />
                     </div>
                     <p className="mt-2 text-sm text-slate-700">
                       La recomendación principal es <strong>{decisionReadiness.decision}</strong>. La ruta sugerida es <strong>{route.recommended}</strong>. El coste realista estimado es <strong>{euro(costs.totalRealista)}</strong>, con una brecha de <strong>{euro(costs.brechaFinanciacion)}</strong>.
@@ -2241,7 +2241,7 @@ ${disclaimerText}`;
                   </div>
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
                     <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
-                    <InfoList title="Datos pendientes" items={decisionReadiness.faltanDatos} empty="Sin datos pendientes críticos." />
+                    <InfoList title="Datos pendientes" items={decisionReadiness.faltanDatos} empty="No hay datos críticos pendientes detectados." />
                     <InfoList title="Próximos pasos" items={decisionReadiness.proximosPasos} empty="Sin próximos pasos pendientes." />
                   </div>
                 </Panel>
@@ -2379,9 +2379,9 @@ ${disclaimerText}`;
                 </Panel>
                 <Panel title="Plan de acción">
                   <div className="grid gap-4 lg:grid-cols-3">
-                    <PlanColumn title="Próximos 7 días" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir límite máximo de inversión."]} />
-                    <PlanColumn title="Próximos 30 días" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de inglés." : "Mantener práctica semanal ATC."]} />
-                    <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
+                    <PlanColumn title="Próximos 7 días" tasks={actionPlan.sevenDays} />
+                    <PlanColumn title="Próximos 30 días" tasks={actionPlan.thirtyDays} />
+                    <PlanColumn title="Próximos 90 días" tasks={actionPlan.ninetyDays} />
                   </div>
                 </Panel>
                 <div className="rounded-2xl border border-[#c9a454]/40 bg-[#0f1a33] p-5 text-white shadow-sm">
