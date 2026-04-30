@@ -1460,10 +1460,12 @@ ${disclaimerText}`;
                   <p className="mt-2 text-xs text-slate-600">
                     No tomes esta cifra como precio oficial. Úsala como escenario de trabajo para preguntar mejor a las escuelas.
                   </p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Brecha financiera = lo que falta para cubrir el escenario realista con tu dinero disponible.
+                  </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Datos principales</p>
-                  <p className="mb-3 text-xs text-slate-600">La brecha financiera representa lo que te falta para cubrir el escenario realista.</p>
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <SummaryCard label="Total optimista" value={euro(costs.totalOptimista)} />
                     <SummaryCard label="Total realista" value={euro(costs.totalRealista)} />
@@ -1473,22 +1475,20 @@ ${disclaimerText}`;
                     <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Acción recomendada</p>
-                  <p className="text-sm text-slate-700">
-                    {costs.brechaFinanciacion > 0
-                      ? "Ajusta costes, confirma financiación o reduce la brecha antes de pagar."
-                      : "Valida que los costes de escuela coinciden con el escenario realista."}
-                  </p>
-                  <p className="mt-2 text-xs text-slate-600">Brecha financiera = coste realista - dinero disponible.</p>
-                  <p className="mt-1 text-xs text-slate-600">Meses estimados = brecha financiera / ahorro mensual.</p>
-                </div>
                 <FinancialCoverageCard
                   dineroDisponible={profile.dineroDisponible}
                   totalRealista={costs.totalRealista}
                   brechaFinanciacion={costs.brechaFinanciacion}
                   coverage={costs.coverage}
                 />
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Siguiente acción</p>
+                  <p className="text-sm text-slate-700">
+                    {costs.brechaFinanciacion > 0
+                      ? "Ajusta costes, confirma financiación o reduce la brecha antes de pagar."
+                      : "Valida que los costes de escuela coinciden con el escenario realista."}
+                  </p>
+                </div>
                 <details className="rounded-xl border border-slate-200 p-4">
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver desglose visual de costes</summary>
                   <div className="mt-4 space-y-4">
@@ -1560,7 +1560,6 @@ ${disclaimerText}`;
                 <details className="rounded-xl border border-slate-200 p-4">
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver fórmulas usadas</summary>
                   <div className="mt-3 text-sm text-slate-700">
-                    <p>Brecha financiera = coste realista - dinero disponible.</p>
                     <p>Meses estimados = brecha financiera / ahorro mensual.</p>
                     <p>Cobertura = (dinero disponible / coste realista) x 100.</p>
                   </div>
@@ -1569,29 +1568,15 @@ ${disclaimerText}`;
             )}
             {tab === "schools" && (
               <div className="space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-800">Lectura simple</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {hasExampleSchools
-                      ? "Aún estás usando escuelas de ejemplo."
-                      : "Ya estás comparando escuelas reales."}{" "}
-                    {schoolStats.verifiedCount === 0
-                      ? "Todavía no hay suficiente información verificada para elegir escuela con seguridad."
-                      : "Ya existe base documental parcial para comparar opciones."}{" "}
-                    El siguiente paso no es pagar, sino pedir por escrito precio final, contrato, reembolso, MCC/JOC, UPRT y calendario de pagos.
-                  </p>
-                </div>
                 <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión sobre escuelas</p>
+                  <p className="text-sm font-semibold text-[#0f1a33]">Estado de la comparación</p>
                   <p className="mt-1 text-sm text-slate-700">
                     Has comparado <strong>{schools.length}</strong> escuela(s), con <strong>{schoolStats.verifiedCount}</strong> verificada(s).
-                    {schoolStats.bestSchool ? ` La mejor opción actual es ${schoolStats.bestSchool.school.nombre}.` : " Todavía no hay suficiente información verificada para elegir escuela con seguridad."}
+                    {hasExampleSchools ? " Sigues usando escuelas demo." : " Ya estás trabajando con escuelas reales."}{" "}
+                    {schoolStats.bestSchool ? `La mejor opción actual es ${schoolStats.bestSchool.school.nombre}.` : "Todavía no hay suficiente información para decidir con seguridad."}
                   </p>
-                </div>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="text-sm font-semibold text-slate-700">Siguiente acción</p>
-                  <p className="mt-1 text-sm text-slate-700">
+                  <p className="mt-2 text-sm text-slate-700">
+                    <strong>Siguiente acción:</strong>{" "}
                     {hasExampleSchools
                       ? "Elimina ejemplos y añade escuelas reales."
                       : schools.length < 2
@@ -1600,7 +1585,13 @@ ${disclaimerText}`;
                       ? "Pide confirmación por escrito usando el email inteligente."
                       : "Revisa red flags y confirma por escrito antes de comprometer dinero."}
                   </p>
+                  {schoolStats.verifiedCount === 0 && (
+                    <p className="mt-2 text-sm text-slate-700">
+                      Todavía no hay suficiente información verificada para elegir escuela con seguridad. El siguiente paso es pedir por escrito precio final, contrato, reembolso, MCC/JOC, UPRT y calendario de pagos.
+                    </p>
+                  )}
                 </div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
                 <button
                   onClick={() => {
                     setSchools((prev) => prev.filter((s) => !s.isExample));
@@ -1698,7 +1689,7 @@ ${disclaimerText}`;
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-semibold text-slate-800">Respuesta corta</p>
                   <p className="mt-1 text-sm text-slate-700">
-                    {decisionReadiness.decision}. El motivo principal es <strong>{route.principalBlock}</strong>. Antes de comprometer dinero, conviene ejecutar este paso: <strong>{decisionReadiness.proximosPasos[0] || "Confirmar datos clave por escrito."}</strong>
+                    <strong>{decisionReadiness.decision}</strong>. Preparación para decidir: <strong>{decisionReadiness.score}/100</strong>. El motivo principal es <strong>{route.principalBlock}</strong>. Siguiente paso: <strong>{decisionReadiness.proximosPasos[0] || "Confirmar datos clave por escrito."}</strong>
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] via-white to-[#f8fbff] p-5">
@@ -1720,12 +1711,6 @@ ${disclaimerText}`;
                   <p className="text-sm font-semibold text-slate-700">Siguiente acción</p>
                   <p className="mt-1 text-sm text-slate-700">{decisionReadiness.proximosPasos[0] || "Confirmar por escrito contrato, reembolso y calendario de pagos."}</p>
                 </div>
-                {decisionReadiness.showNoPaguesBadge && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-                    <p className="font-semibold">No pagues escuela todavía</p>
-                    <p className="mt-1">Resuelve los bloqueos críticos antes de pagar matrícula, depósito o firmar.</p>
-                  </div>
-                )}
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Acciones</p>
                   <div className="grid gap-4 lg:grid-cols-3">
@@ -1746,25 +1731,21 @@ ${disclaimerText}`;
                   </p>
                 </Panel>
                 <Panel title="1. Resumen ejecutivo">
-                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                    <InfoCard label="Decisión" value={decisionReadiness.decision} />
-                    <InfoCard label="Ruta" value={route.recommended} />
-                    <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
-                    <InfoCard label="Bloqueo principal" value={route.principalBlock} />
-                    <InfoCard label="Próximo paso" value={decisionReadiness.proximosPasos[0] || "Confirmar datos críticos por escrito."} />
+                  <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                      <InfoCard label="Decisión" value={decisionReadiness.decision} />
+                      <InfoCard label="Ruta" value={route.recommended} />
+                      <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
+                      <InfoCard label="Bloqueo principal" value={route.principalBlock} />
+                      <InfoCard label="Próximo paso" value={decisionReadiness.proximosPasos[0] || "Confirmar datos críticos por escrito."} />
+                    </div>
+                    <p className="mt-2 text-sm text-slate-700">
+                      {shouldPayNow
+                        ? "Conclusión: puedes avanzar con condiciones, manteniendo control documental y financiero."
+                        : "Conclusión: todavía no conviene comprometer dinero hasta resolver bloqueos clave."}
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm text-slate-700">
-                    {shouldPayNow
-                      ? "Conclusión: puedes avanzar con condiciones, manteniendo control documental y financiero."
-                      : "Conclusión: todavía no conviene comprometer dinero hasta resolver bloqueos clave."}
-                  </p>
-                </div>
                 </Panel>
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="text-sm font-semibold text-slate-700">Siguiente acción</p>
-                  <p className="mt-1 text-sm text-slate-700">Copia el resumen o úsalo como checklist antes de contactar escuelas.</p>
-                </div>
                 <Panel title="2. Decisión antes de pagar">
                   <div className="grid gap-4 xl:grid-cols-3">
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -1789,25 +1770,7 @@ ${disclaimerText}`;
                     <InfoList title="Próximos pasos" items={decisionReadiness.proximosPasos} empty="Sin próximos pasos pendientes." />
                   </div>
                 </Panel>
-                <Panel title="3. Diagnóstico de riesgos">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {riskDiagnosis.map((risk) => (
-                      <div key={risk.label} className="rounded-xl border border-slate-200 bg-white p-3">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{risk.label}</p>
-                        <p className="mt-1 text-sm font-semibold text-[#0f1a33]">{risk.nivel}</p>
-                        <p className="mt-1 text-sm text-slate-600">{risk.explicacion}</p>
-                        <p className="mt-2 text-sm text-slate-700"><strong>Acción recomendada:</strong> {risk.accion}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <details className="mt-3 rounded-lg border border-slate-200 p-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver detalles ampliados de riesgos secundarios</summary>
-                    <p className="mt-2 text-sm text-slate-600">
-                      Este bloque resume riesgos complementarios que conviene revisar antes de decidir pagos: timing, validación documental y consistencia comercial.
-                    </p>
-                  </details>
-                </Panel>
-                <Panel title="4. Costes y financiación">
+                <Panel title="3. Costes y financiación">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <InfoCard label="Coste optimista" value={euro(costs.totalOptimista)} />
                     <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
@@ -1832,6 +1795,24 @@ ${disclaimerText}`;
                       coverage={costs.coverage}
                     />
                   </div>
+                </Panel>
+                <Panel title="4. Riesgos principales">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {riskDiagnosis.map((risk) => (
+                      <div key={risk.label} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{risk.label}</p>
+                        <p className="mt-1 text-sm font-semibold text-[#0f1a33]">{risk.nivel}</p>
+                        <p className="mt-1 text-sm text-slate-600">{risk.explicacion}</p>
+                        <p className="mt-2 text-sm text-slate-700"><strong>Acción recomendada:</strong> {risk.accion}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <details className="mt-3 rounded-lg border border-slate-200 p-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver detalles ampliados de riesgos secundarios</summary>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Este bloque resume riesgos complementarios que conviene revisar antes de decidir pagos: timing, validación documental y consistencia comercial.
+                    </p>
+                  </details>
                 </Panel>
                 <Panel title="5. Escuelas y datos pendientes">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -1863,14 +1844,7 @@ ${disclaimerText}`;
                     </p>
                   )}
                 </Panel>
-                <Panel title="6. Plan de acción">
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    <PlanColumn title="Próximos 7 días" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir límite máximo de inversión."]} />
-                    <PlanColumn title="Próximos 30 días" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de inglés." : "Mantener práctica semanal ATC."]} />
-                    <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
-                  </div>
-                </Panel>
-                <Panel title="Resumen para padres / familia">
+                <Panel title="6. Resumen para padres / familia">
                   <p className="text-sm text-slate-700">
                     Antes de pagar una matrícula o depósito, conviene confirmar por escrito qué incluye el precio, cuál es la política de reembolso,
                     si el MCC/JOC está incluido y cuál es la duración media real del programa.
@@ -1916,7 +1890,14 @@ ${disclaimerText}`;
                     {copiedKey === "padres" ? "Copiado" : "Copiar resumen para padres"}
                   </button>
                 </Panel>
-                <Panel title="7. Disclaimer">
+                <Panel title="7. Plan de acción">
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <PlanColumn title="Próximos 7 días" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir límite máximo de inversión."]} />
+                    <PlanColumn title="Próximos 30 días" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de inglés." : "Mantener práctica semanal ATC."]} />
+                    <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
+                  </div>
+                </Panel>
+                <Panel title="8. Disclaimer">
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
                 </Panel>
                 <button
