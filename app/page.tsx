@@ -640,20 +640,41 @@ function computeDecisionReadiness({
     (x) => x.school.estadoVerificacion === "verificado" || x.school.estadoVerificacion === "parcialmente_verificado"
   );
 
-  const anyVaguePromises = schoolsAnalyzed.some((x) => x.school.promesasEmpleo === "vagas");
-  const anyDocMissing = schoolsAnalyzed.some(
+  // 1. Replace anyVaguePromises with hasAnySchool
+  const hasAnySchool = schoolsAnalyzed.length > 0;
+  // More robust and transparent logic for payment-clear schools
+  const paymentClearSchools = schoolsAnalyzed.filter(
     (x) =>
-      x.school.contratoAntesPagar !== "si" ||
-      x.school.reembolsoClaro !== "si" ||
-      x.school.calendarioPagosClaro !== "si"
+      x.school.contratoAntesPagar === "si" &&
+      x.school.reembolsoClaro === "si" &&
+      x.school.calendarioPagosClaro === "si"
   );
-  const anyCriticalMissing = schoolsAnalyzed.some(
+  const hasPaymentClearSchool = paymentClearSchools.length > 0;
+
+  // 1.5. Add usableSchools block after paymentClearSchools
+  const usableSchools = schoolsAnalyzed.filter(
     (x) =>
-      x.school.mccIncluido !== "si" ||
-      x.school.uprtIncluido !== "si" ||
-      x.school.tasasIncluidas !== "si" ||
-      x.school.skillTestsIncluidos !== "si" ||
-      x.school.alojamientoIncluido !== "si"
+      x.school.precioAnunciado > 0 &&
+      x.school.contratoAntesPagar === "si" &&
+      x.school.reembolsoClaro === "si" &&
+      x.school.calendarioPagosClaro === "si"
+  );
+
+  const hasPaymentReadySchool = paymentClearSchools.some(
+    (x) => x.school.estadoVerificacion === "verificado" || x.school.estadoVerificacion === "parcialmente_verificado"
+  );
+
+  // 2. Add new blocks
+  const hasFullyCostedSchool = schoolsAnalyzed.some(
+    (x) =>
+      x.school.mccIncluido === "si" &&
+      x.school.uprtIncluido === "si" &&
+      x.school.tasasIncluidas === "si" &&
+      x.school.skillTestsIncluidos === "si"
+  );
+
+  const hasLowMarketingRiskSchool = schoolsAnalyzed.some(
+    (x) => x.school.promesasEmpleo === "ninguna" || x.school.promesasEmpleo === "claras_no_garantizadas"
   );
 
   if (profile.class1 !== "si") {
@@ -670,7 +691,11 @@ function computeDecisionReadiness({
 
   if (costs.brechaFinanciacion > costs.totalRealista * 0.4) {
     score -= 25;
-    bloqueosCriticos.push("Brecha financiera alta respecto al coste realista.");
+    if (profile.financiacion !== "confirmada") {
+      bloqueosCriticos.push("Brecha financiera alta respecto al coste realista.");
+    } else {
+      faltanDatos.push("Brecha financiera alta, aunque hay financiación confirmada.");
+    }
   } else if (costs.brechaFinanciacion > costs.totalRealista * 0.2) {
     score -= 12;
   }
@@ -689,64 +714,188 @@ function computeDecisionReadiness({
     score -= 20;
     faltanDatos.push("No hay escuelas comparadas.");
   } else if (schoolsAnalyzed.length < 2) {
-    score -= 10;
+    score -= 6;
     faltanDatos.push("Comparar al menos 2 escuelas para decidir con criterio.");
   }
 
-  if (verifiedOrPartial.length === 0) {
-    score -= 20;
-    bloqueosCriticos.push("Faltan datos verificados o parcialmente verificados.");
+  if (verifiedOrPartial.length === 0 && usableSchools.length === 0) {
+    score -= hasPaymentClearSchool ? 6 : 14;
+    faltanDatos.push("Falta al menos una escuela con datos verificados o suficientemente documentados.");
+  } else if (verifiedOrPartial.length === 0 && usableSchools.length > 0) {
+    score -= 2;
+    faltanDatos.push("La escuela parece suficientemente documentada, pero conviene conservar evidencia por escrito.");
   }
 
-  if (anyDocMissing) {
-    score -= 18;
-    bloqueosCriticos.push("Bloqueo documental: contrato/reembolso/calendario no claros.");
+  if (schoolsAnalyzed.length > 0 && !hasPaymentClearSchool) {
+    score -= 15;
+    faltanDatos.push("Falta al menos una escuela con contrato, reembolso y calendario de pagos claros.");
+  } else if (hasPaymentClearSchool && !hasPaymentReadySchool) {
+    score -= 4;
+    const clearSchoolNames = paymentClearSchools.map((x) => x.school.nombre).filter(Boolean).join(", ");
+    faltanDatos.push(
+      `${clearSchoolNames || "Una escuela"} ya tiene contrato, reembolso y calendario claros; falta marcarla como verificada o parcialmente verificada.`
+    );
   }
 
-  if (anyVaguePromises) {
-    score -= 10;
-    faltanDatos.push("Riesgo de marketing: promesas vagas de empleo.");
+  // 4. Replace vague promises block
+  if (hasAnySchool && !hasLowMarketingRiskSchool) {
+    score -= 6;
+    faltanDatos.push("Falta una escuela con promesas comerciales claras y no garantizadas.");
   }
 
-  if (anyCriticalMissing) {
-    score -= 12;
-    faltanDatos.push("Faltan datos críticos: MCC/UPRT/tasas/skill tests/alojamiento.");
+  // 5. Replace anyCriticalMissing block
+  if (hasAnySchool && !hasFullyCostedSchool) {
+    score -= 8;
+    // No longer push the legacy generic message here; granular message will be handled below.
+    // (Score penalty remains.)
   }
+
+  // Accommodation is useful for budgeting, but it is not a critical readiness blocker.
+  const hasAccommodationInfo = schoolsAnalyzed.some((x) => x.school.alojamientoIncluido === "si" || x.school.alojamientoIncluido === "no");
 
   if (route.conflicts.some((c) => c.includes("rapidez"))) {
     score -= 8;
     faltanDatos.push("Conflicto actual entre urgencia y necesidad de trabajar.");
   }
 
+  // Remove any critical blockers related to documentation issues before clamping score
+  const nonCriticalSchoolWarnings = [
+    "Bloqueo documental",
+    "contrato/reembolso/calendario",
+    "Faltan datos verificados",
+    "datos verificados o parcialmente verificados",
+  ];
+
+  const filteredCriticalBlockers = bloqueosCriticos.filter(
+    (item) => !nonCriticalSchoolWarnings.some((warning) => item.includes(warning))
+  );
+  bloqueosCriticos.splice(0, bloqueosCriticos.length, ...filteredCriticalBlockers);
+
+  // Remove "Falta al menos una escuela con contrato, reembolso y calendario de pagos claros." if we actually have one (safety cleanup)
+  if (hasPaymentClearSchool) {
+    const missingPaymentText = "Falta al menos una escuela con contrato, reembolso y calendario de pagos claros.";
+    for (let i = faltanDatos.length - 1; i >= 0; i -= 1) {
+      if (faltanDatos[i] === missingPaymentText) faltanDatos.splice(i, 1);
+    }
+  }
+  // Remove legacy generic extras text if present (cleanup). The app should now show granular missing items instead.
+  const legacyGenericExtrasFragments = [
+    "Faltan datos críticos: MCC/UPRT/tasas/skill tests/alojamiento",
+    "MCC/UPRT/tasas/skill tests/alojamiento",
+  ];
+  for (let i = faltanDatos.length - 1; i >= 0; i -= 1) {
+    if (legacyGenericExtrasFragments.some((fragment) => faltanDatos[i]?.includes(fragment))) {
+      faltanDatos.splice(i, 1);
+    }
+  }
+
+  // 4. Safety cleanup for obsolete school verification steps if at least 2 usableSchools
+  if (usableSchools.length >= 2) {
+    const obsoleteSchoolVerificationSteps = [
+      "Actualizar escenarios con costes verificados o parcialmente verificados de al menos 2 escuelas.",
+      "Falta al menos una escuela con datos verificados o parcialmente verificados.",
+    ];
+    for (let i = faltanDatos.length - 1; i >= 0; i -= 1) {
+      if (obsoleteSchoolVerificationSteps.some((text) => faltanDatos[i]?.includes(text))) {
+        faltanDatos.splice(i, 1);
+      }
+    }
+  }
+
+  // Add granular message for missing included items, only if actually missing and not already present.
+  const granularMissingIncludedItems = [
+    !schoolsAnalyzed.some((x) => x.school.mccIncluido === "si") ? "MCC/JOC" : null,
+    !schoolsAnalyzed.some((x) => x.school.uprtIncluido === "si") ? "Advanced UPRT" : null,
+    !schoolsAnalyzed.some((x) => x.school.tasasIncluidas === "si") ? "tasas" : null,
+    !schoolsAnalyzed.some((x) => x.school.skillTestsIncluidos === "si") ? "skill tests" : null,
+    // alojamiento intentionally omitted as not critical for readiness
+  ].filter(Boolean) as string[];
+
+  const granularIncludedText = granularMissingIncludedItems.length
+    ? `Falta confirmar como incluido: ${granularMissingIncludedItems.join(", ")}.`
+    : null;
+
+  const alreadyHasGranularIncludedText = faltanDatos.some((item) => item.startsWith("Falta confirmar como incluido:"));
+  if (granularIncludedText && !alreadyHasGranularIncludedText) {
+    faltanDatos.push(granularIncludedText);
+  }
+
+  // 7. Make sure the score rewards having at least one good school instead of being dragged down by every incomplete/demo school.
+  // (This is achieved by the logic above: only penalize if NO school meets the good criteria, not for every incomplete one)
+
   score = clamp(score);
 
-  const showNoPaguesBadge = profile.class1 !== "si" || bloqueosCriticos.length > 0;
+  const hasHardPersonalBlocker =
+    profile.class1 !== "si" ||
+    (profile.financiacion !== "confirmada" && costs.coverage < 70) ||
+    (profile.financiacion !== "confirmada" && costs.brechaFinanciacion > costs.totalRealista * 0.4);
+
+  const showNoPaguesBadge = hasHardPersonalBlocker;
 
   let decision: DecisionReadiness["decision"] = "Puedes avanzar, pero faltan datos";
-  if (profile.class1 !== "si") {
+  if (hasHardPersonalBlocker || bloqueosCriticos.length > 0) {
     decision = "No pagues todavía";
-  } else if (bloqueosCriticos.length > 0 || score < 55) {
-    decision = "No pagues todavía";
-  } else if (faltanDatos.length > 0 || score < 75) {
+  } else if (!hasPaymentClearSchool || faltanDatos.length > 0 || score < 75) {
     decision = "Puedes avanzar, pero faltan datos";
   } else {
     decision = "Listo para decidir con condiciones";
+  }
+  if (!hasHardPersonalBlocker && decision === "No pagues todavía") {
+    decision = "Puedes avanzar, pero faltan datos";
   }
 
   const explanationMap: Record<DecisionReadiness["decision"], string> = {
     "No pagues todavía":
       "El riesgo actual es demasiado alto para pagar matrícula, depósito o firmar sin resolver bloqueos críticos.",
     "Puedes avanzar, pero faltan datos":
-      "El perfil permite avanzar en el proceso, pero aún faltan confirmaciones clave antes de comprometer pagos.",
+      "Tu perfil puede permitir avanzar en la investigación, pero todavía faltan confirmaciones clave de escuela, costes o contrato antes de comprometer pagos.",
     "Listo para decidir con condiciones":
       "La base de decisión es sólida, siempre que mantengas control documental y financiero en la firma final.",
   };
 
-  const proximosPasos = [
-    "Confirmar por escrito contrato, reembolso y calendario de pagos.",
-    "Actualizar escenarios con costes verificados de al menos 2 escuelas.",
-    "No transferir depósito hasta validar todos los datos críticos.",
+  const proximosPasos: string[] = [];
+
+  if (!hasPaymentClearSchool) {
+    proximosPasos.push("Confirmar por escrito contrato, reembolso y calendario de pagos con al menos una escuela.");
+  } else if (!hasPaymentReadySchool) {
+    proximosPasos.push("Marcar como verificada o parcialmente verificada la escuela que ya tiene contrato, reembolso y calendario claros.");
+  }
+
+  if (schoolsAnalyzed.length < 2) {
+    proximosPasos.push("Comparar al menos 2 escuelas antes de tomar una decisión final.");
+  } else if (usableSchools.length < 2) {
+    proximosPasos.push("Completar precio, contrato, reembolso y calendario de pagos en al menos 2 escuelas.");
+  }
+
+  if (granularMissingIncludedItems.length > 0) {
+    proximosPasos.push(`Confirmar por escrito si están incluidos: ${granularMissingIncludedItems.join(", ")}.`);
+  }
+
+
+  if (proximosPasos.length === 0) {
+    proximosPasos.push("Confirmar por escrito contrato, reembolso y calendario de pagos antes de transferir dinero.");
+    proximosPasos.push("Guardar evidencia por escrito de precio final, extras incluidos y condiciones de pago.");
+    proximosPasos.push("No transferir depósito hasta validar todos los datos críticos y conservar copia de las condiciones.");
+  }
+
+  // Safety cleanup: avoid surfacing legacy step texts.
+  const legacySteps = [
+    "Guardar evidencia por escrito de precio final, extras incluidos y condiciones de pago.",
+    "No transferir depósito hasta validar todos los datos críticos y conservar copia de las condiciones.",
   ];
+  for (let i = proximosPasos.length - 1; i >= 0; i -= 1) {
+    if (legacySteps.includes(proximosPasos[i])) proximosPasos.splice(i, 1);
+  }
+
+  if (decision === "Listo para decidir con condiciones") {
+    proximosPasos.splice(
+      0,
+      proximosPasos.length,
+      "Confirmar por escrito contrato, reembolso y calendario de pagos antes de transferir dinero.",
+      "Guardar evidencia por escrito de precio final, extras incluidos y condiciones de pago.",
+      "No transferir depósito hasta validar todos los datos críticos y conservar copia de las condiciones."
+    );
+  }
 
   return {
     score,
@@ -867,19 +1016,7 @@ type FlyPathAppProps = {
 };
 
 export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPathAppProps) {
-  const [screen, setScreen] = useState<Screen>(reviewMode ? "dashboard" : "landing");
-  const [tab, setTab] = useState<Tab>(initialTab);
-  const [profile, setProfile] = useState<Profile>(defaultProfile);
-  const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
-  const [schools, setSchools] = useState<School[]>(exampleSchools);
-  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
-  const [onboardingStep, setOnboardingStep] = useState(1);
-  const [emailDrafts, setEmailDrafts] = useState<Record<number, string>>({});
-  const [emailPendingBySchool, setEmailPendingBySchool] = useState<Record<number, string[]>>({});
-  const [toast, setToast] = useState<string | null>(null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
-  const [newSchool, setNewSchool] = useState<School>({
+  const createEmptySchool = (): School => ({
     id: 0,
     nombre: "",
     pais: "",
@@ -908,6 +1045,20 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     enlaceReferencia: "",
     notas: "",
   });
+
+  const [screen, setScreen] = useState<Screen>(reviewMode ? "dashboard" : "landing");
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [profile, setProfile] = useState<Profile>(defaultProfile);
+  const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
+  const [schools, setSchools] = useState<School[]>(exampleSchools);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [emailDrafts, setEmailDrafts] = useState<Record<number, string>>({});
+  const [emailPendingBySchool, setEmailPendingBySchool] = useState<Record<number, string[]>>({});
+  const [toast, setToast] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
+  const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
 
   useEffect(() => {
     if (reviewMode) return;
@@ -1164,7 +1315,7 @@ ${disclaimerText}`;
     if (!newSchool.nombre.trim()) return;
     if (fromOnboarding && schools.length >= 3) return;
     setSchools((prev) => [...prev, { ...newSchool, id: Date.now() }]);
-    setNewSchool((prev) => ({ ...prev, nombre: "", pais: "", ciudad: "", precioAnunciado: 0, duracionMeses: 18, notas: "", enlaceReferencia: "" }));
+    setNewSchool(createEmptySchool());
     showToast("Escuela añadida");
   };
 
@@ -1577,6 +1728,220 @@ ${disclaimerText}`;
                   <NumberField label="Duración meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
                   <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
                 </div>
+                <details className="rounded-xl border border-slate-200 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Añadir datos avanzados de verificación</summary>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Empieza por los 3 datos clave. El resto sirve para afinar red flags y preguntas pendientes si tienes información suficiente.
+                  </p>
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-800">Datos mínimos para decidir</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Si solo puedes conseguir tres cosas de la escuela, empieza por contrato, reembolso y calendario de pagos.
+                    </p>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                      <SelectField
+                        label="Contrato antes de pagar"
+                        value={newSchool.contratoAntesPagar}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, contratoAntesPagar: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Reembolso claro"
+                        value={newSchool.reembolsoClaro}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, reembolsoClaro: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Calendario de pagos claro"
+                        value={newSchool.calendarioPagosClaro}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, calendarioPagosClaro: v as YesNoUnknown }))}
+                      />
+                    </div>
+                  </div>
+
+                  <details className="mt-4 rounded-xl border border-slate-200 p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver programa, precio y fuente</summary>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <SelectField
+                        label="Programa"
+                        value={newSchool.programa}
+                        options={[
+                          { value: "integrado", label: "integrado" },
+                          { value: "modular", label: "modular" },
+                          { value: "cadet", label: "cadet" },
+                          { value: "no_lo_se", label: "no_lo_se" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, programa: v as School["programa"] }))}
+                      />
+                      <SelectField
+                        label="Estado de verificación"
+                        value={newSchool.estadoVerificacion}
+                        options={[
+                          { value: "verificado", label: "verificado" },
+                          { value: "parcialmente_verificado", label: "parcialmente_verificado" },
+                          { value: "no_verificado", label: "no_verificado" },
+                          { value: "pendiente", label: "pendiente" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, estadoVerificacion: v as School["estadoVerificacion"] }))}
+                      />
+                      <SelectField
+                        label="Fuente del precio"
+                        value={newSchool.fuentePrecio}
+                        options={[
+                          { value: "web_oficial", label: "web_oficial" },
+                          { value: "email_escuela", label: "email_escuela" },
+                          { value: "llamada", label: "llamada" },
+                          { value: "folleto", label: "folleto" },
+                          { value: "alumno", label: "alumno" },
+                          { value: "redes", label: "redes" },
+                          { value: "usuario", label: "usuario" },
+                          { value: "no_verificado", label: "no_verificado" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, fuentePrecio: v as School["fuentePrecio"] }))}
+                      />
+                      <NumberField label="Depósito requerido" value={newSchool.depositoRequerido} onChange={(v) => setNewSchool((s) => ({ ...s, depositoRequerido: v }))} />
+                      <TextField label="Enlace de referencia" value={newSchool.enlaceReferencia} onChange={(v) => setNewSchool((s) => ({ ...s, enlaceReferencia: v }))} />
+                      <TextField label="Notas" value={newSchool.notas} onChange={(v) => setNewSchool((s) => ({ ...s, notas: v }))} />
+                    </div>
+                  </details>
+
+                  <details className="mt-4 rounded-xl border border-slate-200 p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver extras incluidos</summary>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <SelectField
+                        label="MCC/JOC incluido"
+                        value={newSchool.mccIncluido}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, mccIncluido: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Advanced UPRT incluido"
+                        value={newSchool.uprtIncluido}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, uprtIncluido: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Tasas incluidas"
+                        value={newSchool.tasasIncluidas}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, tasasIncluidas: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Skill tests incluidos"
+                        value={newSchool.skillTestsIncluidos}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, skillTestsIncluidos: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Alojamiento incluido"
+                        value={newSchool.alojamientoIncluido}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, alojamientoIncluido: v as YesNoUnknown }))}
+                      />
+                    </div>
+                  </details>
+
+                  <details className="mt-4 rounded-xl border border-slate-200 p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver operación, soporte y marketing</summary>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <SelectField
+                        label="Flota explicada"
+                        value={newSchool.flotaExplicada}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, flotaExplicada: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Mantenimiento explicado"
+                        value={newSchool.mantenimientoExplicado}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, mantenimientoExplicado: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Ratio alumno/avión conocido"
+                        value={newSchool.ratioAlumnoAvionConocido}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, ratioAlumnoAvionConocido: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Permite hablar con alumnos"
+                        value={newSchool.permiteHablarAlumnos}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, permiteHablarAlumnos: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Career support"
+                        value={newSchool.careerSupport}
+                        options={[
+                          { value: "si", label: "Sí" },
+                          { value: "no", label: "No" },
+                          { value: "no_se", label: "No lo sé" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, careerSupport: v as YesNoUnknown }))}
+                      />
+                      <SelectField
+                        label="Promesas de empleo"
+                        value={newSchool.promesasEmpleo}
+                        options={[
+                          { value: "ninguna", label: "ninguna" },
+                          { value: "vagas", label: "vagas" },
+                          { value: "claras_no_garantizadas", label: "claras_no_garantizadas" },
+                          { value: "garantia_contractual", label: "garantia_contractual" },
+                          { value: "no_se", label: "no_se" },
+                        ]}
+                        onChange={(v) => setNewSchool((s) => ({ ...s, promesasEmpleo: v as School["promesasEmpleo"] }))}
+                      />
+                    </div>
+                  </details>
+                </details>
                 <button onClick={() => addSchool(false)} className="cursor-pointer rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50">Añadir escuela</button>
                 {schoolStats.analyzed.map(({ school, analysis }) => (
                   <div key={school.id} className="rounded-xl border border-slate-200 p-4">
