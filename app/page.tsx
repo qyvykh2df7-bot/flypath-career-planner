@@ -670,8 +670,31 @@ Un saludo,
 ${nombreUsuario || ""}`;
 }
 
-function copyText(text: string) {
-  if (typeof navigator !== "undefined" && navigator.clipboard) navigator.clipboard.writeText(text);
+async function copyText(text: string) {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fallback below
+    }
+  }
+
+  try {
+    if (typeof document === "undefined") return false;
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return copied;
+  } catch {
+    return false;
+  }
 }
 
 function riskLevelFromScore(score: number) {
@@ -691,6 +714,9 @@ export default function Page() {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [emailDrafts, setEmailDrafts] = useState<Record<number, string>>({});
   const [emailPendingBySchool, setEmailPendingBySchool] = useState<Record<number, string[]>>({});
+  const [toast, setToast] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>({
     id: 0,
     nombre: "",
@@ -828,7 +854,7 @@ Situación actual de ${profile.nombre || "el candidato"}:
 - Coste realista estimado: ${euro(costs.totalRealista)}
 - Coste conservador estimado: ${euro(costs.totalConservador)}
 - Brecha financiera actual: ${euro(costs.brechaFinanciacion)}
-- Decision Readiness: ${decisionReadiness.score}/100 (${decisionReadiness.decision})
+- ¿Listo para pagar?: ${decisionReadiness.score}/100 (${decisionReadiness.decision})
 
 Conclusión práctica:
 ${shouldPayNow ? "Puede avanzar con condiciones y control documental estricto." : "No conviene pagar matrícula o depósito todavía."}
@@ -846,7 +872,7 @@ Preguntas clave para una escuela:
 - ¿Cuál es la duración media real del programa?
 - ¿Cuál es el calendario de pagos completo antes de pagar depósito?
 
-Decisiones que NO deberían tomarse todavía:
+Decisiones que conviene evitar por ahora:
 - Pagar por presión comercial sin contrato y condiciones por escrito.
 - Asumir promesas de empleo como garantía.
 - Firmar sin validar costes extra (tasas, skill tests, repeticiones, alojamiento).`;
@@ -857,9 +883,9 @@ Decisiones que NO deberían tomarse todavía:
 
 Nombre: ${profile.nombre || "Usuario"}
 Ruta recomendada: ${route.recommended}
-Decision Readiness: ${decisionReadiness.score}/100
+Preparación para decidir: ${decisionReadiness.score}/100
 Decisión recomendada: ${decisionReadiness.decision}
-¿Debería pagar ahora?: ${shouldPayNow ? "Sí, con condiciones" : "No, todavía no"}
+¿Conviene pagar ahora?: ${shouldPayNow ? "Sí, con condiciones" : "No, por ahora"}
 Razón principal: ${route.reason}
 Bloqueo principal: ${route.principalBlock}
 
@@ -910,6 +936,7 @@ ${disclaimerText}`;
   ]);
 
   const resetDemoData = () => {
+    if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres resetear los datos demo? Esta acción no se puede deshacer.")) return;
     localStorage.removeItem("flypath_profile");
     localStorage.removeItem("flypath_cost_inputs");
     localStorage.removeItem("flypath_schools");
@@ -920,6 +947,21 @@ ${disclaimerText}`;
     setOnboardingCompleted(false);
     setOnboardingStep(1);
     setScreen("landing");
+    showToast("Datos demo reseteados");
+  };
+
+  const showToast = (message: string) => {
+    setToast(message);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => setToast((current) => (current === message ? null : current)), 2800);
+    }
+  };
+
+  const markCopied = (key: string) => {
+    setCopiedKey(key);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 2500);
+    }
   };
 
   const addSchool = (fromOnboarding = false) => {
@@ -927,6 +969,7 @@ ${disclaimerText}`;
     if (fromOnboarding && schools.length >= 3) return;
     setSchools((prev) => [...prev, { ...newSchool, id: Date.now() }]);
     setNewSchool((prev) => ({ ...prev, nombre: "", pais: "", ciudad: "", precioAnunciado: 0, duracionMeses: 18, notas: "", enlaceReferencia: "" }));
+    showToast("Escuela añadida");
   };
 
   const finishOnboarding = () => {
@@ -956,6 +999,12 @@ ${disclaimerText}`;
   if (screen === "landing") {
     return (
       <div className="min-h-screen bg-[#081329] text-white">
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
+            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+            {toast}
+          </motion.div>
+        )}
         <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
           <div className="mb-10 flex items-center justify-between border-b border-white/10 pb-5">
             <div className="flex items-center gap-3">
@@ -978,7 +1027,7 @@ ${disclaimerText}`;
               </div>
             </div>
             <div className="rounded-3xl border border-white/15 bg-white/5 p-6">
-              <p className="text-sm text-slate-300">Snapshot del resultado</p>
+              <p className="text-sm text-slate-300">Resumen inicial</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <KpiMini label="Ruta recomendada" value={route.recommended} />
                 <KpiMini label="Coste realista" value={euro(costs.totalRealista)} />
@@ -1009,6 +1058,12 @@ ${disclaimerText}`;
   if (screen === "onboarding") {
     return (
       <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
+            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+            {toast}
+          </motion.div>
+        )}
         <div className="mx-auto max-w-5xl px-6 py-10">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-sm text-slate-500">Crear mi plan - Paso {onboardingStep} de 6</p>
@@ -1024,11 +1079,11 @@ ${disclaimerText}`;
               {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razón principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} /></div>}
             </div>
             <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5">
-              <button onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))} disabled={onboardingStep === 1} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">Anterior</button>
+              <button onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))} disabled={onboardingStep === 1} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 disabled:cursor-not-allowed disabled:opacity-50">Anterior</button>
               {onboardingStep < 6 ? (
-                <button onClick={() => setOnboardingStep((s) => Math.min(6, s + 1))} className="rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white">Siguiente</button>
+                <button onClick={() => setOnboardingStep((s) => Math.min(6, s + 1))} className="cursor-pointer rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50">Siguiente</button>
               ) : (
-                <button onClick={finishOnboarding} className="rounded-lg bg-[#0f766e] px-4 py-2 text-sm text-white">Ir al dashboard</button>
+                <button onClick={finishOnboarding} className="cursor-pointer rounded-lg bg-[#0f766e] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#0d665f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50">Ir al dashboard</button>
               )}
             </div>
           </div>
@@ -1039,6 +1094,12 @@ ${disclaimerText}`;
 
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
+      {toast && (
+        <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
+          <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+          {toast}
+        </motion.div>
+      )}
       <div className="mx-auto flex max-w-[1500px]">
         <aside className="sticky top-0 h-screen w-72 border-r border-slate-200 bg-[#0f1a33] px-5 py-6 text-slate-100">
           <div className="flex items-center gap-3">
@@ -1053,8 +1114,8 @@ ${disclaimerText}`;
             ))}
           </nav>
           <div className="mt-8 space-y-2">
-            <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm">Editar onboarding</button>
-            <button onClick={resetDemoData} className="w-full rounded-lg bg-[#8b1f1f] px-3 py-2 text-sm text-white">Resetear datos demo</button>
+            <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="w-full cursor-pointer rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30">Editar onboarding</button>
+            <button onClick={resetDemoData} className="w-full cursor-pointer rounded-lg border border-rose-400/40 bg-[#8b1f1f] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#7a1b1b] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50">Resetear datos demo</button>
           </div>
         </aside>
         <main className="flex-1 px-8 py-6">
@@ -1177,7 +1238,15 @@ ${disclaimerText}`;
             {tab === "schools" && (
               <div className="space-y-4">
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
-                <button onClick={() => setSchools((prev) => prev.filter((s) => !s.isExample))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Eliminar ejemplos y empezar desde cero</button>
+                <button
+                  onClick={() => {
+                    setSchools((prev) => prev.filter((s) => !s.isExample));
+                    showToast("Ejemplos eliminados");
+                  }}
+                  className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
+                >
+                  Eliminar ejemplos y empezar desde cero
+                </button>
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                   <TextField label="Nombre" value={newSchool.nombre} onChange={(v) => setNewSchool((s) => ({ ...s, nombre: v }))} />
                   <TextField label="País" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
@@ -1186,7 +1255,7 @@ ${disclaimerText}`;
                   <NumberField label="Duración meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
                   <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
                 </div>
-                <button onClick={() => addSchool(false)} className="rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white">Añadir escuela</button>
+                <button onClick={() => addSchool(false)} className="cursor-pointer rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50">Añadir escuela</button>
                 {schoolStats.analyzed.map(({ school, analysis }) => (
                   <div key={school.id} className="rounded-xl border border-slate-200 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1199,10 +1268,16 @@ ${disclaimerText}`;
                           const pending = getSchoolEmailMissingData(school);
                           setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
                           setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
+                          setGeneratedEmailKey(school.id);
+                          if (typeof window !== "undefined") {
+                            window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
+                          }
+                          showToast("Email generado");
                         }}
-                        className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
                       >
-                        <Mail className="mr-2 h-4 w-4" />Generar email
+                        {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Mail className="mr-2 h-4 w-4" />}
+                        {generatedEmailKey === school.id ? "Email generado" : "Generar email"}
                       </button>
                     </div>
                     <div className="mt-3 grid gap-2 md:grid-cols-3">
@@ -1224,7 +1299,18 @@ ${disclaimerText}`;
                           items={emailPendingBySchool[school.id] || []}
                           empty="No faltan datos críticos detectados para esta escuela."
                         />
-                        <button onClick={() => copyText(emailDrafts[school.id])} className="mb-2 inline-flex items-center rounded-md border border-slate-300 px-2 py-1 text-xs"><Copy className="mr-1 h-3 w-3" />Copiar email</button>
+                        <p className="mb-2 mt-2 text-xs font-medium text-emerald-700">Email listo para copiar</p>
+                        <button
+                          onClick={async () => {
+                            const ok = await copyText(emailDrafts[school.id]);
+                            if (ok) markCopied(`email-${school.id}`);
+                            showToast(ok ? "Email copiado" : "No se pudo copiar el email");
+                          }}
+                          className="mb-2 inline-flex cursor-pointer items-center rounded-md border border-slate-300 bg-white px-2 py-1 text-xs shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
+                        >
+                          {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" /> : <Copy className="mr-1 h-3 w-3" />}
+                          {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
+                        </button>
                         <pre className="whitespace-pre-wrap text-xs">{emailDrafts[school.id]}</pre>
                       </div>
                     )}
@@ -1242,7 +1328,7 @@ ${disclaimerText}`;
             {tab === "readiness" && (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] via-white to-[#f8fbff] p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">Decision Readiness</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">¿Listo para pagar?</p>
                   <h3 className="mt-1 text-2xl font-semibold text-[#0f1a33]">¿Estoy listo para pagar una escuela?</h3>
                   <p className="mt-1 text-sm text-slate-600">Lectura rápida: si el resultado es "No pagues todavía", evita transferencias hasta cerrar bloqueos.</p>
                   <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -1283,8 +1369,8 @@ ${disclaimerText}`;
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   <InfoCard label="Nombre del usuario" value={profile.nombre || "Usuario"} />
                   <InfoCard label="Ruta recomendada" value={route.recommended} />
-                  <InfoCard label="Decision Readiness" value={`${decisionReadiness.score}/100`} />
-                  <InfoCard label="¿Debe pagar ahora?" value={shouldPayNow ? "Sí, con condiciones" : "No, todavía no"} />
+                  <InfoCard label="Preparación para decidir" value={`${decisionReadiness.score}/100`} />
+                  <InfoCard label="¿Conviene pagar ahora?" value={shouldPayNow ? "Sí, con condiciones" : "No, por ahora"} />
                   <InfoCard label="Decisión recomendada" value={decisionReadiness.decision} />
                   <InfoCard label="Razón principal" value={route.reason} />
                   <InfoCard label="Principal bloqueo" value={route.principalBlock} />
@@ -1305,7 +1391,7 @@ ${disclaimerText}`;
                   </div>
                   {decisionReadiness.showNoPaguesBadge && (
                     <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-                      <strong>No pagues escuela todavía.</strong> Valida los bloqueos antes de firmar o transferir dinero.
+                      <strong>Recomendación prudente: no pagues escuela todavía.</strong> Conviene confirmar por escrito los bloqueos antes de comprometer dinero.
                     </div>
                   )}
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -1408,7 +1494,7 @@ ${disclaimerText}`;
                     />
                   </div>
                   <InfoList
-                    title="Decisiones que NO deberían tomarse todavía"
+                    title="Decisiones que conviene evitar por ahora"
                     items={[
                       "Pagar por presión comercial sin contrato por escrito.",
                       "Asumir promesas de empleo como garantías.",
@@ -1416,14 +1502,32 @@ ${disclaimerText}`;
                     ]}
                     empty="Sin bloqueos."
                   />
-                  <button onClick={() => copyText(resumenPadresText)} className="mt-3 inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm">
-                    <Copy className="mr-2 h-4 w-4" />Copiar resumen para padres
+                  <button
+                    onClick={async () => {
+                      const ok = await copyText(resumenPadresText);
+                      if (ok) markCopied("padres");
+                      showToast(ok ? "Resumen para padres copiado" : "No se pudo copiar el resumen para padres");
+                    }}
+                    className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
+                  >
+                    {copiedKey === "padres" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
+                    {copiedKey === "padres" ? "Copiado" : "Copiar resumen para padres"}
                   </button>
                 </Panel>
                 <Panel title="7. Disclaimer">
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
                 </Panel>
-                <button onClick={() => copyText(informeCompletoText)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
+                <button
+                  onClick={async () => {
+                    const ok = await copyText(informeCompletoText);
+                    if (ok) markCopied("informe");
+                    showToast(ok ? "Resumen copiado" : "No se pudo copiar el resumen");
+                  }}
+                  className="inline-flex cursor-pointer items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
+                >
+                  {copiedKey === "informe" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-200" /> : <Copy className="mr-2 h-4 w-4" />}
+                  {copiedKey === "informe" ? "Copiado" : "Copiar resumen"}
+                </button>
               </div>
             )}
           </section>
