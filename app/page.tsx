@@ -1656,10 +1656,7 @@ ${disclaimerText}`;
               <div className="space-y-4">
                 <div className={`rounded-2xl border p-5 ${decisionReadiness.decision === "No pagues todavía" ? "border-rose-200 bg-rose-50" : "border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] via-white to-[#f8fbff]"}`}>
                   <p className="text-3xl font-bold text-[#0f1a33]">{decisionReadiness.decision}</p>
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="mt-1 text-4xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-lg font-semibold text-slate-500">/100</span></p>
-                    <div className="mt-2"><Progress value={decisionReadiness.score} tone="bg-[#1d4ed8]" /></div>
-                  </div>
+                  <p className="mt-3 text-4xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-lg font-semibold text-slate-500">/100</span></p>
                   <p className="mt-3 text-sm text-slate-700">{decisionReadiness.explanation}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 p-4">
@@ -1670,11 +1667,27 @@ ${disclaimerText}`;
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Antes de pagar, falta</p>
-                  <InfoList title="Datos pendientes clave" items={decisionReadiness.faltanDatos.slice(0, 5)} empty="No hay datos críticos pendientes detectados." />
+                  {decisionReadiness.faltanDatos.slice(0, 5).length > 0 ? (
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {decisionReadiness.faltanDatos.slice(0, 5).map((item) => (
+                        <li key={item}>• {item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-600">No hay datos críticos pendientes detectados.</p>
+                  )}
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Próximos pasos</p>
-                  <InfoList title="Próximos pasos" items={decisionReadiness.proximosPasos} empty="Sin pasos pendientes." />
+                  {decisionReadiness.proximosPasos.length > 0 ? (
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {decisionReadiness.proximosPasos.map((step) => (
+                        <li key={step}>• {step}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-600">Sin pasos pendientes.</p>
+                  )}
                 </div>
               </div>
             )}
