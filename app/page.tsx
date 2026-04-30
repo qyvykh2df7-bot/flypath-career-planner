@@ -898,6 +898,123 @@ function computeDecisionReadiness({
   };
 }
 
+function buildActionPlan({
+  profile,
+  costs,
+  route,
+  schools,
+  decisionReadiness,
+}: {
+  profile: Profile;
+  costs: ReturnType<typeof computeCosts>;
+  route: RouteAnalysis;
+  schools: School[];
+  decisionReadiness: DecisionReadiness;
+}) {
+  const sevenDays: string[] = [];
+  const thirtyDays: string[] = [];
+  const ninetyDays: string[] = [];
+
+  const pushUnique = (bucket: string[], text: string) => {
+    if (!bucket.includes(text)) bucket.push(text);
+  };
+
+  const hasPaymentClearSchool = schools.some(
+    (school) =>
+      school.contratoAntesPagar === "si" &&
+      school.reembolsoClaro === "si" &&
+      school.calendarioPagosClaro === "si"
+  );
+
+  const hasTwoDocumentedSchools =
+    schools.filter(
+      (school) =>
+        school.precioAnunciado > 0 &&
+        school.contratoAntesPagar === "si" &&
+        school.reembolsoClaro === "si" &&
+        school.calendarioPagosClaro === "si"
+    ).length >= 2;
+
+  const missingExtras: string[] = [];
+  if (!schools.some((school) => school.mccIncluido === "si")) missingExtras.push("MCC/JOC");
+  if (!schools.some((school) => school.uprtIncluido === "si")) missingExtras.push("Advanced UPRT");
+  if (!schools.some((school) => school.tasasIncluidas === "si")) missingExtras.push("tasas");
+  if (!schools.some((school) => school.skillTestsIncluidos === "si")) missingExtras.push("skill tests");
+  if (!schools.some((school) => school.alojamientoIncluido === "si")) missingExtras.push("alojamiento");
+
+  if (profile.class1 !== "si") {
+    pushUnique(sevenDays, "Reservar o confirmar Clase 1 antes de comprometer pagos.");
+    pushUnique(thirtyDays, "No firmar matrícula ni depósito hasta tener el resultado médico claro.");
+    pushUnique(ninetyDays, "Recalcular ruta cuando el Class 1 esté confirmado.");
+  } else {
+    pushUnique(sevenDays, "Guardar evidencia de Clase 1 y fecha de validez.");
+  }
+
+  if (profile.ingles === "bajo") {
+    pushUnique(sevenDays, "Hacer una prueba realista de inglés aeronáutico y general.");
+    pushUnique(thirtyDays, "Crear un plan intensivo de inglés antes de iniciar fases caras.");
+    pushUnique(ninetyDays, "Reevaluar nivel de inglés antes de pagar una fase avanzada.");
+  } else if (profile.ingles === "medio") {
+    pushUnique(thirtyDays, "Practicar inglés aeronáutico y comunicaciones ATC semanalmente.");
+  }
+
+  if (costs.brechaFinanciacion > 0) {
+    pushUnique(sevenDays, "Actualizar presupuesto máximo y brecha financiera real.");
+    pushUnique(thirtyDays, "Cerrar financiación o ajustar ruta antes de comprometer pagos grandes.");
+    pushUnique(ninetyDays, "Mantener buffer financiero antes de avanzar a fases caras.");
+  } else {
+    pushUnique(sevenDays, "Confirmar que el dinero disponible cubre también extras y buffer.");
+    pushUnique(ninetyDays, "Mantener reserva para repeticiones, tasas y retrasos.");
+  }
+
+  if (schools.length < 2) {
+    pushUnique(sevenDays, "Añadir al menos 2 escuelas comparables.");
+    pushUnique(thirtyDays, "Pedir desglose por escrito a cada escuela candidata.");
+  } else {
+    pushUnique(sevenDays, "Revisar red flags de las escuelas comparadas.");
+    pushUnique(thirtyDays, "Confirmar por escrito contrato, reembolso y calendario de pagos.");
+  }
+
+  if (!hasPaymentClearSchool) {
+    pushUnique(sevenDays, "Pedir contrato, política de reembolso y calendario de pagos antes de decidir.");
+  }
+
+  if (route.recommended === "Preparación") {
+    pushUnique(thirtyDays, "Resolver bloqueos principales antes de elegir escuela.");
+    pushUnique(ninetyDays, "Recalcular ruta cuando Clase 1, inglés y financiación estén más claros.");
+  } else if (route.recommended === "Modular") {
+    pushUnique(thirtyDays, "Comparar escenarios modular e integrado con el mismo coste total.");
+    pushUnique(ninetyDays, "Planificar fases por orden y evitar pagos adelantados innecesarios.");
+  } else if (route.recommended === "Integrada") {
+    pushUnique(thirtyDays, "Validar que la ruta integrada encaja con disponibilidad full-time y financiación.");
+    pushUnique(ninetyDays, "No avanzar con integrada sin contrato completo y calendario de pagos por escrito.");
+  }
+
+  if (profile.necesitaTrabajar === "si") {
+    pushUnique(thirtyDays, "Alinear la ruta con el trabajo actual y horas reales disponibles por semana.");
+  }
+
+  if (decisionReadiness.decision === "Listo para decidir con condiciones") {
+    pushUnique(sevenDays, "Preparar carpeta con contrato, precio final, extras incluidos y condiciones.");
+    pushUnique(thirtyDays, "Comparar la escuela elegida con al menos una alternativa real antes de pagar.");
+    pushUnique(ninetyDays, "Transferir dinero solo si todas las condiciones finales están por escrito.");
+  }
+
+  if (schools.length >= 2 && !hasTwoDocumentedSchools) {
+    pushUnique(thirtyDays, "Completar precio, contrato, reembolso y calendario de pagos en al menos 2 escuelas.");
+  }
+
+  if (missingExtras.length > 0) {
+    pushUnique(thirtyDays, `Confirmar por escrito si están incluidos: ${missingExtras.join(", ")}.`);
+  }
+
+  return {
+    sevenDays: sevenDays.slice(0, 4),
+    thirtyDays: thirtyDays.slice(0, 4),
+    ninetyDays: ninetyDays.slice(0, 4),
+  };
+}
+
 function getSchoolEmailMissingData(school: School) {
   const pending: string[] = [];
   if (school.mccIncluido !== "si") pending.push("MCC/JOC");
@@ -1129,11 +1246,31 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       }),
     [profile, costs, route, schoolStats.analyzed, costInputs.bufferPct]
   );
+  const actionPlan = useMemo(
+    () => buildActionPlan({ profile, costs, route, schools, decisionReadiness }),
+    [profile, costs, route, schools, decisionReadiness]
+  );
 
   const shouldPayNow = decisionReadiness.decision === "Listo para decidir con condiciones";
   const hasExampleSchools = schools.some((s) => s.isExample);
   const keyDataEdited = Boolean(profile.nombre.trim()) && profile.dineroDisponible !== defaultProfile.dineroDisponible && schools.length > 0;
   const isUsingDemoData = hasExampleSchools || !keyDataEdited;
+  const routePriorityLabels = useMemo(() => {
+    const ranked = [
+      { key: "Integrada", score: route.integrated },
+      { key: "Modular", score: route.modular },
+      { key: "Preparación", score: route.prep },
+    ].sort((a, b) => b.score - a.score);
+
+    return {
+      Integrada:
+        ranked[0].key === "Integrada" ? "Ruta recomendada" : ranked[2].key === "Integrada" ? "Ruta menos prioritaria" : "Ruta posible",
+      Modular:
+        ranked[0].key === "Modular" ? "Ruta recomendada" : ranked[2].key === "Modular" ? "Ruta menos prioritaria" : "Ruta posible",
+      "Preparación":
+        ranked[0].key === "Preparación" ? "Ruta recomendada" : ranked[2].key === "Preparación" ? "Ruta menos prioritaria" : "Ruta posible",
+    } as const;
+  }, [route.integrated, route.modular, route.prep]);
 
   const riskDiagnosis = useMemo(() => {
     const bestAnalysis = schoolStats.bestSchool?.analysis;
@@ -1502,7 +1639,7 @@ ${disclaimerText}`;
             <div className={`mt-3 rounded-xl border p-3 text-sm ${isUsingDemoData ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
               <p>
                 {isUsingDemoData
-                  ? "Estás viendo datos demo. Edita el onboarding, costes y escuelas para obtener un resultado realista."
+                  ? "Estás viendo datos demo. Edita tus datos iniciales, costes y escuelas para obtener un resultado realista."
                   : "Ya estás usando datos más realistas. Mantén la información actualizada para mejorar la precisión del diagnóstico."}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -1551,11 +1688,11 @@ ${disclaimerText}`;
                 </div>
                 <div className="rounded-xl border border-slate-200 p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Comparación de rutas</p>
-                  <p className="mb-3 text-xs text-slate-600">Estos porcentajes son referencia secundaria para comparar encaje según tu situación actual.</p>
-                  <div className="grid gap-3 lg:grid-cols-4">
-                    <RouteOption title="Integrada" value={route.integrated} />
-                    <RouteOption title="Modular" value={route.modular} />
-                    <RouteOption title="Preparación" value={route.prep} />
+                  <p className="mb-3 text-xs text-slate-600">Esta comparación ordena las rutas según tu situación actual. No son porcentajes ni probabilidades; sirve para ver qué opción tiene más sentido revisar primero.</p>
+                  <div className="grid gap-3 lg:grid-cols-3">
+                    <RouteOption title="Integrada" value={route.integrated} label={routePriorityLabels.Integrada} />
+                    <RouteOption title="Modular" value={route.modular} label={routePriorityLabels.Modular} />
+                    <RouteOption title="Preparación" value={route.prep} label={routePriorityLabels["Preparación"]} />
                   </div>
                 </div>
                 <details className="rounded-xl border border-slate-200 p-4">
@@ -1702,8 +1839,10 @@ ${disclaimerText}`;
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
                 <button
                   onClick={() => {
-                    setSchools((prev) => prev.filter((s) => !s.isExample));
-                    showToast("Ejemplos eliminados");
+                    if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
+                    setSchools([]);
+                    setNewSchool(createEmptySchool());
+                    showToast("Escuelas eliminadas");
                   }}
                   className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
                 >
@@ -2001,9 +2140,9 @@ ${disclaimerText}`;
             )}
             {tab === "plan" && (
               <div className="grid gap-4 lg:grid-cols-3">
-                <PlanColumn title="Próximos 7 días" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir límite máximo de inversión."]} />
-                <PlanColumn title="Próximos 30 días" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de inglés." : "Mantener práctica semanal ATC."]} />
-                <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
+                <PlanColumn title="Próximos 7 días" tasks={actionPlan.sevenDays} />
+                <PlanColumn title="Próximos 30 días" tasks={actionPlan.thirtyDays} />
+                <PlanColumn title="Próximos 90 días" tasks={actionPlan.ninetyDays} />
               </div>
             )}
             {tab === "readiness" && (
@@ -2062,6 +2201,38 @@ ${disclaimerText}`;
                     </p>
                   </div>
                 </Panel>
+                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Llévate tu diagnóstico</p>
+                  <p className="mt-1 text-sm text-slate-700">
+                    Copia tu informe, compártelo con tu familia o úsalo como checklist antes de hablar con una escuela de vuelo.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const ok = await copyText(informeCompletoText);
+                        if (ok) markCopied("informe-completo");
+                        showToast(ok ? "Informe copiado" : "No se pudo copiar el informe");
+                      }}
+                      className="inline-flex cursor-pointer items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
+                    >
+                      {copiedKey === "informe-completo" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-200" /> : <Copy className="mr-2 h-4 w-4" />}
+                      {copiedKey === "informe-completo" ? "Copiado" : "Copiar informe completo"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const ok = await copyText(resumenPadresText);
+                        if (ok) markCopied("resumen-familia");
+                        showToast(ok ? "Resumen copiado" : "No se pudo copiar el resumen");
+                      }}
+                      className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
+                    >
+                      {copiedKey === "resumen-familia" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
+                      {copiedKey === "resumen-familia" ? "Copiado" : "Copiar resumen para familia"}
+                    </button>
+                  </div>
+                </div>
                 <Panel title="2. Decisión antes de pagar">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <InfoCard label="Decisión recomendada" value={decisionReadiness.decision} />
@@ -2205,17 +2376,6 @@ ${disclaimerText}`;
                     ]}
                     empty="Sin bloqueos."
                   />
-                  <button
-                    onClick={async () => {
-                      const ok = await copyText(resumenPadresText);
-                      if (ok) markCopied("padres");
-                      showToast(ok ? "Resumen para padres copiado" : "No se pudo copiar el resumen para padres");
-                    }}
-                    className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
-                  >
-                    {copiedKey === "padres" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
-                    {copiedKey === "padres" ? "Copiado" : "Copiar resumen para padres"}
-                  </button>
                 </Panel>
                 <Panel title="Plan de acción">
                   <div className="grid gap-4 lg:grid-cols-3">
@@ -2224,20 +2384,41 @@ ${disclaimerText}`;
                     <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
                   </div>
                 </Panel>
+                <div className="rounded-2xl border border-[#c9a454]/40 bg-[#0f1a33] p-5 text-white shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#f2ddaa]">Siguiente paso con FlyPath</p>
+                  <h3 className="mt-1 text-2xl font-semibold text-white">¿Quieres revisar tu caso con una mentoría guiada?</h3>
+                  <p className="mt-2 text-sm text-slate-200">
+                    Si tu diagnóstico muestra dudas de ruta, costes, financiación o escuelas, una mentoría guiada puede ayudarte a ordenar tu plan y evitar errores caros antes de pagar matrícula o depósito.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          window.open("https://flypath.es", "_blank", "noopener,noreferrer");
+                        }
+                      }}
+                      className="inline-flex cursor-pointer items-center rounded-lg bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
+                    >
+                      Ver mentorías guiadas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const ok = await copyText(informeCompletoText);
+                        if (ok) markCopied("informe-revision");
+                        showToast(ok ? "Informe copiado para revisión" : "No se pudo copiar el informe para revisión");
+                      }}
+                      className="inline-flex cursor-pointer items-center rounded-lg border border-[#c9a454]/60 bg-white/10 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                    >
+                      {copiedKey === "informe-revision" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-300" /> : <Copy className="mr-2 h-4 w-4" />}
+                      {copiedKey === "informe-revision" ? "Copiado" : "Copiar informe para revisión"}
+                    </button>
+                  </div>
+                </div>
                 <Panel title="Disclaimer final">
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
                 </Panel>
-                <button
-                  onClick={async () => {
-                    const ok = await copyText(informeCompletoText);
-                    if (ok) markCopied("informe");
-                    showToast(ok ? "Resumen copiado" : "No se pudo copiar el resumen");
-                  }}
-                  className="inline-flex cursor-pointer items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
-                >
-                  {copiedKey === "informe" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-200" /> : <Copy className="mr-2 h-4 w-4" />}
-                  {copiedKey === "informe" ? "Copiado" : "Copiar resumen"}
-                </button>
               </div>
             )}
           </section>
@@ -2267,10 +2448,13 @@ function YNField({ label, value, onChange }: { label: string; value: YesNoUnknow
   return <SelectField label={label} value={value} options={[{ value: "si", label: "Sí" }, { value: "no", label: "No" }, { value: "no_se", label: "No sé" }]} onChange={(v) => onChange(v as YesNoUnknown)} />;
 }
 
-function RouteOption({ title, value }: { title: string; value: number }) {
+function RouteOption({ title, value, label }: { title: string; value: number; label: string }) {
   return (
     <div className="rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center justify-between"><p className="font-medium">{title}</p><p className="text-sm font-semibold">{value}%</p></div>
+      <div className="flex items-center justify-between">
+        <p className="font-medium">{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      </div>
       <div className="mt-2"><Progress value={value} tone="bg-[#1d4ed8]" /></div>
     </div>
   );
