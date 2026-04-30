@@ -111,9 +111,8 @@ type School = {
 type RouteAnalysis = {
   integrated: number;
   modular: number;
-  hybrid: number;
   prep: number;
-  recommended: "Integrada" | "Modular" | "Híbrida" | "Preparación";
+  recommended: "Integrada" | "Modular" | "Preparación";
   reason: string;
   warnings: string[];
   conflicts: string[];
@@ -394,9 +393,8 @@ function recomendacionLabel(value: string) {
 }
 
 function computeRoute(profile: Profile): RouteAnalysis {
-  let integrated = 30;
-  let modular = 35;
-  let hybrid = 35;
+  let integrated = 35;
+  let modular = 40;
   let prep = 25;
   const warnings: string[] = [];
   const conflicts: string[] = [];
@@ -408,7 +406,6 @@ function computeRoute(profile: Profile): RouteAnalysis {
   if (profile.class1 !== "si") {
     prep += 45;
     integrated -= 20;
-    hybrid -= 10;
     warnings.push("Prioridad: confirma Clase 1 antes de comparar escuelas.");
   }
   if (profile.ingles === "bajo") {
@@ -424,7 +421,6 @@ function computeRoute(profile: Profile): RouteAnalysis {
   }
   if (profile.necesitaTrabajar === "si") {
     modular += 20;
-    hybrid += 20;
     integrated -= 20;
   }
   if (
@@ -434,7 +430,6 @@ function computeRoute(profile: Profile): RouteAnalysis {
     profile.disponibilidad === "full-time"
   ) {
     integrated += 35;
-    hybrid += 10;
   }
   if (profile.urgencia === "alta" && profile.necesitaTrabajar === "si") {
     conflicts.push("Quieres rapidez alta, pero necesitas trabajar durante la formación.");
@@ -442,24 +437,20 @@ function computeRoute(profile: Profile): RouteAnalysis {
   if (profile.edad > 30 && profile.dineroDisponible >= 50000) {
     warnings.push("No se penaliza la edad; enfoca la decisión en coste de oportunidad.");
     integrated += 5;
-    hybrid += 8;
   }
   if (profile.disponibilidad === "part-time") {
     modular += 8;
-    hybrid += 12;
   } else {
     integrated += 8;
   }
 
   integrated = clamp(integrated);
   modular = clamp(modular);
-  hybrid = clamp(hybrid);
   prep = clamp(prep);
 
   const ordered = [
     { key: "Integrada", score: integrated },
     { key: "Modular", score: modular },
-    { key: "Híbrida", score: hybrid },
     { key: "Preparación", score: prep },
   ].sort((a, b) => b.score - a.score);
 
@@ -467,7 +458,6 @@ function computeRoute(profile: Profile): RouteAnalysis {
   const reasonMap: Record<RouteAnalysis["recommended"], string> = {
     Integrada: "Encaja por capacidad financiera y disponibilidad full-time.",
     Modular: "Encaja por flexibilidad y control de caja por fases.",
-    "Híbrida": "Encaja para avanzar con flexibilidad sin frenar del todo.",
     "Preparación": "Encaja para reducir riesgo antes de comprometer pagos altos.",
   };
 
@@ -480,7 +470,7 @@ function computeRoute(profile: Profile): RouteAnalysis {
       ? "Brecha financiera crítica"
       : "Ningún bloqueo crítico";
 
-  return { integrated, modular, hybrid, prep, recommended, reason: reasonMap[recommended], warnings, conflicts, principalBlock };
+  return { integrated, modular, prep, recommended, reason: reasonMap[recommended], warnings, conflicts, principalBlock };
 }
 
 function computeCosts(costs: CostInputs, profile: Profile) {
@@ -1565,7 +1555,6 @@ ${disclaimerText}`;
                   <div className="grid gap-3 lg:grid-cols-4">
                     <RouteOption title="Integrada" value={route.integrated} />
                     <RouteOption title="Modular" value={route.modular} />
-                    <RouteOption title="Híbrida" value={route.hybrid} />
                     <RouteOption title="Preparación" value={route.prep} />
                   </div>
                 </div>
