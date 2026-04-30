@@ -858,10 +858,19 @@ export default function Page() {
               <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
               <SummaryCard label="Preparación general" value={`${Math.round((route.integrated + route.modular + route.hybrid + route.prep) / 4)}%`} />
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
                 <p className="font-medium">Siguiente paso prioritario</p>
                 <p className="mt-1 text-slate-700">{route.warnings[0] || "Pedir desglose y contrato antes de pagar depósito."}</p>
+              </div>
+              <div className="rounded-xl border border-[#1d4ed8]/25 bg-gradient-to-r from-[#e9f1ff] via-white to-[#f5f9ff] p-3 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">¿Listo para pagar?</p>
+                <p className="mt-1 text-xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-sm font-semibold text-slate-500">/100</span></p>
+                <p className="mt-1 font-medium text-[#0f1a33]">{decisionReadiness.decision}</p>
+                <p className="mt-1 text-slate-600">{decisionReadiness.bloqueosCriticos[0] || "Sin bloqueos críticos"}</p>
+                <button onClick={() => setTab("readiness")} className="mt-2 rounded-md border border-[#1d4ed8]/30 bg-white px-2 py-1 text-xs font-medium text-[#1d4ed8]">
+                  Ver análisis
+                </button>
               </div>
               {route.principalBlock === "Clase 1 no confirmada" && (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
@@ -871,31 +880,6 @@ export default function Page() {
               )}
             </div>
           </header>
-          <div className="mt-4 rounded-2xl border border-[#1d4ed8]/25 bg-gradient-to-r from-[#e9f1ff] via-white to-[#f5f9ff] p-6 shadow-md">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">Decision Readiness · Módulo clave</p>
-                <h2 className="text-xl font-semibold text-[#0f1a33]">¿Estoy listo para pagar una escuela?</h2>
-                <p className="mt-1 text-sm text-slate-600">Decisión comercial crítica antes de pagar matrícula, depósito o firmar.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                {decisionReadiness.showNoPaguesBadge && (
-                  <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
-                    No pagues escuela todavía
-                  </span>
-                )}
-                <div className="rounded-xl border border-[#1d4ed8]/20 bg-white px-4 py-2 text-right">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500">Readiness Score</p>
-                  <p className="text-3xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-base font-semibold text-slate-500">/100</span></p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Decisión recomendada</p>
-              <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
-              <p className="mt-1 text-sm text-slate-600">{decisionReadiness.explanation}</p>
-            </div>
-          </div>
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             {tab === "route" && (
               <div className="space-y-4">
@@ -1101,10 +1085,7 @@ export default function Page() {
                       <strong>No pagues escuela todavía.</strong> Valida los bloqueos antes de firmar o transferir dinero.
                     </div>
                   )}
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
-                    <InfoList title="Datos pendientes antes de pagar" items={decisionReadiness.faltanDatos} empty="Sin pendientes críticos." />
-                  </div>
+                  <InfoList title="Bloqueos críticos principales" items={decisionReadiness.bloqueosCriticos.slice(0, 3)} empty="Sin bloqueos críticos detectados." />
                 </Panel>
                 <button onClick={() => copyText(`INFORME FLYPATH\\nUsuario: ${profile.nombre || "Usuario"}\\nRuta: ${route.recommended}\\nRazón: ${route.reason}\\nCoste optimista: ${euro(costs.totalOptimista)}\\nCoste realista: ${euro(costs.totalRealista)}\\nCoste conservador: ${euro(costs.totalConservador)}\\nBrecha: ${euro(costs.brechaFinanciacion)}\\nMeses: ${costs.mesesCerrarBrecha}\\nRiesgo financiero: ${costs.riesgoFinanciero}\\nBloqueo: ${route.principalBlock}\\nEscuelas: ${schools.length}\\nVerificadas: ${schoolStats.verifiedCount}\\nPendientes: ${schoolStats.pendingCount}\\n\\nNota: ${disclaimerText}`)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
               </div>
