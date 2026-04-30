@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 type Screen = "landing" | "onboarding" | "dashboard";
-type Tab = "route" | "cost" | "schools" | "plan" | "report";
+type Tab = "route" | "cost" | "schools" | "plan" | "readiness" | "report";
 type YesNoUnknown = "si" | "no" | "no_se";
 
 type Profile = {
@@ -120,13 +120,23 @@ type RouteAnalysis = {
   principalBlock: string;
 };
 
+type DecisionReadiness = {
+  score: number;
+  decision: "No pagues todavía" | "Puedes avanzar, pero faltan datos" | "Listo para decidir con condiciones";
+  explanation: string;
+  bloqueosCriticos: string[];
+  faltanDatos: string[];
+  proximosPasos: string[];
+  showNoPaguesBadge: boolean;
+};
+
 const disclaimerText =
   "FlyPath Career Planner ofrece orientación educativa y herramientas de planificación basadas en los datos introducidos por el usuario. No sustituye asesoramiento financiero, médico, legal ni información oficial de escuelas, autoridades o aerolíneas. Los costes son estimaciones y pueden variar.";
 
 const defaultProfile: Profile = {
   nombre: "",
   edad: 24,
-  pais: "Espana",
+  pais: "España",
   situacionLaboral: "trabajando",
   objetivo: "aerolinea",
   class1: "no",
@@ -177,7 +187,7 @@ const exampleSchools: School[] = [
     id: 1,
     isExample: true,
     nombre: "Escuela Ejemplo A",
-    pais: "Espana",
+    pais: "España",
     ciudad: "Madrid",
     programa: "integrado",
     precioAnunciado: 79000,
@@ -213,6 +223,19 @@ function euro(value: number) {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value || 0);
 }
 
+function objetivoLabel(value: Profile["objetivo"]) {
+  if (value === "aerolinea") return "aerolínea";
+  if (value === "ejecutivo") return "ejecutivo";
+  if (value === "instructor") return "instructor";
+  return "no lo sé";
+}
+
+function recomendacionLabel(value: string) {
+  if (value === "no decidir aún") return "No decidir aún";
+  if (value === "requiere confirmación") return "Requiere confirmación";
+  return value;
+}
+
 function computeRoute(profile: Profile): RouteAnalysis {
   let integrated = 30;
   let modular = 35;
@@ -223,7 +246,7 @@ function computeRoute(profile: Profile): RouteAnalysis {
 
   if (profile.edad < 18) {
     prep += 40;
-    warnings.push("Perfil menor de edad: priorizar preparacion y madurez operativa.");
+    warnings.push("Perfil menor de edad: priorizar preparación y madurez operativa.");
   }
   if (profile.class1 !== "si") {
     prep += 45;
@@ -235,7 +258,7 @@ function computeRoute(profile: Profile): RouteAnalysis {
     prep += 25;
     modular += 8;
     integrated -= 10;
-    warnings.push("Ingles bajo: requiere preparacion previa o ruta modular con condicion.");
+    warnings.push("Inglés bajo: requiere preparación previa o ruta modular con condición.");
   }
   if (profile.dineroDisponible < 30000 && profile.financiacion === "no") {
     prep += 35;
@@ -295,10 +318,10 @@ function computeRoute(profile: Profile): RouteAnalysis {
     profile.class1 !== "si"
       ? "Clase 1 no confirmada"
       : profile.ingles === "bajo"
-      ? "Ingles operativo insuficiente"
+      ? "Inglés operativo insuficiente"
       : profile.financiacion === "no" && profile.dineroDisponible < 30000
-      ? "Brecha financiera critica"
-      : "Ningun bloqueo critico";
+      ? "Brecha financiera crítica"
+      : "Ningún bloqueo crítico";
 
   return { integrated, modular, hybrid, prep, recommended, reason: reasonMap[recommended], warnings, conflicts, principalBlock };
 }
@@ -337,7 +360,7 @@ function computeCosts(costs: CostInputs, profile: Profile) {
   riskScore = clamp(riskScore);
 
   const riesgoFinanciero =
-    riskScore >= 80 ? "Critico" : riskScore >= 60 ? "Alto" : riskScore >= 40 ? "Medio" : "Bajo";
+    riskScore >= 80 ? "Crítico" : riskScore >= 60 ? "Alto" : riskScore >= 40 ? "Medio" : "Bajo";
 
   return {
     subtotalFormacion,
@@ -411,7 +434,7 @@ function schoolAnalysis(school: School, totalRealista: number) {
   const redFlags: string[] = [];
   if (school.calendarioPagosClaro !== "si") redFlags.push("Calendario de pagos no claro.");
   if (school.contratoAntesPagar !== "si") redFlags.push("Contrato no confirmado antes del pago.");
-  if (school.reembolsoClaro !== "si") redFlags.push("Politica de reembolso poco clara.");
+  if (school.reembolsoClaro !== "si") redFlags.push("Política de reembolso poco clara.");
   if (school.estadoVerificacion !== "verificado") redFlags.push("Información insuficiente.");
 
   const preguntasPendientes: string[] = [];
@@ -420,9 +443,9 @@ function schoolAnalysis(school: School, totalRealista: number) {
   if (school.mccIncluido !== "si") preguntasPendientes.push("Aclarar MCC/JOC.");
   if (school.uprtIncluido !== "si") preguntasPendientes.push("Aclarar Advanced UPRT.");
 
-  let recomendacionPrudente = "no decidir aun";
+  let recomendacionPrudente = "no decidir aún";
   if (claridadCoste >= 70 && transparencia >= 70 && verificacion >= 60) recomendacionPrudente = "buena claridad documental";
-  else if (verificacion < 50) recomendacionPrudente = "requiere confirmacion";
+  else if (verificacion < 50) recomendacionPrudente = "requiere confirmación";
   else recomendacionPrudente = "riesgo por falta de datos";
 
   return {
@@ -439,8 +462,148 @@ function schoolAnalysis(school: School, totalRealista: number) {
   };
 }
 
+function computeDecisionReadiness({
+  profile,
+  costs,
+  route,
+  schoolsAnalyzed,
+  bufferPct,
+}: {
+  profile: Profile;
+  costs: ReturnType<typeof computeCosts>;
+  route: RouteAnalysis;
+  schoolsAnalyzed: Array<{ school: School; analysis: ReturnType<typeof schoolAnalysis> }>;
+  bufferPct: number;
+}): DecisionReadiness {
+  let score = 100;
+  const bloqueosCriticos: string[] = [];
+  const faltanDatos: string[] = [];
+
+  const verifiedOrPartial = schoolsAnalyzed.filter(
+    (x) => x.school.estadoVerificacion === "verificado" || x.school.estadoVerificacion === "parcialmente_verificado"
+  );
+
+  const anyVaguePromises = schoolsAnalyzed.some((x) => x.school.promesasEmpleo === "vagas");
+  const anyDocMissing = schoolsAnalyzed.some(
+    (x) =>
+      x.school.contratoAntesPagar !== "si" ||
+      x.school.reembolsoClaro !== "si" ||
+      x.school.calendarioPagosClaro !== "si"
+  );
+  const anyCriticalMissing = schoolsAnalyzed.some(
+    (x) =>
+      x.school.mccIncluido !== "si" ||
+      x.school.uprtIncluido !== "si" ||
+      x.school.tasasIncluidas !== "si" ||
+      x.school.skillTestsIncluidos !== "si" ||
+      x.school.alojamientoIncluido !== "si"
+  );
+
+  if (profile.class1 !== "si") {
+    score -= 45;
+    bloqueosCriticos.push("Class 1 no confirmado.");
+  }
+
+  if (profile.ingles === "bajo") {
+    score -= 18;
+    faltanDatos.push("Condición previa: mejorar inglés operativo.");
+  } else if (profile.ingles === "medio") {
+    score -= 8;
+  }
+
+  if (costs.brechaFinanciacion > costs.totalRealista * 0.4) {
+    score -= 25;
+    bloqueosCriticos.push("Brecha financiera alta respecto al coste realista.");
+  } else if (costs.brechaFinanciacion > costs.totalRealista * 0.2) {
+    score -= 12;
+  }
+
+  if (profile.financiacion !== "confirmada" && costs.coverage < 70) {
+    score -= 25;
+    bloqueosCriticos.push("Bloqueo financiero: cobertura < 70% y financiación no confirmada.");
+  }
+
+  if (bufferPct < 12) {
+    score -= 10;
+    faltanDatos.push("Buffer de costes bajo; subir por encima del 12%.");
+  }
+
+  if (schoolsAnalyzed.length === 0) {
+    score -= 20;
+    faltanDatos.push("No hay escuelas comparadas.");
+  } else if (schoolsAnalyzed.length < 2) {
+    score -= 10;
+    faltanDatos.push("Comparar al menos 2 escuelas para decidir con criterio.");
+  }
+
+  if (verifiedOrPartial.length === 0) {
+    score -= 20;
+    bloqueosCriticos.push("Faltan datos verificados o parcialmente verificados.");
+  }
+
+  if (anyDocMissing) {
+    score -= 18;
+    bloqueosCriticos.push("Bloqueo documental: contrato/reembolso/calendario no claros.");
+  }
+
+  if (anyVaguePromises) {
+    score -= 10;
+    faltanDatos.push("Riesgo de marketing: promesas vagas de empleo.");
+  }
+
+  if (anyCriticalMissing) {
+    score -= 12;
+    faltanDatos.push("Faltan datos críticos: MCC/UPRT/tasas/skill tests/alojamiento.");
+  }
+
+  if (route.conflicts.some((c) => c.includes("rapidez"))) {
+    score -= 8;
+    faltanDatos.push("Conflicto actual entre urgencia y necesidad de trabajar.");
+  }
+
+  score = clamp(score);
+
+  const showNoPaguesBadge = profile.class1 !== "si" || bloqueosCriticos.length > 0;
+
+  let decision: DecisionReadiness["decision"] = "Puedes avanzar, pero faltan datos";
+  if (profile.class1 !== "si") {
+    decision = "No pagues todavía";
+  } else if (bloqueosCriticos.length > 0 || score < 55) {
+    decision = "No pagues todavía";
+  } else if (faltanDatos.length > 0 || score < 75) {
+    decision = "Puedes avanzar, pero faltan datos";
+  } else {
+    decision = "Listo para decidir con condiciones";
+  }
+
+  const explanationMap: Record<DecisionReadiness["decision"], string> = {
+    "No pagues todavía":
+      "El riesgo actual es demasiado alto para pagar matrícula, depósito o firmar sin resolver bloqueos críticos.",
+    "Puedes avanzar, pero faltan datos":
+      "El perfil permite avanzar en el proceso, pero aún faltan confirmaciones clave antes de comprometer pagos.",
+    "Listo para decidir con condiciones":
+      "La base de decisión es sólida, siempre que mantengas control documental y financiero en la firma final.",
+  };
+
+  const proximosPasos = [
+    "Confirmar por escrito contrato, reembolso y calendario de pagos.",
+    "Actualizar escenarios con costes verificados de al menos 2 escuelas.",
+    "No transferir depósito hasta validar todos los datos críticos.",
+  ];
+
+  return {
+    score,
+    decision,
+    explanation: explanationMap[decision],
+    bloqueosCriticos,
+    faltanDatos,
+    proximosPasos,
+    showNoPaguesBadge,
+  };
+}
+
 function buildSchoolEmail(school: School, nombreUsuario: string) {
-  return `Asunto: Solicitud de desglose completo de costes y condiciones - ${school.nombre}\n\nHola equipo de ${school.nombre},\n\nSoy ${nombreUsuario || "un aspirante a piloto"} y estoy evaluando opciones de formación. Antes de tomar una decisión, necesito confirmar por escrito la información económica y operativa.\n\nAgradecería que me enviaran:\n\n1) Desglose completo de costes\n- Precio total del programa\n- Qué incluye y qué no incluye\n- Tasas de examen\n- Skill tests\n- MCC/JOC\n- Advanced UPRT\n- Alojamiento (si aplica)\n- Costes de repetición\n\n2) Pagos y condiciones\n- Depósito requerido\n- Calendario de pagos\n- Política de reembolso\n\n3) Operación real del programa\n- Duración media real del programa\n- Disponibilidad de flota e instructores\n- Posibilidad de hablar con alumnos actuales o antiguos\n\nSi tienen folleto actualizado, contrato tipo o anexo de condiciones, por favor incluyanlo en la respuesta.\n\nGracias por vuestra ayuda.\n\nUn saludo,\n${nombreUsuario || ""}`;
+  return `Asunto: Solicitud de desglose completo de costes y condiciones - ${school.nombre}\n\nHola equipo de ${school.nombre},\n\nSoy ${nombreUsuario || "un aspirante a piloto"} y estoy evaluando opciones de formación. Antes de tomar una decisión, necesito confirmar por escrito la información económica y operativa.\n\nAgradecería que me enviaran:\n\n1) Desglose completo de costes\n- Precio total del programa\n- Qué incluye y qué no incluye\n- Tasas de examen\n- Skill tests\n- MCC/JOC\n- Advanced UPRT\n- Alojamiento (si aplica)\n- Costes de repetición\n\n2) Pagos y condiciones\n- Depósito requerido\n- Calendario de pagos\n- Política de reembolso\n\n3) Operación real del programa\n- Duración media real del programa\n- Disponibilidad de flota e instructores\n- Posibilidad de hablar con alumnos actuales o antiguos\n\nSi tienen folleto actualizado, contrato tipo o anexo de condiciones, por favor inclúyanlo en la respuesta.\n\nGracias por vuestra ayuda.\n\nUn saludo,\n${nombreUsuario || ""}`;
 }
 
 function copyText(text: string) {
@@ -523,6 +686,18 @@ export default function Page() {
     return { analyzed, verifiedCount, pendingCount, bestSchool: viable[0] || null };
   }, [schools, costs.totalRealista]);
 
+  const decisionReadiness = useMemo(
+    () =>
+      computeDecisionReadiness({
+        profile,
+        costs,
+        route,
+        schoolsAnalyzed: schoolStats.analyzed,
+        bufferPct: costInputs.bufferPct,
+      }),
+    [profile, costs, route, schoolStats.analyzed, costInputs.bufferPct]
+  );
+
   const resetDemoData = () => {
     localStorage.removeItem("flypath_profile");
     localStorage.removeItem("flypath_cost_inputs");
@@ -554,16 +729,17 @@ export default function Page() {
     { id: "cost", label: "Calculadora" },
     { id: "schools", label: "Comparador" },
     { id: "plan", label: "Plan 7/30/90" },
+    { id: "readiness", label: "¿Listo para pagar?" },
     { id: "report", label: "Informe final" },
   ];
 
   const stepMeta: Record<number, { title: string; desc: string }> = {
     1: { title: "Perfil", desc: "Define tu punto de partida profesional." },
     2: { title: "Medical e inglés", desc: "Valida bloqueos operativos críticos." },
-    3: { title: "Presupuesto", desc: "Alinea capacidad economica y riesgo." },
+            3: { title: "Presupuesto", desc: "Alinea capacidad económica y riesgo." },
     4: { title: "Disponibilidad", desc: "Calcula ritmo realista de progreso." },
     5: { title: "Escuelas", desc: "Carga referencias iniciales para comparar." },
-    6: { title: "Resultado inicial", desc: "Visualiza recomendacion y brechas." },
+            6: { title: "Resultado inicial", desc: "Visualiza recomendación y brechas." },
   };
 
   if (screen === "landing") {
@@ -580,7 +756,7 @@ export default function Page() {
 
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
             <div>
-              <p className="inline-flex rounded-full border border-[#c9a454]/35 bg-[#c9a454]/10 px-3 py-1 text-xs tracking-[0.16em] text-[#f2ddaa]">FLYPATH CAREER PLANNER · TEST DEPLOY</p>
+              <p className="inline-flex rounded-full border border-[#c9a454]/35 bg-[#c9a454]/10 px-3 py-1 text-xs tracking-[0.16em] text-[#f2ddaa]">FLYPATH CAREER PLANNER</p>
               <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Planifica tu ruta como piloto antes de tomar decisiones caras.</h1>
               <p className="mt-5 text-lg text-slate-200">Calcula costes reales, compara rutas y analiza escuelas antes de invertir miles de euros.</p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -674,7 +850,7 @@ export default function Page() {
           <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Perfil activo</p>
             <h1 className="text-2xl font-semibold">{profile.nombre || "Usuario"}</h1>
-            <p className="text-sm text-slate-500">{profile.pais} · {profile.situacionLaboral} · Objetivo: {profile.objetivo}</p>
+            <p className="text-sm text-slate-500">{profile.pais} · {profile.situacionLaboral} · Objetivo: {objetivoLabel(profile.objetivo)}</p>
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
               <SummaryCard label="Ruta recomendada" value={route.recommended} />
               <SummaryCard label="Coste realista" value={euro(costs.totalRealista)} />
@@ -695,6 +871,31 @@ export default function Page() {
               )}
             </div>
           </header>
+          <div className="mt-4 rounded-2xl border border-[#1d4ed8]/25 bg-gradient-to-r from-[#e9f1ff] via-white to-[#f5f9ff] p-6 shadow-md">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">Decision Readiness · Módulo clave</p>
+                <h2 className="text-xl font-semibold text-[#0f1a33]">¿Estoy listo para pagar una escuela?</h2>
+                <p className="mt-1 text-sm text-slate-600">Decisión comercial crítica antes de pagar matrícula, depósito o firmar.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {decisionReadiness.showNoPaguesBadge && (
+                  <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                    No pagues escuela todavía
+                  </span>
+                )}
+                <div className="rounded-xl border border-[#1d4ed8]/20 bg-white px-4 py-2 text-right">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500">Readiness Score</p>
+                  <p className="text-3xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-base font-semibold text-slate-500">/100</span></p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Decisión recomendada</p>
+              <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
+              <p className="mt-1 text-sm text-slate-600">{decisionReadiness.explanation}</p>
+            </div>
+          </div>
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             {tab === "route" && (
               <div className="space-y-4">
@@ -726,10 +927,10 @@ export default function Page() {
                   <div className="mt-2"><Progress value={costs.coverage} tone="bg-[#0f1a33]" /></div>
                   <p className="mt-1 text-sm text-slate-600">{costs.coverage}% del escenario realista cubierto.</p>
                 </div>
-                <CostBlock title="Formacion">
+                <CostBlock title="Formación">
                   <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
-                  <NumberField label="ATPL theory" value={costInputs.atplTheory} onChange={(v) => setCostInputs((c) => ({ ...c, atplTheory: v }))} />
-                  <NumberField label="Hour building" value={costInputs.hourBuilding} onChange={(v) => setCostInputs((c) => ({ ...c, hourBuilding: v }))} />
+                  <NumberField label="Teoría ATPL" value={costInputs.atplTheory} onChange={(v) => setCostInputs((c) => ({ ...c, atplTheory: v }))} />
+                  <NumberField label="Horas de vuelo / Hour building" value={costInputs.hourBuilding} onChange={(v) => setCostInputs((c) => ({ ...c, hourBuilding: v }))} />
                   <NumberField label="CPL" value={costInputs.cpl} onChange={(v) => setCostInputs((c) => ({ ...c, cpl: v }))} />
                   <NumberField label="MEP" value={costInputs.mep} onChange={(v) => setCostInputs((c) => ({ ...c, mep: v }))} />
                   <NumberField label="IR" value={costInputs.ir} onChange={(v) => setCostInputs((c) => ({ ...c, ir: v }))} />
@@ -737,8 +938,8 @@ export default function Page() {
                   <NumberField label="Advanced UPRT" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
                 </CostBlock>
                 <CostBlock title="Extras">
-                  <NumberField label="Class 1 medical" value={costInputs.class1Medical} onChange={(v) => setCostInputs((c) => ({ ...c, class1Medical: v }))} />
-                  <NumberField label="Tasas examenes" value={costInputs.tasasExamenes} onChange={(v) => setCostInputs((c) => ({ ...c, tasasExamenes: v }))} />
+                  <NumberField label="Reconocimiento médico Clase 1" value={costInputs.class1Medical} onChange={(v) => setCostInputs((c) => ({ ...c, class1Medical: v }))} />
+                  <NumberField label="Tasas exámenes" value={costInputs.tasasExamenes} onChange={(v) => setCostInputs((c) => ({ ...c, tasasExamenes: v }))} />
                   <NumberField label="Skill tests" value={costInputs.skillTests} onChange={(v) => setCostInputs((c) => ({ ...c, skillTests: v }))} />
                   <NumberField label="Equipo" value={costInputs.equipo} onChange={(v) => setCostInputs((c) => ({ ...c, equipo: v }))} />
                   <NumberField label="Headset" value={costInputs.headset} onChange={(v) => setCostInputs((c) => ({ ...c, headset: v }))} />
@@ -747,11 +948,11 @@ export default function Page() {
                   <NumberField label="Repeticiones" value={costInputs.repeticiones} onChange={(v) => setCostInputs((c) => ({ ...c, repeticiones: v }))} />
                   <NumberField label="Type rating opcional" value={costInputs.typeRatingOpcional} onChange={(v) => setCostInputs((c) => ({ ...c, typeRatingOpcional: v }))} />
                 </CostBlock>
-                <CostBlock title="Vida y logistica">
+                <CostBlock title="Vida y logística">
                   <NumberField label="Alojamiento" value={costInputs.alojamiento} onChange={(v) => setCostInputs((c) => ({ ...c, alojamiento: v }))} />
                   <NumberField label="Transporte" value={costInputs.transporte} onChange={(v) => setCostInputs((c) => ({ ...c, transporte: v }))} />
                   <NumberField label="Comida" value={costInputs.comida} onChange={(v) => setCostInputs((c) => ({ ...c, comida: v }))} />
-                  <NumberField label="Otros gastos vida" value={costInputs.otrosGastosVida} onChange={(v) => setCostInputs((c) => ({ ...c, otrosGastosVida: v }))} />
+                  <NumberField label="Otros gastos de vida" value={costInputs.otrosGastosVida} onChange={(v) => setCostInputs((c) => ({ ...c, otrosGastosVida: v }))} />
                   <NumberField label="Buffer %" value={costInputs.bufferPct} onChange={(v) => setCostInputs((c) => ({ ...c, bufferPct: v }))} />
                 </CostBlock>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -771,7 +972,7 @@ export default function Page() {
                   <TextField label="País" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
                   <TextField label="Ciudad" value={newSchool.ciudad} onChange={(v) => setNewSchool((s) => ({ ...s, ciudad: v }))} />
                   <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v) => setNewSchool((s) => ({ ...s, precioAnunciado: v }))} />
-                  <NumberField label="Duracion meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
+                  <NumberField label="Duración meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
                   <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
                 </div>
                 <button onClick={() => addSchool(false)} className="rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white">Añadir escuela</button>
@@ -793,9 +994,9 @@ export default function Page() {
                       <InfoCard label="Nivel de verificación" value={String(analysis.verificacion)} />
                       <InfoCard label="Encaje general" value={String(analysis.encajeGeneral)} />
                     </div>
-                    <InfoList title="Red flags" items={analysis.redFlags} empty="información insuficiente" />
-                    <InfoList title="Preguntas pendientes" items={analysis.preguntasPendientes} empty="sin preguntas pendientes" />
-                    <InfoCard label="Recomendacion prudente" value={analysis.recomendacionPrudente} />
+                    <InfoList title="Red flags" items={analysis.redFlags} empty="Información insuficiente" />
+                    <InfoList title="Preguntas pendientes" items={analysis.preguntasPendientes} empty="Sin preguntas pendientes" />
+                    <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
                     {emailDrafts[school.id] && (
                       <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                         <button onClick={() => copyText(emailDrafts[school.id])} className="mb-2 inline-flex items-center rounded-md border border-slate-300 px-2 py-1 text-xs"><Copy className="mr-1 h-3 w-3" />Copiar email</button>
@@ -811,6 +1012,44 @@ export default function Page() {
                 <PlanColumn title="Próximos 7 días" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir límite máximo de inversión."]} />
                 <PlanColumn title="Próximos 30 días" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de inglés." : "Mantener práctica semanal ATC."]} />
                 <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
+              </div>
+            )}
+            {tab === "readiness" && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] via-white to-[#f8fbff] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">Decision Readiness</p>
+                  <h3 className="mt-1 text-2xl font-semibold text-[#0f1a33]">¿Estoy listo para pagar una escuela?</h3>
+                  <p className="mt-1 text-sm text-slate-600">Lectura rápida: si el resultado es "No pagues todavía", evita transferencias hasta cerrar bloqueos.</p>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Readiness Score</p>
+                      <p className="mt-1 text-4xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-lg font-semibold text-slate-500">/100</span></p>
+                      <div className="mt-3"><Progress value={decisionReadiness.score} tone="bg-[#1d4ed8]" /></div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Decisión recomendada</p>
+                      <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
+                      <p className="mt-2 text-sm text-slate-600">{decisionReadiness.explanation}</p>
+                    </div>
+                  </div>
+                </div>
+                {decisionReadiness.showNoPaguesBadge && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                    <p className="font-semibold">No pagues escuela todavía</p>
+                    <p className="mt-1">Resuelve los bloqueos críticos antes de pagar matrícula, depósito o firmar.</p>
+                  </div>
+                )}
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <InfoList title="Datos pendientes" items={decisionReadiness.faltanDatos} empty="No faltan datos críticos para el siguiente paso." />
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <InfoList title="Próximos 3 pasos" items={decisionReadiness.proximosPasos} empty="Sin pasos pendientes." />
+                  </div>
+                </div>
               </div>
             )}
             {tab === "report" && (
@@ -833,8 +1072,8 @@ export default function Page() {
                 </div>
                 </Panel>
                 <Panel title="2. Escuelas y fiabilidad de datos">
-                <InfoCard label="Mejor escuela según datos actuales" value={schoolStats.bestSchool ? `${schoolStats.bestSchool.school.nombre} (${schoolStats.bestSchool.analysis.recomendacionPrudente})` : "información insuficiente"} />
-                <InfoList title="Red flags principales" items={[...route.warnings, ...(schoolStats.bestSchool?.analysis.redFlags || ["no decidir aun"])]} empty="sin red flags" />
+                <InfoCard label="Mejor escuela según datos actuales" value={schoolStats.bestSchool ? `${schoolStats.bestSchool.school.nombre} (${recomendacionLabel(schoolStats.bestSchool.analysis.recomendacionPrudente)})` : "Información insuficiente"} />
+                <InfoList title="Red flags principales" items={[...route.warnings, ...(schoolStats.bestSchool?.analysis.redFlags || ["No decidir aún"])]} empty="sin red flags" />
                 <InfoList title="Preguntas pendientes" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["confirmar datos de costes y contrato"]} empty="sin pendientes" />
                 <div className="rounded-xl border border-slate-200 p-3 text-sm">
                   <p>Fuente principal de costes: {schools[0]?.fuentePrecio || "no disponible"}</p>
@@ -843,6 +1082,29 @@ export default function Page() {
                   <p>Escuelas verificadas: {schoolStats.verifiedCount}</p>
                   <p>Escuelas pendientes: {schoolStats.pendingCount}</p>
                 </div>
+                </Panel>
+                <Panel title="3. Decision Readiness (resumen ejecutivo)">
+                  <div className="grid gap-4 xl:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Readiness Score</p>
+                      <p className="mt-1 text-3xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-base font-semibold text-slate-500">/100</span></p>
+                      <div className="mt-2"><Progress value={decisionReadiness.score} tone="bg-[#1d4ed8]" /></div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 xl:col-span-2">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Decisión recomendada (5 segundos)</p>
+                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
+                      <p className="mt-1 text-sm text-slate-600">{decisionReadiness.explanation}</p>
+                    </div>
+                  </div>
+                  {decisionReadiness.showNoPaguesBadge && (
+                    <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+                      <strong>No pagues escuela todavía.</strong> Valida los bloqueos antes de firmar o transferir dinero.
+                    </div>
+                  )}
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
+                    <InfoList title="Datos pendientes antes de pagar" items={decisionReadiness.faltanDatos} empty="Sin pendientes críticos." />
+                  </div>
                 </Panel>
                 <button onClick={() => copyText(`INFORME FLYPATH\\nUsuario: ${profile.nombre || "Usuario"}\\nRuta: ${route.recommended}\\nRazón: ${route.reason}\\nCoste optimista: ${euro(costs.totalOptimista)}\\nCoste realista: ${euro(costs.totalRealista)}\\nCoste conservador: ${euro(costs.totalConservador)}\\nBrecha: ${euro(costs.brechaFinanciacion)}\\nMeses: ${costs.mesesCerrarBrecha}\\nRiesgo financiero: ${costs.riesgoFinanciero}\\nBloqueo: ${route.principalBlock}\\nEscuelas: ${schools.length}\\nVerificadas: ${schoolStats.verifiedCount}\\nPendientes: ${schoolStats.pendingCount}\\n\\nNota: ${disclaimerText}`)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
               </div>
@@ -867,7 +1129,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function YNField({ label, value, onChange }: { label: string; value: YesNoUnknown; onChange: (value: YesNoUnknown) => void }) {
-  return <SelectField label={label} value={value} options={[{ value: "si", label: "Si" }, { value: "no", label: "No" }, { value: "no_se", label: "No se" }]} onChange={(v) => onChange(v as YesNoUnknown)} />;
+  return <SelectField label={label} value={value} options={[{ value: "si", label: "Sí" }, { value: "no", label: "No" }, { value: "no_se", label: "No sé" }]} onChange={(v) => onChange(v as YesNoUnknown)} />;
 }
 
 function RouteOption({ title, value }: { title: string; value: number }) {
