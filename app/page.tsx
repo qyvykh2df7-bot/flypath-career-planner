@@ -1396,37 +1396,82 @@ ${disclaimerText}`;
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             {tab === "route" && (
               <div className="space-y-4">
-                <div className="grid gap-3 lg:grid-cols-4">
-                  <RouteOption title="Integrada" value={route.integrated} />
-                  <RouteOption title="Modular" value={route.modular} />
-                  <RouteOption title="Híbrida" value={route.hybrid} />
-                  <RouteOption title="Preparación" value={route.prep} />
+                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión de ruta</p>
+                  <p className="mt-1 text-sm text-slate-700">
+                    Tu ruta más prudente ahora es <strong>{route.recommended}</strong>. Antes de comprometer dinero, conviene resolver: <strong>{route.principalBlock}</strong>.
+                  </p>
+                  <p className="mt-2 text-sm text-slate-700">
+                    <strong>Siguiente acción recomendada:</strong> {route.warnings[0] || "Confirmar por escrito costes, contrato y condiciones antes de pagar."}
+                  </p>
                 </div>
-                <InfoCard label="Ruta recomendada" value={route.recommended} />
-                <InfoCard label="Razón principal" value={route.reason} />
-                <InfoCard label="Bloqueo principal" value={route.principalBlock} />
-                {route.warnings.map((w) => <div key={w} className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">{w}</div>)}
-                {route.conflicts.map((c) => <div key={c} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">{c}</div>)}
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Datos principales</p>
+                  <div className="grid gap-3 lg:grid-cols-4">
+                    <RouteOption title="Integrada" value={route.integrated} />
+                    <RouteOption title="Modular" value={route.modular} />
+                    <RouteOption title="Híbrida" value={route.hybrid} />
+                    <RouteOption title="Preparación" value={route.prep} />
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <InfoCard label="Ruta recomendada" value={route.recommended} />
+                    <InfoCard label="Razón principal" value={route.reason} />
+                    <InfoCard label="Bloqueo principal" value={route.principalBlock} />
+                  </div>
+                </div>
+                <details className="rounded-xl border border-slate-200 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver riesgos y conflictos de ruta</summary>
+                  <div className="mt-3 space-y-2">
+                    {route.warnings.map((w) => <div key={w} className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">{w}</div>)}
+                    {route.conflicts.map((c) => <div key={c} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">{c}</div>)}
+                  </div>
+                </details>
               </div>
             )}
             {tab === "cost" && (
               <div className="space-y-6">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <SummaryCard label="Total optimista" value={euro(costs.totalOptimista)} />
-                  <SummaryCard label="Total realista" value={euro(costs.totalRealista)} />
-                  <SummaryCard label="Total conservador" value={euro(costs.totalConservador)} />
-                  <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-                  <SummaryCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
-                  <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
+                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión financiera</p>
+                  <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
+                    <InfoCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
+                    <InfoCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
+                    <InfoCard label="Porcentaje cubierto" value={`${costs.coverage}%`} />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-700">
+                    Tu presupuesto actual cubre aproximadamente <strong>{costs.coverage}%</strong> del escenario realista. Antes de comprometer pagos, conviene cerrar una brecha de <strong>{euro(costs.brechaFinanciacion)}</strong>.
+                  </p>
                 </div>
-                <CostBreakdownBars
-                  totalRealista={costs.totalRealista}
-                  subtotalFormacion={costs.subtotalFormacion}
-                  subtotalExtras={costs.subtotalExtras}
-                  subtotalVida={costs.subtotalVida}
-                  buffer={costs.buffer}
-                />
-                <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Datos principales</p>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <SummaryCard label="Total optimista" value={euro(costs.totalOptimista)} />
+                    <SummaryCard label="Total realista" value={euro(costs.totalRealista)} />
+                    <SummaryCard label="Total conservador" value={euro(costs.totalConservador)} />
+                    <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
+                    <SummaryCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
+                    <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Acción recomendada</p>
+                  <p className="text-sm text-slate-700">
+                    Si existe brecha financiera, conviene no adelantar pagos importantes hasta confirmar financiación, calendario de pagos y coste final por escrito.
+                  </p>
+                </div>
+                <details className="rounded-xl border border-slate-200 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver visualizaciones y detalles de costes</summary>
+                  <div className="mt-4 space-y-4">
+                    <CostBreakdownBars
+                      totalRealista={costs.totalRealista}
+                      subtotalFormacion={costs.subtotalFormacion}
+                      subtotalExtras={costs.subtotalExtras}
+                      subtotalVida={costs.subtotalVida}
+                      buffer={costs.buffer}
+                    />
+                    <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
+                  </div>
+                </details>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <FinancialCoverageCard
                     dineroDisponible={profile.dineroDisponible}
@@ -1448,44 +1493,56 @@ ${disclaimerText}`;
                     )}
                   </div>
                 </div>
-                <CostBlock title="Formación">
-                  <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
-                  <NumberField label="Teoría ATPL" value={costInputs.atplTheory} onChange={(v) => setCostInputs((c) => ({ ...c, atplTheory: v }))} />
-                  <NumberField label="Horas de vuelo / Hour building" value={costInputs.hourBuilding} onChange={(v) => setCostInputs((c) => ({ ...c, hourBuilding: v }))} />
-                  <NumberField label="CPL" value={costInputs.cpl} onChange={(v) => setCostInputs((c) => ({ ...c, cpl: v }))} />
-                  <NumberField label="MEP" value={costInputs.mep} onChange={(v) => setCostInputs((c) => ({ ...c, mep: v }))} />
-                  <NumberField label="IR" value={costInputs.ir} onChange={(v) => setCostInputs((c) => ({ ...c, ir: v }))} />
-                  <NumberField label="MCC/JOC" value={costInputs.mccJoc} onChange={(v) => setCostInputs((c) => ({ ...c, mccJoc: v }))} />
-                  <NumberField label="Advanced UPRT" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
-                </CostBlock>
-                <CostBlock title="Extras">
-                  <NumberField label="Reconocimiento médico Clase 1" value={costInputs.class1Medical} onChange={(v) => setCostInputs((c) => ({ ...c, class1Medical: v }))} />
-                  <NumberField label="Tasas exámenes" value={costInputs.tasasExamenes} onChange={(v) => setCostInputs((c) => ({ ...c, tasasExamenes: v }))} />
-                  <NumberField label="Skill tests" value={costInputs.skillTests} onChange={(v) => setCostInputs((c) => ({ ...c, skillTests: v }))} />
-                  <NumberField label="Equipo" value={costInputs.equipo} onChange={(v) => setCostInputs((c) => ({ ...c, equipo: v }))} />
-                  <NumberField label="Headset" value={costInputs.headset} onChange={(v) => setCostInputs((c) => ({ ...c, headset: v }))} />
-                  <NumberField label="iPad/apps/cartas" value={costInputs.ipadAppsCartas} onChange={(v) => setCostInputs((c) => ({ ...c, ipadAppsCartas: v }))} />
-                  <NumberField label="Uniforme/material" value={costInputs.uniformeMaterial} onChange={(v) => setCostInputs((c) => ({ ...c, uniformeMaterial: v }))} />
-                  <NumberField label="Repeticiones" value={costInputs.repeticiones} onChange={(v) => setCostInputs((c) => ({ ...c, repeticiones: v }))} />
-                  <NumberField label="Type rating opcional" value={costInputs.typeRatingOpcional} onChange={(v) => setCostInputs((c) => ({ ...c, typeRatingOpcional: v }))} />
-                </CostBlock>
-                <CostBlock title="Vida y logística">
-                  <NumberField label="Alojamiento" value={costInputs.alojamiento} onChange={(v) => setCostInputs((c) => ({ ...c, alojamiento: v }))} />
-                  <NumberField label="Transporte" value={costInputs.transporte} onChange={(v) => setCostInputs((c) => ({ ...c, transporte: v }))} />
-                  <NumberField label="Comida" value={costInputs.comida} onChange={(v) => setCostInputs((c) => ({ ...c, comida: v }))} />
-                  <NumberField label="Otros gastos de vida" value={costInputs.otrosGastosVida} onChange={(v) => setCostInputs((c) => ({ ...c, otrosGastosVida: v }))} />
-                  <NumberField label="Buffer %" value={costInputs.bufferPct} onChange={(v) => setCostInputs((c) => ({ ...c, bufferPct: v }))} />
-                </CostBlock>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <SummaryCard label="Subtotal formación" value={euro(costs.subtotalFormacion)} />
-                  <SummaryCard label="Subtotal extras" value={euro(costs.subtotalExtras)} />
-                  <SummaryCard label="Subtotal vida" value={euro(costs.subtotalVida)} />
-                  <SummaryCard label="Buffer" value={euro(costs.buffer)} />
-                </div>
+                <details className="rounded-xl border border-slate-200 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver desglose completo de costes (editable)</summary>
+                  <div className="mt-4 space-y-4">
+                    <CostBlock title="Formación">
+                      <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
+                      <NumberField label="Teoría ATPL" value={costInputs.atplTheory} onChange={(v) => setCostInputs((c) => ({ ...c, atplTheory: v }))} />
+                      <NumberField label="Horas de vuelo / Hour building" value={costInputs.hourBuilding} onChange={(v) => setCostInputs((c) => ({ ...c, hourBuilding: v }))} />
+                      <NumberField label="CPL" value={costInputs.cpl} onChange={(v) => setCostInputs((c) => ({ ...c, cpl: v }))} />
+                      <NumberField label="MEP" value={costInputs.mep} onChange={(v) => setCostInputs((c) => ({ ...c, mep: v }))} />
+                      <NumberField label="IR" value={costInputs.ir} onChange={(v) => setCostInputs((c) => ({ ...c, ir: v }))} />
+                      <NumberField label="MCC/JOC" value={costInputs.mccJoc} onChange={(v) => setCostInputs((c) => ({ ...c, mccJoc: v }))} />
+                      <NumberField label="Advanced UPRT" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
+                    </CostBlock>
+                    <CostBlock title="Extras">
+                      <NumberField label="Reconocimiento médico Clase 1" value={costInputs.class1Medical} onChange={(v) => setCostInputs((c) => ({ ...c, class1Medical: v }))} />
+                      <NumberField label="Tasas exámenes" value={costInputs.tasasExamenes} onChange={(v) => setCostInputs((c) => ({ ...c, tasasExamenes: v }))} />
+                      <NumberField label="Skill tests" value={costInputs.skillTests} onChange={(v) => setCostInputs((c) => ({ ...c, skillTests: v }))} />
+                      <NumberField label="Equipo" value={costInputs.equipo} onChange={(v) => setCostInputs((c) => ({ ...c, equipo: v }))} />
+                      <NumberField label="Headset" value={costInputs.headset} onChange={(v) => setCostInputs((c) => ({ ...c, headset: v }))} />
+                      <NumberField label="iPad/apps/cartas" value={costInputs.ipadAppsCartas} onChange={(v) => setCostInputs((c) => ({ ...c, ipadAppsCartas: v }))} />
+                      <NumberField label="Uniforme/material" value={costInputs.uniformeMaterial} onChange={(v) => setCostInputs((c) => ({ ...c, uniformeMaterial: v }))} />
+                      <NumberField label="Repeticiones" value={costInputs.repeticiones} onChange={(v) => setCostInputs((c) => ({ ...c, repeticiones: v }))} />
+                      <NumberField label="Type rating opcional" value={costInputs.typeRatingOpcional} onChange={(v) => setCostInputs((c) => ({ ...c, typeRatingOpcional: v }))} />
+                    </CostBlock>
+                    <CostBlock title="Vida y logística">
+                      <NumberField label="Alojamiento" value={costInputs.alojamiento} onChange={(v) => setCostInputs((c) => ({ ...c, alojamiento: v }))} />
+                      <NumberField label="Transporte" value={costInputs.transporte} onChange={(v) => setCostInputs((c) => ({ ...c, transporte: v }))} />
+                      <NumberField label="Comida" value={costInputs.comida} onChange={(v) => setCostInputs((c) => ({ ...c, comida: v }))} />
+                      <NumberField label="Otros gastos de vida" value={costInputs.otrosGastosVida} onChange={(v) => setCostInputs((c) => ({ ...c, otrosGastosVida: v }))} />
+                      <NumberField label="Buffer %" value={costInputs.bufferPct} onChange={(v) => setCostInputs((c) => ({ ...c, bufferPct: v }))} />
+                    </CostBlock>
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <SummaryCard label="Subtotal formación" value={euro(costs.subtotalFormacion)} />
+                      <SummaryCard label="Subtotal extras" value={euro(costs.subtotalExtras)} />
+                      <SummaryCard label="Subtotal vida" value={euro(costs.subtotalVida)} />
+                      <SummaryCard label="Buffer" value={euro(costs.buffer)} />
+                    </div>
+                  </div>
+                </details>
               </div>
             )}
             {tab === "schools" && (
               <div className="space-y-4">
+                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión sobre escuelas</p>
+                  <p className="mt-1 text-sm text-slate-700">
+                    Has comparado <strong>{schools.length}</strong> escuela(s), con <strong>{schoolStats.verifiedCount}</strong> verificada(s).
+                    {schoolStats.bestSchool ? ` La mejor opción actual es ${schoolStats.bestSchool.school.nombre}.` : " Todavía no hay suficiente información verificada para elegir escuela con seguridad."}
+                  </p>
+                </div>
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
                 <button
                   onClick={() => {
@@ -1530,15 +1587,18 @@ ${disclaimerText}`;
                         {generatedEmailKey === school.id ? "Email generado" : "Generar email"}
                       </button>
                     </div>
-                    <div className="mt-3 grid gap-2 md:grid-cols-3">
-                      <InfoCard label="Claridad de coste" value={String(analysis.claridadCoste)} />
-                      <InfoCard label="Transparencia" value={String(analysis.transparencia)} />
-                      <InfoCard label="Riesgo financiero" value={String(analysis.riesgoFinanciero)} />
-                      <InfoCard label="Riesgo operacional" value={String(analysis.riesgoOperacional)} />
-                      <InfoCard label="Riesgo de marketing" value={String(analysis.riesgoMarketing)} />
-                      <InfoCard label="Nivel de verificación" value={String(analysis.verificacion)} />
-                      <InfoCard label="Encaje general" value={String(analysis.encajeGeneral)} />
-                    </div>
+                    <details className="mt-3 rounded-lg border border-slate-200 p-3">
+                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver métricas técnicas y riesgos</summary>
+                      <div className="mt-3 grid gap-2 md:grid-cols-3">
+                        <InfoCard label="Claridad de coste" value={String(analysis.claridadCoste)} />
+                        <InfoCard label="Transparencia" value={String(analysis.transparencia)} />
+                        <InfoCard label="Riesgo financiero" value={String(analysis.riesgoFinanciero)} />
+                        <InfoCard label="Riesgo operacional" value={String(analysis.riesgoOperacional)} />
+                        <InfoCard label="Riesgo de marketing" value={String(analysis.riesgoMarketing)} />
+                        <InfoCard label="Nivel de verificación" value={String(analysis.verificacion)} />
+                        <InfoCard label="Encaje general" value={String(analysis.encajeGeneral)} />
+                      </div>
+                    </details>
                     <InfoList title="Red flags" items={analysis.redFlags} empty="Información insuficiente" />
                     <InfoList title="Preguntas pendientes" items={analysis.preguntasPendientes} empty="Sin preguntas pendientes" />
                     <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
@@ -1582,16 +1642,14 @@ ${disclaimerText}`;
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#1d4ed8]">¿Listo para pagar?</p>
                   <h3 className="mt-1 text-2xl font-semibold text-[#0f1a33]">¿Estoy listo para pagar una escuela?</h3>
                   <p className="mt-1 text-sm text-slate-600">Lectura rápida: si el resultado es "No pagues todavía", evita transferencias hasta cerrar bloqueos.</p>
-                  <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Readiness Score</p>
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Conclusión</p>
+                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
+                    <p className="mt-1 text-sm text-slate-600">{decisionReadiness.explanation}</p>
+                    <div className="mt-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Preparación para decidir</p>
                       <p className="mt-1 text-4xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-lg font-semibold text-slate-500">/100</span></p>
-                      <div className="mt-3"><Progress value={decisionReadiness.score} tone="bg-[#1d4ed8]" /></div>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Decisión recomendada</p>
-                      <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
-                      <p className="mt-2 text-sm text-slate-600">{decisionReadiness.explanation}</p>
+                      <div className="mt-2"><Progress value={decisionReadiness.score} tone="bg-[#1d4ed8]" /></div>
                     </div>
                   </div>
                 </div>
@@ -1601,14 +1659,11 @@ ${disclaimerText}`;
                     <p className="mt-1">Resuelve los bloqueos críticos antes de pagar matrícula, depósito o firmar.</p>
                   </div>
                 )}
-                <div className="grid gap-4 lg:grid-cols-3">
-                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Acciones</p>
+                  <div className="grid gap-4 lg:grid-cols-3">
                     <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <InfoList title="Datos pendientes" items={decisionReadiness.faltanDatos} empty="No faltan datos críticos para el siguiente paso." />
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <InfoList title="Próximos 3 pasos" items={decisionReadiness.proximosPasos} empty="Sin pasos pendientes." />
                   </div>
                 </div>
@@ -1617,14 +1672,19 @@ ${disclaimerText}`;
             {tab === "report" && (
               <div className="space-y-4">
                 <Panel title="1. Resumen ejecutivo">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <InfoCard label="Nombre del usuario" value={profile.nombre || "Usuario"} />
-                  <InfoCard label="Ruta recomendada" value={route.recommended} />
-                  <InfoCard label="Preparación para decidir" value={`${decisionReadiness.score}/100`} />
-                  <InfoCard label="¿Conviene pagar ahora?" value={shouldPayNow ? "Sí, con condiciones" : "No, por ahora"} />
-                  <InfoCard label="Decisión recomendada" value={decisionReadiness.decision} />
-                  <InfoCard label="Razón principal" value={route.reason} />
-                  <InfoCard label="Principal bloqueo" value={route.principalBlock} />
+                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <InfoCard label="Decisión" value={decisionReadiness.decision} />
+                    <InfoCard label="Ruta" value={route.recommended} />
+                    <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
+                    <InfoCard label="Bloqueo principal" value={route.principalBlock} />
+                    <InfoCard label="Próximo paso" value={decisionReadiness.proximosPasos[0] || "Confirmar datos críticos por escrito."} />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-700">
+                    {shouldPayNow
+                      ? "Conclusión: puedes avanzar con condiciones, manteniendo control documental y financiero."
+                      : "Conclusión: todavía no conviene comprometer dinero hasta resolver bloqueos clave."}
+                  </p>
                 </div>
                 </Panel>
                 <Panel title="2. Decisión antes de pagar">
@@ -1662,6 +1722,12 @@ ${disclaimerText}`;
                       </div>
                     ))}
                   </div>
+                  <details className="mt-3 rounded-lg border border-slate-200 p-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver detalles ampliados de riesgos secundarios</summary>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Este bloque resume riesgos complementarios que conviene revisar antes de decidir pagos: timing, validación documental y consistencia comercial.
+                    </p>
+                  </details>
                 </Panel>
                 <Panel title="4. Costes y financiación">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1706,6 +1772,13 @@ ${disclaimerText}`;
                     <InfoList title="Red flags principales" items={[...route.warnings, ...(schoolStats.bestSchool?.analysis.redFlags || ["No decidir aún"])]} empty="Sin red flags." />
                     <InfoList title="Preguntas pendientes principales" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["Confirmar costes, contrato y reembolso."]} empty="Sin pendientes." />
                   </div>
+                  <details className="mt-3 rounded-lg border border-slate-200 p-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver detalle ampliado de escuelas y fiabilidad</summary>
+                    <div className="mt-2 text-sm text-slate-700">
+                      <p>Fuente principal de costes: {schools[0]?.fuentePrecio || "no disponible"}</p>
+                      <p>Fecha de actualización: {schools[0]?.fechaActualizacion || "no disponible"}</p>
+                    </div>
+                  </details>
                   {(!schoolStats.bestSchool || schoolStats.verifiedCount === 0) && (
                     <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                       Aún no hay información suficiente para decidir con seguridad qué escuela elegir.
