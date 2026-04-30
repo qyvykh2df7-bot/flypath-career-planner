@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 type Screen = "landing" | "onboarding" | "dashboard";
-type Tab = "route" | "cost" | "schools" | "plan" | "readiness" | "report";
+export type Tab = "route" | "cost" | "schools" | "plan" | "readiness" | "report";
 type YesNoUnknown = "si" | "no" | "no_se";
 
 type Profile = {
@@ -861,9 +861,14 @@ function riskLevelFromScore(score: number) {
   return "Bajo";
 }
 
-export default function Page() {
-  const [screen, setScreen] = useState<Screen>("landing");
-  const [tab, setTab] = useState<Tab>("route");
+type FlyPathAppProps = {
+  reviewMode?: boolean;
+  initialTab?: Tab;
+};
+
+export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPathAppProps) {
+  const [screen, setScreen] = useState<Screen>(reviewMode ? "dashboard" : "landing");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [profile, setProfile] = useState<Profile>(defaultProfile);
   const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
   const [schools, setSchools] = useState<School[]>(exampleSchools);
@@ -943,6 +948,7 @@ export default function Page() {
   });
 
   useEffect(() => {
+    if (reviewMode) return;
     try {
       const p = localStorage.getItem("flypath_profile");
       const c = localStorage.getItem("flypath_cost_inputs");
@@ -977,12 +983,24 @@ export default function Page() {
         setTab(requestedTab);
       }
     }
-  }, []);
+  }, [reviewMode]);
 
-  useEffect(() => localStorage.setItem("flypath_profile", JSON.stringify(profile)), [profile]);
-  useEffect(() => localStorage.setItem("flypath_cost_inputs", JSON.stringify(costInputs)), [costInputs]);
-  useEffect(() => localStorage.setItem("flypath_schools", JSON.stringify(schools)), [schools]);
-  useEffect(() => localStorage.setItem("flypath_onboarding_completed", JSON.stringify(onboardingCompleted)), [onboardingCompleted]);
+  useEffect(() => {
+    if (reviewMode) return;
+    localStorage.setItem("flypath_profile", JSON.stringify(profile));
+  }, [profile, reviewMode]);
+  useEffect(() => {
+    if (reviewMode) return;
+    localStorage.setItem("flypath_cost_inputs", JSON.stringify(costInputs));
+  }, [costInputs, reviewMode]);
+  useEffect(() => {
+    if (reviewMode) return;
+    localStorage.setItem("flypath_schools", JSON.stringify(schools));
+  }, [schools, reviewMode]);
+  useEffect(() => {
+    if (reviewMode) return;
+    localStorage.setItem("flypath_onboarding_completed", JSON.stringify(onboardingCompleted));
+  }, [onboardingCompleted, reviewMode]);
 
   const route = useMemo(() => computeRoute(profile), [profile]);
   const costs = useMemo(() => computeCosts(costInputs, profile), [costInputs, profile]);
@@ -1918,6 +1936,10 @@ ${disclaimerText}`;
       </div>
     </div>
   );
+}
+
+export default function Page() {
+  return <FlyPathApp />;
 }
 
 function KpiMini({ label, value }: { label: string; value: string }) {
