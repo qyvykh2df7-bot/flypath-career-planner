@@ -133,6 +133,187 @@ type DecisionReadiness = {
 const disclaimerText =
   "FlyPath Career Planner ofrece orientación educativa y herramientas de planificación basadas en los datos introducidos por el usuario. No sustituye asesoramiento financiero, médico, legal ni información oficial de escuelas, autoridades o aerolíneas. Los costes son estimaciones y pueden variar.";
 
+const globalButtonFeedbackStyles = `
+  button {
+    position: relative;
+    cursor: pointer !important;
+    overflow: hidden;
+    user-select: none;
+    transform-origin: center;
+    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(201, 164, 84, 0.28);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+  }
+
+  button:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.015) !important;
+    filter: brightness(1.09) saturate(1.08) !important;
+    box-shadow: 0 14px 28px rgba(15, 26, 51, 0.18) !important;
+  }
+
+  button:hover:not(:disabled)::after {
+    opacity: 0.16;
+  }
+
+  button:active:not(:disabled) {
+    transform: translateY(4px) scale(0.90) !important;
+    filter: brightness(0.78) saturate(1.12) !important;
+    box-shadow: inset 0 6px 16px rgba(15, 26, 51, 0.45), 0 1px 2px rgba(15, 26, 51, 0.10) !important;
+  }
+
+  button:active:not(:disabled)::after {
+    opacity: 0.42;
+    background: rgba(15, 26, 51, 0.18);
+  }
+
+  button:focus-visible {
+    outline: 3px solid rgba(201, 164, 84, 0.75) !important;
+    outline-offset: 3px;
+  }
+
+  button:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.55;
+  }
+
+  .action-success-pulse {
+    animation: actionSuccessPulse 700ms ease-out;
+  }
+
+  @keyframes actionSuccessPulse {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  .landing-primary-button {
+    background: #c9a454 !important;
+    color: #0f1a33 !important;
+    border: 1px solid rgba(201, 164, 84, 0.85) !important;
+  }
+
+  .landing-primary-button:hover:not(:disabled) {
+    background: #f0c96b !important;
+    color: #071226 !important;
+    transform: translateY(-4px) scale(1.08) !important;
+    box-shadow: 0 18px 38px rgba(201, 164, 84, 0.32), 0 10px 22px rgba(0, 0, 0, 0.22) !important;
+    border-color: #f7d98a !important;
+  }
+
+  .landing-primary-button:active:not(:disabled) {
+    background: #b98f35 !important;
+    transform: translateY(4px) scale(0.88) !important;
+    box-shadow: inset 0 5px 14px rgba(0, 0, 0, 0.32) !important;
+  }
+
+  .landing-primary-button:hover .landing-button-arrow {
+    transform: translateX(7px) !important;
+  }
+
+  .landing-secondary-button {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  }
+
+  .landing-secondary-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.96) !important;
+    color: #0f1a33 !important;
+    border-color: #c9a454 !important;
+    transform: translateY(-4px) scale(1.07) !important;
+    box-shadow: 0 16px 32px rgba(255, 255, 255, 0.16), 0 10px 22px rgba(0, 0, 0, 0.20) !important;
+  }
+
+  .landing-secondary-button:active:not(:disabled) {
+    background: rgba(201, 164, 84, 0.28) !important;
+    color: #ffffff !important;
+    transform: translateY(4px) scale(0.88) !important;
+    box-shadow: inset 0 5px 14px rgba(0, 0, 0, 0.32) !important;
+  }
+
+  .landing-button-arrow {
+    display: inline-block;
+    transition: transform 140ms ease !important;
+  }
+
+  .landing-cta-primary {
+    background: #c9a454 !important;
+    color: #0f1a33 !important;
+    border: 1px solid rgba(201, 164, 84, 0.85) !important;
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.10) !important;
+    transition: all 160ms ease !important;
+  }
+
+  .landing-cta-primary .hover-label {
+    display: none;
+  }
+
+  .landing-cta-primary:hover {
+    background: #ddb75c !important;
+    color: #0f1a33 !important;
+    border-color: rgba(201, 164, 84, 0.9) !important;
+    transform: translateY(-2px) scale(1.035) !important;
+    box-shadow: 0 12px 26px rgba(201, 164, 84, 0.25) !important;
+  }
+
+  .landing-cta-primary:hover .normal-label {
+    display: inline !important;
+  }
+
+  .landing-cta-primary:hover .hover-label {
+    display: none !important;
+  }
+
+  .landing-cta-primary:hover .landing-arrow {
+    transform: translateX(4px) !important;
+  }
+
+  .landing-cta-primary:active:not(:disabled) {
+    transform: translateY(2px) scale(0.97) !important;
+  }
+
+  .landing-cta-secondary {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    transition: all 160ms ease !important;
+  }
+
+  .landing-cta-secondary .hover-label {
+    display: none;
+  }
+
+  .landing-cta-secondary:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #f2ddaa !important;
+    border-color: rgba(201, 164, 84, 0.7) !important;
+    transform: translateY(-2px) scale(1.03) !important;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18) !important;
+  }
+
+  .landing-cta-secondary:hover .normal-label {
+    display: inline !important;
+  }
+
+  .landing-cta-secondary:hover .hover-label {
+    display: none !important;
+  }
+
+  .landing-cta-secondary:active:not(:disabled) {
+    transform: translateY(2px) scale(0.97) !important;
+  }
+`;
+
 const defaultProfile: Profile = {
   nombre: "",
   edad: 24,
@@ -717,6 +898,44 @@ export default function Page() {
   const [toast, setToast] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
+  const [hoveredLandingButton, setHoveredLandingButton] = useState<string | null>(null);
+
+  // --- Landing button hover helpers for pointer/mouse events ---
+  const applyLandingPrimaryHover = (button: HTMLButtonElement, key: string) => {
+    setHoveredLandingButton(key);
+    button.style.backgroundColor = "#ffcf5a";
+    button.style.color = "#061226";
+    button.style.borderColor = "#ffe39c";
+    button.style.transform = "translateY(-8px) scale(1.16)";
+    button.style.boxShadow = "0 24px 52px rgba(201,164,84,0.55), 0 16px 34px rgba(0,0,0,0.38)";
+  };
+
+  const resetLandingPrimaryHover = (button: HTMLButtonElement) => {
+    setHoveredLandingButton(null);
+    button.style.backgroundColor = "#c9a454";
+    button.style.color = "#0f1a33";
+    button.style.borderColor = "rgba(201,164,84,0.85)";
+    button.style.transform = "translateY(0) scale(1)";
+    button.style.boxShadow = "0 10px 18px rgba(0,0,0,0.10)";
+  };
+
+  const applyLandingSecondaryHover = (button: HTMLButtonElement, key: string) => {
+    setHoveredLandingButton(key);
+    button.style.backgroundColor = "#ffffff";
+    button.style.color = "#061226";
+    button.style.borderColor = "#c9a454";
+    button.style.transform = "translateY(-8px) scale(1.14)";
+    button.style.boxShadow = "0 22px 48px rgba(255,255,255,0.24), 0 16px 34px rgba(0,0,0,0.36)";
+  };
+
+  const resetLandingSecondaryHover = (button: HTMLButtonElement) => {
+    setHoveredLandingButton(null);
+    button.style.backgroundColor = "rgba(255,255,255,0.05)";
+    button.style.color = "#ffffff";
+    button.style.borderColor = "rgba(255,255,255,0.25)";
+    button.style.transform = "translateY(0) scale(1)";
+    button.style.boxShadow = "0 0 0 rgba(0,0,0,0)";
+  };
   const [newSchool, setNewSchool] = useState<School>({
     id: 0,
     nombre: "",
@@ -999,6 +1218,7 @@ ${disclaimerText}`;
   if (screen === "landing") {
     return (
       <div className="min-h-screen bg-[#081329] text-white">
+        <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
             <CheckCircle2 className="h-4 w-4 text-emerald-300" />
@@ -1011,7 +1231,14 @@ ${disclaimerText}`;
               <div className="rounded-lg bg-[#c9a454]/20 p-2"><Plane className="h-4 w-4 text-[#f2ddaa]" /></div>
               <p className="font-semibold">FlyPath Career Planner</p>
             </div>
-            <button onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")} className="rounded-lg border border-white/25 px-4 py-2 text-sm">Ver demo</button>
+            <button
+              type="button"
+              onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")}
+              className="landing-cta-secondary rounded-lg px-4 py-2 text-sm font-medium"
+            >
+              <span className="normal-label">Ver demo</span>
+              <span className="hover-label">Abrir demo</span>
+            </button>
           </div>
 
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
@@ -1020,10 +1247,23 @@ ${disclaimerText}`;
               <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Planifica tu ruta como piloto antes de tomar decisiones caras.</h1>
               <p className="mt-5 text-lg text-slate-200">Calcula costes reales, compara rutas y analiza escuelas antes de invertir miles de euros.</p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="rounded-xl bg-[#c9a454] px-6 py-3 font-semibold text-[#0f1a33]">
-                  Crear mi plan <ArrowRight className="ml-2 inline h-4 w-4" />
+                <button
+                  type="button"
+                  onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
+                  className="landing-cta-primary inline-flex items-center rounded-xl px-6 py-3 font-semibold"
+                >
+                  <span className="normal-label">Crear mi plan</span>
+                  <span className="hover-label">Crear mi plan ahora</span>
+                  <ArrowRight className="landing-arrow ml-2 h-4 w-4 transition-transform duration-150" />
                 </button>
-                <button onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")} className="rounded-xl border border-white/25 bg-white/5 px-6 py-3 text-sm">Ver demo</button>
+                <button
+                  type="button"
+                  onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")}
+                  className="landing-cta-secondary rounded-xl px-6 py-3 text-sm font-medium"
+                >
+                  <span className="normal-label">Ver demo</span>
+                  <span className="hover-label">Abrir demo</span>
+                </button>
               </div>
             </div>
             <div className="rounded-3xl border border-white/15 bg-white/5 p-6">
@@ -1046,7 +1286,14 @@ ${disclaimerText}`;
           <div className="mt-12 rounded-3xl border border-[#c9a454]/35 bg-[#0d1d3a] p-8 text-center">
             <h2 className="text-3xl font-semibold">Toma decisiones de carrera con claridad y criterio.</h2>
             <p className="mx-auto mt-3 max-w-3xl text-slate-200">No decidas por marketing ni presión comercial: decide por evidencia y planificación.</p>
-            <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="mt-6 rounded-xl bg-[#c9a454] px-6 py-3 font-semibold text-[#0f1a33]">Crear mi plan</button>
+            <button
+              type="button"
+              onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
+              className="landing-cta-primary mt-6 rounded-xl px-6 py-3 font-semibold"
+            >
+              <span className="normal-label">Crear mi plan</span>
+              <span className="hover-label">Crear mi plan ahora</span>
+            </button>
           </div>
 
           <div className="mt-10 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-slate-200">{disclaimerText}</div>
@@ -1058,6 +1305,7 @@ ${disclaimerText}`;
   if (screen === "onboarding") {
     return (
       <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
+        <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
             <CheckCircle2 className="h-4 w-4 text-emerald-300" />
@@ -1094,6 +1342,7 @@ ${disclaimerText}`;
 
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
+      <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
         <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
           <CheckCircle2 className="h-4 w-4 text-emerald-300" />
@@ -1264,6 +1513,8 @@ ${disclaimerText}`;
                         <p className="text-sm text-slate-500">{school.ciudad}, {school.pais} · {euro(school.precioAnunciado)} · {school.duracionMeses} meses</p>
                       </div>
                       <button
+                        type="button"
+                        className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-300 bg-white"} inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40`}
                         onClick={() => {
                           const pending = getSchoolEmailMissingData(school);
                           setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
@@ -1274,7 +1525,6 @@ ${disclaimerText}`;
                           }
                           showToast("Email generado");
                         }}
-                        className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
                       >
                         {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Mail className="mr-2 h-4 w-4" />}
                         {generatedEmailKey === school.id ? "Email generado" : "Generar email"}
@@ -1301,12 +1551,13 @@ ${disclaimerText}`;
                         />
                         <p className="mb-2 mt-2 text-xs font-medium text-emerald-700">Email listo para copiar</p>
                         <button
+                          type="button"
+                          className={`${copiedKey === `email-${school.id}` ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-300 bg-white"} mb-2 inline-flex cursor-pointer items-center rounded-md border px-2 py-1 text-xs shadow-sm transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40`}
                           onClick={async () => {
                             const ok = await copyText(emailDrafts[school.id]);
                             if (ok) markCopied(`email-${school.id}`);
                             showToast(ok ? "Email copiado" : "No se pudo copiar el email");
                           }}
-                          className="mb-2 inline-flex cursor-pointer items-center rounded-md border border-slate-300 bg-white px-2 py-1 text-xs shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
                         >
                           {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" /> : <Copy className="mr-1 h-3 w-3" />}
                           {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
