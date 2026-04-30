@@ -2379,9 +2379,13 @@ ${disclaimerText}`;
                 </Panel>
                 <Panel title="Plan de acción">
                   <div className="grid gap-4 lg:grid-cols-3">
-                    <PlanColumn title="Próximos 7 días" tasks={actionPlan.sevenDays} />
-                    <PlanColumn title="Próximos 30 días" tasks={actionPlan.thirtyDays} />
-                    <PlanColumn title="Próximos 90 días" tasks={actionPlan.ninetyDays} />
+                    {[
+                      { title: "Próximos 7 días", items: actionPlan.sevenDays },
+                      { title: "Próximos 30 días", items: actionPlan.thirtyDays },
+                      { title: "Próximos 90 días", items: actionPlan.ninetyDays },
+                    ].map((block) => (
+                      <PlanColumn key={block.title} title={block.title} tasks={block.items} />
+                    ))}
                   </div>
                 </Panel>
                 <div className="rounded-2xl border border-[#c9a454]/40 bg-[#0f1a33] p-5 text-white shadow-sm">
