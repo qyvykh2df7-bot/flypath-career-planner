@@ -602,12 +602,83 @@ function computeDecisionReadiness({
   };
 }
 
+function getSchoolEmailMissingData(school: School) {
+  const pending: string[] = [];
+  if (school.mccIncluido !== "si") pending.push("MCC/JOC");
+  if (school.uprtIncluido !== "si") pending.push("Advanced UPRT");
+  if (school.tasasIncluidas !== "si") pending.push("tasas de examen");
+  if (school.skillTestsIncluidos !== "si") pending.push("skill tests");
+  if (school.alojamientoIncluido !== "si") pending.push("alojamiento y costes aproximados");
+  if (school.reembolsoClaro !== "si") pending.push("política de reembolso");
+  if (school.contratoAntesPagar !== "si") pending.push("contrato/condiciones antes de pagar");
+  if (school.calendarioPagosClaro !== "si") pending.push("calendario de pagos");
+  if (school.flotaExplicada !== "si") pending.push("flota disponible");
+  if (school.mantenimientoExplicado !== "si") pending.push("mantenimiento y disponibilidad");
+  if (school.ratioAlumnoAvionConocido !== "si") pending.push("ratio alumno/avión");
+  if (school.permiteHablarAlumnos !== "si") pending.push("contacto con alumnos actuales o antiguos");
+  if (school.promesasEmpleo === "vagas") pending.push("detalle real de apoyo laboral (sin garantía de empleo)");
+  if (school.estadoVerificacion !== "verificado") pending.push("confirmación oficial de precio y condiciones");
+  return pending;
+}
+
 function buildSchoolEmail(school: School, nombreUsuario: string) {
-  return `Asunto: Solicitud de desglose completo de costes y condiciones - ${school.nombre}\n\nHola equipo de ${school.nombre},\n\nSoy ${nombreUsuario || "un aspirante a piloto"} y estoy evaluando opciones de formación. Antes de tomar una decisión, necesito confirmar por escrito la información económica y operativa.\n\nAgradecería que me enviaran:\n\n1) Desglose completo de costes\n- Precio total del programa\n- Qué incluye y qué no incluye\n- Tasas de examen\n- Skill tests\n- MCC/JOC\n- Advanced UPRT\n- Alojamiento (si aplica)\n- Costes de repetición\n\n2) Pagos y condiciones\n- Depósito requerido\n- Calendario de pagos\n- Política de reembolso\n\n3) Operación real del programa\n- Duración media real del programa\n- Disponibilidad de flota e instructores\n- Posibilidad de hablar con alumnos actuales o antiguos\n\nSi tienen folleto actualizado, contrato tipo o anexo de condiciones, por favor inclúyanlo en la respuesta.\n\nGracias por vuestra ayuda.\n\nUn saludo,\n${nombreUsuario || ""}`;
+  const specificQuestions: string[] = [];
+  if (school.mccIncluido !== "si") specificQuestions.push("- ¿El MCC/JOC está incluido? Si no, ¿cuál es su coste exacto y en qué fase se paga?");
+  if (school.uprtIncluido !== "si") specificQuestions.push("- ¿El Advanced UPRT está incluido? Si no, ¿cuál es su precio y proveedor?");
+  if (school.tasasIncluidas !== "si") specificQuestions.push("- ¿Las tasas de examen están incluidas? Si no, ¿cuál es el coste estimado total?");
+  if (school.skillTestsIncluidos !== "si") specificQuestions.push("- ¿Los skill tests están incluidos? Si no, ¿qué importe adicional debo prever?");
+  if (school.alojamientoIncluido !== "si") specificQuestions.push("- ¿Ofrecen alojamiento? En caso contrario, ¿qué coste mensual aproximado recomiendan en la zona?");
+  if (school.reembolsoClaro !== "si") specificQuestions.push("- ¿Podrían compartir su política de reembolso por escrito con escenarios y plazos?");
+  if (school.contratoAntesPagar !== "si") specificQuestions.push("- Antes de pagar depósito o matrícula, ¿pueden enviar contrato tipo o condiciones completas?");
+  if (school.calendarioPagosClaro !== "si") specificQuestions.push("- ¿Cuál es el calendario de pagos detallado por hitos del programa?");
+  if (school.flotaExplicada !== "si") specificQuestions.push("- ¿Podrían detallar la flota activa (modelo, número de aeronaves y disponibilidad operativa)?");
+  if (school.mantenimientoExplicado !== "si") specificQuestions.push("- ¿Cómo gestionan mantenimiento y tiempos de indisponibilidad de aeronaves?");
+  if (school.ratioAlumnoAvionConocido !== "si") specificQuestions.push("- ¿Cuál es el ratio alumno/avión e instructor/alumno en operación real?");
+  if (school.permiteHablarAlumnos !== "si") specificQuestions.push("- ¿Es posible hablar con alumnos actuales o antiguos para validar la experiencia real?");
+  if (school.promesasEmpleo === "vagas") {
+    specificQuestions.push(
+      "- Sobre el apoyo laboral, agradecería una descripción por escrito de qué incluye exactamente (sin interpretarlo como garantía de empleo)."
+    );
+  }
+  if (school.estadoVerificacion !== "verificado") {
+    specificQuestions.push("- ¿Podrían confirmar oficialmente por escrito precio final, condiciones y fecha de vigencia de esta información?");
+  }
+
+  const specificBlock = specificQuestions.length
+    ? `\nPreguntas específicas según datos pendientes:\n${specificQuestions.join("\n")}\n`
+    : "\nPreguntas específicas según datos pendientes:\n- En este momento no detecto huecos críticos adicionales, pero agradecería validar igualmente todos los puntos por escrito.\n";
+
+  return `Asunto: Solicitud de confirmación documental y económica - ${school.nombre}
+
+Hola equipo de ${school.nombre},
+
+Soy ${nombreUsuario || "un aspirante a piloto"} y estoy evaluando opciones de formación para tomar una decisión responsable antes de pagar matrícula o depósito.
+
+Agradecería su ayuda para validar por escrito:
+
+Preguntas generales:
+- Precio total actualizado del programa y qué incluye / qué no incluye.
+- Duración media real del programa (no solo estimada).
+- Condiciones de pago: depósito, hitos y fechas.
+- Posibilidad de recibir contrato tipo o condiciones completas antes de pagar.
+${specificBlock}
+Si disponen de folleto actualizado, contrato tipo o documento de condiciones, agradecería que lo incluyeran en la respuesta.
+
+Gracias por su atención.
+
+Un saludo,
+${nombreUsuario || ""}`;
 }
 
 function copyText(text: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard) navigator.clipboard.writeText(text);
+}
+
+function riskLevelFromScore(score: number) {
+  if (score >= 80) return "Crítico";
+  if (score >= 60) return "Alto";
+  if (score >= 40) return "Medio";
+  return "Bajo";
 }
 
 export default function Page() {
@@ -619,6 +690,7 @@ export default function Page() {
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [emailDrafts, setEmailDrafts] = useState<Record<number, string>>({});
+  const [emailPendingBySchool, setEmailPendingBySchool] = useState<Record<number, string[]>>({});
   const [newSchool, setNewSchool] = useState<School>({
     id: 0,
     nombre: "",
@@ -697,6 +769,145 @@ export default function Page() {
       }),
     [profile, costs, route, schoolStats.analyzed, costInputs.bufferPct]
   );
+
+  const shouldPayNow = decisionReadiness.decision === "Listo para decidir con condiciones";
+
+  const riskDiagnosis = useMemo(() => {
+    const bestAnalysis = schoolStats.bestSchool?.analysis;
+    const escuelaDataRiskScore = bestAnalysis ? Math.round((100 - bestAnalysis.verificacion + (100 - bestAnalysis.transparencia)) / 2) : 75;
+    const marketingRiskScore = bestAnalysis ? bestAnalysis.riesgoMarketing : 70;
+    const timingRiskScore = route.conflicts.length > 0 ? 75 : 35;
+
+    return [
+      {
+        label: "Riesgo médico",
+        nivel: profile.class1 === "si" ? "Bajo" : profile.class1 === "reservado" ? "Medio" : "Crítico",
+        explicacion: profile.class1 === "si" ? "Clase 1 confirmada." : "Clase 1 no confirmada para avanzar con seguridad.",
+        accion: "Confirmar Clase 1 antes de firmar o transferir dinero.",
+      },
+      {
+        label: "Riesgo financiero",
+        nivel: costs.riesgoFinanciero,
+        explicacion: `Cobertura actual del ${costs.coverage}% sobre el escenario realista.`,
+        accion: "Reducir brecha, confirmar financiación y mantener buffer.",
+      },
+      {
+        label: "Riesgo de inglés",
+        nivel: profile.ingles === "alto" ? "Bajo" : profile.ingles === "medio" ? "Medio" : "Alto",
+        explicacion: profile.ingles === "alto" ? "Nivel funcional para progresar." : "Puede impactar ritmo y rendimiento formativo.",
+        accion: "Definir plan de mejora y validar objetivo ICAO.",
+      },
+      {
+        label: "Riesgo de escuela/datos",
+        nivel: riskLevelFromScore(escuelaDataRiskScore),
+        explicacion: `${schoolStats.verifiedCount} escuela(s) verificadas de ${schools.length}.`,
+        accion: "Exigir confirmación documental de costes y condiciones.",
+      },
+      {
+        label: "Riesgo de marketing/promesas",
+        nivel: riskLevelFromScore(marketingRiskScore),
+        explicacion: bestAnalysis ? "Evaluación sobre promesas y transparencia comercial." : "Falta evidencia documental suficiente.",
+        accion: "Pedir por escrito alcance real de career support y límites.",
+      },
+      {
+        label: "Riesgo de timing",
+        nivel: riskLevelFromScore(timingRiskScore),
+        explicacion: route.conflicts[0] || "No se detecta conflicto fuerte de timing.",
+        accion: "Alinear urgencia, disponibilidad y necesidad de trabajar.",
+      },
+    ];
+  }, [profile.class1, profile.ingles, costs.riesgoFinanciero, costs.coverage, schoolStats.bestSchool, schoolStats.verifiedCount, schools.length, route.conflicts]);
+
+  const resumenPadresText = useMemo(() => {
+    const riesgosAltos = riskDiagnosis.filter((r) => r.nivel === "Alto" || r.nivel === "Crítico").map((r) => `- ${r.label}: ${r.nivel}`);
+    const pendientes = decisionReadiness.faltanDatos.slice(0, 5).map((p) => `- ${p}`);
+    return `RESUMEN PARA PADRES / FAMILIA - FLYPATH CAREER PLANNER
+
+Situación actual de ${profile.nombre || "el candidato"}:
+- Coste optimista estimado: ${euro(costs.totalOptimista)}
+- Coste realista estimado: ${euro(costs.totalRealista)}
+- Coste conservador estimado: ${euro(costs.totalConservador)}
+- Brecha financiera actual: ${euro(costs.brechaFinanciacion)}
+- Decision Readiness: ${decisionReadiness.score}/100 (${decisionReadiness.decision})
+
+Conclusión práctica:
+${shouldPayNow ? "Puede avanzar con condiciones y control documental estricto." : "No conviene pagar matrícula o depósito todavía."}
+
+Riesgos relevantes ahora mismo:
+${riesgosAltos.length ? riesgosAltos.join("\n") : "- No hay riesgos altos/críticos dominantes, pero se recomienda validar documentación por escrito."}
+
+Información que falta antes de transferir dinero:
+${pendientes.length ? pendientes.join("\n") : "- No hay pendientes críticos detectados en este momento."}
+
+Preguntas clave para una escuela:
+- ¿Qué incluye exactamente el precio y qué no?
+- ¿Cuál es la política de reembolso por escrito?
+- ¿Está incluido MCC/JOC y Advanced UPRT?
+- ¿Cuál es la duración media real del programa?
+- ¿Cuál es el calendario de pagos completo antes de pagar depósito?
+
+Decisiones que NO deberían tomarse todavía:
+- Pagar por presión comercial sin contrato y condiciones por escrito.
+- Asumir promesas de empleo como garantía.
+- Firmar sin validar costes extra (tasas, skill tests, repeticiones, alojamiento).`;
+  }, [profile.nombre, costs.totalOptimista, costs.totalRealista, costs.totalConservador, costs.brechaFinanciacion, decisionReadiness.score, decisionReadiness.decision, decisionReadiness.faltanDatos, riskDiagnosis, shouldPayNow]);
+
+  const informeCompletoText = useMemo(() => {
+    return `INFORME FLYPATH CAREER PLANNER
+
+Nombre: ${profile.nombre || "Usuario"}
+Ruta recomendada: ${route.recommended}
+Decision Readiness: ${decisionReadiness.score}/100
+Decisión recomendada: ${decisionReadiness.decision}
+¿Debería pagar ahora?: ${shouldPayNow ? "Sí, con condiciones" : "No, todavía no"}
+Razón principal: ${route.reason}
+Bloqueo principal: ${route.principalBlock}
+
+Costes y financiación:
+- Optimista: ${euro(costs.totalOptimista)}
+- Realista: ${euro(costs.totalRealista)}
+- Conservador: ${euro(costs.totalConservador)}
+- Brecha financiera: ${euro(costs.brechaFinanciacion)}
+- Meses para cerrar brecha: ${costs.mesesCerrarBrecha}
+- Cobertura: ${costs.coverage}%
+
+Riesgos principales:
+${riskDiagnosis.map((r) => `- ${r.label}: ${r.nivel} (${r.explicacion})`).join("\n")}
+
+Escuelas:
+- Comparadas: ${schools.length}
+- Verificadas: ${schoolStats.verifiedCount}
+- Pendientes: ${schoolStats.pendingCount}
+
+Datos pendientes:
+${decisionReadiness.faltanDatos.length ? decisionReadiness.faltanDatos.map((x) => `- ${x}`).join("\n") : "- Sin pendientes críticos."}
+
+Próximos pasos:
+${decisionReadiness.proximosPasos.map((x) => `- ${x}`).join("\n")}
+
+Disclaimer:
+${disclaimerText}`;
+  }, [
+    profile.nombre,
+    route.recommended,
+    route.reason,
+    route.principalBlock,
+    decisionReadiness.score,
+    decisionReadiness.decision,
+    decisionReadiness.faltanDatos,
+    decisionReadiness.proximosPasos,
+    shouldPayNow,
+    costs.totalOptimista,
+    costs.totalRealista,
+    costs.totalConservador,
+    costs.brechaFinanciacion,
+    costs.mesesCerrarBrecha,
+    costs.coverage,
+    riskDiagnosis,
+    schools.length,
+    schoolStats.verifiedCount,
+    schoolStats.pendingCount,
+  ]);
 
   const resetDemoData = () => {
     localStorage.removeItem("flypath_profile");
@@ -983,7 +1194,16 @@ export default function Page() {
                         <p className="font-semibold">{school.nombre}</p>
                         <p className="text-sm text-slate-500">{school.ciudad}, {school.pais} · {euro(school.precioAnunciado)} · {school.duracionMeses} meses</p>
                       </div>
-                      <button onClick={() => setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }))} className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm"><Mail className="mr-2 h-4 w-4" />Generar email</button>
+                      <button
+                        onClick={() => {
+                          const pending = getSchoolEmailMissingData(school);
+                          setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
+                          setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
+                        }}
+                        className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      >
+                        <Mail className="mr-2 h-4 w-4" />Generar email
+                      </button>
                     </div>
                     <div className="mt-3 grid gap-2 md:grid-cols-3">
                       <InfoCard label="Claridad de coste" value={String(analysis.claridadCoste)} />
@@ -999,6 +1219,11 @@ export default function Page() {
                     <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
                     {emailDrafts[school.id] && (
                       <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <InfoList
+                          title="Este email se ha adaptado porque faltan estos datos:"
+                          items={emailPendingBySchool[school.id] || []}
+                          empty="No faltan datos críticos detectados para esta escuela."
+                        />
                         <button onClick={() => copyText(emailDrafts[school.id])} className="mb-2 inline-flex items-center rounded-md border border-slate-300 px-2 py-1 text-xs"><Copy className="mr-1 h-3 w-3" />Copiar email</button>
                         <pre className="whitespace-pre-wrap text-xs">{emailDrafts[school.id]}</pre>
                       </div>
@@ -1054,36 +1279,18 @@ export default function Page() {
             )}
             {tab === "report" && (
               <div className="space-y-4">
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
                 <Panel title="1. Resumen ejecutivo">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   <InfoCard label="Nombre del usuario" value={profile.nombre || "Usuario"} />
                   <InfoCard label="Ruta recomendada" value={route.recommended} />
+                  <InfoCard label="Decision Readiness" value={`${decisionReadiness.score}/100`} />
+                  <InfoCard label="¿Debe pagar ahora?" value={shouldPayNow ? "Sí, con condiciones" : "No, todavía no"} />
+                  <InfoCard label="Decisión recomendada" value={decisionReadiness.decision} />
                   <InfoCard label="Razón principal" value={route.reason} />
-                  <InfoCard label="Coste optimista" value={euro(costs.totalOptimista)} />
-                  <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
-                  <InfoCard label="Coste conservador" value={euro(costs.totalConservador)} />
-                  <InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} />
-                  <InfoCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
-                  <InfoCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
-                  <InfoCard label="Riesgo médico" value={profile.class1 === "si" ? "Bajo" : profile.class1 === "reservado" ? "Medio" : "Alto"} />
-                  <InfoCard label="Riesgo de inglés" value={profile.ingles === "alto" ? "Bajo" : profile.ingles === "medio" ? "Medio" : "Alto"} />
                   <InfoCard label="Principal bloqueo" value={route.principalBlock} />
                 </div>
                 </Panel>
-                <Panel title="2. Escuelas y fiabilidad de datos">
-                <InfoCard label="Mejor escuela según datos actuales" value={schoolStats.bestSchool ? `${schoolStats.bestSchool.school.nombre} (${recomendacionLabel(schoolStats.bestSchool.analysis.recomendacionPrudente)})` : "Información insuficiente"} />
-                <InfoList title="Red flags principales" items={[...route.warnings, ...(schoolStats.bestSchool?.analysis.redFlags || ["No decidir aún"])]} empty="sin red flags" />
-                <InfoList title="Preguntas pendientes" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["confirmar datos de costes y contrato"]} empty="sin pendientes" />
-                <div className="rounded-xl border border-slate-200 p-3 text-sm">
-                  <p>Fuente principal de costes: {schools[0]?.fuentePrecio || "no disponible"}</p>
-                  <p>Fecha de actualización: {schools[0]?.fechaActualizacion || "no disponible"}</p>
-                  <p>Escuelas comparadas: {schools.length}</p>
-                  <p>Escuelas verificadas: {schoolStats.verifiedCount}</p>
-                  <p>Escuelas pendientes: {schoolStats.pendingCount}</p>
-                </div>
-                </Panel>
-                <Panel title="3. Decision Readiness (resumen ejecutivo)">
+                <Panel title="2. Decisión antes de pagar">
                   <div className="grid gap-4 xl:grid-cols-3">
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
                       <p className="text-xs uppercase tracking-wide text-slate-500">Readiness Score</p>
@@ -1091,7 +1298,7 @@ export default function Page() {
                       <div className="mt-2"><Progress value={decisionReadiness.score} tone="bg-[#1d4ed8]" /></div>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-4 xl:col-span-2">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Decisión recomendada (5 segundos)</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Decisión recomendada</p>
                       <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
                       <p className="mt-1 text-sm text-slate-600">{decisionReadiness.explanation}</p>
                     </div>
@@ -1101,10 +1308,34 @@ export default function Page() {
                       <strong>No pagues escuela todavía.</strong> Valida los bloqueos antes de firmar o transferir dinero.
                     </div>
                   )}
-                  <InfoList title="Bloqueos críticos principales" items={decisionReadiness.bloqueosCriticos.slice(0, 3)} empty="Sin bloqueos críticos detectados." />
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
+                    <InfoList title="Datos pendientes" items={decisionReadiness.faltanDatos} empty="Sin datos pendientes críticos." />
+                    <InfoList title="Próximos pasos" items={decisionReadiness.proximosPasos} empty="Sin próximos pasos pendientes." />
+                  </div>
                 </Panel>
-                <Panel title="4. Resumen visual de costes">
-                  <div className="space-y-4">
+                <Panel title="3. Diagnóstico de riesgos">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {riskDiagnosis.map((risk) => (
+                      <div key={risk.label} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{risk.label}</p>
+                        <p className="mt-1 text-sm font-semibold text-[#0f1a33]">{risk.nivel}</p>
+                        <p className="mt-1 text-sm text-slate-600">{risk.explicacion}</p>
+                        <p className="mt-2 text-sm text-slate-700"><strong>Acción recomendada:</strong> {risk.accion}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+                <Panel title="4. Costes y financiación">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <InfoCard label="Coste optimista" value={euro(costs.totalOptimista)} />
+                    <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
+                    <InfoCard label="Coste conservador" value={euro(costs.totalConservador)} />
+                    <InfoCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
+                    <InfoCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
+                    <InfoCard label="Porcentaje cubierto" value={`${costs.coverage}%`} />
+                  </div>
+                  <div className="mt-3 space-y-4">
                     <CostBreakdownBars
                       totalRealista={costs.totalRealista}
                       subtotalFormacion={costs.subtotalFormacion}
@@ -1121,7 +1352,78 @@ export default function Page() {
                     />
                   </div>
                 </Panel>
-                <button onClick={() => copyText(`INFORME FLYPATH\\nUsuario: ${profile.nombre || "Usuario"}\\nRuta: ${route.recommended}\\nRazón: ${route.reason}\\nCoste optimista: ${euro(costs.totalOptimista)}\\nCoste realista: ${euro(costs.totalRealista)}\\nCoste conservador: ${euro(costs.totalConservador)}\\nBrecha: ${euro(costs.brechaFinanciacion)}\\nMeses: ${costs.mesesCerrarBrecha}\\nRiesgo financiero: ${costs.riesgoFinanciero}\\nBloqueo: ${route.principalBlock}\\nEscuelas: ${schools.length}\\nVerificadas: ${schoolStats.verifiedCount}\\nPendientes: ${schoolStats.pendingCount}\\n\\nNota: ${disclaimerText}`)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
+                <Panel title="5. Escuelas y datos pendientes">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <InfoCard label="Escuelas comparadas" value={String(schools.length)} />
+                    <InfoCard label="Escuelas verificadas" value={String(schoolStats.verifiedCount)} />
+                    <InfoCard label="Escuelas pendientes" value={String(schoolStats.pendingCount)} />
+                    <InfoCard label="Mejor escuela actual" value={schoolStats.bestSchool ? schoolStats.bestSchool.school.nombre : "Información insuficiente"} />
+                  </div>
+                  <div className="mt-3">
+                    <InfoCard
+                      label="Recomendación de mejor escuela"
+                      value={schoolStats.bestSchool ? recomendacionLabel(schoolStats.bestSchool.analysis.recomendacionPrudente) : "No hay suficiente información para decidir escuela."}
+                    />
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <InfoList title="Red flags principales" items={[...route.warnings, ...(schoolStats.bestSchool?.analysis.redFlags || ["No decidir aún"])]} empty="Sin red flags." />
+                    <InfoList title="Preguntas pendientes principales" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["Confirmar costes, contrato y reembolso."]} empty="Sin pendientes." />
+                  </div>
+                  {(!schoolStats.bestSchool || schoolStats.verifiedCount === 0) && (
+                    <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      Aún no hay información suficiente para decidir con seguridad qué escuela elegir.
+                    </p>
+                  )}
+                </Panel>
+                <Panel title="6. Plan de acción">
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <PlanColumn title="Próximos 7 días" tasks={[profile.class1 !== "si" ? "Reserva Clase 1 antes de pagar escuela." : "Actualizar estado Clase 1.", "Solicitar desglose por escrito a 3 escuelas.", "Definir límite máximo de inversión."]} />
+                    <PlanColumn title="Próximos 30 días" tasks={["Comparar escenarios optimista/realista/conservador.", "Confirmar tasas, skill tests, MCC/JOC y UPRT.", profile.ingles === "bajo" ? "Iniciar plan intensivo de inglés." : "Mantener práctica semanal ATC."]} />
+                    <PlanColumn title="Próximos 90 días" tasks={["Decidir solo con contrato y reembolso claros.", "Asegurar buffer financiero.", "Evitar decisiones por presión comercial."]} />
+                  </div>
+                </Panel>
+                <Panel title="Resumen para padres / familia">
+                  <p className="text-sm text-slate-700">
+                    Antes de pagar una matrícula o depósito, conviene confirmar por escrito qué incluye el precio, cuál es la política de reembolso,
+                    si el MCC/JOC está incluido y cuál es la duración media real del programa.
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <InfoCard label="Coste realista estimado" value={euro(costs.totalRealista)} />
+                    <InfoCard label="Brecha financiera actual" value={euro(costs.brechaFinanciacion)} />
+                    <InfoCard label="¿Listo para pagar?" value={decisionReadiness.decision} />
+                    <InfoCard label="Riesgo dominante" value={riskDiagnosis.find((r) => r.nivel === "Crítico" || r.nivel === "Alto")?.label || "Sin riesgo dominante"} />
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <InfoList title="Información que falta antes de transferir dinero" items={decisionReadiness.faltanDatos} empty="No hay faltas críticas detectadas." />
+                    <InfoList
+                      title="Preguntas que deberían hacerse a una escuela"
+                      items={[
+                        "¿Qué incluye exactamente el precio final?",
+                        "¿Cuál es la política de reembolso por escrito?",
+                        "¿Está incluido MCC/JOC y Advanced UPRT?",
+                        "¿Cuál es la duración media real del programa?",
+                        "¿Cuál es el calendario de pagos completo?",
+                      ]}
+                      empty="Sin preguntas."
+                    />
+                  </div>
+                  <InfoList
+                    title="Decisiones que NO deberían tomarse todavía"
+                    items={[
+                      "Pagar por presión comercial sin contrato por escrito.",
+                      "Asumir promesas de empleo como garantías.",
+                      "Firmar sin validar tasas, skill tests y costes extra.",
+                    ]}
+                    empty="Sin bloqueos."
+                  />
+                  <button onClick={() => copyText(resumenPadresText)} className="mt-3 inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm">
+                    <Copy className="mr-2 h-4 w-4" />Copiar resumen para padres
+                  </button>
+                </Panel>
+                <Panel title="7. Disclaimer">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
+                </Panel>
+                <button onClick={() => copyText(informeCompletoText)} className="inline-flex items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white"><Copy className="mr-2 h-4 w-4" />Copiar resumen</button>
               </div>
             )}
           </section>
