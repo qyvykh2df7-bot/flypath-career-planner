@@ -409,7 +409,7 @@ function computeRoute(profile: Profile): RouteAnalysis {
     prep += 45;
     integrated -= 20;
     hybrid -= 10;
-    warnings.push("No pagues escuela todavía: primero confirma Clase 1.");
+    warnings.push("Prioridad: confirma Clase 1 antes de comparar escuelas.");
   }
   if (profile.ingles === "bajo") {
     prep += 25;
@@ -1382,7 +1382,7 @@ ${disclaimerText}`;
                 {route.principalBlock === "Clase 1 no confirmada" && (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
                     <p className="font-medium">No pagar escuela todavía</p>
-                    <p>Confirma Clase 1 primero para evitar compromisos de alto riesgo.</p>
+                    <p>Confirma Clase 1 antes de pagar matrícula, depósito o firmar condiciones con una escuela.</p>
                   </div>
                 )}
               </div>
@@ -1670,11 +1670,11 @@ ${disclaimerText}`;
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Antes de pagar, falta</p>
-                  <InfoList title="Datos pendientes clave" items={decisionReadiness.faltanDatos.slice(0, 5)} empty="No faltan datos críticos para el siguiente paso." />
+                  <InfoList title="Datos pendientes clave" items={decisionReadiness.faltanDatos.slice(0, 5)} empty="No hay datos críticos pendientes detectados." />
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Próximos pasos</p>
-                  <InfoList title="Próximos 3 pasos" items={decisionReadiness.proximosPasos} empty="Sin pasos pendientes." />
+                  <InfoList title="Próximos pasos" items={decisionReadiness.proximosPasos} empty="Sin pasos pendientes." />
                 </div>
               </div>
             )}
@@ -1775,7 +1775,20 @@ ${disclaimerText}`;
                     />
                   </div>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <InfoList title="Red flags principales" items={schoolStats.bestSchool?.analysis.redFlags || []} empty="Sin red flags de escuelas detectadas." />
+                    <InfoList
+                      title="Red flags principales"
+                      items={(schoolStats.bestSchool?.analysis.redFlags || []).filter((flag) => {
+                        const text = flag.toLowerCase();
+                        return !(
+                          text.includes("no pagues escuela todavía") ||
+                          text.includes("no pagar escuela todavía") ||
+                          text.includes("presupuesto bajo y sin financiación confirmada") ||
+                          text.includes("no decidir aún") ||
+                          text.includes("prioridad: confirma clase 1")
+                        );
+                      })}
+                      empty="Sin red flags de escuelas detectadas."
+                    />
                     <InfoList title="Preguntas pendientes principales" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["Confirmar costes, contrato y reembolso."]} empty="Sin pendientes." />
                   </div>
                   <details className="mt-3 rounded-lg border border-slate-200 p-3">
