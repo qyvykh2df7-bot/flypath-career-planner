@@ -1425,15 +1425,6 @@ ${disclaimerText}`;
                     Tu ruta más prudente ahora es <strong>{route.recommended}</strong>. Esto no significa que no puedas ser piloto; significa que antes de pagar una escuela conviene resolver los bloqueos que podrían hacerte perder dinero o tiempo.
                   </p>
                 </div>
-                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión de ruta</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    Tu ruta más prudente ahora es <strong>{route.recommended}</strong>. Antes de comprometer dinero, conviene resolver: <strong>{route.principalBlock}</strong>.
-                  </p>
-                  <p className="mt-2 text-sm text-slate-700">
-                    <strong>Siguiente acción recomendada:</strong> {route.warnings[0] || "Confirmar por escrito costes, contrato y condiciones antes de pagar."}
-                  </p>
-                </div>
                 <div className="rounded-xl border border-slate-200 p-4">
                   <p className="text-sm font-semibold text-slate-700">Siguiente acción</p>
                   <p className="mt-1 text-sm text-slate-700">
@@ -1480,26 +1471,6 @@ ${disclaimerText}`;
                     No tomes esta cifra como precio oficial. Úsala como escenario de trabajo para preguntar mejor a las escuelas.
                   </p>
                 </div>
-                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión financiera</p>
-                  <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
-                    <InfoCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-                    <InfoCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
-                    <InfoCard label="Porcentaje cubierto" value={`${costs.coverage}%`} />
-                  </div>
-                  <p className="mt-2 text-sm text-slate-700">
-                    Tu presupuesto actual cubre aproximadamente <strong>{costs.coverage}%</strong> del escenario realista. Antes de comprometer pagos, conviene cerrar una brecha de <strong>{euro(costs.brechaFinanciacion)}</strong>.
-                  </p>
-                  <p className="mt-2 text-xs text-slate-600">
-                    Estas cifras se calculan sumando formación, extras, vida/logística y buffer. Puedes editar el desglose en “Ver desglose completo de costes”.
-                  </p>
-                  {isUsingDemoData && (
-                    <p className="mt-2 text-xs text-amber-700">
-                      Importante: estos importes son orientativos y debes adaptarlos a tu caso, país y escuela.
-                    </p>
-                  )}
-                </div>
                 <div className="rounded-xl border border-slate-200 p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Datos principales</p>
                   <p className="mb-3 text-xs text-slate-600">La brecha financiera representa lo que te falta para cubrir el escenario realista.</p>
@@ -1522,19 +1493,6 @@ ${disclaimerText}`;
                   <p className="mt-2 text-xs text-slate-600">Brecha financiera = coste realista - dinero disponible.</p>
                   <p className="mt-1 text-xs text-slate-600">Meses estimados = brecha financiera / ahorro mensual.</p>
                 </div>
-                <details className="rounded-xl border border-slate-200 p-4">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver visualizaciones y detalles de costes</summary>
-                  <div className="mt-4 space-y-4">
-                    <CostBreakdownBars
-                      totalRealista={costs.totalRealista}
-                      subtotalFormacion={costs.subtotalFormacion}
-                      subtotalExtras={costs.subtotalExtras}
-                      subtotalVida={costs.subtotalVida}
-                      buffer={costs.buffer}
-                    />
-                    <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
-                  </div>
-                </details>
                 <FinancialCoverageCard
                   dineroDisponible={profile.dineroDisponible}
                   totalRealista={costs.totalRealista}
@@ -1542,7 +1500,7 @@ ${disclaimerText}`;
                   coverage={costs.coverage}
                 />
                 <details className="rounded-xl border border-slate-200 p-4">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver gráficos de costes</summary>
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver desglose visual de costes</summary>
                   <div className="mt-4 space-y-4">
                     <CostBreakdownBars
                       totalRealista={costs.totalRealista}
