@@ -254,24 +254,12 @@ const globalButtonFeedbackStyles = `
     transition: all 160ms ease !important;
   }
 
-  .landing-cta-primary .hover-label {
-    display: none;
-  }
-
   .landing-cta-primary:hover {
     background: #ddb75c !important;
     color: #0f1a33 !important;
     border-color: rgba(201, 164, 84, 0.9) !important;
     transform: translateY(-2px) scale(1.035) !important;
     box-shadow: 0 12px 26px rgba(201, 164, 84, 0.25) !important;
-  }
-
-  .landing-cta-primary:hover .normal-label {
-    display: inline !important;
-  }
-
-  .landing-cta-primary:hover .hover-label {
-    display: none !important;
   }
 
   .landing-cta-primary:hover .landing-arrow {
@@ -289,24 +277,12 @@ const globalButtonFeedbackStyles = `
     transition: all 160ms ease !important;
   }
 
-  .landing-cta-secondary .hover-label {
-    display: none;
-  }
-
   .landing-cta-secondary:hover {
     background: rgba(255, 255, 255, 0.1) !important;
     color: #f2ddaa !important;
     border-color: rgba(201, 164, 84, 0.7) !important;
     transform: translateY(-2px) scale(1.03) !important;
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18) !important;
-  }
-
-  .landing-cta-secondary:hover .normal-label {
-    display: inline !important;
-  }
-
-  .landing-cta-secondary:hover .hover-label {
-    display: none !important;
   }
 
   .landing-cta-secondary:active:not(:disabled) {
@@ -985,6 +961,24 @@ export default function Page() {
     }
   }, []);
 
+  // Public review/deep-link mode: allow dashboard sections to be opened directly from URL
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const reviewMode = params.get("review");
+    const requestedTab = params.get("tab") as Tab | null;
+    const validTabs: Tab[] = ["route", "cost", "schools", "plan", "readiness", "report"];
+
+    if (reviewMode === "dashboard") {
+      setOnboardingCompleted(true);
+      setScreen("dashboard");
+      if (requestedTab && validTabs.includes(requestedTab)) {
+        setTab(requestedTab);
+      }
+    }
+  }, []);
+
   useEffect(() => localStorage.setItem("flypath_profile", JSON.stringify(profile)), [profile]);
   useEffect(() => localStorage.setItem("flypath_cost_inputs", JSON.stringify(costInputs)), [costInputs]);
   useEffect(() => localStorage.setItem("flypath_schools", JSON.stringify(schools)), [schools]);
@@ -1239,8 +1233,7 @@ ${disclaimerText}`;
               onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")}
               className="landing-cta-secondary rounded-lg px-4 py-2 text-sm font-medium"
             >
-              <span className="normal-label">Ver demo</span>
-              <span className="hover-label">Abrir demo</span>
+              Ver demo
             </button>
           </div>
 
@@ -1255,8 +1248,7 @@ ${disclaimerText}`;
                   onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
                   className="landing-cta-primary inline-flex items-center rounded-xl px-6 py-3 font-semibold"
                 >
-                  <span className="normal-label">Crear mi plan</span>
-                  <span className="hover-label">Crear mi plan ahora</span>
+                  Crear mi plan
                   <ArrowRight className="landing-arrow ml-2 h-4 w-4 transition-transform duration-150" />
                 </button>
                 <button
@@ -1264,8 +1256,7 @@ ${disclaimerText}`;
                   onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")}
                   className="landing-cta-secondary rounded-xl px-6 py-3 text-sm font-medium"
                 >
-                  <span className="normal-label">Ver demo</span>
-                  <span className="hover-label">Abrir demo</span>
+                  Ver demo
                 </button>
               </div>
             </div>
@@ -1294,8 +1285,7 @@ ${disclaimerText}`;
               onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
               className="landing-cta-primary mt-6 rounded-xl px-6 py-3 font-semibold"
             >
-              <span className="normal-label">Crear mi plan</span>
-              <span className="hover-label">Crear mi plan ahora</span>
+              Crear mi plan
             </button>
           </div>
 
