@@ -1374,7 +1374,9 @@ ${disclaimerText}`;
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
                   <p className="font-medium">Siguiente paso prioritario</p>
                   <p className="mt-1 text-slate-700">
-                    {route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pedir desglose y contrato antes de pagar depósito."}
+                    {profile.class1 !== "si"
+                      ? "Prioridad: confirma Clase 1 antes de comparar escuelas."
+                      : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pedir desglose y contrato antes de pagar depósito."}
                   </p>
                 </div>
                 {route.principalBlock === "Clase 1 no confirmada" && (
@@ -1402,7 +1404,7 @@ ${disclaimerText}`;
                   <p className="text-sm font-semibold text-slate-700">Qué hacer ahora</p>
                   <p className="mt-1 text-sm text-slate-700">
                     {profile.class1 !== "si"
-                      ? "Reserva o confirma Clase 1 antes de pagar una escuela."
+                      ? "Reserva o confirma Clase 1 antes de avanzar con pagos."
                       : "Compara al menos 2 escuelas con datos verificados."}
                   </p>
                 </div>
@@ -1420,7 +1422,10 @@ ${disclaimerText}`;
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver riesgos y conflictos detectados</summary>
                   <div className="mt-3 space-y-2">
                     {route.warnings
-                      .filter((w) => !(profile.class1 !== "si" && w.toLowerCase().includes("no pagues escuela todavía")))
+                      .filter((w) => {
+                        const lower = w.toLowerCase();
+                        return !lower.includes("no pagues escuela todavía") && !lower.includes("no pagar escuela todavía");
+                      })
                       .map((w) => <div key={w} className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">{w}</div>)}
                     {route.conflicts.map((c) => <div key={c} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">{c}</div>)}
                   </div>
@@ -1651,12 +1656,11 @@ ${disclaimerText}`;
               <div className="space-y-4">
                 <div className={`rounded-2xl border p-5 ${decisionReadiness.decision === "No pagues todavía" ? "border-rose-200 bg-rose-50" : "border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] via-white to-[#f8fbff]"}`}>
                   <p className="text-3xl font-bold text-[#0f1a33]">{decisionReadiness.decision}</p>
-                  <p className="mt-2 text-sm text-slate-700">{decisionReadiness.explanation}</p>
                   <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Score</p>
                     <p className="mt-1 text-4xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-lg font-semibold text-slate-500">/100</span></p>
                     <div className="mt-2"><Progress value={decisionReadiness.score} tone="bg-[#1d4ed8]" /></div>
                   </div>
+                  <p className="mt-3 text-sm text-slate-700">{decisionReadiness.explanation}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 p-4">
                   <p className="text-sm font-semibold text-slate-700">Motivo principal</p>
@@ -1670,10 +1674,7 @@ ${disclaimerText}`;
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Próximos pasos</p>
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
-                    <InfoList title="Próximos 3 pasos" items={decisionReadiness.proximosPasos} empty="Sin pasos pendientes." />
-                  </div>
+                  <InfoList title="Próximos 3 pasos" items={decisionReadiness.proximosPasos} empty="Sin pasos pendientes." />
                 </div>
               </div>
             )}
@@ -1695,13 +1696,15 @@ ${disclaimerText}`;
                   </div>
                 </Panel>
                 <Panel title="2. Decisión antes de pagar">
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <InfoCard label="Decisión recomendada" value={decisionReadiness.decision} />
                     <InfoCard label="Preparación para decidir" value={`${decisionReadiness.score}/100`} />
                     <InfoCard label="Motivo principal" value={decisionReadiness.bloqueosCriticos[0] || decisionReadiness.faltanDatos[0] || "Sin bloqueos críticos dominantes"} />
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
                     <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
+                    <InfoList title="Datos pendientes" items={decisionReadiness.faltanDatos} empty="Sin datos pendientes críticos." />
+                    <InfoList title="Próximos pasos" items={decisionReadiness.proximosPasos} empty="Sin próximos pasos pendientes." />
                   </div>
                 </Panel>
                 <Panel title="Costes y financiación">
