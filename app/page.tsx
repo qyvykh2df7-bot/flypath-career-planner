@@ -879,44 +879,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [toast, setToast] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
-  const [hoveredLandingButton, setHoveredLandingButton] = useState<string | null>(null);
-
-  // --- Landing button hover helpers for pointer/mouse events ---
-  const applyLandingPrimaryHover = (button: HTMLButtonElement, key: string) => {
-    setHoveredLandingButton(key);
-    button.style.backgroundColor = "#ffcf5a";
-    button.style.color = "#061226";
-    button.style.borderColor = "#ffe39c";
-    button.style.transform = "translateY(-8px) scale(1.16)";
-    button.style.boxShadow = "0 24px 52px rgba(201,164,84,0.55), 0 16px 34px rgba(0,0,0,0.38)";
-  };
-
-  const resetLandingPrimaryHover = (button: HTMLButtonElement) => {
-    setHoveredLandingButton(null);
-    button.style.backgroundColor = "#c9a454";
-    button.style.color = "#0f1a33";
-    button.style.borderColor = "rgba(201,164,84,0.85)";
-    button.style.transform = "translateY(0) scale(1)";
-    button.style.boxShadow = "0 10px 18px rgba(0,0,0,0.10)";
-  };
-
-  const applyLandingSecondaryHover = (button: HTMLButtonElement, key: string) => {
-    setHoveredLandingButton(key);
-    button.style.backgroundColor = "#ffffff";
-    button.style.color = "#061226";
-    button.style.borderColor = "#c9a454";
-    button.style.transform = "translateY(-8px) scale(1.14)";
-    button.style.boxShadow = "0 22px 48px rgba(255,255,255,0.24), 0 16px 34px rgba(0,0,0,0.36)";
-  };
-
-  const resetLandingSecondaryHover = (button: HTMLButtonElement) => {
-    setHoveredLandingButton(null);
-    button.style.backgroundColor = "rgba(255,255,255,0.05)";
-    button.style.color = "#ffffff";
-    button.style.borderColor = "rgba(255,255,255,0.25)";
-    button.style.transform = "translateY(0) scale(1)";
-    button.style.boxShadow = "0 0 0 rgba(0,0,0,0)";
-  };
   const [newSchool, setNewSchool] = useState<School>({
     id: 0,
     nombre: "",
@@ -1717,7 +1679,7 @@ ${disclaimerText}`;
             )}
             {tab === "report" && (
               <div className="space-y-4">
-                <Panel title="Resumen ejecutivo">
+                <Panel title="1. Resumen ejecutivo">
                   <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                       <InfoCard label="Decisión" value={decisionReadiness.decision} />
@@ -1728,17 +1690,18 @@ ${disclaimerText}`;
                       <InfoCard label="Próximo paso" value={decisionReadiness.proximosPasos[0] || "Confirmar datos críticos por escrito."} />
                     </div>
                     <p className="mt-2 text-sm text-slate-700">
-                      {shouldPayNow
-                        ? "Conclusión: puedes avanzar con condiciones, manteniendo control documental y financiero."
-                        : "Conclusión: todavía no conviene comprometer dinero hasta resolver bloqueos clave."}
+                      La recomendación principal es <strong>{decisionReadiness.decision}</strong>. La ruta sugerida es <strong>{route.recommended}</strong>. El coste realista estimado es <strong>{euro(costs.totalRealista)}</strong>, con una brecha de <strong>{euro(costs.brechaFinanciacion)}</strong>.
                     </p>
                   </div>
                 </Panel>
-                <Panel title="Decisión antes de pagar">
+                <Panel title="2. Decisión antes de pagar">
                   <div className="grid gap-3 md:grid-cols-3">
                     <InfoCard label="Decisión recomendada" value={decisionReadiness.decision} />
                     <InfoCard label="Preparación para decidir" value={`${decisionReadiness.score}/100`} />
                     <InfoCard label="Motivo principal" value={decisionReadiness.bloqueosCriticos[0] || decisionReadiness.faltanDatos[0] || "Sin bloqueos críticos dominantes"} />
+                  </div>
+                  <div className="mt-3">
+                    <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
                   </div>
                 </Panel>
                 <Panel title="Costes y financiación">
@@ -1809,7 +1772,7 @@ ${disclaimerText}`;
                     />
                   </div>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <InfoList title="Red flags principales" items={[...route.warnings, ...(schoolStats.bestSchool?.analysis.redFlags || ["No decidir aún"])]} empty="Sin red flags." />
+                    <InfoList title="Red flags principales" items={schoolStats.bestSchool?.analysis.redFlags || []} empty="Sin red flags de escuelas detectadas." />
                     <InfoList title="Preguntas pendientes principales" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["Confirmar costes, contrato y reembolso."]} empty="Sin pendientes." />
                   </div>
                   <details className="mt-3 rounded-lg border border-slate-200 p-3">
