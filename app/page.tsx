@@ -1622,14 +1622,18 @@ ${disclaimerText}`;
         </motion.div>
       )}
       <div className="mx-auto flex max-w-[1500px]">
-        <aside className="sticky top-0 h-screen w-72 border-r border-slate-200 bg-[#0f1a33] px-5 py-6 text-slate-100">
+        <aside className="sticky top-0 h-screen w-72 border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-6 text-slate-100 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-[#c9a454]/15 p-2"><Plane className="h-5 w-5 text-[#f2ddaa]" /></div>
             <div><p className="font-semibold">FlyPath Career Planner</p><p className="text-xs text-slate-300">Planner de decisión</p></div>
           </div>
-          <nav className="mt-8 space-y-2">
+          <nav className="mt-8 space-y-1.5">
             {navItems.map((item) => (
-              <button key={item.id} onClick={() => setTab(item.id)} className={`w-full rounded-xl px-3 py-3 text-left text-sm ${tab === item.id ? "bg-white text-[#0f1a33]" : "text-slate-200 hover:bg-white/10"}`}>
+              <button
+                key={item.id}
+                onClick={() => setTab(item.id)}
+                className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${tab === item.id ? "bg-white text-[#0f1a33] shadow-sm" : "text-slate-200 hover:bg-white/8"}`}
+              >
                 {item.label}
               </button>
             ))}
@@ -1639,34 +1643,55 @@ ${disclaimerText}`;
             <button onClick={resetDemoData} className="w-full cursor-pointer rounded-lg border border-rose-400/40 bg-[#8b1f1f] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#7a1b1b] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50">Restaurar demo</button>
           </div>
         </aside>
-        <main className="flex-1 px-8 py-6">
-          <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Tu diagnóstico inicial</p>
-            <h1 className="text-2xl font-semibold">{profile.nombre || "Usuario"}</h1>
-            <p className="text-sm text-slate-500">Esta es una estimación basada en los datos introducidos.</p>
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <SummaryCard label="Ruta recomendada" value={route.recommended} />
-              <SummaryCard label="Coste realista" value={euro(costs.totalRealista)} />
-              <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-              <SummaryCard label="¿Listo para pagar?" value={decisionReadiness.decision} />
+        <main className="flex-1 px-8 py-7">
+          <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Diagnóstico FlyPath</p>
+                <h1 className="mt-1 text-3xl font-semibold text-[#0f1a33]">Tu ruta como futuro piloto</h1>
+                <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                  Una lectura inicial de tu ruta, costes, escuelas y preparación antes de pagar matrícula o depósito.
+                </p>
+                {isUsingDemoData && (
+                  <span className="mt-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                    Datos de ejemplo
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
+                  className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
+                >
+                  Editar mis datos
+                </button>
+                <button
+                  onClick={() => { setSchools((prev) => prev.filter((s) => !s.isExample)); showToast("Ejemplos eliminados"); }}
+                  className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
+                >
+                  Eliminar ejemplos
+                </button>
+              </div>
             </div>
-            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-              <p className="font-semibold text-slate-800">Lectura rápida</p>
-              <p className="mt-1 text-slate-700">
+            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {[
+                { label: "Ruta recomendada", value: route.recommended },
+                { label: "Coste realista", value: euro(costs.totalRealista) },
+                { label: "Brecha financiera", value: euro(costs.brechaFinanciacion) },
+                { label: "¿Listo para pagar?", value: decisionReadiness.decision },
+              ].map((kpi) => (
+                <div key={kpi.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs text-slate-500">{kpi.label}</p>
+                  <p className="mt-2 text-xl font-semibold text-[#0f1a33]">{kpi.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 rounded-2xl border border-[#1d4ed8]/15 bg-[#f7faff] p-4 text-sm">
+              <p className="font-semibold text-[#0f1a33]">Lectura rápida</p>
+              <p className="mt-1 leading-relaxed text-slate-700">
                 Este diagnóstico resume tu situación actual. La prioridad no es elegir escuela rápido, sino validar si puedes avanzar sin asumir un riesgo innecesario.
               </p>
               {profile.class1 !== "si" && <p className="mt-2 text-slate-700">El primer bloqueo a resolver es la <strong>Clase 1</strong>.</p>}
-            </div>
-            <div className={`mt-3 rounded-xl border p-3 text-sm ${isUsingDemoData ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
-              <p>
-                {isUsingDemoData
-                  ? "Estás viendo datos demo. Edita tus datos iniciales, costes y escuelas para obtener un resultado realista."
-                  : "Ya estás usando datos más realistas. Mantén la información actualizada para mejorar la precisión del diagnóstico."}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="cursor-pointer rounded-md border border-slate-300 bg-white px-3 py-1 text-xs transition hover:bg-slate-50">Editar mis datos</button>
-                <button onClick={() => { setSchools((prev) => prev.filter((s) => !s.isExample)); showToast("Ejemplos eliminados"); }} className="cursor-pointer rounded-md border border-rose-300 bg-rose-50 px-3 py-1 text-xs text-rose-700 transition hover:bg-rose-100">Eliminar ejemplos</button>
-              </div>
             </div>
             {tab === "route" && (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
