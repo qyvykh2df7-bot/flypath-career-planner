@@ -1187,16 +1187,17 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     }
   }, []);
 
-  // Public review/deep-link mode: allow dashboard sections to be opened directly from URL
+  // Public deep-link mode via query params (legacy): disabled in review routes
   useEffect(() => {
+    if (reviewMode) return;
     if (typeof window === "undefined") return;
 
     const params = new URLSearchParams(window.location.search);
-    const reviewMode = params.get("review");
+    const reviewParam = params.get("review");
     const requestedTab = params.get("tab") as Tab | null;
     const validTabs: Tab[] = ["route", "cost", "schools", "plan", "readiness", "report"];
 
-    if (reviewMode === "dashboard") {
+    if (reviewParam === "dashboard") {
       setOnboardingCompleted(true);
       setScreen("dashboard");
       if (requestedTab && validTabs.includes(requestedTab)) {
@@ -1644,56 +1645,56 @@ ${disclaimerText}`;
           </div>
         </aside>
         <main className="flex-1 px-8 py-7">
-          <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Diagnóstico FlyPath</p>
-                <h1 className="mt-1 text-3xl font-semibold text-[#0f1a33]">Tu ruta como futuro piloto</h1>
-                <p className="mt-2 max-w-3xl text-sm text-slate-600">
-                  Una lectura inicial de tu ruta, costes, escuelas y preparación antes de pagar matrícula o depósito.
-                </p>
-                {isUsingDemoData && (
-                  <span className="mt-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
-                    Datos de ejemplo
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
-                  className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
-                >
-                  Editar mis datos
-                </button>
-                <button
-                  onClick={() => { setSchools((prev) => prev.filter((s) => !s.isExample)); showToast("Ejemplos eliminados"); }}
-                  className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
-                >
-                  Eliminar ejemplos
-                </button>
-              </div>
-            </div>
-            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {[
-                { label: "Ruta recomendada", value: route.recommended },
-                { label: "Coste realista", value: euro(costs.totalRealista) },
-                { label: "Brecha financiera", value: euro(costs.brechaFinanciacion) },
-                { label: "¿Listo para pagar?", value: decisionReadiness.decision },
-              ].map((kpi) => (
-                <div key={kpi.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-xs text-slate-500">{kpi.label}</p>
-                  <p className="mt-2 text-xl font-semibold text-[#0f1a33]">{kpi.value}</p>
+          {tab === "route" && (
+            <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Diagnóstico FlyPath</p>
+                  <h1 className="mt-1 text-3xl font-semibold text-[#0f1a33]">Tu ruta como futuro piloto</h1>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    Una lectura inicial de tu ruta, costes, escuelas y preparación antes de pagar matrícula o depósito.
+                  </p>
+                  {isUsingDemoData && (
+                    <span className="mt-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                      Datos de ejemplo
+                    </span>
+                  )}
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 rounded-2xl border border-[#1d4ed8]/15 bg-[#f7faff] p-4 text-sm">
-              <p className="font-semibold text-[#0f1a33]">Lectura rápida</p>
-              <p className="mt-1 leading-relaxed text-slate-700">
-                Este diagnóstico resume tu situación actual. La prioridad no es elegir escuela rápido, sino validar si puedes avanzar sin asumir un riesgo innecesario.
-              </p>
-              {profile.class1 !== "si" && <p className="mt-2 text-slate-700">El primer bloqueo a resolver es la <strong>Clase 1</strong>.</p>}
-            </div>
-            {tab === "route" && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
+                    className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
+                  >
+                    Editar mis datos
+                  </button>
+                  <button
+                    onClick={() => { setSchools((prev) => prev.filter((s) => !s.isExample)); showToast("Ejemplos eliminados"); }}
+                    className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
+                  >
+                    Eliminar ejemplos
+                  </button>
+                </div>
+              </div>
+              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { label: "Ruta recomendada", value: route.recommended },
+                  { label: "Coste realista", value: euro(costs.totalRealista) },
+                  { label: "Brecha financiera", value: euro(costs.brechaFinanciacion) },
+                  { label: "¿Listo para pagar?", value: decisionReadiness.decision },
+                ].map((kpi) => (
+                  <div key={kpi.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p className="text-xs text-slate-500">{kpi.label}</p>
+                    <p className="mt-2 text-xl font-semibold text-[#0f1a33]">{kpi.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-2xl border border-[#1d4ed8]/15 bg-[#f7faff] p-4 text-sm">
+                <p className="font-semibold text-[#0f1a33]">Lectura rápida</p>
+                <p className="mt-1 leading-relaxed text-slate-700">
+                  Este diagnóstico resume tu situación actual. La prioridad no es elegir escuela rápido, sino validar si puedes avanzar sin asumir un riesgo innecesario.
+                </p>
+                {profile.class1 !== "si" && <p className="mt-2 text-slate-700">El primer bloqueo a resolver es la <strong>Clase 1</strong>.</p>}
+              </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
                   <p className="font-medium">Siguiente paso prioritario</p>
@@ -1710,9 +1711,9 @@ ${disclaimerText}`;
                   </div>
                 )}
               </div>
-            )}
-          </header>
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            </header>
+          )}
+          <section className={`${tab === "route" ? "mt-6" : "mt-0"} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
             {tab === "route" && (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] to-white p-5">
