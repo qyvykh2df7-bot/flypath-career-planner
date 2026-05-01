@@ -1205,6 +1205,12 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   }, [reviewMode]);
 
   useEffect(() => {
+    if (!reviewMode) return;
+    setScreen("dashboard");
+    setTab(initialTab);
+  }, [reviewMode, initialTab]);
+
+  useEffect(() => {
     if (reviewMode) return;
     localStorage.setItem("flypath_profile", JSON.stringify(profile));
   }, [profile, reviewMode]);
