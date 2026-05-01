@@ -1614,7 +1614,7 @@ ${disclaimerText}`;
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
+    <div className="min-h-screen bg-gradient-to-b from-[#eef2f8] via-[#f6f8fc] to-[#eef3fb] text-[#0f1a33]">
       <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
         <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
@@ -1622,18 +1622,18 @@ ${disclaimerText}`;
           {toast}
         </motion.div>
       )}
-      <div className="mx-auto flex max-w-[1500px]">
-        <aside className="sticky top-0 h-screen w-72 border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-6 text-slate-100 shadow-sm">
+      <div className="mx-auto flex max-w-[1600px]">
+        <aside className="sticky top-0 h-screen w-72 border-r border-white/10 bg-[#0c1530] px-5 py-7 text-slate-100 shadow-2xl shadow-[#0c1530]/25">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-[#c9a454]/15 p-2"><Plane className="h-5 w-5 text-[#f2ddaa]" /></div>
-            <div><p className="font-semibold">FlyPath Career Planner</p><p className="text-xs text-slate-300">Planner de decisión</p></div>
+            <div className="rounded-xl bg-[#c9a454]/20 p-2.5"><Plane className="h-5 w-5 text-[#f2ddaa]" /></div>
+            <div><p className="font-semibold text-white">FlyPath Career Planner</p><p className="text-xs text-slate-300">Planner de decisión</p></div>
           </div>
-          <nav className="mt-8 space-y-1.5">
+          <nav className="mt-9 space-y-1.5">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setTab(item.id)}
-                className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${tab === item.id ? "bg-white text-[#0f1a33] shadow-sm" : "text-slate-200 hover:bg-white/8"}`}
+                className={`w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-sm transition ${tab === item.id ? "bg-white/95 text-[#0f1a33] shadow-sm ring-1 ring-[#c9a454]/40" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}
               >
                 {item.label}
               </button>
@@ -1644,18 +1644,18 @@ ${disclaimerText}`;
             <button onClick={resetDemoData} className="w-full cursor-pointer rounded-lg border border-rose-400/40 bg-[#8b1f1f] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#7a1b1b] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50">Restaurar demo</button>
           </div>
         </aside>
-        <main className="flex-1 px-8 py-7">
+        <main className="flex-1 px-8 py-10">
           {tab === "route" && (
-            <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <header className="rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-xl shadow-[#0f1a33]/20">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Diagnóstico FlyPath</p>
-                  <h1 className="mt-1 text-3xl font-semibold text-[#0f1a33]">Tu ruta como futuro piloto</h1>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
-                    Una lectura inicial de tu ruta, costes, escuelas y preparación antes de pagar matrícula o depósito.
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
+                  <h1 className="mt-2 text-3xl font-semibold text-white">Tu ruta más prudente ahora: {route.recommended}</h1>
+                  <p className="mt-3 max-w-3xl text-sm text-slate-200">
+                    Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
                   </p>
                   {isUsingDemoData && (
-                    <span className="mt-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                    <span className="mt-3 inline-flex rounded-full border border-[#c9a454]/45 bg-[#c9a454]/10 px-3 py-1 text-xs font-medium text-[#f2ddaa]">
                       Datos de ejemplo
                     </span>
                   )}
@@ -1663,87 +1663,75 @@ ${disclaimerText}`;
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
-                    className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
+                    className="cursor-pointer rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-xs text-white shadow-sm transition hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                   >
                     Editar mis datos
                   </button>
                   <button
                     onClick={() => { setSchools((prev) => prev.filter((s) => !s.isExample)); showToast("Ejemplos eliminados"); }}
-                    className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
+                    className="cursor-pointer rounded-lg border border-rose-300/60 bg-rose-500/15 px-3 py-2 text-xs text-rose-100 shadow-sm transition hover:bg-rose-500/25 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/60"
                   >
                     Eliminar ejemplos
                   </button>
                 </div>
               </div>
-              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {[
                   { label: "Ruta recomendada", value: route.recommended },
-                  { label: "Coste realista", value: euro(costs.totalRealista) },
-                  { label: "Brecha financiera", value: euro(costs.brechaFinanciacion) },
-                  { label: "¿Listo para pagar?", value: decisionReadiness.decision },
+                  { label: "Bloqueo principal", value: route.principalBlock },
+                  {
+                    label: "Siguiente paso prioritario",
+                    value:
+                      profile.class1 !== "si"
+                        ? "Confirma Clase 1 antes de comparar escuelas."
+                        : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pedir desglose y contrato antes de pagar depósito.",
+                  },
                 ].map((kpi) => (
-                  <div key={kpi.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs text-slate-500">{kpi.label}</p>
-                    <p className="mt-2 text-xl font-semibold text-[#0f1a33]">{kpi.value}</p>
+                  <div key={kpi.label} className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
+                    <p className="text-xs text-slate-200">{kpi.label}</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{kpi.value}</p>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 rounded-2xl border border-[#1d4ed8]/15 bg-[#f7faff] p-4 text-sm">
-                <p className="font-semibold text-[#0f1a33]">Lectura rápida</p>
-                <p className="mt-1 leading-relaxed text-slate-700">
-                  Este diagnóstico resume tu situación actual. La prioridad no es elegir escuela rápido, sino validar si puedes avanzar sin asumir un riesgo innecesario.
-                </p>
-                {profile.class1 !== "si" && <p className="mt-2 text-slate-700">El primer bloqueo a resolver es la <strong>Clase 1</strong>.</p>}
-              </div>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-                  <p className="font-medium">Siguiente paso prioritario</p>
-                  <p className="mt-1 text-slate-700">
-                    {profile.class1 !== "si"
-                      ? "Prioridad: confirma Clase 1 antes de comparar escuelas."
-                      : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pedir desglose y contrato antes de pagar depósito."}
-                  </p>
-                </div>
-                {route.principalBlock === "Clase 1 no confirmada" && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+              {route.principalBlock === "Clase 1 no confirmada" && (
+                <div className="mt-4 rounded-2xl border border-rose-300/60 bg-rose-500/10 p-4 text-sm text-rose-100">
+                  <div className="max-w-2xl">
                     <p className="font-medium">No pagar escuela todavía</p>
                     <p>Confirma Clase 1 antes de pagar matrícula, depósito o firmar condiciones con una escuela.</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </header>
           )}
-          <section className={`${tab === "route" ? "mt-6" : "mt-0"} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
+          <section className={`${tab === "route" ? "mt-8" : "mt-0"} mx-auto w-full max-w-[1120px] space-y-8`}>
             {tab === "route" && (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] to-white p-5">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Ruta recomendada</p>
-                  <p className="mt-2 text-3xl font-bold text-[#0f1a33]">{route.recommended}</p>
-                  <p className="mt-2 text-sm text-slate-700"><strong>Por qué importa:</strong> {route.reason}</p>
-                  <p className="mt-1 text-sm text-slate-700"><strong>Bloqueo principal:</strong> {route.principalBlock}</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    Esta recomendación no significa que solo tengas una opción. Significa qué ruta parece más prudente con tus datos actuales.
+              <div className="space-y-6">
+                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Por qué esta ruta</p>
+                  <p className="mt-3 text-lg text-slate-700"><strong>Recomendación:</strong> {route.reason}</p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Esta lectura no es una promesa de resultado. Es una guía para priorizar decisiones prudentes y reducir el riesgo de pagar antes de tiempo.
                   </p>
                 </div>
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="text-sm font-semibold text-slate-700">Qué hacer ahora</p>
+                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Qué hacer ahora</p>
                   <p className="mt-1 text-sm text-slate-700">
                     {profile.class1 !== "si"
                       ? "Reserva o confirma Clase 1 antes de avanzar con pagos."
                       : "Compara al menos 2 escuelas con datos verificados."}
                   </p>
                 </div>
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Comparación de rutas</p>
-                  <p className="mb-3 text-xs text-slate-600">Esta comparación ordena las rutas según tu situación actual. No son porcentajes ni probabilidades; sirve para ver qué opción tiene más sentido revisar primero.</p>
+                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Comparación de rutas</p>
+                  <p className="mb-4 text-sm text-slate-600">Esto no es una probabilidad. Es una lectura comparativa según tus datos actuales.</p>
                   <div className="grid gap-3 lg:grid-cols-3">
                     <RouteOption title="Integrada" value={route.integrated} label={routePriorityLabels.Integrada} />
                     <RouteOption title="Modular" value={route.modular} label={routePriorityLabels.Modular} />
                     <RouteOption title="Preparación" value={route.prep} label={routePriorityLabels["Preparación"]} />
                   </div>
                 </div>
-                <details className="rounded-xl border border-slate-200 p-4">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver riesgos y conflictos detectados</summary>
+                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Alertas y conflictos</summary>
                   <div className="mt-3 space-y-2">
                     {route.warnings
                       .filter((w) => {
@@ -1758,17 +1746,20 @@ ${disclaimerText}`;
             )}
             {tab === "cost" && (
               <div className="space-y-6">
-                <div className="rounded-2xl border border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] to-white p-5">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Lectura financiera</p>
-                  <p className="mt-2 text-3xl font-bold text-[#0f1a33]">{euro(costs.totalRealista)}</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    Cobertura estimada: <strong>{costs.coverage}%</strong> · Brecha financiera: <strong>{euro(costs.brechaFinanciacion)}</strong>
+                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Conclusión financiera</p>
+                  <p className="mt-2 text-4xl font-semibold text-[#0f1a33]">Coste realista estimado: {euro(costs.totalRealista)}</p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Estas cifras orientan la decisión. Sirven para confirmar por escrito condiciones reales antes de comprometer dinero.
                   </p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    Con tus datos actuales, tu presupuesto cubre {costs.coverage}% del escenario realista. La brecha estimada es de {euro(costs.brechaFinanciacion)}. Esto no es un precio oficial, sino una referencia para decidir y preguntar mejor.
-                  </p>
+                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
+                    <SummaryCard label="Cobertura" value={`${costs.coverage}%`} />
+                    <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
+                    <SummaryCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
+                  </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Qué hacer ahora</p>
                   <p className="text-sm text-slate-700">
                     {costs.brechaFinanciacion > 0
@@ -1776,13 +1767,15 @@ ${disclaimerText}`;
                       : "Confirma que los costes reales de la escuela coinciden con este escenario."}
                   </p>
                 </div>
-                <FinancialCoverageCard
-                  dineroDisponible={profile.dineroDisponible}
-                  totalRealista={costs.totalRealista}
-                  brechaFinanciacion={costs.brechaFinanciacion}
-                  coverage={costs.coverage}
-                />
-                <details className="rounded-xl border border-slate-200 p-4">
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
+                  <FinancialCoverageCard
+                    dineroDisponible={profile.dineroDisponible}
+                    totalRealista={costs.totalRealista}
+                    brechaFinanciacion={costs.brechaFinanciacion}
+                    coverage={costs.coverage}
+                  />
+                </div>
+                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver escenarios de coste</summary>
                   <div className="mt-4 space-y-4">
                     <div className="grid gap-3 md:grid-cols-3">
@@ -1800,7 +1793,7 @@ ${disclaimerText}`;
                     <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
                   </div>
                 </details>
-                <details className="rounded-xl border border-slate-200 p-4">
+                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Editar desglose completo</summary>
                   <div className="mt-4 space-y-4">
                     <CostBlock title="Formación">
@@ -1833,7 +1826,7 @@ ${disclaimerText}`;
                     </CostBlock>
                   </div>
                 </details>
-                <details className="rounded-xl border border-slate-200 p-4">
+                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver fórmulas y detalles técnicos</summary>
                   <div className="mt-3 space-y-3">
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1857,9 +1850,11 @@ ${disclaimerText}`;
               </div>
             )}
             {tab === "schools" && (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Estado de la comparación</p>
+              <div className="space-y-6">
+                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Escuelas comparadas</p>
+                  <h2 className="mt-2 text-3xl font-semibold text-[#0f1a33]">Decisión escolar basada en datos verificables</h2>
+                  <p className="mt-2 text-sm text-slate-600">Lo importante no es solo el precio, sino qué está confirmado por escrito.</p>
                   <p className="mt-1 text-sm text-slate-700">
                     Has comparado <strong>{schools.length}</strong> escuela(s), con <strong>{schoolStats.verifiedCount}</strong> verificada(s).
                     {hasExampleSchools ? " Sigues usando escuelas demo." : " Ya estás trabajando con escuelas reales."}{" "}
@@ -1871,7 +1866,7 @@ ${disclaimerText}`;
                     </p>
                   )}
                 </div>
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <p className="text-sm font-semibold text-slate-700">Qué hacer ahora</p>
                   <p className="mt-1 text-sm text-slate-700">
                     {hasExampleSchools
@@ -1883,7 +1878,7 @@ ${disclaimerText}`;
                       : "Revisa red flags y confirma por escrito antes de comprometer dinero."}
                   </p>
                 </div>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{disclaimerText}</div>
                 <button
                   onClick={() => {
                     if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
@@ -1895,15 +1890,18 @@ ${disclaimerText}`;
                 >
                   Eliminar ejemplos y empezar desde cero
                 </button>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  <TextField label="Nombre" value={newSchool.nombre} onChange={(v) => setNewSchool((s) => ({ ...s, nombre: v }))} />
-                  <TextField label="País" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
-                  <TextField label="Ciudad" value={newSchool.ciudad} onChange={(v) => setNewSchool((s) => ({ ...s, ciudad: v }))} />
-                  <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v) => setNewSchool((s) => ({ ...s, precioAnunciado: v }))} />
-                  <NumberField label="Duración meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
-                  <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
+                  <p className="mb-4 text-sm font-semibold text-slate-800">Añadir escuela para comparación</p>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    <TextField label="Nombre" value={newSchool.nombre} onChange={(v) => setNewSchool((s) => ({ ...s, nombre: v }))} />
+                    <TextField label="País" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
+                    <TextField label="Ciudad" value={newSchool.ciudad} onChange={(v) => setNewSchool((s) => ({ ...s, ciudad: v }))} />
+                    <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v) => setNewSchool((s) => ({ ...s, precioAnunciado: v }))} />
+                    <NumberField label="Duración meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
+                    <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
+                  </div>
                 </div>
-                <details className="rounded-xl border border-slate-200 p-4">
+                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Añadir datos avanzados de verificación</summary>
                   <p className="mt-2 text-sm text-slate-600">
                     Empieza por los 3 datos clave. El resto sirve para afinar red flags y preguntas pendientes si tienes información suficiente.
@@ -2119,7 +2117,7 @@ ${disclaimerText}`;
                 </details>
                 <button onClick={() => addSchool(false)} className="cursor-pointer rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50">Añadir escuela</button>
                 {schoolStats.analyzed.map(({ school, analysis }) => (
-                  <div key={school.id} className="rounded-xl border border-slate-200 p-4">
+                  <div key={school.id} className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="font-semibold">{school.nombre}</p>
@@ -2143,10 +2141,14 @@ ${disclaimerText}`;
                         {generatedEmailKey === school.id ? "Email generado" : "Generar email"}
                       </button>
                     </div>
-                    <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
-                    <InfoList title="Red flags" items={analysis.redFlags} empty="Información insuficiente" />
-                    <InfoList title="Preguntas pendientes" items={analysis.preguntasPendientes} empty="Sin preguntas pendientes" />
-                    <details className="mt-3 rounded-lg border border-slate-200 p-3">
+                    <div className="mt-3 rounded-2xl bg-[#f8faff] p-4">
+                      <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <InfoList title="Red flags" items={analysis.redFlags} empty="Información insuficiente" />
+                      <InfoList title="Preguntas pendientes" items={analysis.preguntasPendientes} empty="Sin preguntas pendientes" />
+                    </div>
+                    <details className="mt-3 rounded-2xl bg-slate-50 p-4">
                       <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver métricas técnicas</summary>
                       <div className="mt-3 grid gap-2 md:grid-cols-3">
                         <InfoCard label="Claridad de coste" value={String(analysis.claridadCoste)} />
@@ -2186,26 +2188,37 @@ ${disclaimerText}`;
               </div>
             )}
             {tab === "plan" && (
-              <div className="grid gap-4 lg:grid-cols-3">
+              <div className="space-y-6">
+                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Plan de acción</p>
+                  <h2 className="mt-2 text-3xl font-semibold text-[#0f1a33]">Roadmap para decidir con menos riesgo</h2>
+                  <p className="mt-2 text-sm text-slate-600">Organiza tus próximos pasos por horizonte temporal y avanza solo cuando cada bloque esté razonablemente validado.</p>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-3">
                 <PlanColumn title="Próximos 7 días" tasks={actionPlan.sevenDays} />
                 <PlanColumn title="Próximos 30 días" tasks={actionPlan.thirtyDays} />
                 <PlanColumn title="Próximos 90 días" tasks={actionPlan.ninetyDays} />
+                </div>
               </div>
             )}
             {tab === "readiness" && (
-              <div className="space-y-4">
-                <div className={`rounded-2xl border p-5 ${decisionReadiness.decision === "No pagues todavía" ? "border-rose-200 bg-rose-50" : "border-[#1d4ed8]/20 bg-gradient-to-br from-[#eef4ff] via-white to-[#f8fbff]"}`}>
-                  <p className="text-3xl font-bold text-[#0f1a33]">{decisionReadiness.decision}</p>
-                  <p className="mt-3 text-4xl font-bold text-[#0f1a33]">{decisionReadiness.score}<span className="text-lg font-semibold text-slate-500">/100</span></p>
-                  <p className="mt-3 text-sm text-slate-700">{decisionReadiness.explanation}</p>
+              <div className="space-y-6">
+                <div className={`rounded-3xl p-7 shadow-xl ${decisionReadiness.decision === "No pagues todavía" ? "bg-[#2a1620] text-rose-50 shadow-rose-200/40" : decisionReadiness.decision === "Listo para decidir con condiciones" ? "bg-[#102340] text-blue-50 shadow-blue-200/40" : "bg-[#1b263e] text-slate-100 shadow-slate-300/40"}`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Preparación para decidir</p>
+                  <p className="mt-2 text-3xl font-semibold">{decisionReadiness.decision}</p>
+                  <p className="mt-3 text-5xl font-semibold">{decisionReadiness.score}<span className="text-xl font-medium text-slate-300">/100</span></p>
+                  <p className="mt-3 text-sm text-slate-200">{decisionReadiness.explanation}</p>
+                  <p className="mt-3 text-sm text-slate-300">
+                    {decisionReadiness.bloqueosCriticos[0] || decisionReadiness.faltanDatos[0] || "Tu situación actual no muestra un bloqueo dominante, pero conviene validar condiciones por escrito."}
+                  </p>
                 </div>
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <p className="text-sm font-semibold text-slate-700">Motivo principal</p>
                   <p className="mt-1 text-sm text-slate-700">
                     {decisionReadiness.bloqueosCriticos[0] || decisionReadiness.faltanDatos[0] || "No hay bloqueos críticos dominantes."}
                   </p>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Antes de pagar, falta</p>
                   {decisionReadiness.faltanDatos.slice(0, 5).length > 0 ? (
                     <ul className="space-y-2 text-sm text-slate-700">
@@ -2217,7 +2230,7 @@ ${disclaimerText}`;
                     <p className="text-sm text-slate-600">No hay datos críticos pendientes detectados.</p>
                   )}
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Próximos pasos</p>
                   {decisionReadiness.proximosPasos.length > 0 ? (
                     <ul className="space-y-2 text-sm text-slate-700">
@@ -2232,7 +2245,7 @@ ${disclaimerText}`;
               </div>
             )}
             {tab === "report" && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <Panel title="1. Resumen ejecutivo">
                   <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -2248,7 +2261,7 @@ ${disclaimerText}`;
                     </p>
                   </div>
                 </Panel>
-                <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
+                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
                   <p className="text-sm font-semibold text-[#0f1a33]">Llévate tu diagnóstico</p>
                   <p className="mt-1 text-sm text-slate-700">
                     Copia tu informe, compártelo con tu familia o úsalo como checklist antes de hablar con una escuela de vuelo.
@@ -2435,7 +2448,7 @@ ${disclaimerText}`;
                     ))}
                   </div>
                 </Panel>
-                <div className="rounded-2xl border border-[#c9a454]/40 bg-[#0f1a33] p-5 text-white shadow-sm">
+                <div className="rounded-3xl border border-[#c9a454]/40 bg-[#0f1a33] p-6 text-white shadow-xl shadow-[#0f1a33]/20">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#f2ddaa]">Siguiente paso con FlyPath</p>
                   <h3 className="mt-1 text-2xl font-semibold text-white">¿Quieres revisar tu caso con una mentoría guiada?</h3>
                   <p className="mt-2 text-sm text-slate-200">
@@ -2492,7 +2505,7 @@ function LandingFeature({ title, text }: { title: string; text: string }) {
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"><p className="mb-2 text-sm font-semibold">{title}</p>{children}</div>;
+  return <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70"><p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>{children}</div>;
 }
 
 function YNField({ label, value, onChange }: { label: string; value: YesNoUnknown; onChange: (value: YesNoUnknown) => void }) {
@@ -2501,12 +2514,12 @@ function YNField({ label, value, onChange }: { label: string; value: YesNoUnknow
 
 function RouteOption({ title, value, label }: { title: string; value: number; label: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 p-4">
+    <div className="rounded-2xl bg-slate-50 p-4">
       <div className="flex items-center justify-between">
-        <p className="font-medium">{title}</p>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="font-medium text-[#0f1a33]">{title}</p>
+        <p className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{label}</p>
       </div>
-      <div className="mt-2"><Progress value={value} tone="bg-[#1d4ed8]" /></div>
+      <div className="mt-3"><Progress value={value} tone="bg-[#1d4ed8]" /></div>
     </div>
   );
 }
@@ -2516,7 +2529,7 @@ function CostBlock({ title, children }: { title: string; children: React.ReactNo
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
+  return <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-lg font-semibold text-[#0f1a33]">{value}</p></div>;
 }
 
 function CostBreakdownBars({
@@ -2629,17 +2642,17 @@ function FinancialCoverageCard({
 }
 
 function InfoList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
-  return <div className="rounded-lg border border-slate-200 p-3"><p className="text-sm font-medium">{title}</p><ul className="mt-2 space-y-1 text-sm text-slate-700">{items.length ? items.map((item) => <li key={item}>- {item}</li>) : <li>{empty}</li>}</ul></div>;
+  return <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm font-medium text-[#0f1a33]">{title}</p><ul className="mt-2 space-y-1.5 text-sm text-slate-700">{items.length ? items.map((item) => <li key={item}>- {item}</li>) : <li>{empty}</li>}</ul></div>;
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-medium">{value}</p></div>;
+  return <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-medium text-[#0f1a33]">{value}</p></div>;
 }
 
 function PlanColumn({ title, tasks }: { title: string; tasks: string[] }) {
   return (
-    <div className="rounded-xl border border-slate-200 p-4">
-      <p className="font-semibold">{title}</p>
+    <div className="rounded-3xl bg-white p-5 shadow-lg shadow-slate-200/70">
+      <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</p>
       <ul className="mt-3 space-y-2 text-sm text-slate-700">
         {tasks.map((task) => (
           <li key={task} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#1d4ed8]" />{task}</li>
