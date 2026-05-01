@@ -46,6 +46,7 @@ type Profile = {
 
 type CostInputs = {
   ppl: number;
+  nightRating: number;
   atplTheory: number;
   hourBuilding: number;
   cpl: number;
@@ -121,7 +122,7 @@ type RouteAnalysis = {
 
 type DecisionReadiness = {
   score: number;
-  decision: "No pagues todavía" | "Puedes avanzar, pero faltan datos" | "Listo para decidir con condiciones";
+  decision: "No estás listo para pagar" | "Puedes seguir investigando, pero no pagar" | "Listo para decidir con condiciones";
   explanation: string;
   bloqueosCriticos: string[];
   faltanDatos: string[];
@@ -315,6 +316,7 @@ const defaultProfile: Profile = {
 
 const defaultCostInputs: CostInputs = {
   ppl: 12000,
+  nightRating: 3000,
   atplTheory: 3500,
   hourBuilding: 18000,
   cpl: 9000,
@@ -475,12 +477,11 @@ function computeRoute(profile: Profile): RouteAnalysis {
 
 function computeCosts(costs: CostInputs, profile: Profile) {
   const subtotalFormacion =
-    costs.ppl + costs.atplTheory + costs.hourBuilding + costs.cpl + costs.mep + costs.ir + costs.mccJoc + costs.advancedUprt;
+    costs.ppl + (costs.nightRating ?? 3000) + costs.atplTheory + costs.hourBuilding + costs.cpl + costs.mep + costs.ir + costs.mccJoc + costs.advancedUprt;
   const subtotalExtras =
     costs.class1Medical +
     costs.tasasExamenes +
     costs.skillTests +
-    costs.equipo +
     costs.headset +
     costs.ipadAppsCartas +
     costs.uniformeMaterial +
@@ -822,25 +823,22 @@ function computeDecisionReadiness({
 
   const showNoPaguesBadge = hasHardPersonalBlocker;
 
-  let decision: DecisionReadiness["decision"] = "Puedes avanzar, pero faltan datos";
-  if (hasHardPersonalBlocker || bloqueosCriticos.length > 0) {
-    decision = "No pagues todavía";
-  } else if (!hasPaymentClearSchool || faltanDatos.length > 0 || score < 75) {
-    decision = "Puedes avanzar, pero faltan datos";
+  let decision: DecisionReadiness["decision"];
+  if (hasHardPersonalBlocker || score < 50) {
+    decision = "No estás listo para pagar";
+  } else if (score < 75) {
+    decision = "Puedes seguir investigando, pero no pagar";
   } else {
     decision = "Listo para decidir con condiciones";
   }
-  if (!hasHardPersonalBlocker && decision === "No pagues todavía") {
-    decision = "Puedes avanzar, pero faltan datos";
-  }
 
   const explanationMap: Record<DecisionReadiness["decision"], string> = {
-    "No pagues todavía":
-      "El riesgo actual es demasiado alto para pagar matrícula, depósito o firmar sin resolver bloqueos críticos.",
-    "Puedes avanzar, pero faltan datos":
-      "Tu perfil puede permitir avanzar en la investigación, pero todavía faltan confirmaciones clave de escuela, costes o contrato antes de comprometer pagos.",
+    "No estás listo para pagar":
+      "El riesgo actual es demasiado alto para pagar matrícula, depósito o firmar condiciones. Primero hay que resolver bloqueos y datos críticos.",
+    "Puedes seguir investigando, pero no pagar":
+      "Puedes seguir comparando escuelas y completando datos, pero todavía no hay base suficiente para comprometer pagos.",
     "Listo para decidir con condiciones":
-      "La base de decisión es sólida, siempre que mantengas control documental y financiero en la firma final.",
+      "La base de decisión es más sólida, siempre que conserves contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito.",
   };
 
   const proximosPasos: string[] = [];
@@ -1175,7 +1173,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       const s = localStorage.getItem("flypath_schools");
       const o = localStorage.getItem("flypath_onboarding_completed");
       if (p) setProfile(JSON.parse(p));
-      if (c) setCostInputs(JSON.parse(c));
+      if (c) setCostInputs({ ...defaultCostInputs, ...JSON.parse(c) });
       if (s) setSchools(JSON.parse(s));
       if (o) {
         const done = JSON.parse(o);
@@ -1478,8 +1476,8 @@ ${disclaimerText}`;
     { id: "route", label: "Planificador de ruta" },
     { id: "cost", label: "Costes" },
     { id: "schools", label: "Escuelas" },
-    { id: "plan", label: "Plan de acción" },
     { id: "readiness", label: "¿Listo para pagar?" },
+    { id: "plan", label: "Plan de acción" },
     { id: "report", label: "Informe final" },
   ];
 
@@ -1614,7 +1612,7 @@ ${disclaimerText}`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eef2f8] via-[#f6f8fc] to-[#eef3fb] text-[#0f1a33]">
+    <div className="min-h-screen bg-[#f8fafc] text-[#0f1a33]">
       <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
         <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
@@ -1623,7 +1621,7 @@ ${disclaimerText}`;
         </motion.div>
       )}
       <div className="mx-auto flex max-w-[1600px]">
-        <aside className="sticky top-0 h-screen w-72 border-r border-white/10 bg-[#0c1530] px-5 py-7 text-slate-100 shadow-2xl shadow-[#0c1530]/25">
+        <aside className="sticky top-0 h-screen w-72 border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-7 text-slate-100 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-[#c9a454]/20 p-2.5"><Plane className="h-5 w-5 text-[#f2ddaa]" /></div>
             <div><p className="font-semibold text-white">FlyPath Career Planner</p><p className="text-xs text-slate-300">Planner de decisión</p></div>
@@ -1646,91 +1644,134 @@ ${disclaimerText}`;
         </aside>
         <main className="flex-1 px-8 py-10">
           {tab === "route" && (
-            <header className="rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-xl shadow-[#0f1a33]/20">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+            <header className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-6 text-white shadow-sm">
+              <div className="pointer-events-none absolute right-6 top-6 z-0 hidden lg:flex items-center justify-end opacity-70">
+                <div className="relative h-[150px] w-[280px]">
+                  <svg viewBox="0 0 250 130" className="h-full w-full">
+                    <path
+                      d="M10 98 C65 30, 145 28, 230 66"
+                      fill="none"
+                      stroke="#c9a454"
+                      strokeOpacity="0.45"
+                      strokeWidth="2"
+                      strokeDasharray="5 5"
+                    />
+                    <circle cx="12" cy="98" r="5" fill="rgba(255,255,255,0.35)" />
+                    <circle cx="103" cy="42" r="4" fill="rgba(201,164,84,0.75)" />
+                    <circle cx="230" cy="66" r="5" fill="rgba(255,255,255,0.45)" />
+                  </svg>
+                  <Plane className="absolute right-[6px] top-[56px] h-4 w-4 -rotate-12 text-[#f2ddaa]/75" />
+                </div>
+              </div>
+              <div className="relative z-10">
+              <div className="flex flex-wrap items-start justify-between gap-2.5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
-                  <h1 className="mt-2 text-3xl font-semibold text-white">Tu ruta más prudente ahora: {route.recommended}</h1>
-                  <p className="mt-3 max-w-3xl text-sm text-slate-200">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
+                    <span className="inline-flex rounded-full border border-[#c9a454]/25 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f2ddaa]/80">
+                      FlyPath Decision Check
+                    </span>
+                  </div>
+                  <h1 className="mt-1.5 text-3xl font-semibold text-white">Tu ruta más prudente ahora: {route.recommended}</h1>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-200">
                     Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
                   </p>
-                  {isUsingDemoData && (
-                    <span className="mt-3 inline-flex rounded-full border border-[#c9a454]/45 bg-[#c9a454]/10 px-3 py-1 text-xs font-medium text-[#f2ddaa]">
-                      Datos de ejemplo
-                    </span>
-                  )}
+                  <p className="mt-1.5 text-xs text-slate-300">Análisis basado en perfil, costes, escuelas y riesgo de pago.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
-                    className="cursor-pointer rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-xs text-white shadow-sm transition hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    className="cursor-pointer rounded-xl border border-[#c9a454]/45 bg-[#c9a454]/10 px-4 py-2 text-xs font-medium text-[#f2ddaa] transition hover:bg-[#c9a454]/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
                   >
                     Editar mis datos
                   </button>
-                  <button
-                    onClick={() => { setSchools((prev) => prev.filter((s) => !s.isExample)); showToast("Ejemplos eliminados"); }}
-                    className="cursor-pointer rounded-lg border border-rose-300/60 bg-rose-500/15 px-3 py-2 text-xs text-rose-100 shadow-sm transition hover:bg-rose-500/25 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/60"
-                  >
-                    Eliminar ejemplos
-                  </button>
                 </div>
               </div>
-              <div className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {[
-                  { label: "Ruta recomendada", value: route.recommended },
-                  { label: "Bloqueo principal", value: route.principalBlock },
-                  {
-                    label: "Siguiente paso prioritario",
-                    value:
-                      profile.class1 !== "si"
-                        ? "Confirma Clase 1 antes de comparar escuelas."
-                        : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pedir desglose y contrato antes de pagar depósito.",
-                  },
-                ].map((kpi) => (
-                  <div key={kpi.label} className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
-                    <p className="text-xs text-slate-200">{kpi.label}</p>
-                    <p className="mt-2 text-lg font-semibold text-white">{kpi.value}</p>
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                <div className="flex h-full min-h-[88px] flex-col rounded-2xl border border-[#c9a454]/30 bg-[#c9a454]/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/75" />Ruta recomendada</p>
+                    <Route className="h-4 w-4 text-[#f2ddaa]/55" />
                   </div>
-                ))}
+                  <p className="mt-2 text-base font-semibold leading-snug text-white">{route.recommended}</p>
+                </div>
+                <div className={`flex h-full min-h-[88px] flex-col rounded-2xl border p-4 shadow-sm backdrop-blur ${route.principalBlock !== "Ningún bloqueo crítico" ? "border-[#c9a454]/25 bg-white/[0.07]" : "border-white/10 bg-white/[0.065]"}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-slate-300/50" />Bloqueo principal</p>
+                    <ShieldAlert className="h-4 w-4 text-slate-300/60" />
+                  </div>
+                  <p className="mt-2 text-base font-semibold leading-snug text-white">{route.principalBlock}</p>
+                </div>
               </div>
+              <div className="mt-3 flex min-h-[76px] flex-col rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/75" />Siguiente paso prioritario</p>
+                  <ClipboardCheck className="h-4 w-4 text-[#f2ddaa]/55" />
+                </div>
+                <p className="mt-2 text-sm font-semibold leading-snug text-slate-100 md:text-[15px]">
+                  {profile.class1 !== "si"
+                    ? "Confirma Clase 1 antes de comparar escuelas."
+                    : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pide precio final, contrato, calendario de pagos y política de reembolso antes de transferir dinero."}
+                </p>
+              </div>
+              <p className="mt-4 max-w-3xl border-l-2 border-[#c9a454]/60 pl-3 text-sm text-slate-300">Recomendación: {route.reason}</p>
               {route.principalBlock === "Clase 1 no confirmada" && (
-                <div className="mt-4 rounded-2xl border border-rose-300/60 bg-rose-500/10 p-4 text-sm text-rose-100">
-                  <div className="max-w-2xl">
-                    <p className="font-medium">No pagar escuela todavía</p>
-                    <p>Confirma Clase 1 antes de pagar matrícula, depósito o firmar condiciones con una escuela.</p>
+                <div className="mt-3 rounded-2xl border border-white/10 bg-[#081329]/55 p-4 text-sm text-slate-100">
+                  <div className="max-w-2xl border-l-2 border-[#c9a454]/65 pl-3">
+                    <p className="font-semibold text-[#f2ddaa]">No pagar escuela todavía</p>
+                    <p className="mt-1 text-slate-200">Confirma Clase 1 antes de pagar matrícula, depósito o firmar condiciones con una escuela.</p>
                   </div>
                 </div>
               )}
+              </div>
             </header>
           )}
-          <section className={`${tab === "route" ? "mt-8" : "mt-0"} mx-auto w-full max-w-[1120px] space-y-8`}>
+          <section className={`${tab === "route" ? "mt-6" : "mt-0"} mx-auto w-full max-w-[1120px] space-y-8`}>
             {tab === "route" && (
-              <div className="space-y-6">
-                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Por qué esta ruta</p>
-                  <p className="mt-3 text-lg text-slate-700"><strong>Recomendación:</strong> {route.reason}</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Esta lectura no es una promesa de resultado. Es una guía para priorizar decisiones prudentes y reducir el riesgo de pagar antes de tiempo.
-                  </p>
-                </div>
-                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Qué hacer ahora</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {profile.class1 !== "si"
-                      ? "Reserva o confirma Clase 1 antes de avanzar con pagos."
-                      : "Compara al menos 2 escuelas con datos verificados."}
-                  </p>
-                </div>
-                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
+              <div className="space-y-5">
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Comparación de rutas</p>
-                  <p className="mb-4 text-sm text-slate-600">Esto no es una probabilidad. Es una lectura comparativa según tus datos actuales.</p>
-                  <div className="grid gap-3 lg:grid-cols-3">
+                  <p className="mb-4 text-sm text-slate-600">No es una probabilidad ni una promesa de resultado. Es una lectura prudente para ayudarte a priorizar la ruta con menos riesgo.</p>
+                  <div className="grid gap-4 lg:grid-cols-3">
                     <RouteOption title="Integrada" value={route.integrated} label={routePriorityLabels.Integrada} />
                     <RouteOption title="Modular" value={route.modular} label={routePriorityLabels.Modular} />
                     <RouteOption title="Preparación" value={route.prep} label={routePriorityLabels["Preparación"]} />
                   </div>
                 </div>
-                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
+                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso recomendado</p>
+                  <p className="mt-2 max-w-3xl text-2xl font-semibold text-[#0f1a33]">
+                    {route.recommended === "Modular"
+                      ? "Avanza por fases, pero valida costes antes de pagar."
+                      : route.recommended === "Integrada"
+                      ? "Valida que puedes asumir una ruta intensiva."
+                      : "Resuelve bloqueos antes de elegir escuela."}
+                  </p>
+                  <p className="mt-3 max-w-4xl text-[15px] leading-relaxed text-slate-600">
+                    {route.recommended === "Modular"
+                      ? "Tu diagnóstico apunta a una ruta modular porque te permite controlar mejor el riesgo y la inversión por fases. El siguiente paso no es elegir escuela rápido, sino confirmar si el coste realista encaja con tu presupuesto y comparar escuelas con condiciones por escrito."
+                      : route.recommended === "Integrada"
+                      ? "Tu diagnóstico apunta a una ruta integrada, pero antes de pagar matrícula o depósito debes confirmar financiación, disponibilidad full-time, contrato, calendario de pagos y política de reembolso. La rapidez solo compensa si las condiciones están claras."
+                      : "Tu diagnóstico indica que todavía conviene preparar mejor la decisión antes de comprometer pagos altos. Prioriza resolver el bloqueo principal, revisar costes y construir un plan antes de comparar escuelas en serio."}
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTab("cost")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Revisar costes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab("schools")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Comparar escuelas
+                    </button>
+                  </div>
+                </div>
+                <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <summary className="cursor-pointer text-sm font-semibold text-slate-700">Alertas y conflictos</summary>
                   <div className="mt-3 space-y-2">
                     {route.warnings
@@ -1746,138 +1787,324 @@ ${disclaimerText}`;
             )}
             {tab === "cost" && (
               <div className="space-y-6">
-                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Conclusión financiera</p>
-                  <p className="mt-2 text-4xl font-semibold text-[#0f1a33]">Coste realista estimado: {euro(costs.totalRealista)}</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Estas cifras orientan la decisión. Sirven para confirmar por escrito condiciones reales antes de comprometer dinero.
-                  </p>
-                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-                    <SummaryCard label="Cobertura" value={`${costs.coverage}%`} />
-                    <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
-                    <SummaryCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[105px] w-[190px] lg:flex items-center justify-end opacity-70">
+                    <svg viewBox="0 0 260 150" className="h-full w-full">
+                      <rect x="36" y="74" width="34" height="52" rx="6" fill="rgba(148,163,184,0.28)" />
+                      <rect x="92" y="54" width="34" height="72" rx="6" fill="rgba(255,255,255,0.26)" />
+                      <rect x="148" y="34" width="34" height="92" rx="6" fill="rgba(201,164,84,0.55)" />
+                      <path d="M24 106 C76 92, 126 74, 236 28" fill="none" stroke="#c9a454" strokeOpacity="0.52" strokeWidth="2" strokeDasharray="5 5" />
+                      <circle cx="24" cy="106" r="4" fill="rgba(255,255,255,0.38)" />
+                      <circle cx="126" cy="74" r="3.5" fill="rgba(201,164,84,0.7)" />
+                      <circle cx="236" cy="28" r="4.5" fill="rgba(255,255,255,0.5)" />
+                    </svg>
                   </div>
-                </div>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Qué hacer ahora</p>
-                  <p className="text-sm text-slate-700">
+                  <div className="relative z-10">
+                  <div className="lg:max-w-[760px]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico financiero</p>
+                    <p className="mt-2 text-3xl font-semibold">Coste realista estimado: {euro(costs.totalRealista)}</p>
+                    <p className="mt-3 max-w-3xl text-sm text-slate-200">
+                      Esta estimación incluye formación, extras, vida y un margen de seguridad para reducir sorpresas antes de comprometer pagos.
+                    </p>
+                  </div>
+                  <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                    <div className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Dinero que falta</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{euro(costs.brechaFinanciacion)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Presupuesto cubierto</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{costs.coverage}%</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Riesgo financiero</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{costs.riesgoFinanciero}</p>
+                    </div>
+                  </div>
+                  <p className="mt-4 border-l-2 border-[#c9a454]/60 pl-3 text-sm text-slate-300">
                     {costs.brechaFinanciacion > 0
-                      ? "No comprometas pagos hasta cerrar financiación o ajustar presupuesto."
-                      : "Confirma que los costes reales de la escuela coinciden con este escenario."}
+                      ? `Lectura rápida: tu presupuesto cubre aproximadamente ${costs.coverage}% del escenario realista. Antes de pagar matrícula o depósito, conviene cerrar el dinero que falta o ajustar la ruta.`
+                      : "Lectura rápida: tu presupuesto cubre el escenario realista, pero conviene mantener margen para retrasos, repeticiones y costes no incluidos."}
                   </p>
+                  </div>
                 </div>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <FinancialCoverageCard
-                    dineroDisponible={profile.dineroDisponible}
-                    totalRealista={costs.totalRealista}
-                    brechaFinanciacion={costs.brechaFinanciacion}
-                    coverage={costs.coverage}
-                  />
-                </div>
-                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver escenarios de coste</summary>
-                  <div className="mt-4 space-y-4">
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <SummaryCard label="Total optimista" value={euro(costs.totalOptimista)} />
-                      <SummaryCard label="Total realista" value={euro(costs.totalRealista)} />
-                      <SummaryCard label="Total conservador" value={euro(costs.totalConservador)} />
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-slate-700">Tres escenarios posibles</p>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    No planifiques solo con el escenario optimista. La decisión debe soportar retrasos, repeticiones y costes no incluidos.
+                  </p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                      <p className="text-xs text-slate-500">Optimista</p>
+                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalOptimista)}</p>
                     </div>
-                    <CostBreakdownBars
+                    <div className="rounded-2xl border border-[#c9a454]/35 bg-[#fffaf0] p-4">
+                      <p className="text-xs text-slate-500">Realista</p>
+                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalRealista)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                      <p className="text-xs text-slate-500">Conservador</p>
+                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalConservador)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-slate-700">Dinero que falta para cubrir el coste realista</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                    {costs.brechaFinanciacion > 0
+                      ? "Todavía existe una brecha entre tu dinero disponible y el coste realista. Antes de pagar matrícula o depósito, conviene cerrar financiación, ajustar ruta o aumentar margen de seguridad."
+                      : "El coste realista está cubierto con tu dinero disponible, pero aún conviene mantener margen para repeticiones, retrasos y extras no incluidos."}
+                  </p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <SummaryCard label="Dinero disponible" value={euro(profile.dineroDisponible)} />
+                    <SummaryCard label="Dinero que falta" value={euro(costs.brechaFinanciacion)} />
+                    <SummaryCard label="Tiempo estimado para cubrirlo" value={`${costs.mesesCerrarBrecha} meses`} />
+                  </div>
+                  <div className="mt-4">
+                    <FinancialCoverageCard
+                      dineroDisponible={profile.dineroDisponible}
                       totalRealista={costs.totalRealista}
-                      subtotalFormacion={costs.subtotalFormacion}
-                      subtotalExtras={costs.subtotalExtras}
-                      subtotalVida={costs.subtotalVida}
-                      buffer={costs.buffer}
+                      brechaFinanciacion={costs.brechaFinanciacion}
+                      coverage={costs.coverage}
                     />
-                    <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
                   </div>
-                </details>
-                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Editar desglose completo</summary>
-                  <div className="mt-4 space-y-4">
-                    <CostBlock title="Formación">
-                      <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
-                      <NumberField label="Teoría ATPL" value={costInputs.atplTheory} onChange={(v) => setCostInputs((c) => ({ ...c, atplTheory: v }))} />
-                      <NumberField label="Horas de vuelo / Hour building" value={costInputs.hourBuilding} onChange={(v) => setCostInputs((c) => ({ ...c, hourBuilding: v }))} />
-                      <NumberField label="CPL" value={costInputs.cpl} onChange={(v) => setCostInputs((c) => ({ ...c, cpl: v }))} />
-                      <NumberField label="MEP" value={costInputs.mep} onChange={(v) => setCostInputs((c) => ({ ...c, mep: v }))} />
-                      <NumberField label="IR" value={costInputs.ir} onChange={(v) => setCostInputs((c) => ({ ...c, ir: v }))} />
-                      <NumberField label="MCC/JOC" value={costInputs.mccJoc} onChange={(v) => setCostInputs((c) => ({ ...c, mccJoc: v }))} />
-                      <NumberField label="Advanced UPRT" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
-                    </CostBlock>
-                    <CostBlock title="Extras">
-                      <NumberField label="Reconocimiento médico Clase 1" value={costInputs.class1Medical} onChange={(v) => setCostInputs((c) => ({ ...c, class1Medical: v }))} />
-                      <NumberField label="Tasas exámenes" value={costInputs.tasasExamenes} onChange={(v) => setCostInputs((c) => ({ ...c, tasasExamenes: v }))} />
-                      <NumberField label="Skill tests" value={costInputs.skillTests} onChange={(v) => setCostInputs((c) => ({ ...c, skillTests: v }))} />
-                      <NumberField label="Equipo" value={costInputs.equipo} onChange={(v) => setCostInputs((c) => ({ ...c, equipo: v }))} />
-                      <NumberField label="Headset" value={costInputs.headset} onChange={(v) => setCostInputs((c) => ({ ...c, headset: v }))} />
-                      <NumberField label="iPad/apps/cartas" value={costInputs.ipadAppsCartas} onChange={(v) => setCostInputs((c) => ({ ...c, ipadAppsCartas: v }))} />
-                      <NumberField label="Uniforme/material" value={costInputs.uniformeMaterial} onChange={(v) => setCostInputs((c) => ({ ...c, uniformeMaterial: v }))} />
-                      <NumberField label="Repeticiones" value={costInputs.repeticiones} onChange={(v) => setCostInputs((c) => ({ ...c, repeticiones: v }))} />
-                      <NumberField label="Type rating opcional" value={costInputs.typeRatingOpcional} onChange={(v) => setCostInputs((c) => ({ ...c, typeRatingOpcional: v }))} />
-                    </CostBlock>
-                    <CostBlock title="Vida y logística">
-                      <NumberField label="Alojamiento" value={costInputs.alojamiento} onChange={(v) => setCostInputs((c) => ({ ...c, alojamiento: v }))} />
-                      <NumberField label="Transporte" value={costInputs.transporte} onChange={(v) => setCostInputs((c) => ({ ...c, transporte: v }))} />
-                      <NumberField label="Comida" value={costInputs.comida} onChange={(v) => setCostInputs((c) => ({ ...c, comida: v }))} />
-                      <NumberField label="Otros gastos de vida" value={costInputs.otrosGastosVida} onChange={(v) => setCostInputs((c) => ({ ...c, otrosGastosVida: v }))} />
-                      <NumberField label="Buffer %" value={costInputs.bufferPct} onChange={(v) => setCostInputs((c) => ({ ...c, bufferPct: v }))} />
-                    </CostBlock>
-                  </div>
-                </details>
-                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver fórmulas y detalles técnicos</summary>
-                  <div className="mt-3 space-y-3">
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      <SummaryCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-                      <SummaryCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
-                      <SummaryCard label="Riesgo financiero" value={costs.riesgoFinanciero} />
-                      <SummaryCard label="Subtotal formación" value={euro(costs.subtotalFormacion)} />
-                      <SummaryCard label="Subtotal extras" value={euro(costs.subtotalExtras)} />
-                      <SummaryCard label="Subtotal vida" value={euro(costs.subtotalVida)} />
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-slate-700">Desglose estimado</p>
+                  <p className="mt-1 text-sm text-slate-600">Detalle por formación, extras, vida y margen de seguridad. Usa este bloque para ajustar hipótesis sin perder la visión global.</p>
+                  <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                    <div className="space-y-3">
+                      {[
+                        { label: "Formación", value: costs.subtotalFormacion, tone: "bg-[#1d3557]" },
+                        { label: "Extras", value: costs.subtotalExtras, tone: "bg-[#64748b]" },
+                        { label: "Vida y logística", value: costs.subtotalVida, tone: "bg-[#94a3b8]" },
+                        { label: "Margen de seguridad", value: costs.buffer, tone: "bg-[#c9a454]" },
+                      ].map((item) => {
+                        const pct = costs.totalRealista > 0 ? (item.value / costs.totalRealista) * 100 : 0;
+                        return (
+                          <div key={item.label}>
+                            <div className="mb-1 flex items-center justify-between text-sm">
+                              <p className="font-medium text-slate-700">{item.label}</p>
+                              <p className="text-slate-600">{euro(item.value)} · {Math.round(pct)}%</p>
+                            </div>
+                            <div className="h-2 rounded-full bg-slate-200">
+                              <div className={`h-2 rounded-full ${item.tone}`} style={{ width: `${clamp(pct)}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="text-sm text-slate-700">Brecha financiera = lo que falta para cubrir el escenario realista con tu dinero disponible.</p>
-                    <p className="text-sm text-slate-700">Meses estimados = brecha financiera / ahorro mensual.</p>
-                    <p className="text-sm text-slate-700">Cobertura = (dinero disponible / coste realista) x 100.</p>
-                    {profile.ahorroMensual === 0 && costs.brechaFinanciacion > 0 && (
-                      <p className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">
-                        No se puede estimar el tiempo para cerrar la brecha porque el ahorro mensual es 0.
-                      </p>
-                    )}
                   </div>
-                </details>
+                </div>
+
+                <div className="space-y-3">
+                  <details className="rounded-2xl border border-slate-200 bg-white px-5 py-3.5 shadow-none">
+                    <summary className="cursor-pointer text-sm font-medium text-[#0f1a33]">Editar mis costes estimados</summary>
+                    <div className="mt-4 space-y-4">
+                      <CostBlock title={route.recommended === "Integrada" ? "Formación integrada" : "Formación modular"}>
+                        {route.recommended === "Integrada" ? (
+                          <>
+                            <p className="md:col-span-2 xl:col-span-4 text-sm text-slate-600">
+                              En una ruta integrada, la formación suele venderse como un paquete completo. Edita el precio total anunciado y después ajusta extras, vida y margen de seguridad.
+                            </p>
+                            <NumberField label="Programa integrado completo" value={costInputs.ppl + (costInputs.nightRating ?? 3000) + costInputs.atplTheory + costInputs.hourBuilding + costInputs.cpl + costInputs.mep + costInputs.ir} onChange={(v) => {
+                              const currentPack = costInputs.ppl + (costInputs.nightRating ?? 3000) + costInputs.atplTheory + costInputs.hourBuilding + costInputs.cpl + costInputs.mep + costInputs.ir;
+                              if (currentPack <= 0) return;
+                              const factor = v / currentPack;
+                              setCostInputs((c) => ({
+                                ...c,
+                                ppl: Math.round(c.ppl * factor),
+                                nightRating: Math.round((c.nightRating ?? 3000) * factor),
+                                atplTheory: Math.round(c.atplTheory * factor),
+                                hourBuilding: Math.round(c.hourBuilding * factor),
+                                cpl: Math.round(c.cpl * factor),
+                                mep: Math.round(c.mep * factor),
+                                ir: Math.round(c.ir * factor),
+                              }));
+                            }} />
+                            <NumberField label="MCC/JOC si no está incluido" value={costInputs.mccJoc} onChange={(v) => setCostInputs((c) => ({ ...c, mccJoc: v }))} />
+                            <NumberField label="Advanced UPRT si no está incluido" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
+                          </>
+                        ) : (
+                          <>
+                            <p className="md:col-span-2 xl:col-span-4 text-sm text-slate-600">
+                              En una ruta modular, tiene sentido revisar cada fase por separado para controlar pagos, ritmo y riesgo.
+                            </p>
+                            <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
+                            <NumberField label="Night Rating / NR" value={costInputs.nightRating ?? 3000} onChange={(v) => setCostInputs((c) => ({ ...c, nightRating: v }))} />
+                            <NumberField label="Teoría ATPL" value={costInputs.atplTheory} onChange={(v) => setCostInputs((c) => ({ ...c, atplTheory: v }))} />
+                            <NumberField label="Horas de vuelo / Hour building" value={costInputs.hourBuilding} onChange={(v) => setCostInputs((c) => ({ ...c, hourBuilding: v }))} />
+                            <NumberField label="CPL" value={costInputs.cpl} onChange={(v) => setCostInputs((c) => ({ ...c, cpl: v }))} />
+                            <NumberField label="MEP" value={costInputs.mep} onChange={(v) => setCostInputs((c) => ({ ...c, mep: v }))} />
+                            <NumberField label="IR" value={costInputs.ir} onChange={(v) => setCostInputs((c) => ({ ...c, ir: v }))} />
+                            <NumberField label="MCC/JOC" value={costInputs.mccJoc} onChange={(v) => setCostInputs((c) => ({ ...c, mccJoc: v }))} />
+                            <NumberField label="Advanced UPRT" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
+                          </>
+                        )}
+                      </CostBlock>
+                      <CostBlock title="Extras">
+                        <NumberField label="Reconocimiento médico Clase 1" value={costInputs.class1Medical} onChange={(v) => setCostInputs((c) => ({ ...c, class1Medical: v }))} />
+                        <NumberField label="Tasas exámenes" value={costInputs.tasasExamenes} onChange={(v) => setCostInputs((c) => ({ ...c, tasasExamenes: v }))} />
+                        <NumberField label="Skill tests" value={costInputs.skillTests} onChange={(v) => setCostInputs((c) => ({ ...c, skillTests: v }))} />
+                        <NumberField label="Headset" value={costInputs.headset} onChange={(v) => setCostInputs((c) => ({ ...c, headset: v }))} />
+                        <NumberField label="iPad/apps/cartas" value={costInputs.ipadAppsCartas} onChange={(v) => setCostInputs((c) => ({ ...c, ipadAppsCartas: v }))} />
+                        <NumberField label="Uniforme/material" value={costInputs.uniformeMaterial} onChange={(v) => setCostInputs((c) => ({ ...c, uniformeMaterial: v }))} />
+                        <NumberField label="Repeticiones" value={costInputs.repeticiones} onChange={(v) => setCostInputs((c) => ({ ...c, repeticiones: v }))} />
+                        <NumberField label="Type rating opcional" value={costInputs.typeRatingOpcional} onChange={(v) => setCostInputs((c) => ({ ...c, typeRatingOpcional: v }))} />
+                      </CostBlock>
+                      <CostBlock title="Vida y logística">
+                        <NumberField label="Alojamiento" value={costInputs.alojamiento} onChange={(v) => setCostInputs((c) => ({ ...c, alojamiento: v }))} />
+                        <NumberField label="Transporte" value={costInputs.transporte} onChange={(v) => setCostInputs((c) => ({ ...c, transporte: v }))} />
+                        <NumberField label="Comida" value={costInputs.comida} onChange={(v) => setCostInputs((c) => ({ ...c, comida: v }))} />
+                        <NumberField label="Otros gastos de vida" value={costInputs.otrosGastosVida} onChange={(v) => setCostInputs((c) => ({ ...c, otrosGastosVida: v }))} />
+                        <NumberField label="Margen de seguridad %" value={costInputs.bufferPct} onChange={(v) => setCostInputs((c) => ({ ...c, bufferPct: v }))} />
+                      </CostBlock>
+                    </div>
+                  </details>
+                </div>
+                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
+                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+                    Ahora que tienes una estimación realista, el siguiente paso es comparar escuelas con el mismo criterio: precio final, extras incluidos, contrato, reembolso y calendario de pagos.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTab("schools")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Comparar escuelas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab("readiness")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Ver si estoy listo para pagar
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             {tab === "schools" && (
               <div className="space-y-6">
-                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Escuelas comparadas</p>
-                  <h2 className="mt-2 text-3xl font-semibold text-[#0f1a33]">Decisión escolar basada en datos verificables</h2>
-                  <p className="mt-2 text-sm text-slate-600">Lo importante no es solo el precio, sino qué está confirmado por escrito.</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    Has comparado <strong>{schools.length}</strong> escuela(s), con <strong>{schoolStats.verifiedCount}</strong> verificada(s).
-                    {hasExampleSchools ? " Sigues usando escuelas demo." : " Ya estás trabajando con escuelas reales."}{" "}
-                    {schoolStats.bestSchool ? `La mejor opción actual es ${schoolStats.bestSchool.school.nombre}.` : "Todavía no hay suficiente información para decidir con seguridad."}
+                <div className="rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico de escuelas</p>
+                  <h2 className="mt-2 text-3xl font-semibold">Compara escuelas antes de pagar depósito.</h2>
+                  <p className="mt-3 max-w-3xl text-sm text-slate-200">
+                    No compares solo precio anunciado. Revisa contrato, reembolso, calendario de pagos, extras incluidos y evidencia por escrito.
                   </p>
-                  {schoolStats.verifiedCount === 0 && (
-                    <p className="mt-2 text-sm text-slate-700">
-                      Todavía no hay suficiente información verificada para elegir escuela con seguridad. El siguiente paso es pedir por escrito precio final, contrato, reembolso, MCC/JOC, UPRT y calendario de pagos.
-                    </p>
-                  )}
+                  <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Escuelas comparadas</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{schools.length}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Verificadas</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{schoolStats.verifiedCount}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Mejor opción actual</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{schoolStats.bestSchool?.school.nombre || "Sin opción clara"}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <p className="text-sm font-semibold text-slate-700">Qué hacer ahora</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {hasExampleSchools
-                      ? "Elimina ejemplos y añade escuelas reales."
-                      : schools.length < 2
-                      ? "Añade al menos 2 escuelas."
-                      : schoolStats.verifiedCount === 0
-                      ? "Pide confirmación por escrito usando el email inteligente."
-                      : "Revisa red flags y confirma por escrito antes de comprometer dinero."}
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-slate-700">Lectura rápida</p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {schools.length === 0
+                      ? "Todavía no has añadido escuelas. Añade al menos dos opciones para poder comparar precio, condiciones y riesgos."
+                      : schools.length === 1
+                      ? "Con una sola escuela no hay comparación real. Añade al menos una alternativa antes de decidir."
+                      : schoolStats.bestSchool
+                      ? "Ya puedes comparar opciones, pero la decisión no debería basarse solo en precio. Prioriza la escuela con mejor claridad documental, condiciones de pago y extras confirmados."
+                      : "Hay escuelas cargadas, pero todavía falta información suficiente para identificar una opción sólida."}
                   </p>
                 </div>
+                {schoolStats.analyzed.map(({ school, analysis }) => (
+                  <div key={school.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${schoolStats.bestSchool?.school.id === school.id ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <div className="lg:col-span-2">
+                        <p className="text-xl font-semibold text-[#0f1a33]">{school.nombre}</p>
+                        <p className="mt-1 text-sm text-slate-600">{school.ciudad}, {school.pais} · Programa {school.programa} · {euro(school.precioAnunciado)}</p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          <InfoCard label="Estado de verificación" value={school.estadoVerificacion} />
+                          <InfoCard label="Encaje general" value={String(analysis.encajeGeneral)} />
+                          <InfoCard label="Claridad de coste" value={String(analysis.claridadCoste)} />
+                          <InfoCard label="Transparencia" value={String(analysis.transparencia)} />
+                          <InfoCard label="Riesgo financiero" value={String(analysis.riesgoFinanciero)} />
+                          <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
+                          onClick={() => {
+                            const pending = getSchoolEmailMissingData(school);
+                            setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
+                            setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
+                            setGeneratedEmailKey(school.id);
+                            if (typeof window !== "undefined") {
+                              window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
+                            }
+                            showToast("Email generado");
+                          }}
+                        >
+                          {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Mail className="mr-2 h-4 w-4" />}
+                          {generatedEmailKey === school.id ? "Email generado" : "Generar email a escuela"}
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                          onClick={async () => {
+                            const draft = emailDrafts[school.id] || buildSchoolEmail(school, profile.nombre);
+                            if (!emailDrafts[school.id]) {
+                              const pending = getSchoolEmailMissingData(school);
+                              setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
+                              setEmailDrafts((d) => ({ ...d, [school.id]: draft }));
+                            }
+                            const ok = await copyText(draft);
+                            if (ok) markCopied(`email-${school.id}`);
+                            showToast(ok ? "Email copiado" : "No se pudo copiar el email");
+                          }}
+                        >
+                          {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
+                          {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                          onClick={() => {
+                            setNewSchool({ ...school });
+                            showToast("Datos de escuela cargados para editar");
+                          }}
+                        >
+                          Editar datos
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <InfoList title="Red flags" items={analysis.redFlags.slice(0, 3)} empty="Sin red flags críticos con los datos actuales." />
+                      <InfoList title="Datos pendientes" items={analysis.preguntasPendientes.slice(0, 4)} empty="Sin datos críticos pendientes." />
+                    </div>
+                    {emailDrafts[school.id] && (
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <InfoList
+                          title="Este email se ha adaptado porque faltan estos datos:"
+                          items={emailPendingBySchool[school.id] || []}
+                          empty="No faltan datos críticos detectados para esta escuela."
+                        />
+                        <p className="mb-2 mt-3 text-xs font-medium text-emerald-700">Email listo para copiar</p>
+                        <pre className="whitespace-pre-wrap text-xs text-slate-700">{emailDrafts[school.id]}</pre>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{disclaimerText}</div>
                 <button
                   onClick={() => {
@@ -1890,9 +2117,13 @@ ${disclaimerText}`;
                 >
                   Eliminar ejemplos y empezar desde cero
                 </button>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <p className="mb-4 text-sm font-semibold text-slate-800">Añadir escuela para comparación</p>
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+
+                <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Añadir escuela para comparar</summary>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Introduce una escuela candidata. Cuantos más datos confirmes por escrito, más útil será el análisis.
+                  </p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     <TextField label="Nombre" value={newSchool.nombre} onChange={(v) => setNewSchool((s) => ({ ...s, nombre: v }))} />
                     <TextField label="País" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
                     <TextField label="Ciudad" value={newSchool.ciudad} onChange={(v) => setNewSchool((s) => ({ ...s, ciudad: v }))} />
@@ -1900,329 +2131,451 @@ ${disclaimerText}`;
                     <NumberField label="Duración meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
                     <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
                   </div>
-                </div>
-                <details className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Añadir datos avanzados de verificación</summary>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Empieza por los 3 datos clave. El resto sirve para afinar red flags y preguntas pendientes si tienes información suficiente.
-                  </p>
-                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-800">Datos mínimos para decidir</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Si solo puedes conseguir tres cosas de la escuela, empieza por contrato, reembolso y calendario de pagos.
+
+                  <details className="mt-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Añadir datos avanzados de verificación</summary>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Empieza por los 3 datos clave. El resto sirve para afinar red flags y preguntas pendientes si tienes información suficiente.
                     </p>
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                      <SelectField
-                        label="Contrato antes de pagar"
-                        value={newSchool.contratoAntesPagar}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, contratoAntesPagar: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Reembolso claro"
-                        value={newSchool.reembolsoClaro}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, reembolsoClaro: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Calendario de pagos claro"
-                        value={newSchool.calendarioPagosClaro}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, calendarioPagosClaro: v as YesNoUnknown }))}
-                      />
-                    </div>
-                  </div>
-
-                  <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver programa, precio y fuente</summary>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      <SelectField
-                        label="Programa"
-                        value={newSchool.programa}
-                        options={[
-                          { value: "integrado", label: "integrado" },
-                          { value: "modular", label: "modular" },
-                          { value: "cadet", label: "cadet" },
-                          { value: "no_lo_se", label: "no_lo_se" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, programa: v as School["programa"] }))}
-                      />
-                      <SelectField
-                        label="Estado de verificación"
-                        value={newSchool.estadoVerificacion}
-                        options={[
-                          { value: "verificado", label: "verificado" },
-                          { value: "parcialmente_verificado", label: "parcialmente_verificado" },
-                          { value: "no_verificado", label: "no_verificado" },
-                          { value: "pendiente", label: "pendiente" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, estadoVerificacion: v as School["estadoVerificacion"] }))}
-                      />
-                      <SelectField
-                        label="Fuente del precio"
-                        value={newSchool.fuentePrecio}
-                        options={[
-                          { value: "web_oficial", label: "web_oficial" },
-                          { value: "email_escuela", label: "email_escuela" },
-                          { value: "llamada", label: "llamada" },
-                          { value: "folleto", label: "folleto" },
-                          { value: "alumno", label: "alumno" },
-                          { value: "redes", label: "redes" },
-                          { value: "usuario", label: "usuario" },
-                          { value: "no_verificado", label: "no_verificado" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, fuentePrecio: v as School["fuentePrecio"] }))}
-                      />
-                      <NumberField label="Depósito requerido" value={newSchool.depositoRequerido} onChange={(v) => setNewSchool((s) => ({ ...s, depositoRequerido: v }))} />
-                      <TextField label="Enlace de referencia" value={newSchool.enlaceReferencia} onChange={(v) => setNewSchool((s) => ({ ...s, enlaceReferencia: v }))} />
-                      <TextField label="Notas" value={newSchool.notas} onChange={(v) => setNewSchool((s) => ({ ...s, notas: v }))} />
-                    </div>
-                  </details>
-
-                  <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver extras incluidos</summary>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      <SelectField
-                        label="MCC/JOC incluido"
-                        value={newSchool.mccIncluido}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, mccIncluido: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Advanced UPRT incluido"
-                        value={newSchool.uprtIncluido}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, uprtIncluido: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Tasas incluidas"
-                        value={newSchool.tasasIncluidas}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, tasasIncluidas: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Skill tests incluidos"
-                        value={newSchool.skillTestsIncluidos}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, skillTestsIncluidos: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Alojamiento incluido"
-                        value={newSchool.alojamientoIncluido}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, alojamientoIncluido: v as YesNoUnknown }))}
-                      />
-                    </div>
-                  </details>
-
-                  <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver operación, soporte y marketing</summary>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      <SelectField
-                        label="Flota explicada"
-                        value={newSchool.flotaExplicada}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, flotaExplicada: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Mantenimiento explicado"
-                        value={newSchool.mantenimientoExplicado}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, mantenimientoExplicado: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Ratio alumno/avión conocido"
-                        value={newSchool.ratioAlumnoAvionConocido}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, ratioAlumnoAvionConocido: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Permite hablar con alumnos"
-                        value={newSchool.permiteHablarAlumnos}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, permiteHablarAlumnos: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Career support"
-                        value={newSchool.careerSupport}
-                        options={[
-                          { value: "si", label: "Sí" },
-                          { value: "no", label: "No" },
-                          { value: "no_se", label: "No lo sé" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, careerSupport: v as YesNoUnknown }))}
-                      />
-                      <SelectField
-                        label="Promesas de empleo"
-                        value={newSchool.promesasEmpleo}
-                        options={[
-                          { value: "ninguna", label: "ninguna" },
-                          { value: "vagas", label: "vagas" },
-                          { value: "claras_no_garantizadas", label: "claras_no_garantizadas" },
-                          { value: "garantia_contractual", label: "garantia_contractual" },
-                          { value: "no_se", label: "no_se" },
-                        ]}
-                        onChange={(v) => setNewSchool((s) => ({ ...s, promesasEmpleo: v as School["promesasEmpleo"] }))}
-                      />
-                    </div>
-                  </details>
-                </details>
-                <button onClick={() => addSchool(false)} className="cursor-pointer rounded-lg bg-[#1d4ed8] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50">Añadir escuela</button>
-                {schoolStats.analyzed.map(({ school, analysis }) => (
-                  <div key={school.id} className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">{school.nombre}</p>
-                        <p className="text-sm text-slate-500">{school.ciudad}, {school.pais} · {euro(school.precioAnunciado)} · {school.duracionMeses} meses</p>
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-800">Datos mínimos para decidir</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Si solo puedes conseguir tres cosas de la escuela, empieza por contrato, reembolso y calendario de pagos.
+                      </p>
+                      <div className="mt-3 grid gap-3 md:grid-cols-3">
+                        <SelectField
+                          label="Contrato antes de pagar"
+                          value={newSchool.contratoAntesPagar}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, contratoAntesPagar: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Reembolso claro"
+                          value={newSchool.reembolsoClaro}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, reembolsoClaro: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Calendario de pagos claro"
+                          value={newSchool.calendarioPagosClaro}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, calendarioPagosClaro: v as YesNoUnknown }))}
+                        />
                       </div>
-                      <button
-                        type="button"
-                        className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-300 bg-white"} inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40`}
-                        onClick={() => {
-                          const pending = getSchoolEmailMissingData(school);
-                          setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
-                          setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
-                          setGeneratedEmailKey(school.id);
-                          if (typeof window !== "undefined") {
-                            window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
-                          }
-                          showToast("Email generado");
-                        }}
-                      >
-                        {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Mail className="mr-2 h-4 w-4" />}
-                        {generatedEmailKey === school.id ? "Email generado" : "Generar email"}
-                      </button>
                     </div>
-                    <div className="mt-3 rounded-2xl bg-[#f8faff] p-4">
-                      <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
-                    </div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <InfoList title="Red flags" items={analysis.redFlags} empty="Información insuficiente" />
-                      <InfoList title="Preguntas pendientes" items={analysis.preguntasPendientes} empty="Sin preguntas pendientes" />
-                    </div>
-                    <details className="mt-3 rounded-2xl bg-slate-50 p-4">
-                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver métricas técnicas</summary>
-                      <div className="mt-3 grid gap-2 md:grid-cols-3">
-                        <InfoCard label="Claridad de coste" value={String(analysis.claridadCoste)} />
-                        <InfoCard label="Transparencia" value={String(analysis.transparencia)} />
-                        <InfoCard label="Riesgo financiero" value={String(analysis.riesgoFinanciero)} />
-                        <InfoCard label="Riesgo operacional" value={String(analysis.riesgoOperacional)} />
-                        <InfoCard label="Riesgo de marketing" value={String(analysis.riesgoMarketing)} />
-                        <InfoCard label="Nivel de verificación" value={String(analysis.verificacion)} />
-                        <InfoCard label="Encaje general" value={String(analysis.encajeGeneral)} />
+
+                    <details className="mt-4 rounded-xl border border-slate-200 p-4">
+                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver programa, precio y fuente</summary>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        <SelectField
+                          label="Programa"
+                          value={newSchool.programa}
+                          options={[
+                            { value: "integrado", label: "integrado" },
+                            { value: "modular", label: "modular" },
+                            { value: "cadet", label: "cadet" },
+                            { value: "no_lo_se", label: "no_lo_se" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, programa: v as School["programa"] }))}
+                        />
+                        <SelectField
+                          label="Estado de verificación"
+                          value={newSchool.estadoVerificacion}
+                          options={[
+                            { value: "verificado", label: "verificado" },
+                            { value: "parcialmente_verificado", label: "parcialmente_verificado" },
+                            { value: "no_verificado", label: "no_verificado" },
+                            { value: "pendiente", label: "pendiente" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, estadoVerificacion: v as School["estadoVerificacion"] }))}
+                        />
+                        <SelectField
+                          label="Fuente del precio"
+                          value={newSchool.fuentePrecio}
+                          options={[
+                            { value: "web_oficial", label: "web_oficial" },
+                            { value: "email_escuela", label: "email_escuela" },
+                            { value: "llamada", label: "llamada" },
+                            { value: "folleto", label: "folleto" },
+                            { value: "alumno", label: "alumno" },
+                            { value: "redes", label: "redes" },
+                            { value: "usuario", label: "usuario" },
+                            { value: "no_verificado", label: "no_verificado" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, fuentePrecio: v as School["fuentePrecio"] }))}
+                        />
+                        <NumberField label="Depósito requerido" value={newSchool.depositoRequerido} onChange={(v) => setNewSchool((s) => ({ ...s, depositoRequerido: v }))} />
+                        <TextField label="Enlace de referencia" value={newSchool.enlaceReferencia} onChange={(v) => setNewSchool((s) => ({ ...s, enlaceReferencia: v }))} />
+                        <TextField label="Notas" value={newSchool.notas} onChange={(v) => setNewSchool((s) => ({ ...s, notas: v }))} />
                       </div>
                     </details>
-                    {emailDrafts[school.id] && (
-                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <InfoList
-                          title="Este email se ha adaptado porque faltan estos datos:"
-                          items={emailPendingBySchool[school.id] || []}
-                          empty="No faltan datos críticos detectados para esta escuela."
+
+                    <details className="mt-4 rounded-xl border border-slate-200 p-4">
+                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver extras incluidos</summary>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        <SelectField
+                          label="MCC/JOC incluido"
+                          value={newSchool.mccIncluido}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, mccIncluido: v as YesNoUnknown }))}
                         />
-                        <p className="mb-2 mt-2 text-xs font-medium text-emerald-700">Email listo para copiar</p>
-                        <button
-                          type="button"
-                          className={`${copiedKey === `email-${school.id}` ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-300 bg-white"} mb-2 inline-flex cursor-pointer items-center rounded-md border px-2 py-1 text-xs shadow-sm transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40`}
-                          onClick={async () => {
-                            const ok = await copyText(emailDrafts[school.id]);
-                            if (ok) markCopied(`email-${school.id}`);
-                            showToast(ok ? "Email copiado" : "No se pudo copiar el email");
-                          }}
-                        >
-                          {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" /> : <Copy className="mr-1 h-3 w-3" />}
-                          {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
-                        </button>
-                        <pre className="whitespace-pre-wrap text-xs">{emailDrafts[school.id]}</pre>
+                        <SelectField
+                          label="Advanced UPRT incluido"
+                          value={newSchool.uprtIncluido}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, uprtIncluido: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Tasas incluidas"
+                          value={newSchool.tasasIncluidas}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, tasasIncluidas: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Skill tests incluidos"
+                          value={newSchool.skillTestsIncluidos}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, skillTestsIncluidos: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Alojamiento incluido"
+                          value={newSchool.alojamientoIncluido}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, alojamientoIncluido: v as YesNoUnknown }))}
+                        />
                       </div>
-                    )}
+                    </details>
+
+                    <details className="mt-4 rounded-xl border border-slate-200 p-4">
+                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver operación, soporte y marketing</summary>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        <SelectField
+                          label="Flota explicada"
+                          value={newSchool.flotaExplicada}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, flotaExplicada: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Mantenimiento explicado"
+                          value={newSchool.mantenimientoExplicado}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, mantenimientoExplicado: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Ratio alumno/avión conocido"
+                          value={newSchool.ratioAlumnoAvionConocido}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, ratioAlumnoAvionConocido: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Permite hablar con alumnos"
+                          value={newSchool.permiteHablarAlumnos}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, permiteHablarAlumnos: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Career support"
+                          value={newSchool.careerSupport}
+                          options={[
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" },
+                            { value: "no_se", label: "No lo sé" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, careerSupport: v as YesNoUnknown }))}
+                        />
+                        <SelectField
+                          label="Promesas de empleo"
+                          value={newSchool.promesasEmpleo}
+                          options={[
+                            { value: "ninguna", label: "ninguna" },
+                            { value: "vagas", label: "vagas" },
+                            { value: "claras_no_garantizadas", label: "claras_no_garantizadas" },
+                            { value: "garantia_contractual", label: "garantia_contractual" },
+                            { value: "no_se", label: "no_se" },
+                          ]}
+                          onChange={(v) => setNewSchool((s) => ({ ...s, promesasEmpleo: v as School["promesasEmpleo"] }))}
+                        />
+                      </div>
+                    </details>
+                  </details>
+                  <button onClick={() => addSchool(false)} className="mt-4 cursor-pointer rounded-xl bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50">Añadir escuela</button>
+                </details>
+
+                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
+                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+                    Cuando tengas al menos dos escuelas con precio final, contrato, reembolso y calendario de pagos claros, revisa si estás listo para pagar.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTab("readiness")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Ver si estoy listo para pagar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab("plan")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Ver plan de acción
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
             )}
             {tab === "plan" && (
               <div className="space-y-6">
-                <div className="rounded-3xl bg-white p-7 shadow-lg shadow-slate-200/70">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Plan de acción</p>
-                  <h2 className="mt-2 text-3xl font-semibold text-[#0f1a33]">Roadmap para decidir con menos riesgo</h2>
-                  <p className="mt-2 text-sm text-slate-600">Organiza tus próximos pasos por horizonte temporal y avanza solo cuando cada bloque esté razonablemente validado.</p>
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[90px] w-[180px] lg:flex items-center justify-end opacity-70">
+                    <svg viewBox="0 0 260 140" className="h-full w-full">
+                      <path d="M30 85 L110 85 L190 85 L230 45" fill="none" stroke="#c9a454" strokeOpacity="0.5" strokeWidth="2" />
+                      <circle cx="30" cy="85" r="6" fill="rgba(255,255,255,0.35)" />
+                      <circle cx="110" cy="85" r="6" fill="rgba(201,164,84,0.65)" />
+                      <circle cx="190" cy="85" r="6" fill="rgba(255,255,255,0.45)" />
+                      <text x="22" y="106" fill="rgba(226,232,240,0.8)" fontSize="11" fontWeight="600">7</text>
+                      <text x="99" y="106" fill="rgba(226,232,240,0.8)" fontSize="11" fontWeight="600">30</text>
+                      <text x="176" y="106" fill="rgba(226,232,240,0.8)" fontSize="11" fontWeight="600">90</text>
+                      <path d="M227 44 l10 -6 l-3 12 z" fill="rgba(201,164,84,0.75)" />
+                    </svg>
+                  </div>
+                  <div className="relative z-10">
+                  <div className="lg:max-w-[760px]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Plan de acción FlyPath</p>
+                    <h2 className="mt-2 text-3xl font-semibold">Tus próximos pasos antes de avanzar.</h2>
+                    <p className="mt-2 max-w-3xl text-sm text-slate-200">
+                      Este plan prioriza acciones que reducen riesgo antes de pagar matrícula, depósito o firmar condiciones con una escuela.
+                    </p>
+                  </div>
+                  <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Ruta recomendada</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{route.recommended}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Estado de pago</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{decisionReadiness.decision}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Prioridad principal</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{route.principalBlock}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 border-l-2 border-[#c9a454]/60 pl-3 text-xs text-slate-300">
+                    Ruta orientativa. No significa que debas pagar todavía.
+                  </p>
+                  </div>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-3">
-                <PlanColumn title="Próximos 7 días" tasks={actionPlan.sevenDays} />
-                <PlanColumn title="Próximos 30 días" tasks={actionPlan.thirtyDays} />
-                <PlanColumn title="Próximos 90 días" tasks={actionPlan.ninetyDays} />
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-slate-700">Lectura rápida</p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {decisionReadiness.decision === "No estás listo para pagar"
+                      ? "Antes de pagar, resuelve primero los bloqueos principales. El objetivo ahora no es elegir escuela rápido, sino reducir riesgo."
+                      : decisionReadiness.decision === "Puedes seguir investigando, pero no pagar"
+                      ? "Puedes seguir comparando opciones, pero todavía faltan datos críticos antes de comprometer dinero."
+                      : "Puedes preparar una decisión final, pero solo con contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito."}
+                  </p>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-1 xl:grid-cols-3">
+                  {[
+                    { title: "Próximos 7 días", subtitle: "Acciones inmediatas", items: actionPlan.sevenDays, highlight: true },
+                    { title: "Próximos 30 días", subtitle: "Validación y documentación", items: actionPlan.thirtyDays, highlight: false },
+                    { title: "Próximos 90 días", subtitle: "Decisión y seguimiento", items: actionPlan.ninetyDays, highlight: false },
+                  ].map((block) => (
+                    <div key={block.title} className={`rounded-3xl border bg-white p-6 shadow-sm ${block.highlight ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
+                      <p className="text-sm font-semibold text-slate-700">{block.title}</p>
+                      <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">{block.subtitle}</p>
+                      {block.items.length > 0 ? (
+                        <ol className="mt-4 space-y-2.5 text-sm leading-relaxed text-slate-700">
+                          {block.items.map((task, idx) => (
+                            <li key={task} className="flex items-start gap-2.5">
+                              <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-600">{idx + 1}</span>
+                              <span>{task}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p className="mt-3 text-sm text-slate-500">Sin acciones pendientes en este bloque.</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <div className="border-l-4 border-l-[#c9a454] pl-4">
+                    <p className="text-sm font-semibold text-slate-700">No hagas esto todavía</p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Evita tomar decisiones por presión comercial. Antes de pagar o firmar, confirma por escrito los puntos críticos.
+                    </p>
+                  </div>
+                  <ul className="mt-5 space-y-3">
+                    <li className="flex items-start gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                      <span className="text-sm leading-relaxed text-slate-700">No pagar depósito sin contrato o condiciones claras.</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                      <span className="text-sm leading-relaxed text-slate-700">No decidir por precio anunciado sin extras incluidos.</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                      <span className="text-sm leading-relaxed text-slate-700">No asumir promesas de empleo como garantía.</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                      <span className="text-sm leading-relaxed text-slate-700">No avanzar sin saber qué pasa si abandonas o retrasas la formación.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="rounded-3xl border border-r-4 border-slate-200 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
+                  <div className="pl-1">
+                    <p className="text-sm font-semibold text-slate-700">Siguiente paso</p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Cuando completes las acciones críticas, revisa el informe final o vuelve a comprobar si estás listo para pagar.
+                    </p>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTab("report")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Ver informe final
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab("readiness")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Revisar si estoy listo para pagar
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
             {tab === "readiness" && (
               <div className="space-y-6">
-                <div className={`rounded-3xl p-7 shadow-xl ${decisionReadiness.decision === "No pagues todavía" ? "bg-[#2a1620] text-rose-50 shadow-rose-200/40" : decisionReadiness.decision === "Listo para decidir con condiciones" ? "bg-[#102340] text-blue-50 shadow-blue-200/40" : "bg-[#1b263e] text-slate-100 shadow-slate-300/40"}`}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Preparación para decidir</p>
-                  <p className="mt-2 text-3xl font-semibold">{decisionReadiness.decision}</p>
-                  <p className="mt-3 text-5xl font-semibold">{decisionReadiness.score}<span className="text-xl font-medium text-slate-300">/100</span></p>
-                  <p className="mt-3 text-sm text-slate-200">{decisionReadiness.explanation}</p>
-                  <p className="mt-3 text-sm text-slate-300">
-                    {decisionReadiness.bloqueosCriticos[0] || decisionReadiness.faltanDatos[0] || "Tu situación actual no muestra un bloqueo dominante, pero conviene validar condiciones por escrito."}
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[100px] w-[180px] lg:flex items-center justify-end opacity-70">
+                    <svg viewBox="0 0 240 150" className="h-full w-full">
+                      <path d="M50 100 A55 55 0 1 1 190 100" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="10" strokeLinecap="round" />
+                      <path d="M50 100 A55 55 0 0 1 156 54" fill="none" stroke="#c9a454" strokeOpacity="0.7" strokeWidth="10" strokeLinecap="round" />
+                      <circle cx="120" cy="100" r="6" fill="rgba(255,255,255,0.45)" />
+                      <path d="M114 100 l4 4 l8 -10" fill="none" stroke="rgba(242,221,170,0.95)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="156" cy="54" r="5" fill="rgba(201,164,84,0.8)" />
+                    </svg>
+                  </div>
+                  <div className="relative z-10">
+                  <div className="lg:max-w-[760px]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Decisión de pago</p>
+                    <p className="mt-2 text-3xl font-semibold">{decisionReadiness.decision}</p>
+                    <p className="mt-2 max-w-3xl text-sm text-slate-200">{decisionReadiness.explanation}</p>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+                    <p className="text-5xl font-semibold">
+                      {decisionReadiness.score}
+                      <span className="text-xl font-medium text-slate-300">/100</span>
+                    </p>
+                    <span className="inline-flex rounded-full border border-[#c9a454]/35 bg-[#c9a454]/10 px-3 py-1 text-xs font-medium text-[#f2ddaa]">
+                      {decisionReadiness.showNoPaguesBadge
+                        ? "No pagar todavía"
+                        : decisionReadiness.score < 50
+                        ? "No pagar todavía"
+                        : decisionReadiness.score < 75
+                        ? "Investigar sin comprometer pagos"
+                        : "Avanzar solo con condiciones por escrito"}
+                    </span>
+                  </div>
+                  <div className="mt-4 h-2 rounded-full bg-white/10">
+                    <div
+                      className={`h-2 rounded-full ${decisionReadiness.score >= 75 ? "bg-[#c9a454]" : decisionReadiness.score >= 50 ? "bg-[#1d4ed8]" : "bg-slate-400"}`}
+                      style={{ width: `${clamp(decisionReadiness.score)}%` }}
+                    />
+                  </div>
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-slate-700">Qué significa este resultado</p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {decisionReadiness.decision === "No estás listo para pagar"
+                      ? "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero hay que resolver bloqueos críticos, datos pendientes o brechas financieras."
+                      : decisionReadiness.decision === "Puedes seguir investigando, pero no pagar"
+                      ? "Puedes seguir hablando con escuelas y completando información, pero todavía faltan confirmaciones antes de comprometer dinero."
+                      : "La decisión parece más sólida, pero solo deberías avanzar si conservas contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito."}
                   </p>
                 </div>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <p className="text-sm font-semibold text-slate-700">Motivo principal</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {decisionReadiness.bloqueosCriticos[0] || decisionReadiness.faltanDatos[0] || "No hay bloqueos críticos dominantes."}
-                  </p>
-                </div>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Antes de pagar, falta</p>
-                  {decisionReadiness.faltanDatos.slice(0, 5).length > 0 ? (
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Bloqueos críticos</p>
+                  {decisionReadiness.bloqueosCriticos.length > 0 ? (
                     <ul className="space-y-2 text-sm text-slate-700">
-                      {decisionReadiness.faltanDatos.slice(0, 5).map((item) => (
+                      {decisionReadiness.bloqueosCriticos.map((item) => (
+                        <li key={item} className="flex items-start gap-2">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-600">No se detectan bloqueos críticos con los datos actuales.</p>
+                  )}
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Datos pendientes</p>
+                  {decisionReadiness.faltanDatos.slice(0, 6).length > 0 ? (
+                    <ul className="space-y-2 text-sm text-slate-700">
+                      {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
                         <li key={item}>• {item}</li>
                       ))}
                     </ul>
@@ -2230,43 +2583,210 @@ ${disclaimerText}`;
                     <p className="text-sm text-slate-600">No hay datos críticos pendientes detectados.</p>
                   )}
                 </div>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Próximos pasos</p>
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Antes de pagar, haz esto</p>
                   {decisionReadiness.proximosPasos.length > 0 ? (
-                    <ul className="space-y-2 text-sm text-slate-700">
-                      {decisionReadiness.proximosPasos.map((step) => (
-                        <li key={step}>• {step}</li>
+                    <ol className="space-y-2 text-sm text-slate-700">
+                      {decisionReadiness.proximosPasos.map((step, idx) => (
+                        <li key={step} className="flex items-start gap-2">
+                          <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-600">{idx + 1}</span>
+                          {step}
+                        </li>
                       ))}
-                    </ul>
+                    </ol>
                   ) : (
-                    <p className="text-sm text-slate-600">Sin pasos pendientes.</p>
+                    <p className="text-sm text-slate-600">No hay pasos pendientes detectados.</p>
                   )}
+                </div>
+                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
+                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+                    Si todavía hay bloqueos o datos pendientes, usa el plan de acción antes de pagar. Si el resultado es sólido, prepara la documentación final antes de transferir dinero.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTab("plan")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Ver plan de acción
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab("report")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                    >
+                      Ver informe final
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
             {tab === "report" && (
               <div className="space-y-6">
-                <Panel title="1. Resumen ejecutivo">
-                  <div className="rounded-xl border border-[#1d4ed8]/20 bg-[#eef4ff] p-4">
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-                      <InfoCard label="Decisión" value={decisionReadiness.decision} />
-                      <InfoCard label="Ruta" value={route.recommended} />
-                      <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
-                      <InfoCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-                      <InfoCard label="Readiness" value={decisionReadiness.decision} />
-                      <InfoCard label="Score" value={`${decisionReadiness.score}/100`} />
-                    </div>
-                    <p className="mt-2 text-sm text-slate-700">
-                      La recomendación principal es <strong>{decisionReadiness.decision}</strong>. La ruta sugerida es <strong>{route.recommended}</strong>. El coste realista estimado es <strong>{euro(costs.totalRealista)}</strong>, con una brecha de <strong>{euro(costs.brechaFinanciacion)}</strong>.
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[100px] w-[180px] lg:flex items-center justify-end opacity-70">
+                    <svg viewBox="0 0 220 120" className="h-full w-full">
+                      <rect x="42" y="16" width="136" height="92" rx="10" fill="rgba(255,255,255,0.16)" stroke="rgba(201,164,84,0.45)" strokeWidth="1.5" />
+                      <line x1="58" y1="40" x2="156" y2="40" stroke="rgba(226,232,240,0.7)" strokeWidth="2" />
+                      <line x1="58" y1="56" x2="144" y2="56" stroke="rgba(148,163,184,0.75)" strokeWidth="2" />
+                      <line x1="58" y1="72" x2="130" y2="72" stroke="rgba(148,163,184,0.7)" strokeWidth="2" />
+                      <circle cx="158" cy="83" r="11" fill="rgba(201,164,84,0.62)" />
+                      <path d="M152 83 l4 4 l7 -8" fill="none" stroke="rgba(15,26,51,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <div className="relative z-10">
+                  <div className="lg:max-w-[760px]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Informe final FlyPath</p>
+                    <h2 className="mt-2 text-3xl font-semibold">Tu resumen de decisión</h2>
+                    <p className="mt-2 max-w-4xl text-sm text-slate-200">
+                      Este informe resume tu ruta recomendada, costes, riesgos y próximos pasos antes de pagar matrícula, depósito o firmar condiciones.
                     </p>
                   </div>
-                </Panel>
-                <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Llévate tu diagnóstico</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    Copia tu informe, compártelo con tu familia o úsalo como checklist antes de hablar con una escuela de vuelo.
+                  <div className="mt-5 grid gap-3 lg:grid-cols-4">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Ruta recomendada</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{route.recommended}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Decisión de pago</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{decisionReadiness.decision}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Coste realista</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{euro(costs.totalRealista)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+                      <p className="text-xs text-slate-300">Score de decisión</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{decisionReadiness.score}/100</p>
+                    </div>
+                  </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión ejecutiva</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                    {decisionReadiness.decision === "No estás listo para pagar"
+                      ? "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero debes resolver bloqueos críticos, cerrar datos pendientes y confirmar que la ruta encaja con tu situación real."
+                      : decisionReadiness.decision === "Puedes seguir investigando, pero no pagar"
+                      ? "Puedes seguir comparando escuelas y completando información, pero todavía no hay base suficiente para comprometer dinero."
+                      : "La decisión parece más sólida, pero solo deberías avanzar si tienes contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito."}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ruta</p>
+                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{route.recommended}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{route.reason}</p>
+                  </div>
+                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Coste realista</p>
+                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{euro(costs.totalRealista)}</p>
+                    <p className="mt-2 text-sm text-slate-600">Dinero que falta: {euro(costs.brechaFinanciacion)}</p>
+                  </div>
+                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Escuelas</p>
+                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">
+                      {schools.length === 1 ? "1 escuela comparada" : `${schools.length} escuelas comparadas`}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      {schoolStats.verifiedCount === 1 ? "1 verificada" : `${schoolStats.verifiedCount} verificadas`}
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Decisión</p>
+                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
+                    <p className="mt-2 text-sm text-slate-600">{decisionReadiness.score}/100</p>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Riesgos principales</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {riskDiagnosis.slice(0, 6).map((risk) => {
+                      const visualLabel =
+                        risk.label === "Riesgo de marketing/promesas"
+                          ? "Riesgo comercial"
+                          : risk.label === "Riesgo de timing"
+                          ? "Riesgo de calendario"
+                          : risk.label;
+                      const visualAction =
+                        risk.accion === "Pedir por escrito alcance real de career support y límites."
+                          ? "Pedir por escrito el alcance real del apoyo laboral y cualquier promesa comercial."
+                          : risk.accion;
+                      const badgeStyles =
+                        risk.nivel === "Crítico"
+                          ? "border-[#c9a454]/35 bg-[#c9a454]/15 text-[#7a5a16]"
+                          : risk.nivel === "Alto"
+                          ? "border-[#1d4ed8]/25 bg-[#1d4ed8]/10 text-[#1d4ed8]"
+                          : "border-slate-300 bg-slate-100 text-slate-600";
+                      return (
+                        <div key={risk.label} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold text-[#0f1a33]">{visualLabel}</p>
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${badgeStyles}`}>{risk.nivel}</span>
+                          </div>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-600">{risk.explicacion}</p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            <span className="font-semibold">Acción:</span> {visualAction}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Datos pendientes antes de pagar</p>
+                  {decisionReadiness.faltanDatos.length > 0 ? (
+                    <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                      {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
+                        <li key={item} className="flex items-start gap-2">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-slate-600">No hay datos críticos pendientes detectados, pero conserva toda la documentación por escrito.</p>
+                  )}
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Plan resumido</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      { title: "Próximos 7 días", items: actionPlan.sevenDays.slice(0, 3) },
+                      { title: "Próximos 30 días", items: actionPlan.thirtyDays.slice(0, 3) },
+                      { title: "Próximos 90 días", items: actionPlan.ninetyDays.slice(0, 3) },
+                    ].map((block) => (
+                      <div key={block.title} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5">
+                        <p className="text-sm font-semibold text-slate-700">{block.title}</p>
+                        {block.items.length > 0 ? (
+                          <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-700">
+                            {block.items.map((task, idx) => (
+                              <li key={task} className="flex items-start gap-2.5">
+                                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-600">{idx + 1}</span>
+                                <span>{task}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p className="mt-2 text-sm text-slate-500">Sin acciones clave en este bloque.</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-r-4 border-slate-200 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Guardar o compartir informe</p>
+                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+                    Puedes copiar el informe completo o generar un resumen más sencillo para compartir con tu familia antes de tomar una decisión.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={async () => {
@@ -2274,9 +2794,9 @@ ${disclaimerText}`;
                         if (ok) markCopied("informe-completo");
                         showToast(ok ? "Informe copiado" : "No se pudo copiar el informe");
                       }}
-                      className="inline-flex cursor-pointer items-center rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
                     >
-                      {copiedKey === "informe-completo" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-200" /> : <Copy className="mr-2 h-4 w-4" />}
+                      {copiedKey === "informe-completo" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Copy className="mr-2 h-4 w-4" />}
                       {copiedKey === "informe-completo" ? "Copiado" : "Copiar informe completo"}
                     </button>
                     <button
@@ -2286,203 +2806,61 @@ ${disclaimerText}`;
                         if (ok) markCopied("resumen-familia");
                         showToast(ok ? "Resumen copiado" : "No se pudo copiar el resumen");
                       }}
-                      className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40"
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
                     >
-                      {copiedKey === "resumen-familia" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
-                      {copiedKey === "resumen-familia" ? "Copiado" : "Copiar resumen para familia"}
+                      {copiedKey === "resumen-familia" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Copy className="mr-2 h-4 w-4" />}
+                      {copiedKey === "resumen-familia" ? "Copiado" : "Copiar resumen para padres"}
                     </button>
                   </div>
                 </div>
-                <Panel title="2. Decisión antes de pagar">
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    <InfoCard label="Decisión recomendada" value={decisionReadiness.decision} />
-                    <InfoCard label="Preparación para decidir" value={`${decisionReadiness.score}/100`} />
-                    <InfoCard label="Motivo principal" value={decisionReadiness.bloqueosCriticos[0] || decisionReadiness.faltanDatos[0] || "Sin bloqueos críticos dominantes"} />
-                  </div>
-                  <div className="mt-3 grid gap-3 md:grid-cols-3">
-                    <InfoList title="Bloqueos críticos" items={decisionReadiness.bloqueosCriticos} empty="Sin bloqueos críticos detectados." />
-                    <InfoList title="Datos pendientes" items={decisionReadiness.faltanDatos} empty="No hay datos críticos pendientes detectados." />
-                    <InfoList title="Próximos pasos" items={decisionReadiness.proximosPasos} empty="Sin próximos pasos pendientes." />
-                  </div>
-                </Panel>
-                <Panel title="Costes y financiación">
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    <InfoCard label="Coste optimista" value={euro(costs.totalOptimista)} />
-                    <InfoCard label="Coste realista" value={euro(costs.totalRealista)} />
-                    <InfoCard label="Coste conservador" value={euro(costs.totalConservador)} />
-                    <InfoCard label="Brecha financiera" value={euro(costs.brechaFinanciacion)} />
-                    <InfoCard label="Meses para cerrar brecha" value={String(costs.mesesCerrarBrecha)} />
-                    <InfoCard label="Porcentaje cubierto" value={`${costs.coverage}%`} />
-                  </div>
-                  <p className="mt-3 text-sm text-slate-700">
-                    Estos importes son una referencia de trabajo para decidir con criterio y contrastar por escrito con cada escuela.
-                  </p>
-                  <div className="mt-3 space-y-4">
-                    <CostBreakdownBars
-                      totalRealista={costs.totalRealista}
-                      subtotalFormacion={costs.subtotalFormacion}
-                      subtotalExtras={costs.subtotalExtras}
-                      subtotalVida={costs.subtotalVida}
-                      buffer={costs.buffer}
-                    />
-                    <ScenarioBars totalOptimista={costs.totalOptimista} totalRealista={costs.totalRealista} totalConservador={costs.totalConservador} />
-                    <FinancialCoverageCard
-                      dineroDisponible={profile.dineroDisponible}
-                      totalRealista={costs.totalRealista}
-                      brechaFinanciacion={costs.brechaFinanciacion}
-                      coverage={costs.coverage}
-                    />
-                  </div>
-                </Panel>
-                <Panel title="Riesgos principales">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {riskDiagnosis.filter((risk) => risk.nivel === "Crítico" || risk.nivel === "Alto").map((risk) => (
-                      <div key={risk.label} className="rounded-xl border border-slate-200 bg-white p-3">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{risk.label}</p>
-                        <p className="mt-1 text-sm font-semibold text-[#0f1a33]">{risk.nivel}</p>
-                        <p className="mt-1 text-sm text-slate-600">{risk.explicacion}</p>
-                        <p className="mt-2 text-sm text-slate-700"><strong>Acción recomendada:</strong> {risk.accion}</p>
+
+                <div className="rounded-3xl border border-[#c9a454]/30 bg-[#0f1a33] p-7 text-white shadow-sm">
+                  <div className="grid items-center gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Siguiente paso FlyPath</p>
+                      <p className="mt-3 text-2xl font-semibold text-white">Convierte este diagnóstico en un plan real.</p>
+                      <p className="mt-3 max-w-4xl text-sm leading-relaxed text-slate-200">
+                        Si estás empezando, la guía te ayuda a entender el camino completo antes de gastar dinero. Si ya estás cerca de elegir escuela o pagar matrícula, una mentoría puede ayudarte a revisar tu caso con más detalle.
+                      </p>
+                      <div className="mt-6 grid gap-3 md:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => showToast("Próximamente: enlace a la guía")}
+                          className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-[#c9a454] px-7 py-4 text-base font-semibold text-[#0f1a33] shadow-sm"
+                        >
+                          Ver la guía
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => showToast("Próximamente: enlace a mentoría")}
+                          className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border border-white/25 bg-white/[0.06] px-7 py-4 text-base font-semibold text-white shadow-sm"
+                        >
+                          Reservar mentoría
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                  <details className="mt-3 rounded-lg border border-slate-200 p-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver riesgos secundarios</summary>
-                    <div className="mt-2 grid gap-3 md:grid-cols-2">
-                      {riskDiagnosis.filter((risk) => risk.nivel !== "Crítico" && risk.nivel !== "Alto").map((risk) => (
-                        <div key={risk.label} className="rounded-xl border border-slate-200 bg-white p-3">
-                          <p className="text-xs uppercase tracking-wide text-slate-500">{risk.label}</p>
-                          <p className="mt-1 text-sm font-semibold text-[#0f1a33]">{risk.nivel}</p>
-                          <p className="mt-1 text-sm text-slate-600">{risk.explicacion}</p>
-                          <p className="mt-2 text-sm text-slate-700"><strong>Acción recomendada:</strong> {risk.accion}</p>
-                        </div>
-                      ))}
+                      <p className="mt-4 text-xs leading-relaxed text-slate-300">
+                        La guía te da el mapa completo. La mentoría te ayuda a aplicarlo a tu caso concreto.
+                      </p>
                     </div>
-                  </details>
-                </Panel>
-                <Panel title="Escuelas y datos pendientes">
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <InfoCard label="Escuelas comparadas" value={String(schools.length)} />
-                    <InfoCard label="Escuelas verificadas" value={String(schoolStats.verifiedCount)} />
-                    <InfoCard label="Escuelas pendientes" value={String(schoolStats.pendingCount)} />
-                    <InfoCard label="Mejor escuela actual" value={schoolStats.bestSchool ? schoolStats.bestSchool.school.nombre : "Información insuficiente"} />
-                  </div>
-                  <div className="mt-3">
-                    <InfoCard
-                      label="Recomendación de mejor escuela"
-                      value={schoolStats.bestSchool ? recomendacionLabel(schoolStats.bestSchool.analysis.recomendacionPrudente) : "No hay suficiente información para decidir escuela."}
-                    />
-                  </div>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <InfoList
-                      title="Red flags principales"
-                      items={(schoolStats.bestSchool?.analysis.redFlags || []).filter((flag) => {
-                        const text = flag.toLowerCase();
-                        return !(
-                          text.includes("no pagues escuela todavía") ||
-                          text.includes("no pagar escuela todavía") ||
-                          text.includes("presupuesto bajo y sin financiación confirmada") ||
-                          text.includes("no decidir aún") ||
-                          text.includes("prioridad: confirma clase 1")
-                        );
-                      })}
-                      empty="Sin red flags de escuelas detectadas."
-                    />
-                    <InfoList title="Preguntas pendientes principales" items={schoolStats.bestSchool?.analysis.preguntasPendientes || ["Confirmar costes, contrato y reembolso."]} empty="Sin pendientes." />
-                  </div>
-                  <details className="mt-3 rounded-lg border border-slate-200 p-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver detalle ampliado de escuelas y fiabilidad</summary>
-                    <div className="mt-2 text-sm text-slate-700">
-                      <p>Fuente principal de costes: {schools[0]?.fuentePrecio || "no disponible"}</p>
-                      <p>Fecha de actualización: {schools[0]?.fechaActualizacion || "no disponible"}</p>
+                    <div className="hidden items-center justify-end lg:flex">
+                      <div className="relative w-full max-w-[240px] rotate-2 rounded-2xl border border-[#c9a454]/35 bg-white/10 p-2 shadow-2xl">
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#c9a454]/40 bg-[#0f1a33] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]">
+                          Guía práctica FlyPath
+                        </span>
+                        <img
+                          src="/como-ser-piloto-cover.jpeg"
+                          alt="Portada de la guía Cómo ser Piloto"
+                          className="w-full rounded-xl object-cover shadow-xl"
+                        />
+                      </div>
                     </div>
-                  </details>
-                  {(!schoolStats.bestSchool || schoolStats.verifiedCount === 0) && (
-                    <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                      Aún no hay información suficiente para decidir con seguridad qué escuela elegir.
-                    </p>
-                  )}
-                </Panel>
-                <Panel title="Resumen para padres / familia">
-                  <p className="text-sm text-slate-700">
-                    Antes de pagar una matrícula o depósito, conviene confirmar por escrito qué incluye el precio, cuál es la política de reembolso,
-                    si el MCC/JOC está incluido y cuál es la duración media real del programa.
-                  </p>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <InfoCard label="Coste realista estimado" value={euro(costs.totalRealista)} />
-                    <InfoCard label="Brecha financiera actual" value={euro(costs.brechaFinanciacion)} />
-                    <InfoCard label="¿Listo para pagar?" value={decisionReadiness.decision} />
-                    <InfoCard label="Riesgo dominante" value={riskDiagnosis.find((r) => r.nivel === "Crítico" || r.nivel === "Alto")?.label || "Sin riesgo dominante"} />
-                  </div>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <InfoList title="Información que falta antes de transferir dinero" items={decisionReadiness.faltanDatos} empty="No hay faltas críticas detectadas." />
-                    <InfoList
-                      title="Preguntas que deberían hacerse a una escuela"
-                      items={[
-                        "¿Qué incluye exactamente el precio final?",
-                        "¿Cuál es la política de reembolso por escrito?",
-                        "¿Está incluido MCC/JOC y Advanced UPRT?",
-                        "¿Cuál es la duración media real del programa?",
-                        "¿Cuál es el calendario de pagos completo?",
-                      ]}
-                      empty="Sin preguntas."
-                    />
-                  </div>
-                  <InfoList
-                    title="Decisiones que conviene evitar por ahora"
-                    items={[
-                      "Pagar por presión comercial sin contrato por escrito.",
-                      "Asumir promesas de empleo como garantías.",
-                      "Firmar sin validar tasas, skill tests y costes extra.",
-                    ]}
-                    empty="Sin bloqueos."
-                  />
-                </Panel>
-                <Panel title="Plan de acción">
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    {[
-                      { title: "Próximos 7 días", items: actionPlan.sevenDays },
-                      { title: "Próximos 30 días", items: actionPlan.thirtyDays },
-                      { title: "Próximos 90 días", items: actionPlan.ninetyDays },
-                    ].map((block) => (
-                      <PlanColumn key={block.title} title={block.title} tasks={block.items} />
-                    ))}
-                  </div>
-                </Panel>
-                <div className="rounded-3xl border border-[#c9a454]/40 bg-[#0f1a33] p-6 text-white shadow-xl shadow-[#0f1a33]/20">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#f2ddaa]">Siguiente paso con FlyPath</p>
-                  <h3 className="mt-1 text-2xl font-semibold text-white">¿Quieres revisar tu caso con una mentoría guiada?</h3>
-                  <p className="mt-2 text-sm text-slate-200">
-                    Si tu diagnóstico muestra dudas de ruta, costes, financiación o escuelas, una mentoría guiada puede ayudarte a ordenar tu plan y evitar errores caros antes de pagar matrícula o depósito.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof window !== "undefined") {
-                          window.open("https://flypath.es", "_blank", "noopener,noreferrer");
-                        }
-                      }}
-                      className="inline-flex cursor-pointer items-center rounded-lg bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
-                    >
-                      Ver mentorías guiadas
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const ok = await copyText(informeCompletoText);
-                        if (ok) markCopied("informe-revision");
-                        showToast(ok ? "Informe copiado para revisión" : "No se pudo copiar el informe para revisión");
-                      }}
-                      className="inline-flex cursor-pointer items-center rounded-lg border border-[#c9a454]/60 bg-white/10 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
-                    >
-                      {copiedKey === "informe-revision" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-300" /> : <Copy className="mr-2 h-4 w-4" />}
-                      {copiedKey === "informe-revision" ? "Copiado" : "Copiar informe para revisión"}
-                    </button>
                   </div>
                 </div>
-                <Panel title="Disclaimer final">
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{disclaimerText}</div>
-                </Panel>
+
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nota importante</p>
+                  <p className="mt-1 text-xs text-slate-600">{disclaimerText}</p>
+                </div>
               </div>
             )}
           </section>
@@ -2505,7 +2883,7 @@ function LandingFeature({ title, text }: { title: string; text: string }) {
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="rounded-3xl bg-white p-6 shadow-lg shadow-slate-200/70"><p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>{children}</div>;
+  return <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]"><p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>{children}</div>;
 }
 
 function YNField({ label, value, onChange }: { label: string; value: YesNoUnknown; onChange: (value: YesNoUnknown) => void }) {
@@ -2513,13 +2891,40 @@ function YNField({ label, value, onChange }: { label: string; value: YesNoUnknow
 }
 
 function RouteOption({ title, value, label }: { title: string; value: number; label: string }) {
+  void value;
+  const isRecommended = label === "Ruta recomendada";
+  const isPossible = label === "Ruta posible";
+
+  const cardStyles = isRecommended
+    ? "border-[#c9a454]/60 bg-[#fffaf0] shadow-[0_12px_30px_rgba(15,26,51,0.08)]"
+    : isPossible
+    ? "border-[#1d4ed8]/20 bg-white"
+    : "border-slate-200 bg-white";
+
+  const badgeStyles = isRecommended
+    ? "border-[#c9a454]/35 bg-[#c9a454]/15 text-[#7a5a16]"
+    : isPossible
+    ? "border-[#1d4ed8]/20 bg-[#1d4ed8]/10 text-[#1d4ed8]"
+    : "border-slate-200 bg-slate-100 text-slate-600";
+
+  const accentTone = isRecommended ? "bg-[#c9a454]" : isPossible ? "bg-[#1d4ed8]" : "bg-slate-400";
+  const advisoryText =
+    title === "Integrada"
+      ? "Solo recomendable si tienes financiación sólida, disponibilidad y condiciones claras."
+      : title === "Modular"
+      ? "Permite avanzar por fases y controlar mejor el riesgo financiero."
+      : "Prioriza resolver bloqueos antes de comprometer pagos altos.";
+
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <div className="flex items-center justify-between">
-        <p className="font-medium text-[#0f1a33]">{title}</p>
-        <p className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{label}</p>
+    <div className={`flex h-full min-h-[170px] flex-col justify-between rounded-2xl border p-5 transition ${cardStyles}`}>
+      <div>
+        <p className="text-lg font-semibold text-[#0f1a33]">{title}</p>
+        <p className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${badgeStyles}`}>
+          {label}
+        </p>
+        <p className="mt-4 text-sm leading-relaxed text-slate-600">{advisoryText}</p>
       </div>
-      <div className="mt-3"><Progress value={value} tone="bg-[#1d4ed8]" /></div>
+      <div className={`mt-5 h-0.5 rounded-full ${accentTone}`} />
     </div>
   );
 }
@@ -2529,7 +2934,7 @@ function CostBlock({ title, children }: { title: string; children: React.ReactNo
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-lg font-semibold text-[#0f1a33]">{value}</p></div>;
+  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-lg font-semibold text-[#0f1a33]">{value}</p></div>;
 }
 
 function CostBreakdownBars({
@@ -2553,7 +2958,7 @@ function CostBreakdownBars({
   ];
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
       <p className="text-sm font-semibold text-slate-700">Desglose visual del coste realista</p>
       <div className="mt-3 space-y-3">
         {items.map((item) => {
@@ -2592,7 +2997,7 @@ function ScenarioBars({
   ];
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-4">
       <p className="text-sm font-semibold text-slate-700">Escenarios de coste (no hay un único número)</p>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {scenarios.map((scenario) => {
@@ -2624,7 +3029,7 @@ function FinancialCoverageCard({
   coverage: number;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
       <p className="text-sm font-semibold text-slate-700">Cobertura financiera</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <InfoCard label="Dinero disponible" value={euro(dineroDisponible)} />
@@ -2642,16 +3047,16 @@ function FinancialCoverageCard({
 }
 
 function InfoList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
-  return <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm font-medium text-[#0f1a33]">{title}</p><ul className="mt-2 space-y-1.5 text-sm text-slate-700">{items.length ? items.map((item) => <li key={item}>- {item}</li>) : <li>{empty}</li>}</ul></div>;
+  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-sm font-medium text-[#0f1a33]">{title}</p><ul className="mt-2 space-y-1.5 text-sm text-slate-700">{items.length ? items.map((item) => <li key={item}>- {item}</li>) : <li>{empty}</li>}</ul></div>;
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-medium text-[#0f1a33]">{value}</p></div>;
+  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-medium text-[#0f1a33]">{value}</p></div>;
 }
 
 function PlanColumn({ title, tasks }: { title: string; tasks: string[] }) {
   return (
-    <div className="rounded-3xl bg-white p-5 shadow-lg shadow-slate-200/70">
+    <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
       <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</p>
       <ul className="mt-3 space-y-2 text-sm text-slate-700">
         {tasks.map((task) => (
