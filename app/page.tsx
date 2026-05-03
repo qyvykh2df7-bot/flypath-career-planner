@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -287,6 +288,77 @@ const globalButtonFeedbackStyles = `
 
   .landing-cta-secondary:active:not(:disabled) {
     transform: translateY(2px) scale(0.97) !important;
+  }
+
+  /* Sección azul “Todo lo que normalmente…”: colores fijos tras refresh (wrapper landing usa text-[#0f1a33]). */
+  .landing-analyze-section {
+    color: #ffffff !important;
+  }
+
+  .landing-analyze-section .landing-analyze-eyebrow {
+    color: rgba(232, 213, 163, 0.95) !important;
+  }
+
+  .landing-analyze-section .landing-analyze-card {
+    background: rgba(255, 255, 255, 0.075) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+  }
+
+  .landing-analyze-section .landing-analyze-title {
+    color: #ffffff !important;
+  }
+
+  .landing-analyze-section .landing-analyze-text {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  .landing-analyze-section .landing-analyze-icon {
+    background: #071226 !important;
+    color: #f2ddaa !important;
+    border: 1px solid rgba(201, 164, 84, 0.30) !important;
+  }
+
+  .landing-analyze-section .landing-analyze-icon svg {
+    color: #f2ddaa !important;
+    stroke: #f2ddaa !important;
+    fill: none !important;
+  }
+
+  .landing-analyze-section .landing-analyze-heading {
+    color: #ffffff !important;
+  }
+
+  .landing-analyze-section .landing-analyze-description {
+    color: rgba(255, 255, 255, 0.72) !important;
+  }
+
+  .landing-analyze-section .landing-analyze-chip {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(201, 164, 84, 0.35) !important;
+    color: #f2ddaa !important;
+  }
+
+  .landing-analyze-section h2.landing-analyze-heading {
+    color: #ffffff !important;
+  }
+
+  .landing-analyze-section h3.landing-analyze-title {
+    color: #ffffff !important;
+  }
+
+  .landing-analyze-section p.landing-analyze-text {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  .landing-analyze-section p.landing-analyze-description {
+    color: rgba(255, 255, 255, 0.72) !important;
+  }
+
+  /* Franja de 3 bloques (separada de .landing-analyze-section): capa propia, sin heredar estilos de análisis. */
+  .landing-hero-strip {
+    isolation: isolate;
+    position: relative;
   }
 `;
 
@@ -1164,6 +1236,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
+  /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
+  const [landingHeaderLogoPhase, setLandingHeaderLogoPhase] = useState<"white" | "plain" | "fallback">("white");
+  const [landingGuideCoverAvailable, setLandingGuideCoverAvailable] = useState(false);
+  const [landingHeroBgPhotoSrc, setLandingHeroBgPhotoSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (reviewMode) return;
@@ -1209,6 +1285,34 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     setScreen("dashboard");
     setTab(initialTab);
   }, [reviewMode, initialTab]);
+
+  useEffect(() => {
+    if (screen !== "landing") return;
+    setLandingHeaderLogoPhase("white");
+    let cancelled = false;
+
+    void (async () => {
+      setLandingGuideCoverAvailable(false);
+      setLandingHeroBgPhotoSrc(null);
+      try {
+        const res = await fetch("/como-ser-piloto-cover.jpeg", { method: "HEAD" });
+        if (!cancelled && res.ok) setLandingGuideCoverAvailable(true);
+      } catch {
+        /* sin portada en public */
+      }
+      if (cancelled) return;
+      try {
+        const res = await fetch("/hero-aircraft.jpg", { method: "HEAD" });
+        if (!cancelled && res.ok) setLandingHeroBgPhotoSrc("/hero-aircraft.jpg");
+      } catch {
+        /* sin imagen en public */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [screen]);
 
   useEffect(() => {
     if (reviewMode) return;
@@ -1497,8 +1601,14 @@ ${disclaimerText}`;
   };
 
   if (screen === "landing") {
+    const gotoExample = () => setScreen(onboardingCompleted ? "dashboard" : "onboarding");
+    const gotoDiagnosis = () => {
+      setScreen("onboarding");
+      setOnboardingStep(1);
+    };
+
     return (
-      <div className="min-h-screen bg-[#081329] text-white">
+      <div className="min-h-screen bg-[#f8fafc] text-[#0f1a33]">
         <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
@@ -1506,75 +1616,483 @@ ${disclaimerText}`;
             {toast}
           </motion.div>
         )}
-        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
-          <div className="mb-10 flex items-center justify-between border-b border-white/10 pb-5">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-[#c9a454]/20 p-2"><Plane className="h-4 w-4 text-[#f2ddaa]" /></div>
-              <p className="font-semibold">FlyPath Career Planner</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")}
-              className="landing-cta-secondary rounded-lg px-4 py-2 text-sm font-medium"
-            >
-              Ver demo
-            </button>
-          </div>
 
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div>
-              <p className="inline-flex rounded-full border border-[#c9a454]/35 bg-[#c9a454]/10 px-3 py-1 text-xs tracking-[0.16em] text-[#f2ddaa]">FLYPATH CAREER PLANNER</p>
-              <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Planifica tu ruta como piloto antes de tomar decisiones caras.</h1>
-              <p className="mt-5 text-lg text-slate-200">Calcula costes reales, compara rutas y analiza escuelas antes de invertir miles de euros.</p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
-                  className="landing-cta-primary inline-flex items-center rounded-xl px-6 py-3 font-semibold"
-                >
-                  Crear mi plan
-                  <ArrowRight className="landing-arrow ml-2 h-4 w-4 transition-transform duration-150" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScreen(onboardingCompleted ? "dashboard" : "onboarding")}
-                  className="landing-cta-secondary rounded-xl px-6 py-3 text-sm font-medium"
-                >
-                  Ver demo
-                </button>
+        <header className="border-b border-white/10 bg-[#0f1a33] text-white shadow-[0_12px_40px_rgba(15,26,51,0.35)]">
+          <div className="mx-auto flex max-h-[90px] max-w-7xl items-center justify-start gap-3 px-6 py-3 sm:gap-4 lg:px-10">
+            <div className="flex min-w-0 items-center gap-3">
+              {landingHeaderLogoPhase !== "fallback" ? (
+                <div className="relative flex h-12 max-h-[60px] w-[180px] shrink-0 items-center sm:h-[54px] sm:max-h-[58px] sm:w-[220px] md:max-h-[60px] md:w-[252px] lg:w-[268px]">
+                  <Image
+                    key={landingHeaderLogoPhase}
+                    src={landingHeaderLogoPhase === "white" ? "/flypath-logo-white.png" : "/flypath-logo.png"}
+                    alt="FlyPath"
+                    width={540}
+                    height={162}
+                    className="h-auto max-h-12 w-auto max-w-full object-contain object-left sm:max-h-[54px] md:max-h-[58px] lg:max-h-[60px]"
+                    priority
+                    onError={() =>
+                      setLandingHeaderLogoPhase((prev) => (prev === "white" ? "plain" : "fallback"))
+                    }
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* No se ha encontrado logo real en /public. Añadir flypath-logo-white.png. */}
+                  <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#c9a454]/15 ring-1 ring-[#c9a454]/35">
+                      <Plane className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
+                    </div>
+                    <div className="min-w-0 leading-tight">
+                      <p className="truncate text-sm font-semibold tracking-tight text-white sm:text-base">FlyPath Career Planner</p>
+                      <p className="truncate text-xs text-white/60">Diagnóstico antes de elegir escuela</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main>
+          <section className="relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-white via-[#f7f9fc] to-[#f4f7fb]">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.98)_0%,rgba(243,246,252,0.65)_38%,rgba(232,240,250,0.45)_58%,rgba(201,164,84,0.09)_82%,rgba(201,164,84,0.13)_100%),radial-gradient(ellipse_90%_70%_at_92%_18%,rgba(201,164,84,0.14),transparent_52%),radial-gradient(ellipse_70%_55%_at_12%_72%,rgba(15,26,51,0.06),transparent_50%),radial-gradient(ellipse_at_50%_100%,rgba(15,26,51,0.04),transparent_45%)]" />
+            {landingHeroBgPhotoSrc ? (
+              <>
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.06] sm:opacity-[0.07] lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[min(68%,52rem)] lg:bg-right lg:opacity-[0.12]"
+                  style={{
+                    backgroundImage: `url(${landingHeroBgPhotoSrc})`,
+                  }}
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.94)_38%,rgba(248,250,252,0.9)_72%,rgba(244,247,251,0.88)_100%)] lg:bg-[linear-gradient(90deg,#ffffff_0%,rgba(255,255,255,0.97)_34%,rgba(252,253,255,0.88)_52%,rgba(248,250,252,0.55)_68%,rgba(248,250,252,0.22)_100%)]"
+                />
+              </>
+            ) : null}
+            <div className="relative z-[1] mx-auto grid max-w-7xl gap-10 px-6 pb-14 pt-10 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-10 lg:pb-[3.875rem] lg:pt-12">
+              <div>
+                <p className="inline-flex rounded-full border border-[#c9a454]/35 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7a5a16] shadow-sm sm:text-xs">
+                  FLYPATH CAREER PLANNER
+                </p>
+                <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-[#0f1a33] md:text-5xl lg:text-[2.75rem] xl:text-6xl">
+                  Antes de pagar una escuela de vuelo, entiende tu ruta, tus costes y tus riesgos.
+                </h1>
+                <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
+                  Haz un diagnóstico inicial de tu situación antes de elegir escuela: ruta recomendada, coste realista, análisis de escuelas candidatas, riesgos principales y próximos pasos para decidir con menos margen de error.
+                </p>
+                <div className="mt-8 flex w-full max-w-xl justify-start">
+                  <button
+                    type="button"
+                    onClick={gotoDiagnosis}
+                    className="landing-cta-primary inline-flex min-h-[52px] w-full items-center justify-center gap-3 rounded-2xl px-10 py-4 text-base font-semibold shadow-md sm:w-auto sm:min-h-[56px] sm:min-w-[270px] md:min-w-[288px] md:py-[15px] md:text-[17px]"
+                  >
+                    Crear mi diagnóstico
+                    <ArrowRight className="landing-arrow h-5 w-5 shrink-0 transition-transform duration-150 md:h-[1.3rem] md:w-[1.3rem]" />
+                  </button>
+                </div>
+                <p className="mt-3 max-w-md text-xs leading-relaxed text-slate-400">
+                  Orientación educativa. No sustituye información oficial de escuelas, médicos, bancos o autoridades.
+                </p>
+              </div>
+
+              <div className="relative z-[1] lg:justify-self-end">
+                <div className="absolute -right-6 -top-6 hidden h-36 w-52 rounded-[100%] bg-[#c9a454]/18 blur-3xl lg:block" aria-hidden />
+                <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_36px_100px_rgba(15,26,51,0.13),0_12px_36px_rgba(201,164,84,0.08)] ring-1 ring-[#0f1a33]/[0.06]">
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-[#0f1a33] to-[#152547] px-5 py-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">EJEMPLO DE RESULTADO</p>
+                      <p className="mt-0.5 text-sm font-semibold text-white">Así se vería tu diagnóstico</p>
+                    </div>
+                    <span className="rounded-full border border-[#c9a454]/40 bg-[#c9a454]/15 px-3 py-1 text-[11px] font-semibold text-[#f2ddaa]">V1</span>
+                  </div>
+                  <div className="space-y-4 bg-gradient-to-b from-white to-slate-50/40 p-6">
+                    <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-100 bg-white/90 p-3 shadow-sm">
+                      {[
+                        { label: "Ruta", pct: 78 },
+                        { label: "Coste", pct: 64 },
+                        { label: "Datos", pct: 41 },
+                      ].map((m) => (
+                        <div key={m.label} className="min-w-0">
+                          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500">{m.label}</p>
+                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-[#c9a454] to-[#e8c97a]"
+                              style={{ width: `${m.pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 shadow-sm">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ruta recomendada</p>
+                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">
+                        Modular / <span className="text-[#7a5a16]">Preparación</span>
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-slate-600">Prioriza cerrar bloqueos antes de pagos altos y avanza por fases con mejor control del riesgo.</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,26,51,0.06)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Coste realista</p>
+                        <p className="mt-1 text-xl font-semibold tabular-nums text-[#0f1a33]">62.400&nbsp;€</p>
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center justify-between text-[10px] text-slate-500">
+                            <span>Optimista</span>
+                            <span className="tabular-nums text-slate-700">58k</span>
+                          </div>
+                          <div className="h-1 overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full w-[55%] rounded-full bg-slate-300/90" />
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-500">
+                            <span>Conservador</span>
+                            <span className="tabular-nums text-slate-700">71k</span>
+                          </div>
+                          <div className="h-1 overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full w-[88%] rounded-full bg-[#c9a454]/45" />
+                          </div>
+                        </div>
+                        <p className="mt-2 text-[11px] text-slate-500">Incluye formación, extras frecuentes y margen prudente.</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,26,51,0.06)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">¿Listo para pagar?</p>
+                        <p className="mt-1 text-sm font-semibold leading-snug text-[#b45309]">No estás listo para pagar</p>
+                        <div className="mt-3">
+                          <div className="flex justify-between text-[10px] font-medium text-slate-500">
+                            <span>Readiness</span>
+                            <span className="tabular-nums text-slate-700">42%</span>
+                          </div>
+                          <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full w-[42%] rounded-full bg-gradient-to-r from-amber-400 to-amber-600/90" />
+                          </div>
+                        </div>
+                        <p className="mt-2 text-[11px] text-slate-500">Faltan datos por escrito y condiciones claras antes del depósito.</p>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-[#c9a454]/35 bg-gradient-to-br from-[#fffdf8] to-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_10px_28px_rgba(201,164,84,0.12)]">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">Siguiente paso</p>
+                          <p className="mt-1 text-sm font-semibold text-[#0f1a33]">Revisar costes y escuelas candidatas</p>
+                        </div>
+                        <div className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0f1a33] text-[#f2ddaa] shadow-md sm:flex" aria-hidden>
+                          <Compass className="h-4 w-4" />
+                        </div>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-[#c9a454] to-[#f0c96b]" />
+                      </div>
+                      <p className="mt-2 text-[11px] text-slate-600">Progreso del diagnóstico: datos clave recogidos, pendientes de contrato y financiación.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="rounded-3xl border border-white/15 bg-white/5 p-6">
-              <p className="text-sm text-slate-300">Resumen inicial</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <KpiMini label="Ruta recomendada" value={route.recommended} />
-                <KpiMini label="Coste realista" value={euro(costs.totalRealista)} />
-                <KpiMini label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} />
-                <KpiMini label="Riesgo principal" value={route.principalBlock} />
+          </section>
+
+          <section className="landing-hero-strip border-b border-[#c9a454]/20 bg-[#0f1a33] py-5 md:py-6">
+            <div className="mx-auto max-w-7xl px-6 lg:px-10">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-4">
+                {[
+                  { label: "Antes de pedir precio", text: "Entiende tu ruta" },
+                  { label: "Antes de elegir escuela", text: "Analiza tus opciones" },
+                  { label: "Antes de pagar matrícula", text: "Detecta riesgos" },
+                ].map((strip) => (
+                  <div
+                    key={strip.label}
+                    className="min-w-0 rounded-2xl border border-white/12 bg-white/[0.06] px-4 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[2px] md:rounded-3xl md:px-5 md:py-3.5"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#e8d5a3]/95 sm:text-[11px]">{strip.label}</p>
+                    <p className="mt-1 text-sm font-semibold leading-snug text-white sm:text-base">{strip.text}</p>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="mt-16 grid gap-4 md:grid-cols-3">
-            <LandingFeature title="El problema" text="Costes incompletos, promesas ambiguas y decisiones tomadas con poca evidencia." />
-            <LandingFeature title="Qué hace el planner" text="Estructura datos, compara escenarios y reduce riesgo antes de pagar." />
-            <LandingFeature title="Cómo funciona" text="Onboarding guiado, análisis de rutas, comparador y reporte final accionable." />
-          </div>
+          <section className="border-b border-slate-200/80 bg-[#f8fafc] py-12 lg:py-14">
+            <div className="mx-auto max-w-7xl px-6 lg:px-10">
+              <h2 className="text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">Cómo funciona</h2>
+              <p className="mt-3 max-w-2xl text-base text-slate-600">Tres pasos claros: datos, diagnóstico y qué hacer después.</p>
+              <div className="mt-10 grid gap-6 md:grid-cols-3">
+                {[
+                  {
+                    step: "1",
+                    title: "Introduce tus datos",
+                    text: "Perfil, médico e inglés, presupuesto, disponibilidad y escuelas candidatas en minutos.",
+                  },
+                  {
+                    step: "2",
+                    title: "Revisa tu diagnóstico",
+                    text: "Ruta recomendada, coste realista, análisis de escuelas candidatas, readiness y riesgos antes de comprometer dinero.",
+                  },
+                  {
+                    step: "3",
+                    title: "Decide tu siguiente paso",
+                    text: "Plan corto plazo e informe para contrastar con familia, escuela o asesor antes de firmar.",
+                  },
+                ].map((block) => (
+                  <div key={block.step} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,26,51,0.06)]">
+                    <div className="flex gap-4">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#0f1a33] text-sm font-bold text-[#f2ddaa] shadow-md">
+                        {block.step}
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-semibold text-[#0f1a33]">{block.title}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-600">{block.text}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
-          <div className="mt-12 rounded-3xl border border-[#c9a454]/35 bg-[#0d1d3a] p-8 text-center">
-            <h2 className="text-3xl font-semibold">Toma decisiones de carrera con claridad y criterio.</h2>
-            <p className="mx-auto mt-3 max-w-3xl text-slate-200">No decidas por marketing ni presión comercial: decide por evidencia y planificación.</p>
-            <button
-              type="button"
-              onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
-              className="landing-cta-primary mt-6 rounded-xl px-6 py-3 font-semibold"
-            >
-              Crear mi plan
-            </button>
-          </div>
+          <section className="border-b border-slate-200/80 bg-[#f1f5f9]/85 py-12 lg:py-14">
+            <div className="mx-auto max-w-7xl px-6 lg:px-10">
+              <div className="max-w-3xl">
+                <h2 className="text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">
+                  Diseñado para quienes están antes de tomar una decisión importante.
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-slate-600">
+                  Si estás empezando, comparando escuelas, a punto de pagar matrícula o intentando explicarlo en casa, el Career Planner te ayuda a ordenar la decisión antes de comprometer dinero.
+                </p>
+              </div>
+              <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    icon: Route,
+                    title: "Estoy empezando desde cero",
+                    text: "Necesitas entender rutas, licencias, costes reales y errores típicos antes de pedir precios.",
+                  },
+                  {
+                    icon: ClipboardCheck,
+                    title: "Estoy comparando escuelas",
+                    text: "Quieres ordenar precios, contrato, reembolsos, extras incluidos y promesas comerciales.",
+                  },
+                  {
+                    icon: AlertTriangle,
+                    title: "Estoy a punto de pagar matrícula",
+                    text: "Necesitas revisar riesgos antes de transferir dinero o firmar condiciones.",
+                  },
+                  {
+                    icon: Copy,
+                    title: "Mi familia quiere entender el coste",
+                    text: "Puedes generar un resumen claro para explicar ruta, presupuesto, riesgos y próximos pasos.",
+                  },
+                ].map((who) => {
+                  const Icon = who.icon;
+                  return (
+                    <div
+                      key={who.title}
+                      className="flex flex-col rounded-3xl border border-slate-200/90 bg-white p-6 shadow-[0_14px_40px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]"
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0f1a33] text-[#f2ddaa] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-[#c9a454]/25">
+                        <Icon className="h-5 w-5 shrink-0" aria-hidden />
+                      </div>
+                      <h3 className="mt-4 text-base font-semibold leading-snug text-[#0f1a33]">{who.title}</h3>
+                      <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{who.text}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
 
-          <div className="mt-10 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-slate-200">{disclaimerText}</div>
-        </div>
+          <section
+            className="relative z-0 border-b border-[#c9a454]/20 py-16 lg:py-20"
+            style={{ backgroundColor: "#0f1a33" }}
+          >
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(ellipse 90% 70% at 100% 0%, rgba(201,164,84,0.14), transparent 55%), radial-gradient(ellipse at 0% 100%, rgba(255,255,255,0.05), transparent 45%), linear-gradient(180deg, rgba(21,37,71,0.5) 0%, transparent 45%)",
+              }}
+              aria-hidden
+            />
+            <div className="relative z-[1] mx-auto max-w-7xl px-6 lg:px-10" style={{ color: "#ffffff" }}>
+              <div className="max-w-3xl">
+                <p
+                  className="text-[11px] font-semibold uppercase tracking-[0.22em]"
+                  style={{ color: "rgba(232, 213, 163, 0.95)" }}
+                >
+                  DE DATOS SUELTOS A DECISIÓN CLARA
+                </p>
+                <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl" style={{ color: "#ffffff" }}>
+                  Todo lo que normalmente se queda fuera del precio anunciado.
+                </h2>
+                <p className="mt-4 max-w-3xl text-base leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.72)" }}>
+                  La herramienta cruza tu perfil, presupuesto, escuelas candidatas y timing para que no tomes una decisión solo por marketing, prisa o precio inicial.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {["Clase 1", "Inglés", "Financiación", "Contrato", "Reembolso", "Extras", "Calendario de pagos"].map((chip) => (
+                    <span
+                      key={chip}
+                      className="inline-flex items-center rounded-full border border-solid px-3 py-1 text-xs font-semibold"
+                      style={{
+                        backgroundColor: "rgba(255, 255, 255, 0.05)",
+                        borderColor: "rgba(201, 164, 84, 0.35)",
+                        color: "#f2ddaa",
+                      }}
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {(
+                  [
+                    {
+                      Icon: Route,
+                      title: "Ruta",
+                      text: "Integrada, modular o preparación según tu perfil, bloqueos y capacidad real.",
+                    },
+                    {
+                      Icon: ClipboardCheck,
+                      title: "Costes",
+                      text: "Escenarios optimista, realista y conservador para ver rangos antes de comprometer capital.",
+                    },
+                    {
+                      Icon: ShieldAlert,
+                      title: "Escuelas",
+                      text: "Analiza tus escuelas candidatas: contrato, reembolso, extras implícitos y huecos de información por cerrar por escrito.",
+                    },
+                    {
+                      Icon: AlertTriangle,
+                      title: "Readiness",
+                      text: "Si encaja pagar ahora o si conviene investigar, completar requisitos o replantear el ritmo.",
+                    },
+                    {
+                      Icon: Compass,
+                      title: "Plan",
+                      text: "Próximos pasos en 7, 30 y 90 días para ordenar decisiones sin improvisar.",
+                    },
+                    {
+                      Icon: Copy,
+                      title: "Informe",
+                      text: "Resumen listo para copiar o compartir cuando pidas segunda opinión familiar o profesional.",
+                    },
+                  ] as const
+                ).map(({ Icon, title, text }) => (
+                  <div
+                    key={title}
+                    className="flex items-start gap-5 rounded-3xl border border-solid p-6 shadow-[0_18px_44px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04] backdrop-blur-sm"
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.075)",
+                      borderColor: "rgba(255, 255, 255, 0.15)",
+                      color: "#ffffff",
+                    }}
+                  >
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm"
+                      style={{
+                        backgroundColor: "#071226",
+                        borderWidth: 1,
+                        borderStyle: "solid",
+                        borderColor: "rgba(201, 164, 84, 0.3)",
+                        color: "#f2ddaa",
+                      }}
+                    >
+                      <Icon aria-hidden className="h-5 w-5 shrink-0" strokeWidth={2} style={{ color: "#f2ddaa", stroke: "#f2ddaa" }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-lg font-semibold leading-snug" style={{ color: "#ffffff" }}>
+                        {title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.75)" }}>
+                        {text}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-b border-slate-200/80 bg-white py-14 lg:py-16">
+            <div className="mx-auto max-w-7xl px-6 lg:px-10">
+              <div className="max-w-3xl">
+                <div className="h-0.5 w-14 rounded-full bg-[#c9a454]/85 sm:w-16" aria-hidden />
+                <h2 className="mt-5 text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">
+                  Al final no recibes teoría. Recibes una decisión ordenada.
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-slate-600">
+                  El diagnóstico convierte tus datos en una lectura práctica que puedes revisar, copiar o compartir.
+                </p>
+              </div>
+              <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[
+                  "Ruta recomendada",
+                  "Coste realista estimado",
+                  "Nivel de preparación para pagar",
+                  "Riesgos principales",
+                  "Datos pendientes",
+                  "Plan 7 / 30 / 90 días",
+                  "Informe final para compartir",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-[#f8fafc] px-5 py-4 shadow-[0_10px_28px_rgba(15,26,51,0.045)]"
+                  >
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-[#c9a454]" aria-hidden />
+                    <span className="text-sm font-medium leading-snug text-[#0f1a33]">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-[#f8fafc] py-14 lg:py-16">
+            <div className="mx-auto max-w-7xl px-6 lg:px-10">
+              <div className="overflow-hidden rounded-[2rem] border border-[#c9a454]/25 bg-[#0f1a33] p-8 text-center shadow-[0_28px_70px_rgba(15,26,51,0.35)] md:p-12 md:text-left">
+                <div className="mx-auto flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">Crea tu diagnóstico antes de elegir escuela.</h2>
+                    <p className="mt-4 text-base leading-relaxed text-white/78">
+                      En pocos minutos tendrás una lectura inicial de tu ruta, tus costes, tus riesgos y tus escuelas candidatas.
+                    </p>
+                    <p className="mt-3 text-base leading-relaxed text-white/72">
+                      Después, si quieres profundizar, la guía <span className="text-white/95">Cómo ser Piloto</span> o una mentoría pueden ayudarte a revisar tu caso con más detalle antes de pagar.
+                    </p>
+                    <p className="mt-4 max-w-xl text-base font-semibold leading-snug text-[#f2ddaa]">
+                      No empieces por la escuela. Empieza por entender tu caso.
+                    </p>
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
+                      <button type="button" onClick={gotoDiagnosis} className="landing-cta-primary inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold">
+                        Crear mi diagnóstico
+                        <ArrowRight className="landing-arrow ml-2 h-4 w-4 transition-transform duration-150" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={gotoExample}
+                        className="rounded-xl border border-white/35 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/15"
+                      >
+                        Ver ejemplo
+                      </button>
+                    </div>
+                  </div>
+                  {landingGuideCoverAvailable ? (
+                    <div className="flex shrink-0 justify-center lg:justify-end">
+                      <div className="relative rotate-[2.5deg] shadow-[0_22px_48px_rgba(0,0,0,0.38)] ring-2 ring-white/25 transition-transform duration-300 hover:rotate-[1deg]">
+                        <Image
+                          src="/como-ser-piloto-cover.jpeg"
+                          alt="Guía Cómo ser Piloto FlyPath"
+                          width={220}
+                          height={308}
+                          className="h-auto max-h-[220px] w-auto max-w-[200px] rounded-2xl border border-white/30 bg-white/10 object-cover"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <p className="mx-auto mt-10 max-w-4xl px-1 text-center text-[11px] leading-relaxed text-slate-400 lg:text-xs">{disclaimerText}</p>
+            </div>
+          </section>
+        </main>
       </div>
     );
   }
@@ -1645,7 +2163,12 @@ ${disclaimerText}`;
           </nav>
           <div className="mt-8 space-y-2">
             <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="w-full cursor-pointer rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30">Editar mis datos</button>
-            <button onClick={resetDemoData} className="w-full cursor-pointer rounded-lg border border-rose-400/40 bg-[#8b1f1f] px-3 py-2 text-sm text-white shadow-sm transition hover:bg-[#7a1b1b] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50">Restaurar demo</button>
+            <button
+              onClick={resetDemoData}
+              className="w-full cursor-pointer rounded-lg border border-emerald-300/35 bg-emerald-400/12 px-3 py-2 text-sm font-semibold text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-emerald-200/60 hover:bg-emerald-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/35"
+            >
+              Volver al inicio
+            </button>
           </div>
         </aside>
         <main className="flex-1 px-8 py-10">
@@ -2878,14 +3401,6 @@ ${disclaimerText}`;
 
 export default function Page() {
   return <FlyPathApp />;
-}
-
-function KpiMini({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-white/15 bg-white/5 p-3"><p className="text-xs text-slate-300">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
-}
-
-function LandingFeature({ title, text }: { title: string; text: string }) {
-  return <div className="rounded-2xl border border-white/15 bg-white/5 p-5"><h3 className="font-semibold">{title}</h3><p className="mt-2 text-sm text-slate-200">{text}</p></div>;
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
