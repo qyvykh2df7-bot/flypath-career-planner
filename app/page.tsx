@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowRight,
+  BookOpen,
   CheckCircle2,
   ClipboardCheck,
+  ClipboardList,
   Compass,
   Copy,
+  Download,
+  Languages,
+  LayoutList,
   Mail,
+  Menu,
+  MessagesSquare,
   Plane,
   Route,
   ShieldAlert,
   Trash2,
 } from "lucide-react";
+import type { FlyPathInformePdfInput, FlyPathResumenPadresPdfInput } from "@/lib/flypathReportPdf";
 
 type Screen = "landing" | "onboarding" | "dashboard";
 export type Tab = "route" | "cost" | "schools" | "plan" | "readiness" | "report";
@@ -43,6 +51,8 @@ type Profile = {
   necesitaTrabajar: "si" | "no";
   movilidad: "solo_espana" | "europa" | "mundial";
   urgencia: "baja" | "media" | "alta";
+  /** Origen de la estimación de costes en onboarding; condiciona copy en tab Costes. */
+  costEstimateSource: "flypath_base" | "user_approx";
 };
 
 type CostInputs = {
@@ -133,6 +143,61 @@ type DecisionReadiness = {
 
 const disclaimerText =
   "FlyPath Career Planner ofrece orientación educativa y herramientas de planificación basadas en los datos introducidos por el usuario. No sustituye asesoramiento financiero, médico, legal ni información oficial de escuelas, autoridades o aerolíneas. Los costes son estimaciones y pueden variar.";
+
+function mapRiskRowsForInformePdf(
+  riskDiagnosis: { label: string; nivel: string; explicacion: string; accion: string }[]
+): FlyPathInformePdfInput["riskRows"] {
+  return riskDiagnosis.map((risk) => {
+    const label =
+      risk.label === "Riesgo de marketing/promesas"
+        ? "Riesgo comercial/marketing"
+        : risk.label === "Riesgo de timing"
+          ? "Riesgo de calendario"
+          : risk.label;
+    const accion =
+      risk.accion === "Pedir por escrito alcance real de career support y límites."
+        ? "Pedir por escrito el alcance real del apoyo laboral y cualquier promesa comercial."
+        : risk.accion;
+    return { label, nivel: risk.nivel, explicacion: risk.explicacion, accion };
+  });
+}
+
+function conclusionEjecutivaInformeFinal(decision: DecisionReadiness["decision"]): string {
+  if (decision === "No estás listo para pagar") {
+    return "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero debes resolver bloqueos críticos, cerrar datos pendientes y confirmar que la ruta encaja con tu situación real.";
+  }
+  if (decision === "Puedes seguir investigando, pero no pagar") {
+    return "Puedes seguir comparando escuelas y completando información, pero todavía no hay base suficiente para comprometer dinero.";
+  }
+  return "La decisión parece más sólida, pero solo deberías avanzar si tienes contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito.";
+}
+
+function riesgosSimpleParaPadresPdf(
+  riskDiagnosis: { label: string; nivel: string; explicacion: string }[]
+): string {
+  const altos = riskDiagnosis.filter((r) => r.nivel === "Alto" || r.nivel === "Crítico");
+  if (altos.length === 0) {
+    return "No hay riesgos marcados como altos o críticos en este escenario. Aun así, conviene validar por escrito contrato, precio final, extras incluidos y política de reembolso antes de pagar.";
+  }
+  return altos
+    .map((r) => {
+      const label =
+        r.label === "Riesgo de marketing/promesas"
+          ? "Comercial o promesas exageradas"
+          : r.label === "Riesgo de timing"
+            ? "Calendario y plazos"
+            : r.label;
+      return `${label} (${r.nivel.toLowerCase()}): ${r.explicacion}`;
+    })
+    .join(" ");
+}
+
+function costEstimateNoteForPdf(source: Profile["costEstimateSource"]): string {
+  if (source === "user_approx") {
+    return "Costes: estimación basada en importes aproximados que introdujiste en el onboarding. Puedes afinar cada partida en el tab Costes.";
+  }
+  return "Costes: estimación basada en valores base FlyPath de formación, extras y vida/logística (ajustables en el tab Costes).";
+}
 
 const globalButtonFeedbackStyles = `
   button {
@@ -384,6 +449,7 @@ const defaultProfile: Profile = {
   necesitaTrabajar: "si",
   movilidad: "europa",
   urgencia: "media",
+  costEstimateSource: "flypath_base",
 };
 
 const defaultCostInputs: CostInputs = {
@@ -411,6 +477,104 @@ const defaultCostInputs: CostInputs = {
   otrosGastosVida: 2200,
   bufferPct: 15,
 };
+
+function sumFormationParts(c: CostInputs) {
+  return (
+    c.ppl +
+    (c.nightRating ?? 3000) +
+    c.atplTheory +
+    c.hourBuilding +
+    c.cpl +
+    c.mep +
+    c.ir +
+    c.mccJoc +
+    c.advancedUprt
+  );
+}
+
+function sumExtrasParts(c: CostInputs) {
+  return (
+    c.class1Medical +
+    c.tasasExamenes +
+    c.skillTests +
+    c.headset +
+    c.ipadAppsCartas +
+    c.uniformeMaterial +
+    c.repeticiones +
+    c.typeRatingOpcional
+  );
+}
+
+function sumVidaParts(c: CostInputs) {
+  return c.alojamiento + c.transporte + c.comida + c.otrosGastosVida;
+}
+
+/** Reparte un total en euros según pesos relativos (p. ej. ratios FlyPath base). */
+function distributeProportional(total: number, weights: number[]): number[] {
+  const safe = Math.max(0, Math.round(total));
+  const n = weights.length;
+  if (n === 0) return [];
+  const sumW = weights.reduce((a, b) => a + b, 0);
+  if (sumW <= 0) {
+    return Array.from({ length: n }, (_, i) => (i === 0 ? safe : 0));
+  }
+  const floored = weights.map((w) => Math.floor((safe * w) / sumW));
+  let drift = safe - floored.reduce((a, b) => a + b, 0);
+  const order = weights
+    .map((w, i) => ({ w, i }))
+    .sort((a, b) => b.w - a.w)
+    .map((x) => x.i);
+  let k = 0;
+  const maxGuard = 200000;
+  while (drift > 0 && k < maxGuard) {
+    floored[order[k % order.length]] += 1;
+    drift -= 1;
+    k += 1;
+  }
+  return floored;
+}
+
+function mapOnboardingApproxToCostInputs(approx: {
+  precioFormacion: number;
+  extrasEstimados: number;
+  vidaLogistica: number;
+  bufferPct: number;
+}): CostInputs {
+  const d = defaultCostInputs;
+  const formW = [d.ppl, d.nightRating ?? 3000, d.atplTheory, d.hourBuilding, d.cpl, d.mep, d.ir, d.mccJoc, d.advancedUprt];
+  const extraW = [d.class1Medical, d.tasasExamenes, d.skillTests, d.headset, d.ipadAppsCartas, d.uniformeMaterial, d.repeticiones, d.typeRatingOpcional];
+  const vidaW = [d.alojamiento, d.transporte, d.comida, d.otrosGastosVida];
+
+  const f = distributeProportional(approx.precioFormacion, formW);
+  const e = distributeProportional(approx.extrasEstimados, extraW);
+  const v = distributeProportional(approx.vidaLogistica, vidaW);
+
+  return {
+    ...d,
+    ppl: f[0],
+    nightRating: f[1],
+    atplTheory: f[2],
+    hourBuilding: f[3],
+    cpl: f[4],
+    mep: f[5],
+    ir: f[6],
+    mccJoc: f[7],
+    advancedUprt: f[8],
+    class1Medical: e[0],
+    tasasExamenes: e[1],
+    skillTests: e[2],
+    headset: e[3],
+    ipadAppsCartas: e[4],
+    uniformeMaterial: e[5],
+    repeticiones: e[6],
+    typeRatingOpcional: e[7],
+    alojamiento: v[0],
+    transporte: v[1],
+    comida: v[2],
+    otrosGastosVida: v[3],
+    bufferPct: clamp(Math.round(approx.bufferPct), 0, 100),
+  };
+}
 
 const exampleSchools: School[] = [
   {
@@ -451,6 +615,17 @@ function clamp(value: number, min = 0, max = 100) {
 
 function euro(value: number) {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value || 0);
+}
+
+/** Lectura humana para tiempo al ritmo actual; solo si > 36 meses. No altera cálculos. */
+function humanYearsFromBrechaMonths(meses: number): string | null {
+  if (meses <= 36) return null;
+  const wholeYears = Math.floor(meses / 12);
+  if (wholeYears < 1) return null;
+  const remainder = meses % 12;
+  if (remainder === 0) return `${wholeYears} ${wholeYears === 1 ? "año" : "años"}`;
+  if (remainder >= 6 || wholeYears >= 9) return `más de ${wholeYears} ${wholeYears === 1 ? "año" : "años"}`;
+  return null;
 }
 
 function objetivoLabel(value: Profile["objetivo"]) {
@@ -532,7 +707,7 @@ function computeRoute(profile: Profile): RouteAnalysis {
   const reasonMap: Record<RouteAnalysis["recommended"], string> = {
     Integrada: "Encaja por capacidad financiera y disponibilidad full-time.",
     Modular: "Encaja por flexibilidad y control de caja por fases.",
-    "Preparación": "Encaja para reducir riesgo antes de comprometer pagos altos.",
+    "Preparación": "Ayuda a reducir riesgo antes de comprometer pagos altos.",
   };
 
   const principalBlock =
@@ -770,7 +945,7 @@ function computeDecisionReadiness({
 
   if (bufferPct < 12) {
     score -= 10;
-    faltanDatos.push("Buffer de costes bajo; subir por encima del 12%.");
+    faltanDatos.push("El margen de seguridad de costes es bajo; conviene subirlo por encima del 12%.");
   }
 
   if (schoolsAnalyzed.length === 0) {
@@ -1031,9 +1206,9 @@ function buildActionPlan({
   if (costs.brechaFinanciacion > 0) {
     pushUnique(sevenDays, "Actualizar presupuesto máximo y brecha financiera real.");
     pushUnique(thirtyDays, "Cerrar financiación o ajustar ruta antes de comprometer pagos grandes.");
-    pushUnique(ninetyDays, "Mantener buffer financiero antes de avanzar a fases caras.");
+    pushUnique(ninetyDays, "Mantener un margen de seguridad financiero antes de avanzar a fases caras.");
   } else {
-    pushUnique(sevenDays, "Confirmar que el dinero disponible cubre también extras y buffer.");
+    pushUnique(sevenDays, "Confirmar que el dinero disponible cubre también extras y un margen de seguridad financiero.");
     pushUnique(ninetyDays, "Mantener reserva para repeticiones, tasas y retrasos.");
   }
 
@@ -1105,52 +1280,53 @@ function getSchoolEmailMissingData(school: School) {
 }
 
 function buildSchoolEmail(school: School, nombreUsuario: string) {
-  const specificQuestions: string[] = [];
-  if (school.mccIncluido !== "si") specificQuestions.push("- ¿El MCC/JOC está incluido? Si no, ¿cuál es su coste exacto y en qué fase se paga?");
-  if (school.uprtIncluido !== "si") specificQuestions.push("- ¿El Advanced UPRT está incluido? Si no, ¿cuál es su precio y proveedor?");
-  if (school.tasasIncluidas !== "si") specificQuestions.push("- ¿Las tasas de examen están incluidas? Si no, ¿cuál es el coste estimado total?");
-  if (school.skillTestsIncluidos !== "si") specificQuestions.push("- ¿Los skill tests están incluidos? Si no, ¿qué importe adicional debo prever?");
-  if (school.alojamientoIncluido !== "si") specificQuestions.push("- ¿Ofrecen alojamiento? En caso contrario, ¿qué coste mensual aproximado recomiendan en la zona?");
-  if (school.reembolsoClaro !== "si") specificQuestions.push("- ¿Podrían compartir su política de reembolso por escrito con escenarios y plazos?");
-  if (school.contratoAntesPagar !== "si") specificQuestions.push("- Antes de pagar depósito o matrícula, ¿pueden enviar contrato tipo o condiciones completas?");
-  if (school.calendarioPagosClaro !== "si") specificQuestions.push("- ¿Cuál es el calendario de pagos detallado por hitos del programa?");
-  if (school.flotaExplicada !== "si") specificQuestions.push("- ¿Podrían detallar la flota activa (modelo, número de aeronaves y disponibilidad operativa)?");
-  if (school.mantenimientoExplicado !== "si") specificQuestions.push("- ¿Cómo gestionan mantenimiento y tiempos de indisponibilidad de aeronaves?");
-  if (school.ratioAlumnoAvionConocido !== "si") specificQuestions.push("- ¿Cuál es el ratio alumno/avión e instructor/alumno en operación real?");
-  if (school.permiteHablarAlumnos !== "si") specificQuestions.push("- ¿Es posible hablar con alumnos actuales o antiguos para validar la experiencia real?");
+  const who = nombreUsuario.trim() || "un aspirante a piloto";
+  const signOff = nombreUsuario.trim();
+
+  const extras: string[] = [];
+  if (school.alojamientoIncluido !== "si") {
+    extras.push("- Si ofrecen alojamiento o orientación sobre coste aproximado en la zona.");
+  }
   if (school.promesasEmpleo === "vagas") {
-    specificQuestions.push(
-      "- Sobre el apoyo laboral, agradecería una descripción por escrito de qué incluye exactamente (sin interpretarlo como garantía de empleo)."
-    );
+    extras.push("- Aclaración por escrito del alcance del apoyo laboral (sin interpretarlo como garantía de empleo).");
   }
   if (school.estadoVerificacion !== "verificado") {
-    specificQuestions.push("- ¿Podrían confirmar oficialmente por escrito precio final, condiciones y fecha de vigencia de esta información?");
+    extras.push("- Confirmación de precio y condiciones con su vigencia o referencia de actualización.");
   }
 
-  const specificBlock = specificQuestions.length
-    ? `\nPreguntas específicas según datos pendientes:\n${specificQuestions.join("\n")}\n`
-    : "\nPreguntas específicas según datos pendientes:\n- En este momento no detecto huecos críticos adicionales, pero agradecería validar igualmente todos los puntos por escrito.\n";
+  const extrasBlock =
+    extras.length > 0 ? `\n\nAdemás, si pueden concretar:\n${extras.join("\n")}` : "";
 
   return `Asunto: Solicitud de confirmación documental y económica - ${school.nombre}
 
 Hola equipo de ${school.nombre},
 
-Soy ${nombreUsuario || "un aspirante a piloto"} y estoy evaluando opciones de formación para tomar una decisión responsable antes de pagar matrícula o depósito.
+Soy ${who} y estoy valorando opciones de formación. Antes de tomar una decisión económica, me gustaría confirmar por escrito algunos puntos importantes del programa.
 
-Agradecería su ayuda para validar por escrito:
+Información económica y contractual:
+- Precio total actualizado del programa.
+- Qué está incluido y qué no está incluido en el precio.
+- Calendario de pagos: depósito, hitos y fechas.
+- Política de reembolso.
+- Contrato o condiciones completas antes de pagar matrícula o depósito.
 
-Preguntas generales:
-- Precio total actualizado del programa y qué incluye / qué no incluye.
-- Duración media real del programa (no solo estimada).
-- Condiciones de pago: depósito, hitos y fechas.
-- Posibilidad de recibir contrato tipo o condiciones completas antes de pagar.
-${specificBlock}
-Si disponen de folleto actualizado, contrato tipo o documento de condiciones, agradecería que lo incluyeran en la respuesta.
+Elementos del programa:
+- Si MCC/JOC está incluido y, si no, coste aproximado.
+- Si Advanced UPRT está incluido y, si no, coste aproximado.
+- Si tasas de examen y skill tests están incluidos.
+- Duración media real del programa.
 
-Gracias por su atención.
+Información operativa:
+- Flota disponible y disponibilidad real de aeronaves.
+- Cómo se gestionan mantenimiento y posibles retrasos.
+- Ratio aproximado alumno/avión e instructor/alumno.
+- Si es posible hablar con alumnos actuales o antiguos.${extrasBlock}
 
-Un saludo,
-${nombreUsuario || ""}`;
+Si disponen de folleto actualizado, contrato tipo o documento de condiciones, agradecería que lo adjuntaran en la respuesta.
+
+Muchas gracias por su ayuda.
+
+Un saludo,${signOff ? `\n${signOff}` : ""}`;
 }
 
 async function copyText(text: string) {
@@ -1185,6 +1361,272 @@ function riskLevelFromScore(score: number) {
   if (score >= 60) return "Alto";
   if (score >= 40) return "Medio";
   return "Bajo";
+}
+
+type FlyPathProductId = "guia" | "mentoria" | "ingles" | "atpl";
+
+const FLYPATH_PRODUCT_TOAST = "Producto FlyPath próximamente";
+
+const FLYPATH_PRIMARY_IMAGE: Record<FlyPathProductId, string> = {
+  guia: "/como-ser-piloto-cover.jpeg",
+  mentoria: "/mentoria-flypath.jpg",
+  ingles: "/ingles-aeronautico.jpg",
+  atpl: "/atpl-planner.jpg",
+};
+
+function FlyPathPrimaryProductVisual({ productId }: { productId: FlyPathProductId }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const src = FLYPATH_PRIMARY_IMAGE[productId];
+  const PlaceholderIcon =
+    productId === "guia"
+      ? BookOpen
+      : productId === "mentoria"
+        ? MessagesSquare
+        : productId === "ingles"
+          ? Languages
+          : LayoutList;
+
+  if (imgFailed) {
+    return (
+      <div
+        className="flex aspect-[3/4] w-[100px] shrink-0 flex-col items-center justify-center rounded-lg border border-[#c9a454]/30 bg-gradient-to-br from-slate-100/95 to-[#f2ddaa]/25 p-2 shadow-[0_4px_12px_rgba(15,26,51,0.07)] sm:w-[106px] lg:w-[110px]"
+        aria-hidden
+      >
+        <PlaceholderIcon className="h-8 w-8 text-[#0f1a33]/30 sm:h-9 sm:w-9" strokeWidth={1.2} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-[#c9a454]/35 bg-white/95 p-1 shadow-[0_4px_14px_rgba(15,26,51,0.08)]">
+      <img
+        src={src}
+        alt=""
+        className="mx-auto aspect-[3/4] w-[100px] rounded-md object-cover shadow-sm sm:w-[106px] lg:mx-0 lg:w-[110px]"
+        onError={() => setImgFailed(true)}
+      />
+    </div>
+  );
+}
+
+function FlyPathNextStepsPanel({
+  profile,
+  route,
+  decisionReadiness,
+  schools,
+  costInputs,
+  onProductCta,
+}: {
+  profile: Profile;
+  route: { recommended: "Integrada" | "Modular" | "Preparación"; principalBlock: string };
+  decisionReadiness: { decision: string; faltanDatos: string[] };
+  schools: { length: number };
+  costInputs: { atplTheory: number };
+  onProductCta: () => void;
+}) {
+  const products: Record<
+    FlyPathProductId,
+    { title: string; body: string; cta: string }
+  > = {
+    guia: {
+      title: "Guía Cómo ser Piloto",
+      body: "Entiende el camino completo antes de hablar con escuelas: licencias, rutas, costes, tiempos y errores típicos.",
+      cta: "Ver la guía",
+    },
+    mentoria: {
+      title: "Mentoría de decisión",
+      body: "Revisa tu caso, presupuesto y escuelas candidatas con un piloto profesional.",
+      cta: "Reservar mentoría",
+    },
+    ingles: {
+      title: "Inglés aeronáutico",
+      body: "Trabaja inglés operativo, comunicaciones y confianza antes de avanzar a fases críticas.",
+      cta: "Ver clases de inglés",
+    },
+    atpl: {
+      title: "ATPL Planner",
+      body: "Organiza asignaturas, horas semanales, repasos y exámenes con un plan realista.",
+      cta: "Ver ATPL Planner",
+    },
+  };
+
+  /**
+   * Prioridad explícita para el producto principal (sin puntuaciones numéricas).
+   * Logs: quitar `DEBUG_FLYPATH_NEXT_STEPS` y el `console.log` cuando ya no hagan falta.
+   */
+  const DEBUG_FLYPATH_NEXT_STEPS = process.env.NODE_ENV === "development";
+
+  const isInitial =
+    profile.class1 !== "si" ||
+    route.recommended === "Preparación" ||
+    profile.objetivo === "no_lo_se";
+
+  const totallyInitial = isInitial && schools.length === 0;
+
+  const englishFirst =
+    profile.ingles === "bajo" ||
+    (profile.preocupacionIngles === "si" && !totallyInitial);
+
+  const sigSchools = schools.length > 0;
+  const sigUrgent = profile.urgencia === "alta";
+  const sigMoney = profile.dineroDisponible >= 45000;
+  const sigInv = profile.inversionMaxima >= 90000;
+  const sigData = decisionReadiness.faltanDatos.length >= 2;
+  const sigInvestigateWithSchools =
+    decisionReadiness.decision === "Puedes seguir investigando, pero no pagar" && sigSchools;
+
+  const mentoriaSignalCount = [
+    sigSchools,
+    sigUrgent,
+    sigMoney,
+    sigInv,
+    sigData,
+    sigInvestigateWithSchools,
+  ].filter(Boolean).length;
+
+  const mentoriaWins = !isInitial && sigSchools && mentoriaSignalCount >= 2;
+
+  const atplCandidate =
+    profile.class1 === "si" &&
+    profile.ingles !== "bajo" &&
+    costInputs.atplTheory > 0 &&
+    profile.objetivo !== "no_lo_se" &&
+    route.recommended !== "Preparación";
+
+  const strongPaymentBlock =
+    sigSchools &&
+    decisionReadiness.decision === "No estás listo para pagar" &&
+    (sigData || mentoriaSignalCount >= 3);
+
+  let primary: FlyPathProductId;
+  const primaryReasons: string[] = [];
+
+  if (englishFirst) {
+    primary = "ingles";
+    primaryReasons.push(
+      "PRIORIDAD 1 inglés: bajo, o preocupación fuera de fase totalmente inicial (sin Class1 / Preparación / objetivo no claro y sin escuelas)",
+    );
+  } else if (mentoriaWins) {
+    primary = "mentoria";
+    primaryReasons.push(
+      `PRIORIDAD 3 mentoría: perfil no inicial, hay escuelas y ${mentoriaSignalCount}/6 señales de decisión o pago cercano (la decisión de readiness no cuenta como señal)`,
+    );
+  } else if (atplCandidate && !strongPaymentBlock) {
+    primary = "atpl";
+    primaryReasons.push(
+      "PRIORIDAD 4 ATPL: Class1, inglés suficiente, teoría ATPL en costes, ruta no solo preparación, sin bloqueo fuerte de pago con escuelas",
+    );
+  } else if (isInitial || schools.length === 0) {
+    primary = "guia";
+    primaryReasons.push(
+      "PRIORIDAD 2 guía: perfil inicial (Class1 pendiente, Preparación u objetivo no claro) o aún sin escuelas candidatas",
+    );
+  } else {
+    primary = "guia";
+    primaryReasons.push("Fallback: guía (sin señal clara de inglés, mentoría ni ATPL)");
+  }
+
+  if (DEBUG_FLYPATH_NEXT_STEPS) {
+    console.log("[FlyPath siguiente paso]", {
+      primary,
+      motivos: primaryReasons,
+      class1: profile.class1,
+      objetivo: profile.objetivo,
+      ingles: profile.ingles,
+      preocupacionIngles: profile.preocupacionIngles,
+      routeRecommended: route.recommended,
+      schoolsCount: schools.length,
+      readiness: decisionReadiness.decision,
+      urgencia: profile.urgencia,
+      inversionMaxima: profile.inversionMaxima,
+      dineroDisponible: profile.dineroDisponible,
+      atplTheory: costInputs.atplTheory,
+      isInitial,
+      totallyInitial,
+      englishFirst,
+      mentoriaSignalCount,
+      mentoriaWins,
+      atplCandidate,
+      strongPaymentBlock,
+    });
+  }
+
+  const fallbackOrder: FlyPathProductId[] = ["guia", "mentoria", "ingles", "atpl"];
+  const orderedFull: FlyPathProductId[] = [primary, ...fallbackOrder.filter((id) => id !== primary)];
+  const ordered = orderedFull.slice(0, 4);
+  const secondaryIds = ordered.slice(1);
+
+  const primaryCtaClass =
+    "inline-flex min-h-[40px] min-w-[13.5rem] max-w-[min(100%,22rem)] shrink-0 cursor-pointer items-center justify-center self-start rounded-xl bg-[#c9a454] px-7 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50";
+
+  const secondaryCtaClass =
+    "inline-flex min-h-[40px] w-full cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30";
+
+  const renderCard = (id: FlyPathProductId, isPrimary: boolean) => {
+    const p = products[id];
+
+    return (
+      <div
+        key={id}
+        className={`flex h-full w-full flex-col rounded-2xl border text-left shadow-sm transition ${
+          isPrimary
+            ? "border-[#c9a454]/70 bg-gradient-to-br from-[#fffdf8] to-[#f8f5ef] p-4 text-[#0f1a33] ring-2 ring-[#c9a454]/40 sm:p-5"
+            : "border-white/12 bg-white/[0.06] p-4 text-slate-100 sm:p-4"
+        }`}
+      >
+        {isPrimary ? (
+          <div className="grid grid-cols-1 gap-3 sm:gap-3 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-4">
+            <div className="flex min-w-0 flex-col">
+              <span className="mb-1.5 inline-flex w-fit rounded-full border border-[#c9a454]/50 bg-[#c9a454]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
+                Recomendado para tu caso
+              </span>
+              <p className="text-base font-semibold leading-snug text-[#0f1a33]">{p.title}</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">{p.body}</p>
+              <div className="mt-2.5 flex justify-center lg:hidden">
+                <FlyPathPrimaryProductVisual productId={id} />
+              </div>
+              <button type="button" onClick={onProductCta} className={`${primaryCtaClass} mt-3`}>
+                {p.cta}
+              </button>
+            </div>
+            <div className="hidden shrink-0 lg:flex lg:items-center lg:self-stretch">
+              <FlyPathPrimaryProductVisual productId={id} />
+            </div>
+          </div>
+        ) : (
+          <div className={`flex min-h-0 flex-1 flex-col ${!isPrimary ? "min-h-[156px]" : ""}`}>
+            <p className="text-[15px] font-semibold leading-snug text-[#f2ddaa]">{p.title}</p>
+            <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-slate-300 sm:text-sm">{p.body}</p>
+            <button type="button" onClick={onProductCta} className={`${secondaryCtaClass} mt-auto shrink-0 pt-3`}>
+              {p.cta}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <section className="rounded-3xl border border-[#c9a454]/35 bg-gradient-to-br from-[#0f1a33] via-[#121f3d] to-[#152547] px-5 py-5 text-white shadow-[0_12px_36px_rgba(15,26,51,0.16)] ring-1 ring-[#c9a454]/20 sm:px-6 sm:py-6">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/90 sm:text-[11px]">Profundiza con FlyPath</p>
+        <h2 className="mt-1.5 text-lg font-semibold tracking-tight text-white sm:text-xl">Tu siguiente paso FlyPath</h2>
+        <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-200/95 sm:text-sm">
+          El diagnóstico te da una dirección. Ahora elige el siguiente paso según lo que más te está bloqueando.
+        </p>
+      </div>
+      <div className="mt-5 space-y-3 sm:mt-6 sm:space-y-3.5">
+        {renderCard(primary, true)}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 lg:gap-3">
+          {secondaryIds.map((id) => (
+            <div key={id} className="flex h-full min-h-0">
+              {renderCard(id, false)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 type FlyPathAppProps = {
@@ -1227,6 +1669,12 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [tab, setTab] = useState<Tab>(initialTab);
   const [profile, setProfile] = useState<Profile>(defaultProfile);
   const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
+  const [onboardingApproxDraft, setOnboardingApproxDraft] = useState({
+    precioFormacion: sumFormationParts(defaultCostInputs),
+    extrasEstimados: sumExtrasParts(defaultCostInputs),
+    vidaLogistica: sumVidaParts(defaultCostInputs),
+    bufferPct: defaultCostInputs.bufferPct,
+  });
   const [schools, setSchools] = useState<School[]>(exampleSchools);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
@@ -1236,10 +1684,28 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
+  const [schoolEditActiveId, setSchoolEditActiveId] = useState<number | null>(null);
+  const schoolFormDetailsRef = useRef<HTMLDetailsElement>(null);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [landingHeaderLogoPhase, setLandingHeaderLogoPhase] = useState<"white" | "plain" | "fallback">("white");
   const [landingGuideCoverAvailable, setLandingGuideCoverAvailable] = useState(false);
   const [landingHeroBgPhotoSrc, setLandingHeroBgPhotoSrc] = useState<string | null>(null);
+  const [landingModuleMenuOpen, setLandingModuleMenuOpen] = useState(false);
+  const landingModuleMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (screen !== "landing") setLandingModuleMenuOpen(false);
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen !== "landing" || !landingModuleMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = landingModuleMenuRef.current;
+      if (el && !el.contains(e.target as Node)) setLandingModuleMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [screen, landingModuleMenuOpen]);
 
   useEffect(() => {
     if (reviewMode) return;
@@ -1248,7 +1714,14 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       const c = localStorage.getItem("flypath_cost_inputs");
       const s = localStorage.getItem("flypath_schools");
       const o = localStorage.getItem("flypath_onboarding_completed");
-      if (p) setProfile(JSON.parse(p));
+      if (p) {
+        const parsed = JSON.parse(p) as Partial<Profile>;
+        setProfile({
+          ...defaultProfile,
+          ...parsed,
+          costEstimateSource: parsed.costEstimateSource === "user_approx" ? "user_approx" : "flypath_base",
+        });
+      }
       if (c) setCostInputs({ ...defaultCostInputs, ...JSON.parse(c) });
       if (s) setSchools(JSON.parse(s));
       if (o) {
@@ -1279,6 +1752,17 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       }
     }
   }, [reviewMode]);
+
+  useEffect(() => {
+    if (screen !== "onboarding" || onboardingStep !== 3) return;
+    if (profile.costEstimateSource !== "user_approx") return;
+    setOnboardingApproxDraft({
+      precioFormacion: sumFormationParts(costInputs),
+      extrasEstimados: sumExtrasParts(costInputs),
+      vidaLogistica: sumVidaParts(costInputs),
+      bufferPct: costInputs.bufferPct,
+    });
+  }, [screen, onboardingStep, profile.costEstimateSource]);
 
   useEffect(() => {
     if (!reviewMode) return;
@@ -1398,7 +1882,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
         label: "Riesgo financiero",
         nivel: costs.riesgoFinanciero,
         explicacion: `Cobertura actual del ${costs.coverage}% sobre el escenario realista.`,
-        accion: "Reducir brecha, confirmar financiación y mantener buffer.",
+        accion: "Reducir brecha, confirmar financiación y mantener un margen de seguridad financiero.",
       },
       {
         label: "Riesgo de inglés",
@@ -1407,7 +1891,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
         accion: "Definir plan de mejora y validar objetivo ICAO.",
       },
       {
-        label: "Riesgo de escuela/datos",
+        label: "Riesgo documental",
         nivel: riskLevelFromScore(escuelaDataRiskScore),
         explicacion: `${schoolStats.verifiedCount} escuela(s) verificadas de ${schools.length}.`,
         accion: "Exigir confirmación documental de costes y condiciones.",
@@ -1426,118 +1910,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       },
     ];
   }, [profile.class1, profile.ingles, costs.riesgoFinanciero, costs.coverage, schoolStats.bestSchool, schoolStats.verifiedCount, schools.length, route.conflicts]);
-
-  const resumenPadresText = useMemo(() => {
-    const riesgosAltos = riskDiagnosis.filter((r) => r.nivel === "Alto" || r.nivel === "Crítico").map((r) => `- ${r.label}: ${r.nivel}`);
-    const pendientes = decisionReadiness.faltanDatos.slice(0, 5).map((p) => `- ${p}`);
-    return `RESUMEN PARA PADRES / FAMILIA - FLYPATH CAREER PLANNER
-
-Situación actual de ${profile.nombre || "el candidato"}:
-- Coste optimista estimado: ${euro(costs.totalOptimista)}
-- Coste realista estimado: ${euro(costs.totalRealista)}
-- Coste conservador estimado: ${euro(costs.totalConservador)}
-- Brecha financiera actual: ${euro(costs.brechaFinanciacion)}
-- ¿Listo para pagar?: ${decisionReadiness.score}/100 (${decisionReadiness.decision})
-
-Conclusión práctica:
-${shouldPayNow ? "Puede avanzar con condiciones y control documental estricto." : "No conviene pagar matrícula o depósito todavía."}
-
-Riesgos relevantes ahora mismo:
-${riesgosAltos.length ? riesgosAltos.join("\n") : "- No hay riesgos altos/críticos dominantes, pero se recomienda validar documentación por escrito."}
-
-Información que falta antes de transferir dinero:
-${pendientes.length ? pendientes.join("\n") : "- No hay pendientes críticos detectados en este momento."}
-
-Plan de acción:
-Próximos 7 días:
-${actionPlan.sevenDays.length ? actionPlan.sevenDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
-
-Próximos 30 días:
-${actionPlan.thirtyDays.length ? actionPlan.thirtyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
-
-Próximos 90 días:
-${actionPlan.ninetyDays.length ? actionPlan.ninetyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
-
-Preguntas clave para una escuela:
-- ¿Qué incluye exactamente el precio y qué no?
-- ¿Cuál es la política de reembolso por escrito?
-- ¿Está incluido MCC/JOC y Advanced UPRT?
-- ¿Cuál es la duración media real del programa?
-- ¿Cuál es el calendario de pagos completo antes de pagar depósito?
-
-Decisiones que conviene evitar por ahora:
-- Pagar por presión comercial sin contrato y condiciones por escrito.
-- Asumir promesas de empleo como garantía.
-- Firmar sin validar costes extra (tasas, skill tests, repeticiones, alojamiento).`;
-  }, [profile.nombre, costs.totalOptimista, costs.totalRealista, costs.totalConservador, costs.brechaFinanciacion, decisionReadiness.score, decisionReadiness.decision, decisionReadiness.faltanDatos, riskDiagnosis, shouldPayNow, actionPlan]);
-
-  const informeCompletoText = useMemo(() => {
-    return `INFORME FLYPATH CAREER PLANNER
-
-Nombre: ${profile.nombre || "Usuario"}
-Ruta recomendada: ${route.recommended}
-Preparación para decidir: ${decisionReadiness.score}/100
-Decisión recomendada: ${decisionReadiness.decision}
-¿Conviene pagar ahora?: ${shouldPayNow ? "Sí, con condiciones" : "No, por ahora"}
-Razón principal: ${route.reason}
-Bloqueo principal: ${route.principalBlock}
-
-Costes y financiación:
-- Optimista: ${euro(costs.totalOptimista)}
-- Realista: ${euro(costs.totalRealista)}
-- Conservador: ${euro(costs.totalConservador)}
-- Brecha financiera: ${euro(costs.brechaFinanciacion)}
-- Meses para cerrar brecha: ${costs.mesesCerrarBrecha}
-- Cobertura: ${costs.coverage}%
-
-Riesgos principales:
-${riskDiagnosis.map((r) => `- ${r.label}: ${r.nivel} (${r.explicacion})`).join("\n")}
-
-Escuelas:
-- Comparadas: ${schools.length}
-- Verificadas: ${schoolStats.verifiedCount}
-- Pendientes: ${schoolStats.pendingCount}
-
-Datos pendientes:
-${decisionReadiness.faltanDatos.length ? decisionReadiness.faltanDatos.map((x) => `- ${x}`).join("\n") : "- Sin pendientes críticos."}
-
-Próximos pasos:
-${decisionReadiness.proximosPasos.map((x) => `- ${x}`).join("\n")}
-
-Plan de acción:
-Próximos 7 días:
-${actionPlan.sevenDays.length ? actionPlan.sevenDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
-
-Próximos 30 días:
-${actionPlan.thirtyDays.length ? actionPlan.thirtyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
-
-Próximos 90 días:
-${actionPlan.ninetyDays.length ? actionPlan.ninetyDays.map((x) => `- ${x}`).join("\n") : "- Sin acciones pendientes."}
-
-Disclaimer:
-${disclaimerText}`;
-  }, [
-    profile.nombre,
-    route.recommended,
-    route.reason,
-    route.principalBlock,
-    decisionReadiness.score,
-    decisionReadiness.decision,
-    decisionReadiness.faltanDatos,
-    decisionReadiness.proximosPasos,
-    shouldPayNow,
-    costs.totalOptimista,
-    costs.totalRealista,
-    costs.totalConservador,
-    costs.brechaFinanciacion,
-    costs.mesesCerrarBrecha,
-    costs.coverage,
-    riskDiagnosis,
-    schools.length,
-    schoolStats.verifiedCount,
-    schoolStats.pendingCount,
-    actionPlan,
-  ]);
 
   const resetDemoData = () => {
     if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres resetear los datos demo? Esta acción no se puede deshacer.")) return;
@@ -1568,9 +1940,41 @@ ${disclaimerText}`;
     }
   };
 
+  const cancelSchoolEdit = () => {
+    setSchoolEditActiveId(null);
+    setNewSchool(createEmptySchool());
+    if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
+    showToast("Edición cancelada");
+  };
+
   const addSchool = (fromOnboarding = false) => {
     if (!newSchool.nombre.trim()) return;
     if (fromOnboarding && schools.length >= 3) return;
+
+    if (!fromOnboarding && schoolEditActiveId !== null) {
+      const target = schools.find((s) => s.id === schoolEditActiveId);
+      if (!target) {
+        setSchoolEditActiveId(null);
+        setNewSchool(createEmptySchool());
+        showToast("No se pudo guardar: escuela no encontrada");
+        return;
+      }
+      setSchools((prev) => {
+        const i = prev.findIndex((s) => s.id === schoolEditActiveId);
+        if (i === -1) return prev;
+        const prevSchool = prev[i];
+        const updated: School = { ...newSchool, id: schoolEditActiveId, isExample: prevSchool.isExample };
+        const next = [...prev];
+        next[i] = updated;
+        return next;
+      });
+      setSchoolEditActiveId(null);
+      setNewSchool(createEmptySchool());
+      if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
+      showToast("Escuela actualizada");
+      return;
+    }
+
     setSchools((prev) => [...prev, { ...newSchool, id: Date.now() }]);
     setNewSchool(createEmptySchool());
     showToast("Escuela añadida");
@@ -1580,6 +1984,17 @@ ${disclaimerText}`;
     setOnboardingCompleted(true);
     setScreen("dashboard");
     setTab("route");
+  };
+
+  const handleOnboardingNext = () => {
+    if (onboardingStep === 3) {
+      if (profile.costEstimateSource === "user_approx") {
+        setCostInputs(mapOnboardingApproxToCostInputs(onboardingApproxDraft));
+      } else {
+        setCostInputs({ ...defaultCostInputs });
+      }
+    }
+    setOnboardingStep((s) => Math.min(6, s + 1));
   };
 
   const navItems: Array<{ id: Tab; label: string }> = [
@@ -1607,6 +2022,17 @@ ${disclaimerText}`;
       setOnboardingStep(1);
     };
 
+    const flypathPlatformModules = [
+      { id: "inicio", label: "Inicio", status: "available" as const },
+      { id: "planifica", label: "Planifica tu ruta", status: "available" as const },
+      { id: "compara", label: "Compara escuelas", status: "soon" as const },
+      { id: "opiniones", label: "Opiniones de escuelas", status: "soon" as const },
+      { id: "atpl", label: "ATPL Planner", status: "soon" as const },
+      { id: "ingles", label: "Inglés aeronáutico", status: "soon" as const },
+      { id: "mentorias", label: "Mentorías", status: "soon" as const },
+      { id: "recursos", label: "Recursos", status: "soon" as const },
+    ];
+
     return (
       <div className="min-h-screen bg-[#f8fafc] text-[#0f1a33]">
         <style jsx global>{globalButtonFeedbackStyles}</style>
@@ -1618,8 +2044,8 @@ ${disclaimerText}`;
         )}
 
         <header className="border-b border-white/10 bg-[#0f1a33] text-white shadow-[0_12px_40px_rgba(15,26,51,0.35)]">
-          <div className="mx-auto flex max-h-[90px] max-w-7xl items-center justify-start gap-3 px-6 py-3 sm:gap-4 lg:px-10">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="mx-auto flex max-h-[90px] max-w-7xl items-center justify-between gap-3 px-6 py-3 sm:gap-4 md:justify-normal md:gap-4 lg:px-10">
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none md:min-w-0 md:flex-1 md:justify-start">
               {landingHeaderLogoPhase !== "fallback" ? (
                 <div className="relative flex h-12 max-h-[60px] w-[180px] shrink-0 items-center sm:h-[54px] sm:max-h-[58px] sm:w-[220px] md:max-h-[60px] md:w-[252px] lg:w-[268px]">
                   <Image
@@ -1650,6 +2076,64 @@ ${disclaimerText}`;
                 </>
               )}
             </div>
+            <p
+              className="pointer-events-none hidden min-w-0 select-none truncate text-center text-[13px] font-medium tracking-[0.14em] text-[#f2ddaa]/90 md:flex md:flex-1 md:items-center md:justify-center"
+              aria-hidden
+            >
+              Planifica tu Ruta
+            </p>
+            <div ref={landingModuleMenuRef} className="relative shrink-0 md:flex md:min-w-0 md:flex-1 md:justify-end">
+              <button
+                type="button"
+                onClick={() => setLandingModuleMenuOpen((open) => !open)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/[0.08] text-white transition-colors hover:border-white/24 hover:bg-white/[0.14] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a454]/55"
+                aria-expanded={landingModuleMenuOpen}
+                aria-haspopup="listbox"
+                aria-label="Menú de módulos FlyPath Platform"
+              >
+                <Menu className="h-[18px] w-[18px] shrink-0" strokeWidth={2} aria-hidden />
+              </button>
+              {landingModuleMenuOpen ? (
+                <ul
+                  role="listbox"
+                  className="absolute right-0 z-20 mt-2 min-w-[20.5rem] max-w-[min(96vw,26rem)] rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2.5 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
+                >
+                  {flypathPlatformModules.map((m) => {
+                    const isAvailable = m.status === "available";
+                    const isSoon = m.status === "soon";
+                    return (
+                      <li key={m.id} role="presentation">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={isAvailable}
+                          aria-disabled={isSoon}
+                          onClick={() => setLandingModuleMenuOpen(false)}
+                          className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-3.5 text-left transition-colors ${
+                            isSoon ? "cursor-not-allowed" : "cursor-default"
+                          }`}
+                        >
+                          <span
+                            className={`min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug ${isSoon ? "text-slate-500" : "text-slate-700"}`}
+                          >
+                            {m.label}
+                          </span>
+                          {isSoon ? (
+                            <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                              Próximamente
+                            </span>
+                          ) : (
+                            <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-slate-400">
+                              Disponible
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
           </div>
         </header>
 
@@ -1660,23 +2144,23 @@ ${disclaimerText}`;
               <>
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.06] sm:opacity-[0.07] lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[min(68%,52rem)] lg:bg-right lg:opacity-[0.12]"
+                  className="pointer-events-none absolute inset-0 hidden bg-cover bg-[position:70%_76%] lg:block"
                   style={{
                     backgroundImage: `url(${landingHeroBgPhotoSrc})`,
                   }}
                 />
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.94)_38%,rgba(248,250,252,0.9)_72%,rgba(244,247,251,0.88)_100%)] lg:bg-[linear-gradient(90deg,#ffffff_0%,rgba(255,255,255,0.97)_34%,rgba(252,253,255,0.88)_52%,rgba(248,250,252,0.55)_68%,rgba(248,250,252,0.22)_100%)]"
+                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.10)_40%,rgba(255,255,255,0.06)_100%)] lg:bg-[radial-gradient(ellipse_68%_118%_at_12%_40%,rgba(255,255,255,0.88)_0%,rgba(255,255,255,0.48)_36%,rgba(255,255,255,0.14)_56%,rgba(255,255,255,0.04)_70%,transparent_80%),linear-gradient(90deg,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.42)_18%,rgba(255,255,255,0.18)_36%,rgba(255,255,255,0.07)_54%,rgba(255,255,255,0.02)_74%,rgba(255,255,255,0)_100%)]"
                 />
               </>
             ) : null}
-            <div className="relative z-[1] mx-auto grid max-w-7xl gap-10 px-6 pb-14 pt-10 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-10 lg:pb-[3.875rem] lg:pt-12">
-              <div>
-                <p className="inline-flex rounded-full border border-[#c9a454]/35 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7a5a16] shadow-sm sm:text-xs">
-                  FLYPATH CAREER PLANNER
+            <div className="relative z-[1] mx-auto grid max-w-7xl gap-10 px-6 pb-14 pt-4 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-10 lg:pb-[3.875rem] lg:pt-5">
+              <div className="relative isolate before:pointer-events-none before:absolute before:inset-y-0 before:-left-8 before:-z-10 before:w-[min(118%,52rem)] before:bg-[linear-gradient(90deg,rgba(255,255,255,0.84)_0%,rgba(255,255,255,0.52)_22%,rgba(255,255,255,0.24)_44%,rgba(255,255,255,0.08)_66%,rgba(255,255,255,0.02)_82%,transparent_100%)] before:content-[''] lg:before:-left-12 lg:before:w-[min(125%,56rem)]">
+                <p className="inline-flex max-w-xl -translate-y-6 rounded-full border border-[#c9a454]/32 bg-white/88 px-6 py-2 text-[14px] font-medium leading-tight tracking-wide text-[#7a5a16] shadow-[0_2px_14px_rgba(15,26,51,0.055),0_1px_6px_rgba(201,164,84,0.07)] sm:px-7 sm:py-2 sm:text-[15px]">
+                  FlyPath Career Planner
                 </p>
-                <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-[#0f1a33] md:text-5xl lg:text-[2.75rem] xl:text-6xl">
+                <h1 className="mt-px text-4xl font-semibold leading-[1.08] tracking-tight text-[#0f1a33] md:text-5xl lg:text-[2.75rem] xl:text-6xl">
                   Antes de pagar una escuela de vuelo, entiende tu ruta, tus costes y tus riesgos.
                 </h1>
                 <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
@@ -1692,12 +2176,12 @@ ${disclaimerText}`;
                     <ArrowRight className="landing-arrow h-5 w-5 shrink-0 transition-transform duration-150 md:h-[1.3rem] md:w-[1.3rem]" />
                   </button>
                 </div>
-                <p className="mt-3 max-w-md text-xs leading-relaxed text-slate-400">
+                <p className="mt-8 max-w-md text-xs leading-relaxed text-slate-400">
                   Orientación educativa. No sustituye información oficial de escuelas, médicos, bancos o autoridades.
                 </p>
               </div>
 
-              <div className="relative z-[1] lg:justify-self-end">
+              <div className="relative z-[1] lg:justify-self-end lg:translate-y-5">
                 <div className="absolute -right-6 -top-6 hidden h-36 w-52 rounded-[100%] bg-[#c9a454]/18 blur-3xl lg:block" aria-hidden />
                 <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_36px_100px_rgba(15,26,51,0.13),0_12px_36px_rgba(201,164,84,0.08)] ring-1 ring-[#0f1a33]/[0.06]">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-[#0f1a33] to-[#152547] px-5 py-4">
@@ -1759,7 +2243,7 @@ ${disclaimerText}`;
                         <p className="mt-1 text-sm font-semibold leading-snug text-[#b45309]">No estás listo para pagar</p>
                         <div className="mt-3">
                           <div className="flex justify-between text-[10px] font-medium text-slate-500">
-                            <span>Readiness</span>
+                            <span>Nivel de decisión</span>
                             <span className="tabular-nums text-slate-700">42%</span>
                           </div>
                           <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
@@ -1824,7 +2308,7 @@ ${disclaimerText}`;
                   {
                     step: "2",
                     title: "Revisa tu diagnóstico",
-                    text: "Ruta recomendada, coste realista, análisis de escuelas candidatas, readiness y riesgos antes de comprometer dinero.",
+                    text: "Ruta recomendada, coste realista, análisis de escuelas candidatas, nivel de decisión y riesgos antes de comprometer dinero.",
                   },
                   {
                     step: "3",
@@ -1849,8 +2333,8 @@ ${disclaimerText}`;
           </section>
 
           <section className="border-b border-slate-200/80 bg-[#f1f5f9]/85 py-12 lg:py-14">
-            <div className="mx-auto max-w-7xl px-6 lg:px-10">
-              <div className="max-w-3xl">
+            <div className="mx-auto max-w-screen-2xl px-6 lg:px-10">
+              <div className="max-w-5xl">
                 <h2 className="text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">
                   Diseñado para quienes están antes de tomar una decisión importante.
                 </h2>
@@ -1911,8 +2395,8 @@ ${disclaimerText}`;
               }}
               aria-hidden
             />
-            <div className="relative z-[1] mx-auto max-w-7xl px-6 lg:px-10" style={{ color: "#ffffff" }}>
-              <div className="max-w-3xl">
+            <div className="relative z-[1] mx-auto max-w-screen-2xl px-6 lg:px-10" style={{ color: "#ffffff" }}>
+              <div className="max-w-5xl">
                 <p
                   className="text-[11px] font-semibold uppercase tracking-[0.22em]"
                   style={{ color: "rgba(232, 213, 163, 0.95)" }}
@@ -1922,7 +2406,7 @@ ${disclaimerText}`;
                 <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl" style={{ color: "#ffffff" }}>
                   Todo lo que normalmente se queda fuera del precio anunciado.
                 </h2>
-                <p className="mt-4 max-w-3xl text-base leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.72)" }}>
+                <p className="mt-4 max-w-5xl text-base leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.72)" }}>
                   La herramienta cruza tu perfil, presupuesto, escuelas candidatas y timing para que no tomes una decisión solo por marketing, prisa o precio inicial.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2">
@@ -2012,8 +2496,8 @@ ${disclaimerText}`;
           </section>
 
           <section className="border-b border-slate-200/80 bg-white py-14 lg:py-16">
-            <div className="mx-auto max-w-7xl px-6 lg:px-10">
-              <div className="max-w-3xl">
+            <div className="mx-auto max-w-screen-2xl px-6 lg:px-10">
+              <div className="max-w-5xl">
                 <div className="h-0.5 w-14 rounded-full bg-[#c9a454]/85 sm:w-16" aria-hidden />
                 <h2 className="mt-5 text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">
                   Al final no recibes teoría. Recibes una decisión ordenada.
@@ -2116,7 +2600,96 @@ ${disclaimerText}`;
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
               {onboardingStep === 1 && <div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={profile.nombre} onChange={(v)=>setProfile(p=>({...p,nombre:v}))} /><NumberField label="Edad" value={profile.edad} onChange={(v)=>setProfile(p=>({...p,edad:v}))} /><TextField label="País" value={profile.pais} onChange={(v)=>setProfile(p=>({...p,pais:v}))} /><SelectField label="Situación laboral" value={profile.situacionLaboral} options={[{value:"estudiante",label:"Estudiante"},{value:"trabajando",label:"Trabajando"},{value:"desempleado",label:"Desempleado"},{value:"otro",label:"Otro"}]} onChange={(v)=>setProfile(p=>({...p,situacionLaboral:v as Profile["situacionLaboral"]}))} /><SelectField label="Objetivo" value={profile.objetivo} options={[{value:"aerolinea",label:"Aerolínea"},{value:"ejecutivo",label:"Ejecutivo"},{value:"instructor",label:"Instructor"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,objetivo:v as Profile["objetivo"]}))} /></div>}
               {onboardingStep === 2 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Class 1" value={profile.class1} options={[{value:"si",label:"Sí"},{value:"no",label:"No"},{value:"reservado",label:"Reservado"}]} onChange={(v)=>setProfile(p=>({...p,class1:v as Profile["class1"]}))} /><SelectField label="Class 2" value={profile.class2} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,class2:v as Profile["class2"]}))} /><SelectField label="Nivel de inglés" value={profile.ingles} options={[{value:"bajo",label:"Bajo"},{value:"medio",label:"Medio"},{value:"alto",label:"Alto"}]} onChange={(v)=>setProfile(p=>({...p,ingles:v as Profile["ingles"]}))} /><SelectField label="ICAO level" value={profile.icaoLevel} options={[{value:"0",label:"0"},{value:"4",label:"4"},{value:"5",label:"5"},{value:"6",label:"6"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,icaoLevel:v as Profile["icaoLevel"]}))} /><SelectField label="Preocupación por inglés" value={profile.preocupacionIngles} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,preocupacionIngles:v as Profile["preocupacionIngles"]}))} /></div>}
-              {onboardingStep === 3 && <div className="grid gap-4 md:grid-cols-2"><NumberField label="Dinero disponible ahora" value={profile.dineroDisponible} onChange={(v)=>setProfile(p=>({...p,dineroDisponible:v}))} /><NumberField label="Ahorro mensual posible" value={profile.ahorroMensual} onChange={(v)=>setProfile(p=>({...p,ahorroMensual:v}))} /><SelectField label="Financiación" value={profile.financiacion} options={[{value:"confirmada",label:"Confirmada"},{value:"posible",label:"Posible"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,financiacion:v as Profile["financiacion"]}))} /><SelectField label="Apoyo familiar" value={profile.apoyoFamiliar} options={[{value:"si",label:"Sí"},{value:"parcial",label:"Parcial"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,apoyoFamiliar:v as Profile["apoyoFamiliar"]}))} /><NumberField label="Inversión máxima aceptable" value={profile.inversionMaxima} onChange={(v)=>setProfile(p=>({...p,inversionMaxima:v}))} /><SelectField label="Tolerancia al riesgo financiero" value={profile.toleranciaRiesgo} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,toleranciaRiesgo:v as Profile["toleranciaRiesgo"]}))} /></div>}
+              {onboardingStep === 3 && (
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <NumberField label="Dinero disponible ahora" value={profile.dineroDisponible} onChange={(v) => setProfile((p) => ({ ...p, dineroDisponible: v }))} />
+                    <NumberField label="Ahorro mensual posible" value={profile.ahorroMensual} onChange={(v) => setProfile((p) => ({ ...p, ahorroMensual: v }))} />
+                    <SelectField
+                      label="Financiación"
+                      value={profile.financiacion}
+                      options={[
+                        { value: "confirmada", label: "Confirmada" },
+                        { value: "posible", label: "Posible" },
+                        { value: "no", label: "No" },
+                      ]}
+                      onChange={(v) => setProfile((p) => ({ ...p, financiacion: v as Profile["financiacion"] }))}
+                    />
+                    <SelectField
+                      label="Apoyo familiar"
+                      value={profile.apoyoFamiliar}
+                      options={[
+                        { value: "si", label: "Sí" },
+                        { value: "parcial", label: "Parcial" },
+                        { value: "no", label: "No" },
+                      ]}
+                      onChange={(v) => setProfile((p) => ({ ...p, apoyoFamiliar: v as Profile["apoyoFamiliar"] }))}
+                    />
+                    <NumberField label="Inversión máxima aceptable" value={profile.inversionMaxima} onChange={(v) => setProfile((p) => ({ ...p, inversionMaxima: v }))} />
+                    <SelectField
+                      label="Tolerancia al riesgo financiero"
+                      value={profile.toleranciaRiesgo}
+                      options={[
+                        { value: "baja", label: "Baja" },
+                        { value: "media", label: "Media" },
+                        { value: "alta", label: "Alta" },
+                      ]}
+                      onChange={(v) => setProfile((p) => ({ ...p, toleranciaRiesgo: v as Profile["toleranciaRiesgo"] }))}
+                    />
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-[#0f1a33]">¿Tienes ya precios aproximados de una escuela o ruta?</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "flypath_base" }))}
+                        className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
+                          profile.costEstimateSource === "flypath_base"
+                            ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        No, usar estimación base FlyPath
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "user_approx" }))}
+                        className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
+                          profile.costEstimateSource === "user_approx"
+                            ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        Sí, tengo precios aproximados
+                      </button>
+                    </div>
+                    {profile.costEstimateSource === "user_approx" ? (
+                      <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 md:grid-cols-2">
+                        <NumberField
+                          label="Precio anunciado de formación / escuela"
+                          value={onboardingApproxDraft.precioFormacion}
+                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, precioFormacion: Math.max(0, v) }))}
+                        />
+                        <NumberField
+                          label="Extras no incluidos estimados"
+                          value={onboardingApproxDraft.extrasEstimados}
+                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, extrasEstimados: Math.max(0, v) }))}
+                        />
+                        <NumberField
+                          label="Coste de vida y logística estimado"
+                          value={onboardingApproxDraft.vidaLogistica}
+                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, vidaLogistica: Math.max(0, v) }))}
+                        />
+                        <NumberField
+                          label="Margen de seguridad recomendado %"
+                          value={onboardingApproxDraft.bufferPct}
+                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, bufferPct: clamp(v, 0, 100) }))}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
               {onboardingStep === 4 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Disponibilidad" value={profile.disponibilidad} options={[{value:"full-time",label:"Full-time"},{value:"part-time",label:"Part-time"}]} onChange={(v)=>setProfile(p=>({...p,disponibilidad:v as Profile["disponibilidad"]}))} /><NumberField label="Horas por semana" value={profile.horasSemana} onChange={(v)=>setProfile(p=>({...p,horasSemana:v}))} /><SelectField label="Necesita trabajar durante formación" value={profile.necesitaTrabajar} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,necesitaTrabajar:v as Profile["necesitaTrabajar"]}))} /><SelectField label="Movilidad" value={profile.movilidad} options={[{value:"solo_espana",label:"Solo España"},{value:"europa",label:"Europa"},{value:"mundial",label:"Mundial"}]} onChange={(v)=>setProfile(p=>({...p,movilidad:v as Profile["movilidad"]}))} /><SelectField label="Urgencia" value={profile.urgencia} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,urgencia:v as Profile["urgencia"]}))} /></div>}
               {onboardingStep === 5 && <div className="space-y-4"><p className="text-sm text-slate-600">Puedes añadir hasta 3 escuelas iniciales.</p><div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} /><TextField label="País" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} /><NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} /><NumberField label="Duración anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} /><SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} /><SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} /><TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} /><SelectField label="Estado de verificación" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} /></div><button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Añadir escuela inicial</button></div>}
               {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razón principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} /></div>}
@@ -2124,7 +2697,13 @@ ${disclaimerText}`;
             <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5">
               <button onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))} disabled={onboardingStep === 1} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 disabled:cursor-not-allowed disabled:opacity-50">Anterior</button>
               {onboardingStep < 6 ? (
-                <button onClick={() => setOnboardingStep((s) => Math.min(6, s + 1))} className="cursor-pointer rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50">Siguiente</button>
+                <button
+                  type="button"
+                  onClick={handleOnboardingNext}
+                  className="cursor-pointer rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
+                >
+                  Siguiente
+                </button>
               ) : (
                 <button onClick={finishOnboarding} className="cursor-pointer rounded-lg bg-[#0f766e] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#0d665f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50">Ir al dashboard</button>
               )}
@@ -2174,38 +2753,37 @@ ${disclaimerText}`;
         <main className="flex-1 px-8 py-10">
           {tab === "route" && (
             <header className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-6 text-white shadow-sm">
-              <div className="pointer-events-none absolute right-6 top-6 z-0 hidden lg:flex items-center justify-end opacity-70">
-                <div className="relative h-[150px] w-[280px]">
-                  <svg viewBox="0 0 250 130" className="h-full w-full">
+              {/* Card azul con relative: avión decorativo en hueco superior derecho (ver div absoluto siguiente). */}
+              <div
+                className="pointer-events-none absolute top-[50px] right-[108px] z-0 hidden w-[158px] max-w-[calc(100%-2rem)] lg:block"
+                aria-hidden
+              >
+                {/* Hueco superior derecho; ~+17% ancho vs 135px; micro top/right si invade cards o botón. */}
+                <div className="relative aspect-[250/130] w-full shrink-0">
+                  <svg viewBox="0 0 250 130" className="h-full w-full" preserveAspectRatio="xMidYMid meet">
                     <path
                       d="M10 98 C65 30, 145 28, 230 66"
                       fill="none"
-                      stroke="#c9a454"
-                      strokeOpacity="0.45"
-                      strokeWidth="2"
+                      stroke="#b89a52"
+                      strokeOpacity="0.78"
+                      strokeWidth="1.65"
                       strokeDasharray="5 5"
                     />
-                    <circle cx="12" cy="98" r="5" fill="rgba(255,255,255,0.35)" />
-                    <circle cx="103" cy="42" r="4" fill="rgba(201,164,84,0.75)" />
-                    <circle cx="230" cy="66" r="5" fill="rgba(255,255,255,0.45)" />
+                    <circle cx="12" cy="98" r="3.5" fill="rgba(201,164,84,0.35)" />
+                    <circle cx="103" cy="42" r="3" fill="rgba(184,154,82,0.55)" />
+                    <circle cx="230" cy="66" r="3.5" fill="rgba(148,163,184,0.35)" />
                   </svg>
-                  <Plane className="absolute right-[6px] top-[56px] h-4 w-4 -rotate-12 text-[#f2ddaa]/75" />
+                  <Plane className="absolute right-[2px] top-[29px] h-3.5 w-3.5 -rotate-12 text-[#c9a454]/90" aria-hidden />
                 </div>
               </div>
               <div className="relative z-10">
               <div className="flex flex-wrap items-start justify-between gap-2.5">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
-                    <span className="inline-flex rounded-full border border-[#c9a454]/25 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f2ddaa]/80">
-                      FlyPath Decision Check
-                    </span>
-                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
                   <h1 className="mt-1.5 text-3xl font-semibold text-white">Tu ruta más prudente ahora: {route.recommended}</h1>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-200">
+                  <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-slate-200">
                     Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
                   </p>
-                  <p className="mt-1.5 text-xs text-slate-300">Análisis basado en perfil, costes, escuelas y riesgo de pago.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -2216,7 +2794,7 @@ ${disclaimerText}`;
                   </button>
                 </div>
               </div>
-              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              <div className="mt-3 grid gap-2.5 lg:grid-cols-2">
                 <div className="flex h-full min-h-[88px] flex-col rounded-2xl border border-[#c9a454]/30 bg-[#c9a454]/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                   <div className="flex items-center justify-between gap-3">
                     <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/75" />Ruta recomendada</p>
@@ -2232,23 +2810,24 @@ ${disclaimerText}`;
                   <p className="mt-2 text-base font-semibold leading-snug text-white">{route.principalBlock}</p>
                 </div>
               </div>
-              <div className="mt-3 flex min-h-[76px] flex-col rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4 shadow-sm">
+              <div className="mt-2.5 flex min-h-[76px] flex-col rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/75" />Siguiente paso prioritario</p>
                   <ClipboardCheck className="h-4 w-4 text-[#f2ddaa]/55" />
                 </div>
                 <p className="mt-2 text-sm font-semibold leading-snug text-slate-100 md:text-[15px]">
                   {profile.class1 !== "si"
-                    ? "Confirma Clase 1 antes de comparar escuelas."
+                    ? "Confirma tu Class 1 antes de elegir escuela."
                     : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pide precio final, contrato, calendario de pagos y política de reembolso antes de transferir dinero."}
                 </p>
               </div>
-              <p className="mt-4 max-w-3xl border-l-2 border-[#c9a454]/60 pl-3 text-sm text-slate-300">Recomendación: {route.reason}</p>
               {route.principalBlock === "Clase 1 no confirmada" && (
-                <div className="mt-3 rounded-2xl border border-white/10 bg-[#081329]/55 p-4 text-sm text-slate-100">
+                <div className="mt-2.5 rounded-2xl border border-white/10 bg-[#081329]/55 p-4 text-sm text-slate-100">
                   <div className="max-w-2xl border-l-2 border-[#c9a454]/65 pl-3">
                     <p className="font-semibold text-[#f2ddaa]">No pagar escuela todavía</p>
-                    <p className="mt-1 text-slate-200">Confirma Clase 1 antes de pagar matrícula, depósito o firmar condiciones con una escuela.</p>
+                    <p className="mt-1 text-slate-200">
+                      No comprometas dinero hasta resolver el bloqueo médico principal y tener condiciones claras por escrito.
+                    </p>
                   </div>
                 </div>
               )}
@@ -2333,7 +2912,19 @@ ${disclaimerText}`;
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico financiero</p>
                     <p className="mt-2 text-3xl font-semibold">Coste realista estimado: {euro(costs.totalRealista)}</p>
                     <p className="mt-3 max-w-3xl text-sm text-slate-200">
-                      Esta estimación incluye formación, extras, vida y un margen de seguridad para reducir sorpresas antes de comprometer pagos.
+                      {profile.costEstimateSource === "user_approx" ? (
+                        <>
+                          Estimación inicial basada en los importes aproximados que introdujiste. Puedes afinar cada
+                          <br />
+                          {"partida más abajo."}
+                        </>
+                      ) : (
+                        <>
+                          Estimación inicial basada en valores base FlyPath de formación, extras y vida/logística. Puedes ajustar cada
+                          <br />
+                          {"partida más abajo."}
+                        </>
+                      )}
                     </p>
                   </div>
                   <div className="mt-5 grid gap-3 lg:grid-cols-3">
@@ -2352,7 +2943,7 @@ ${disclaimerText}`;
                   </div>
                   <p className="mt-4 border-l-2 border-[#c9a454]/60 pl-3 text-sm text-slate-300">
                     {costs.brechaFinanciacion > 0
-                      ? `Lectura rápida: tu presupuesto cubre aproximadamente ${costs.coverage}% del escenario realista. Antes de pagar matrícula o depósito, conviene cerrar el dinero que falta o ajustar la ruta.`
+                      ? `Lectura rápida: tu presupuesto cubre aproximadamente ${costs.coverage}% del escenario realista. Antes de comprometer pagos, conviene cerrar la brecha o ajustar la ruta.`
                       : "Lectura rápida: tu presupuesto cubre el escenario realista, pero conviene mantener margen para retrasos, repeticiones y costes no incluidos."}
                   </p>
                   </div>
@@ -2383,13 +2974,17 @@ ${disclaimerText}`;
                   <p className="text-sm font-semibold text-slate-700">Dinero que falta para cubrir el coste realista</p>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600">
                     {costs.brechaFinanciacion > 0
-                      ? "Todavía existe una brecha entre tu dinero disponible y el coste realista. Antes de pagar matrícula o depósito, conviene cerrar financiación, ajustar ruta o aumentar margen de seguridad."
+                      ? "Todavía existe una brecha entre tu dinero disponible y el coste realista. Conviene cerrar financiación, ajustar ruta o aumentar margen de seguridad antes de avanzar."
                       : "El coste realista está cubierto con tu dinero disponible, pero aún conviene mantener margen para repeticiones, retrasos y extras no incluidos."}
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
                     <SummaryCard label="Dinero disponible" value={euro(profile.dineroDisponible)} />
                     <SummaryCard label="Dinero que falta" value={euro(costs.brechaFinanciacion)} />
-                    <SummaryCard label="Tiempo estimado para cubrirlo" value={`${costs.mesesCerrarBrecha} meses`} />
+                    <SummaryCard
+                      label="Tiempo estimado al ritmo actual"
+                      value={`${costs.mesesCerrarBrecha} meses`}
+                      subValue={humanYearsFromBrechaMonths(costs.mesesCerrarBrecha) ?? undefined}
+                    />
                   </div>
                   <div className="mt-4">
                     <FinancialCoverageCard
@@ -2497,7 +3092,7 @@ ${disclaimerText}`;
                 <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
                   <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
                   <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
-                    Ahora que tienes una estimación realista, el siguiente paso es comparar escuelas con el mismo criterio: precio final, extras incluidos, contrato, reembolso y calendario de pagos.
+                    Con una estimación realista, compara escuelas usando el mismo criterio: precio final, extras incluidos, contrato, reembolso y calendario de pagos.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
@@ -2520,7 +3115,11 @@ ${disclaimerText}`;
             )}
             {tab === "schools" && (
               <div className="space-y-6">
-                <div className="rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                  <div className="pointer-events-none absolute right-5 top-5 z-0 hidden sm:block">
+                    <ClipboardList className="h-16 w-16 text-[#c9a454]/28 drop-shadow-sm lg:h-[72px] lg:w-[72px] lg:text-[#c9a454]/32" strokeWidth={1.25} aria-hidden />
+                  </div>
+                  <div className="relative z-10">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico de escuelas</p>
                   <h2 className="mt-2 text-3xl font-semibold">Compara escuelas antes de pagar depósito.</h2>
                   <p className="mt-3 max-w-3xl text-sm text-slate-200">
@@ -2539,6 +3138,7 @@ ${disclaimerText}`;
                       <p className="text-xs text-slate-300">Mejor opción actual</p>
                       <p className="mt-1 text-lg font-semibold text-white">{schoolStats.bestSchool?.school.nombre || "Sin opción clara"}</p>
                     </div>
+                  </div>
                   </div>
                 </div>
                 <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
@@ -2560,12 +3160,16 @@ ${disclaimerText}`;
                         <p className="text-xl font-semibold text-[#0f1a33]">{school.nombre}</p>
                         <p className="mt-1 text-sm text-slate-600">{school.ciudad}, {school.pais} · Programa {school.programa} · {euro(school.precioAnunciado)}</p>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                          <InfoCard label="Estado de verificación" value={school.estadoVerificacion} />
-                          <InfoCard label="Encaje general" value={String(analysis.encajeGeneral)} />
-                          <InfoCard label="Claridad de coste" value={String(analysis.claridadCoste)} />
-                          <InfoCard label="Transparencia" value={String(analysis.transparencia)} />
-                          <InfoCard label="Riesgo financiero" value={String(analysis.riesgoFinanciero)} />
-                          <InfoCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
+                          <SchoolTextMetricCard
+                            label="Estado de verificación"
+                            value={school.estadoVerificacion}
+                            secondary={school.estadoVerificacion === "pendiente" ? "Falta validar datos" : undefined}
+                          />
+                          <SchoolMetricCard label="Solidez general" score={analysis.encajeGeneral} reading={solidezGeneralReading(analysis.encajeGeneral)} />
+                          <SchoolMetricCard label="Claridad del coste" score={analysis.claridadCoste} reading={claridadCosteReading(analysis.claridadCoste)} />
+                          <SchoolMetricCard label="Transparencia documental" score={analysis.transparencia} reading={transparenciaDocumentalReading(analysis.transparencia)} />
+                          <SchoolFinancialRiskCard value={analysis.riesgoFinanciero} />
+                          <SchoolTextMetricCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -2606,13 +3210,31 @@ ${disclaimerText}`;
                         </button>
                         <button
                           type="button"
-                          className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                          className={`w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
+                            schoolEditActiveId === school.id
+                              ? "border-[#c9a454]/55 bg-[#fffaf0] text-[#3d3418] shadow-sm hover:bg-[#fff5e6] focus-visible:ring-[#c9a454]/35"
+                              : "border-slate-300 bg-white text-[#0f1a33] hover:bg-slate-50 focus-visible:ring-slate-300/60"
+                          }`}
                           onClick={() => {
+                            if (schoolEditActiveId === school.id) {
+                              setSchoolEditActiveId(null);
+                              setNewSchool(createEmptySchool());
+                              const el = schoolFormDetailsRef.current;
+                              if (el) el.open = false;
+                              return;
+                            }
                             setNewSchool({ ...school });
-                            showToast("Datos de escuela cargados para editar");
+                            setSchoolEditActiveId(school.id);
+                            requestAnimationFrame(() => {
+                              const el = schoolFormDetailsRef.current;
+                              if (el) {
+                                el.open = true;
+                                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                              }
+                            });
                           }}
                         >
-                          Editar datos
+                          {schoolEditActiveId === school.id ? "Ocultar edición" : "Editar datos"}
                         </button>
                       </div>
                     </div>
@@ -2640,6 +3262,8 @@ ${disclaimerText}`;
                     if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
                     setSchools([]);
                     setNewSchool(createEmptySchool());
+                    setSchoolEditActiveId(null);
+                    if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
                     showToast("Escuelas eliminadas");
                   }}
                   className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
@@ -2647,8 +3271,29 @@ ${disclaimerText}`;
                   Eliminar ejemplos y empezar desde cero
                 </button>
 
-                <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Añadir escuela para comparar</summary>
+                <details
+                  ref={schoolFormDetailsRef}
+                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                  onToggle={(e) => {
+                    const el = e.currentTarget;
+                    if (!el.open) {
+                      if (schoolEditActiveId !== null) setNewSchool(createEmptySchool());
+                      setSchoolEditActiveId(null);
+                    }
+                  }}
+                >
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+                    {schoolEditActiveId !== null
+                      ? `Editando escuela: ${newSchool.nombre.trim() || "—"}`
+                      : "Añadir escuela para comparar"}
+                  </summary>
+                  {schoolEditActiveId !== null && (
+                    <div className="mt-4 rounded-2xl border border-[#c9a454]/30 bg-gradient-to-r from-[#fffdf8] to-white px-4 py-3 shadow-sm">
+                      <p className="text-xs leading-relaxed text-slate-600">
+                        Actualiza aquí precio, contrato, extras incluidos y condiciones. Los scores se recalculan automáticamente.
+                      </p>
+                    </div>
+                  )}
                   <p className="mt-2 text-sm text-slate-600">
                     Introduce una escuela candidata. Cuantos más datos confirmes por escrito, más útil será el análisis.
                   </p>
@@ -2875,7 +3520,24 @@ ${disclaimerText}`;
                       </div>
                     </details>
                   </details>
-                  <button onClick={() => addSchool(false)} className="mt-4 cursor-pointer rounded-xl bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50">Añadir escuela</button>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => addSchool(false)}
+                      className="cursor-pointer rounded-xl bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                    >
+                      {schoolEditActiveId !== null ? "Guardar cambios" : "Añadir escuela para comparar"}
+                    </button>
+                    {schoolEditActiveId !== null && (
+                      <button
+                        type="button"
+                        onClick={cancelSchoolEdit}
+                        className="cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                      >
+                        Cancelar edición
+                      </button>
+                    )}
+                  </div>
                 </details>
 
                 <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
@@ -2899,6 +3561,24 @@ ${disclaimerText}`;
                       Ver plan de acción
                     </button>
                   </div>
+                </div>
+
+                <div className="rounded-3xl border border-[#c9a454]/30 bg-[#0f1a33] p-7 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">PRÓXIMAMENTE</p>
+                  <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">Comparador de escuelas FlyPath</h3>
+                  <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200">
+                    Estamos preparando una base de datos con escuelas, criterios de comparación y reviews verificadas para ayudarte a contrastar opciones antes de pagar.
+                  </p>
+                  <p className="mt-2 max-w-3xl text-xs leading-relaxed text-slate-400">
+                    De momento, usa este diagnóstico para revisar las escuelas candidatas que tú estás valorando.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => showToast("Comparador de escuelas próximamente")}
+                    className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454]/55 bg-[#c9a454] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                  >
+                    Quiero enterarme
+                  </button>
                 </div>
               </div>
             )}
@@ -3169,7 +3849,7 @@ ${disclaimerText}`;
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Informe final FlyPath</p>
                     <h2 className="mt-2 text-3xl font-semibold">Tu resumen de decisión</h2>
                     <p className="mt-2 max-w-4xl text-sm text-slate-200">
-                      Este informe resume tu ruta recomendada, costes, riesgos y próximos pasos antes de pagar matrícula, depósito o firmar condiciones.
+                      Resumen de tu ruta, costes, riesgos y próximos pasos antes de tomar una decisión económica.
                     </p>
                   </div>
                   <div className="mt-5 grid gap-3 lg:grid-cols-4">
@@ -3193,42 +3873,42 @@ ${disclaimerText}`;
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Conclusión ejecutiva</p>
+                <div className="rounded-3xl border border-slate-200/95 border-l-[3px] border-l-[#c9a454]/75 bg-gradient-to-br from-white via-white to-[#fafbfd] px-5 py-5 shadow-[0_10px_28px_rgba(15,26,51,0.07)]">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                    <p className="text-sm font-semibold text-[#0f1a33]">Conclusión ejecutiva</p>
+                  </div>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                    {decisionReadiness.decision === "No estás listo para pagar"
-                      ? "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero debes resolver bloqueos críticos, cerrar datos pendientes y confirmar que la ruta encaja con tu situación real."
-                      : decisionReadiness.decision === "Puedes seguir investigando, pero no pagar"
-                      ? "Puedes seguir comparando escuelas y completando información, pero todavía no hay base suficiente para comprometer dinero."
-                      : "La decisión parece más sólida, pero solo deberías avanzar si tienes contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito."}
+                    {conclusionEjecutivaInformeFinal(decisionReadiness.decision)}
                   </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ruta</p>
-                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{route.recommended}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600">{route.reason}</p>
+                <div className="rounded-3xl border border-slate-200/95 border-l-[3px] border-l-[#c9a454]/75 bg-white px-5 py-5 shadow-[0_10px_28px_rgba(15,26,51,0.07)]">
+                  <div className="flex items-center gap-2">
+                    <ClipboardCheck className="h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                    <p className="text-sm font-semibold text-[#0f1a33]">Lectura ejecutiva</p>
                   </div>
-                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Coste realista</p>
-                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{euro(costs.totalRealista)}</p>
-                    <p className="mt-2 text-sm text-slate-600">Dinero que falta: {euro(costs.brechaFinanciacion)}</p>
-                  </div>
-                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Escuelas</p>
-                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">
-                      {schools.length === 1 ? "1 escuela comparada" : `${schools.length} escuelas comparadas`}
-                    </p>
-                    <p className="mt-2 text-sm text-slate-600">
-                      {schoolStats.verifiedCount === 1 ? "1 verificada" : `${schoolStats.verifiedCount} verificadas`}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Decisión</p>
-                    <p className="mt-1 text-xl font-semibold text-[#0f1a33]">{decisionReadiness.decision}</p>
-                    <p className="mt-2 text-sm text-slate-600">{decisionReadiness.score}/100</p>
-                  </div>
+                  <ul className="mt-3 list-none space-y-3.5 text-sm leading-relaxed text-slate-700">
+                    <li className="flex gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
+                      <span>
+                        <span className="font-semibold text-slate-800">Ruta recomendada:</span> {route.recommended}. {route.reason}
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
+                      <span>
+                        <span className="font-semibold text-slate-800">Bloqueo principal:</span> {route.principalBlock}.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
+                      <span>
+                        <span className="font-semibold text-slate-800">Siguiente paso:</span>{" "}
+                        {actionPlan.sevenDays[0] ?? "Resolver bloqueos críticos y completar datos antes de pagar."}
+                      </span>
+                    </li>
+                  </ul>
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
@@ -3313,78 +3993,142 @@ ${disclaimerText}`;
                 <div className="rounded-3xl border border-r-4 border-slate-200 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
                   <p className="text-sm font-semibold text-[#0f1a33]">Guardar o compartir informe</p>
                   <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
-                    Puedes copiar el informe completo o generar un resumen más sencillo para compartir con tu familia antes de tomar una decisión.
+                    Descarga el informe completo de decisión o un resumen claro para compartir con tus padres antes de comprometer dinero con una escuela.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={async () => {
-                        const ok = await copyText(informeCompletoText);
-                        if (ok) markCopied("informe-completo");
-                        showToast(ok ? "Informe copiado" : "No se pudo copiar el informe");
+                        try {
+                          const { downloadFlyPathInformePdf, getFlyPathPrimaryProductForPdf } = await import("@/lib/flypathReportPdf");
+                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
+                            dateStyle: "long",
+                            timeStyle: "short",
+                          }).format(new Date());
+                          const nextPrimary = getFlyPathPrimaryProductForPdf({
+                            class1: profile.class1,
+                            ingles: profile.ingles,
+                            preocupacionIngles: profile.preocupacionIngles,
+                            objetivo: profile.objetivo,
+                            urgencia: profile.urgencia,
+                            dineroDisponible: profile.dineroDisponible,
+                            inversionMaxima: profile.inversionMaxima,
+                            routeRecommended: route.recommended,
+                            schoolsLength: schools.length,
+                            decision: decisionReadiness.decision,
+                            faltanDatosLength: decisionReadiness.faltanDatos.length,
+                            atplTheory: costInputs.atplTheory,
+                          });
+                          const schoolSummaries = schools.slice(0, 6).map((s, i) => {
+                            const pend = getSchoolEmailMissingData(s);
+                            return {
+                              id: `school-${s.id}-${i}`,
+                              nombre: s.nombre,
+                              pais: s.pais,
+                              ciudad: s.ciudad,
+                              precio: euro(s.precioAnunciado),
+                              estado: s.estadoVerificacion.replace(/_/g, " "),
+                              pendientes: pend.length ? pend.slice(0, 8).join(", ") : "Sin pendientes destacados en el checklist.",
+                            };
+                          });
+                          const payload: FlyPathInformePdfInput = {
+                            generatedAt,
+                            nombre: profile.nombre.trim(),
+                            routeRecommended: route.recommended,
+                            routeReason: route.reason,
+                            principalBlock: route.principalBlock,
+                            decision: decisionReadiness.decision,
+                            score: decisionReadiness.score,
+                            shouldPayNow,
+                            conclusionEjecutiva: conclusionEjecutivaInformeFinal(decisionReadiness.decision),
+                            totalOptimista: euro(costs.totalOptimista),
+                            totalRealista: euro(costs.totalRealista),
+                            totalConservador: euro(costs.totalConservador),
+                            dineroDisponible: euro(profile.dineroDisponible),
+                            brecha: euro(costs.brechaFinanciacion),
+                            coverage: `${costs.coverage}% del coste realista`,
+                            mesesCerrarBrecha: costs.mesesCerrarBrecha,
+                            costEstimateNote: costEstimateNoteForPdf(profile.costEstimateSource),
+                            riskRows: mapRiskRowsForInformePdf(riskDiagnosis),
+                            faltanDatos: [...decisionReadiness.faltanDatos],
+                            proximosPasos: [...decisionReadiness.proximosPasos],
+                            sevenDays: [...actionPlan.sevenDays],
+                            thirtyDays: [...actionPlan.thirtyDays],
+                            ninetyDays: [...actionPlan.ninetyDays],
+                            schoolsCount: schools.length,
+                            verifiedCount: schoolStats.verifiedCount,
+                            pendingCount: schoolStats.pendingCount,
+                            schoolSummaries,
+                            nextPrimary,
+                            disclaimer: disclaimerText,
+                          };
+                          await downloadFlyPathInformePdf(payload);
+                          showToast("Informe descargado");
+                        } catch (e) {
+                          if (process.env.NODE_ENV === "development") {
+                            console.error("[FlyPath] Error generando PDF del informe:", e);
+                          } else {
+                            console.error("[FlyPath] PDF informe fallido");
+                          }
+                          showToast("No se pudo generar el informe. Inténtalo de nuevo.");
+                        }
                       }}
                       className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
                     >
-                      {copiedKey === "informe-completo" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Copy className="mr-2 h-4 w-4" />}
-                      {copiedKey === "informe-completo" ? "Copiado" : "Copiar informe completo"}
+                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                      Descargar informe
                     </button>
                     <button
                       type="button"
                       onClick={async () => {
-                        const ok = await copyText(resumenPadresText);
-                        if (ok) markCopied("resumen-familia");
-                        showToast(ok ? "Resumen copiado" : "No se pudo copiar el resumen");
+                        try {
+                          const { downloadFlyPathResumenPadresPdf } = await import("@/lib/flypathReportPdf");
+                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
+                            dateStyle: "long",
+                            timeStyle: "short",
+                          }).format(new Date());
+                          const padresPayload: FlyPathResumenPadresPdfInput = {
+                            generatedAt,
+                            nombre: profile.nombre.trim(),
+                            routeRecommended: route.recommended,
+                            decision: decisionReadiness.decision,
+                            shouldPayNow,
+                            totalRealista: euro(costs.totalRealista),
+                            brecha: euro(costs.brechaFinanciacion),
+                            riesgosSimple: riesgosSimpleParaPadresPdf(riskDiagnosis),
+                            faltanDatos: [...decisionReadiness.faltanDatos],
+                            sevenDays: [...actionPlan.sevenDays],
+                            thirtyDays: [...actionPlan.thirtyDays],
+                            ninetyDays: [...actionPlan.ninetyDays],
+                            disclaimer: disclaimerText,
+                          };
+                          await downloadFlyPathResumenPadresPdf(padresPayload);
+                          showToast("Resumen para padres descargado");
+                        } catch (e) {
+                          if (process.env.NODE_ENV === "development") {
+                            console.error("[FlyPath] Error generando PDF resumen para padres:", e);
+                          } else {
+                            console.error("[FlyPath] PDF resumen padres fallido");
+                          }
+                          showToast("No se pudo generar el resumen para padres. Inténtalo de nuevo.");
+                        }
                       }}
                       className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
                     >
-                      {copiedKey === "resumen-familia" ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Copy className="mr-2 h-4 w-4" />}
-                      {copiedKey === "resumen-familia" ? "Copiado" : "Copiar resumen para padres"}
+                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                      Descargar resumen para padres
                     </button>
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-[#c9a454]/30 bg-[#0f1a33] p-7 text-white shadow-sm">
-                  <div className="grid items-center gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Siguiente paso FlyPath</p>
-                      <p className="mt-3 text-2xl font-semibold text-white">Convierte este diagnóstico en un plan real.</p>
-                      <p className="mt-3 max-w-4xl text-sm leading-relaxed text-slate-200">
-                        Si estás empezando, la guía te ayuda a entender el camino completo antes de gastar dinero. Si ya estás cerca de elegir escuela o pagar matrícula, una mentoría puede ayudarte a revisar tu caso con más detalle.
-                      </p>
-                      <div className="mt-6 grid gap-3 md:grid-cols-2">
-                        <button
-                          type="button"
-                          onClick={() => showToast("Próximamente: enlace a la guía")}
-                          className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-[#c9a454] px-7 py-4 text-base font-semibold text-[#0f1a33] shadow-sm"
-                        >
-                          Ver la guía
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => showToast("Próximamente: enlace a mentoría")}
-                          className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border border-white/25 bg-white/[0.06] px-7 py-4 text-base font-semibold text-white shadow-sm"
-                        >
-                          Reservar mentoría
-                        </button>
-                      </div>
-                      <p className="mt-4 text-xs leading-relaxed text-slate-300">
-                        La guía te da el mapa completo. La mentoría te ayuda a aplicarlo a tu caso concreto.
-                      </p>
-                    </div>
-                    <div className="hidden items-center justify-end lg:flex">
-                      <div className="relative w-full max-w-[240px] rotate-2 rounded-2xl border border-[#c9a454]/35 bg-white/10 p-2 shadow-2xl">
-                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#c9a454]/40 bg-[#0f1a33] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]">
-                          Guía práctica FlyPath
-                        </span>
-                        <img
-                          src="/como-ser-piloto-cover.jpeg"
-                          alt="Portada de la guía Cómo ser Piloto"
-                          className="w-full rounded-xl object-cover shadow-xl"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <FlyPathNextStepsPanel
+                  profile={profile}
+                  route={route}
+                  decisionReadiness={decisionReadiness}
+                  schools={schools}
+                  costInputs={costInputs}
+                  onProductCta={() => showToast(FLYPATH_PRODUCT_TOAST)}
+                />
 
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nota importante</p>
@@ -3454,8 +4198,14 @@ function CostBlock({ title, children }: { title: string; children: React.ReactNo
   return <div><p className="mb-3 text-sm font-semibold text-slate-700">{title}</p><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{children}</div></div>;
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-lg font-semibold text-[#0f1a33]">{value}</p></div>;
+function SummaryCard({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{value}</p>
+      {subValue ? <p className="mt-0.5 text-xs font-medium text-slate-600">{subValue}</p> : null}
+    </div>
+  );
 }
 
 function CostBreakdownBars({
@@ -3475,7 +4225,7 @@ function CostBreakdownBars({
     { label: "Formación", value: subtotalFormacion, tone: "bg-[#1d4ed8]" },
     { label: "Extras", value: subtotalExtras, tone: "bg-[#0f766e]" },
     { label: "Vida y logística", value: subtotalVida, tone: "bg-[#7c3aed]" },
-    { label: "Buffer", value: buffer, tone: "bg-[#c9a454]" },
+    { label: "Margen de seguridad", value: buffer, tone: "bg-[#c9a454]" },
   ];
 
   return (
@@ -3550,19 +4300,18 @@ function FinancialCoverageCard({
   coverage: number;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
+    <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
       <p className="text-sm font-semibold text-slate-700">Cobertura financiera</p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
         <InfoCard label="Dinero disponible" value={euro(dineroDisponible)} />
         <InfoCard label="Coste realista" value={euro(totalRealista)} />
         <InfoCard label="Brecha de financiación" value={euro(brechaFinanciacion)} />
         <InfoCard label="Porcentaje cubierto" value={`${coverage}%`} />
       </div>
-      <div className="mt-3"><Progress value={coverage} tone="bg-[#0f1a33]" /></div>
-      <p className="mt-2 text-sm text-slate-600">Tu presupuesto actual cubre aproximadamente {coverage}% del escenario realista.</p>
-      {brechaFinanciacion > 0 && (
-        <p className="mt-1 text-sm text-slate-700">Te faltarían aproximadamente {euro(brechaFinanciacion)} para cubrir el escenario realista.</p>
-      )}
+      <div className="mt-2">
+        <Progress value={coverage} tone="bg-[#0f1a33]" />
+      </div>
+      <p className="mt-1.5 text-xs text-slate-600">Desglose compacto del escenario realista (barra = % cubierto).</p>
     </div>
   );
 }
@@ -3573,6 +4322,103 @@ function InfoList({ title, items, empty }: { title: string; items: string[]; emp
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-medium text-[#0f1a33]">{value}</p></div>;
+}
+
+function solidezGeneralReading(score: number): string {
+  if (score <= 39) return "Baja";
+  if (score <= 69) return "Media";
+  return "Alta";
+}
+
+function claridadCosteReading(score: number): string {
+  if (score <= 39) return "Poco clara";
+  if (score <= 69) return "Parcial";
+  return "Clara";
+}
+
+function transparenciaDocumentalReading(score: number): string {
+  if (score <= 39) return "Muy baja";
+  if (score <= 69) return "Parcial";
+  return "Alta";
+}
+
+function riesgoFinancieroReading(score: number): string {
+  if (score <= 39) return "Riesgo bajo";
+  if (score <= 69) return "Riesgo medio/alto";
+  return "Riesgo alto";
+}
+
+function SchoolTextMetricCard({ label, value, secondary }: { label: string; value: string; secondary?: string }) {
+  return (
+    <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 shadow-sm">
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold leading-snug text-slate-600">{label}</p>
+        <p className="mt-1 text-lg font-bold leading-snug tracking-tight text-[#0f1a33]">{value}</p>
+        {secondary ? <p className="mt-1.5 text-sm font-semibold leading-snug text-slate-700">{secondary}</p> : null}
+      </div>
+      <div className="shrink-0 pt-3">
+        <div className="h-[3px] w-full rounded-full bg-slate-400/45" aria-hidden />
+      </div>
+    </div>
+  );
+}
+
+function SchoolMetricCard({ label, score, reading }: { label: string; score: number; reading: string }) {
+  return (
+    <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 shadow-sm">
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold leading-snug text-slate-600">{label}</p>
+        <p className="mt-1.5 text-lg font-bold tabular-nums tracking-tight text-[#0f1a33]">{score}/100</p>
+        <p className="mt-1.5 text-sm font-semibold leading-snug text-slate-700">{reading}</p>
+      </div>
+      <div className="shrink-0 pt-3">
+        <div
+          className="h-[3px] w-full rounded-full bg-gradient-to-r from-[#0f1a33]/45 via-slate-500/40 to-slate-400/30"
+          aria-hidden
+        />
+      </div>
+    </div>
+  );
+}
+
+function SchoolFinancialRiskCard({ value }: { value: number }) {
+  const elevated = value >= 68;
+  const watch = value >= 52 && value < 68;
+  const shell = elevated
+    ? "border-amber-200/85 bg-amber-50/75"
+    : watch
+      ? "border-[#c9a454]/25 bg-[#fffdf6]"
+      : "border-slate-200/80 bg-slate-50/80";
+  const reading = riesgoFinancieroReading(value);
+  return (
+    <div className={`relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-2xl border px-3.5 py-3 shadow-sm ${shell}`}>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold leading-snug text-slate-700">Riesgo financiero</p>
+            <p className="mt-0.5 text-[12px] font-medium leading-snug text-slate-600">En esta métrica, un valor más alto indica más riesgo.</p>
+          </div>
+          {elevated ? (
+            <span className="shrink-0 rounded-full border border-amber-300/75 bg-amber-100/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950/80">
+              Elevado
+            </span>
+          ) : watch ? (
+            <span className="shrink-0 rounded-full border border-[#c9a454]/35 bg-[#fef9ed] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5c4a1f]/85">
+              A VIGILAR
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-1.5 text-lg font-bold tabular-nums tracking-tight text-[#0f1a33]">{value}/100</p>
+        <p className="mt-1.5 text-sm font-semibold leading-snug text-slate-800">{reading}</p>
+      </div>
+      <div className="shrink-0 pt-3">
+        <div
+          className="h-[3px] w-full rounded-full bg-gradient-to-r from-amber-700/25 via-[#c9a454]/50 to-amber-600/20"
+          aria-hidden
+        />
+      </div>
+    </div>
+  );
 }
 
 function PlanColumn({ title, tasks }: { title: string; tasks: string[] }) {
