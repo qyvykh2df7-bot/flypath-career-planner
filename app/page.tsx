@@ -22,6 +22,7 @@ import {
   Route,
   ShieldAlert,
   Trash2,
+  X,
 } from "lucide-react";
 import type { FlyPathInformePdfInput, FlyPathResumenPadresPdfInput } from "@/lib/flypathReportPdf";
 
@@ -1557,7 +1558,7 @@ function FlyPathNextStepsPanel({
   const secondaryIds = ordered.slice(1);
 
   const primaryCtaClass =
-    "inline-flex min-h-[40px] min-w-[13.5rem] max-w-[min(100%,22rem)] shrink-0 cursor-pointer items-center justify-center self-start rounded-xl bg-[#c9a454] px-7 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50";
+    "inline-flex min-h-[40px] w-full min-w-0 max-w-[min(100%,22rem)] cursor-pointer items-center justify-center self-stretch rounded-xl bg-[#c9a454] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:min-w-[13.5rem] sm:w-auto sm:self-start sm:px-7";
 
   const secondaryCtaClass =
     "inline-flex min-h-[40px] w-full cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30";
@@ -1686,6 +1687,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
   const [schoolEditActiveId, setSchoolEditActiveId] = useState<number | null>(null);
   const schoolFormDetailsRef = useRef<HTMLDetailsElement>(null);
+  const [dashboardMobileNavOpen, setDashboardMobileNavOpen] = useState(false);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [landingHeaderLogoPhase, setLandingHeaderLogoPhase] = useState<"white" | "plain" | "fallback">("white");
   const [landingGuideCoverAvailable, setLandingGuideCoverAvailable] = useState(false);
@@ -1706,6 +1708,14 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [screen, landingModuleMenuOpen]);
+
+  useEffect(() => {
+    if (screen !== "dashboard") setDashboardMobileNavOpen(false);
+  }, [screen]);
+
+  useEffect(() => {
+    setDashboardMobileNavOpen(false);
+  }, [tab]);
 
   useEffect(() => {
     if (reviewMode) return;
@@ -1922,6 +1932,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     setSchools(exampleSchools);
     setOnboardingCompleted(false);
     setOnboardingStep(1);
+    setDashboardMobileNavOpen(false);
     setScreen("landing");
     showToast("Datos demo reseteados");
   };
@@ -2034,11 +2045,11 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     ];
 
     return (
-      <div className="min-h-screen bg-[#f8fafc] text-[#0f1a33]">
+      <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
         <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
-            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
             {toast}
           </motion.div>
         )}
@@ -2096,7 +2107,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               {landingModuleMenuOpen ? (
                 <ul
                   role="listbox"
-                  className="absolute right-0 z-20 mt-2 min-w-[20.5rem] max-w-[min(96vw,26rem)] rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2.5 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
+                  className="absolute right-0 z-20 mt-2 w-[min(22rem,calc(100vw-2rem))] max-w-[min(96vw,26rem)] rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2.5 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
                 >
                   {flypathPlatformModules.map((m) => {
                     const isAvailable = m.status === "available";
@@ -2157,7 +2168,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             ) : null}
             <div className="relative z-[1] mx-auto grid max-w-7xl gap-10 px-6 pb-14 pt-4 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-10 lg:pb-[3.875rem] lg:pt-5">
               <div className="relative isolate before:pointer-events-none before:absolute before:inset-y-0 before:-left-8 before:-z-10 before:w-[min(118%,52rem)] before:bg-[linear-gradient(90deg,rgba(255,255,255,0.84)_0%,rgba(255,255,255,0.52)_22%,rgba(255,255,255,0.24)_44%,rgba(255,255,255,0.08)_66%,rgba(255,255,255,0.02)_82%,transparent_100%)] before:content-[''] lg:before:-left-12 lg:before:w-[min(125%,56rem)]">
-                <p className="inline-flex max-w-xl -translate-y-6 rounded-full border border-[#c9a454]/32 bg-white/88 px-6 py-2 text-[14px] font-medium leading-tight tracking-wide text-[#7a5a16] shadow-[0_2px_14px_rgba(15,26,51,0.055),0_1px_6px_rgba(201,164,84,0.07)] sm:px-7 sm:py-2 sm:text-[15px]">
+                <p className="inline-flex max-w-xl mt-3 -translate-y-6 rounded-full border border-[#c9a454]/32 bg-white/88 px-6 py-2 text-[14px] font-medium leading-tight tracking-wide text-[#7a5a16] shadow-[0_2px_14px_rgba(15,26,51,0.055),0_1px_6px_rgba(201,164,84,0.07)] sm:mt-0 sm:px-7 sm:py-2 sm:text-[15px]">
                   FlyPath Career Planner
                 </p>
                 <h1 className="mt-px text-4xl font-semibold leading-[1.08] tracking-tight text-[#0f1a33] md:text-5xl lg:text-[2.75rem] xl:text-6xl">
@@ -2583,16 +2594,16 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
 
   if (screen === "onboarding") {
     return (
-      <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
+      <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-[#0f1a33]">
         <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
-            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
             {toast}
           </motion.div>
         )}
-        <div className="mx-auto max-w-5xl px-6 py-10">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <p className="text-sm text-slate-500">Crear mi plan - Paso {onboardingStep} de 6</p>
             <h1 className="mt-1 text-2xl font-semibold">{stepMeta[onboardingStep].title}</h1>
             <p className="mt-1 text-sm text-slate-600">{stepMeta[onboardingStep].desc}</p>
@@ -2715,16 +2726,40 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-[#0f1a33]">
+    <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
       <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
-        <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
-          <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+        <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
           {toast}
         </motion.div>
       )}
-      <div className="mx-auto flex max-w-[1600px]">
-        <aside className="sticky top-0 h-screen w-72 border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-7 text-slate-100 shadow-sm">
+      {dashboardMobileNavOpen ? (
+        <button
+          type="button"
+          aria-label="Cerrar menú de navegación"
+          className="fixed inset-0 z-40 bg-[#0f1a33]/45 backdrop-blur-[1px] lg:hidden"
+          onClick={() => setDashboardMobileNavOpen(false)}
+        />
+      ) : null}
+      <div className="mx-auto flex min-w-0 max-w-[1600px]">
+        <aside
+          id="dashboard-sidebar-nav"
+          className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-1rem))] flex-col overflow-y-auto border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-7 text-slate-100 shadow-[4px_0_24px_rgba(15,26,51,0.18)] transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-72 lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:overflow-y-auto lg:shadow-sm ${
+            dashboardMobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
+        >
+          <div className="mb-4 flex items-center justify-between lg:hidden">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Navegación</span>
+            <button
+              type="button"
+              onClick={() => setDashboardMobileNavOpen(false)}
+              aria-label="Cerrar menú"
+              className="rounded-lg p-2 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            >
+              <X className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-[#c9a454]/20 p-2.5"><Plane className="h-5 w-5 text-[#f2ddaa]" /></div>
             <div><p className="font-semibold text-white">FlyPath Career Planner</p><p className="text-xs text-slate-300">Planner de decisión</p></div>
@@ -2733,7 +2768,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setTab(item.id)}
+                onClick={() => {
+                  setTab(item.id);
+                  setDashboardMobileNavOpen(false);
+                }}
                 className={`w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-sm transition ${tab === item.id ? "bg-white/95 text-[#0f1a33] shadow-sm ring-1 ring-[#c9a454]/40" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}
               >
                 {item.label}
@@ -2741,7 +2779,16 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             ))}
           </nav>
           <div className="mt-8 space-y-2">
-            <button onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }} className="w-full cursor-pointer rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30">Editar mis datos</button>
+            <button
+              onClick={() => {
+                setScreen("onboarding");
+                setOnboardingStep(1);
+                setDashboardMobileNavOpen(false);
+              }}
+              className="w-full cursor-pointer rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            >
+              Editar mis datos
+            </button>
             <button
               onClick={resetDemoData}
               className="w-full cursor-pointer rounded-lg border border-emerald-300/35 bg-emerald-400/12 px-3 py-2 text-sm font-semibold text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-emerald-200/60 hover:bg-emerald-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/35"
@@ -2750,7 +2797,23 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             </button>
           </div>
         </aside>
-        <main className="flex-1 px-8 py-10">
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+          <div className="mb-5 flex items-center gap-3 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setDashboardMobileNavOpen(true)}
+              aria-expanded={dashboardMobileNavOpen}
+              aria-controls="dashboard-sidebar-nav"
+              aria-label="Abrir menú de navegación"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#0f1a33] shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
+            >
+              <Menu className="h-5 w-5" strokeWidth={2} aria-hidden />
+            </button>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">Vista actual</p>
+              <p className="truncate text-sm font-semibold text-[#0f1a33]">{navItems.find((i) => i.id === tab)?.label ?? "FlyPath"}</p>
+            </div>
+          </div>
           {tab === "route" && (
             <header className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-6 text-white shadow-sm">
               {/* Card azul con relative: avión decorativo en hueco superior derecho (ver div absoluto siguiente). */}
@@ -2780,7 +2843,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               <div className="flex flex-wrap items-start justify-between gap-2.5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
-                  <h1 className="mt-1.5 text-3xl font-semibold text-white">Tu ruta más prudente ahora: {route.recommended}</h1>
+                  <h1 className="mt-1.5 min-w-0 break-words text-2xl font-semibold text-white sm:text-3xl">Tu ruta más prudente ahora: {route.recommended}</h1>
                   <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-slate-200">
                     Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
                   </p>
@@ -2834,7 +2897,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               </div>
             </header>
           )}
-          <section className={`${tab === "route" ? "mt-6" : "mt-0"} mx-auto w-full max-w-[1120px] space-y-8`}>
+          <section className={`${tab === "route" ? "mt-6" : "mt-0"} mx-auto w-full min-w-0 max-w-[1120px] space-y-8`}>
             {tab === "route" && (
               <div className="space-y-5">
                 <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
@@ -2895,7 +2958,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             )}
             {tab === "cost" && (
               <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
                   <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[105px] w-[190px] lg:flex items-center justify-end opacity-70">
                     <svg viewBox="0 0 260 150" className="h-full w-full">
                       <rect x="36" y="74" width="34" height="52" rx="6" fill="rgba(148,163,184,0.28)" />
@@ -3115,7 +3178,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             )}
             {tab === "schools" && (
               <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
                   <div className="pointer-events-none absolute right-5 top-5 z-0 hidden sm:block">
                     <ClipboardList className="h-16 w-16 text-[#c9a454]/28 drop-shadow-sm lg:h-[72px] lg:w-[72px] lg:text-[#c9a454]/32" strokeWidth={1.25} aria-hidden />
                   </div>
@@ -3563,7 +3626,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-[#c9a454]/30 bg-[#0f1a33] p-7 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)]">
+                <div className="rounded-3xl border border-[#c9a454]/30 bg-[#0f1a33] p-5 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)] sm:p-7">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">PRÓXIMAMENTE</p>
                   <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">Comparador de escuelas FlyPath</h3>
                   <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200">
@@ -3584,7 +3647,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             )}
             {tab === "plan" && (
               <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
                   <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[90px] w-[180px] lg:flex items-center justify-end opacity-70">
                     <svg viewBox="0 0 260 140" className="h-full w-full">
                       <path d="M30 85 L110 85 L190 85 L230 45" fill="none" stroke="#c9a454" strokeOpacity="0.5" strokeWidth="2" />
@@ -3716,7 +3779,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             )}
             {tab === "readiness" && (
               <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
                   <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[100px] w-[180px] lg:flex items-center justify-end opacity-70">
                     <svg viewBox="0 0 240 150" className="h-full w-full">
                       <path d="M50 100 A55 55 0 1 1 190 100" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="10" strokeLinecap="round" />
@@ -3833,7 +3896,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             )}
             {tab === "report" && (
               <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-7 text-white shadow-sm">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
                   <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[100px] w-[180px] lg:flex items-center justify-end opacity-70">
                     <svg viewBox="0 0 220 120" className="h-full w-full">
                       <rect x="42" y="16" width="136" height="92" rx="10" fill="rgba(255,255,255,0.16)" stroke="rgba(201,164,84,0.45)" strokeWidth="1.5" />
@@ -3847,7 +3910,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <div className="relative z-10">
                   <div className="lg:max-w-[760px]">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Informe final FlyPath</p>
-                    <h2 className="mt-2 text-3xl font-semibold">Tu resumen de decisión</h2>
+                    <h2 className="mt-2 min-w-0 break-words text-2xl font-semibold sm:text-3xl">Tu resumen de decisión</h2>
                     <p className="mt-2 max-w-4xl text-sm text-slate-200">
                       Resumen de tu ruta, costes, riesgos y próximos pasos antes de tomar una decisión económica.
                     </p>
@@ -3995,7 +4058,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
                     Descarga el informe completo de decisión o un resumen claro para compartir con tus padres antes de comprometer dinero con una escuela.
                   </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
                       onClick={async () => {
@@ -4073,9 +4136,9 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           showToast("No se pudo generar el informe. Inténtalo de nuevo.");
                         }
                       }}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
                     >
-                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                      <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                       Descargar informe
                     </button>
                     <button
@@ -4113,9 +4176,9 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           showToast("No se pudo generar el resumen para padres. Inténtalo de nuevo.");
                         }
                       }}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
                     >
-                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                      <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                       Descargar resumen para padres
                     </button>
                   </div>
