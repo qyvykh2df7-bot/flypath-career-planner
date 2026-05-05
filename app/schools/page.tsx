@@ -217,7 +217,8 @@ export default function SchoolsPage() {
               src="/schools-hero-planning.jpg"
               alt=""
               fill
-              priority={false}
+              priority
+              sizes="(max-width: 640px) 100vw, (max-width: 1200px) 95vw, 1200px"
               className="pointer-events-none object-cover opacity-[0.32] contrast-[1.03]"
               onError={() => setHeroVisualAvailable(false)}
               aria-hidden
