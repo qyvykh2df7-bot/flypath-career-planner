@@ -2161,7 +2161,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               <>
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-0 hidden bg-cover bg-[position:70%_76%] lg:block"
+                  className="pointer-events-none absolute inset-0 hidden bg-cover bg-[position:center_80%] lg:block"
                   style={{
                     backgroundImage: `url(${landingHeroBgPhotoSrc})`,
                   }}
