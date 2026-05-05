@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -1636,6 +1637,7 @@ type FlyPathAppProps = {
 };
 
 export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPathAppProps) {
+  const router = useRouter();
   const createEmptySchool = (): School => ({
     id: 0,
     nombre: "",
@@ -2036,7 +2038,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     const flypathPlatformModules = [
       { id: "inicio", label: "Inicio", status: "available" as const },
       { id: "planifica", label: "Planifica tu ruta", status: "available" as const },
-      { id: "compara", label: "Compara escuelas", status: "soon" as const },
+      { id: "compara", label: "Compara escuelas", status: "available" as const, href: "/schools" },
       { id: "opiniones", label: "Opiniones de escuelas", status: "soon" as const },
       { id: "atpl", label: "ATPL Planner", status: "soon" as const },
       { id: "ingles", label: "Inglés aeronáutico", status: "soon" as const },
@@ -2119,9 +2121,13 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           role="option"
                           aria-selected={isAvailable}
                           aria-disabled={isSoon}
-                          onClick={() => setLandingModuleMenuOpen(false)}
+                          onClick={() => {
+                            setLandingModuleMenuOpen(false);
+                            if (isSoon) return;
+                            if ("href" in m && m.href) router.push(m.href);
+                          }}
                           className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-3.5 text-left transition-colors ${
-                            isSoon ? "cursor-not-allowed" : "cursor-default"
+                            isSoon ? "cursor-not-allowed" : "cursor-pointer"
                           }`}
                         >
                           <span
