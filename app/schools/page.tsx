@@ -214,16 +214,16 @@ export default function SchoolsPage() {
         <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-b from-white via-[#f7f9fc] to-[#f4f7fb] p-5 shadow-sm sm:p-7">
           {heroVisualAvailable ? (
             <Image
-              src="/hero-aircraft.jpg"
+              src="/schools-hero-planning.jpg"
               alt=""
               fill
               priority={false}
-              className="pointer-events-none object-cover opacity-[0.10]"
+              className="pointer-events-none object-cover opacity-[0.32] contrast-[1.03]"
               onError={() => setHeroVisualAvailable(false)}
               aria-hidden
             />
           ) : null}
-          <div className="pointer-events-none absolute inset-0 bg-white/65" />
+          <div className="pointer-events-none absolute inset-0 bg-white/46" />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_95%_10%,rgba(201,164,84,0.10),transparent_55%),radial-gradient(ellipse_70%_60%_at_10%_90%,rgba(15,26,51,0.06),transparent_52%)]" />
           <div className="relative z-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
