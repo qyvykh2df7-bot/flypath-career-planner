@@ -1,20 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, Plane } from "lucide-react";
 import { ComparisonResults } from "@/components/schools/ComparisonResults";
 import { SchoolCard } from "@/components/schools/SchoolCard";
-import { schoolsDataset } from "@/lib/schools/data";
-import { filterSchools, getCities, type SchoolsFilters } from "@/lib/schools/utils";
+import {
+  filterSchools,
+  getAllSchools,
+  getCities,
+  getSchoolBySlug,
+  getSchoolsByIds,
+  type SchoolsFilters,
+} from "@/lib/schools/schoolUtils";
 import type { DataConfidence, RouteType } from "@/types/schools";
 
 const MAX_SELECTED = 3;
+const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
 
-export default function SchoolsPage() {
+function readStoredSelectedIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.sessionStorage.getItem(SELECTED_IDS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const valid = new Set(getAllSchools().map((s) => s.id));
+    return parsed
+      .filter((id): id is string => typeof id === "string" && valid.has(id))
+      .slice(0, MAX_SELECTED);
+  } catch {
+    return [];
+  }
+}
+
+function SchoolsPageContent() {
+  const schoolsDataset = getAllSchools();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const defaultMaxAdvertisedPrice = 140000;
   const [filters, setFilters] = useState<SchoolsFilters>({
     query: "",
@@ -24,19 +49,21 @@ export default function SchoolsPage() {
     dataConfidence: "all",
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectionHydrated, setSelectionHydrated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [heroVisualAvailable, setHeroVisualAvailable] = useState(true);
   const searchSectionRef = useRef<HTMLElement>(null);
+  const comparisonPanelRef = useRef<HTMLDivElement>(null);
+  const resultsSectionRef = useRef<HTMLElement>(null);
+  const lastHandledAddSlugRef = useRef<string | null>(null);
+  const pendingResultsScrollRef = useRef(false);
   const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
   const [headerLogoFallback, setHeaderLogoFallback] = useState(false);
   const moduleMenuRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => filterSchools(schoolsDataset, filters), [filters]);
-  const selectedSchools = useMemo(
-    () => schoolsDataset.filter((school) => selectedIds.includes(school.id)),
-    [selectedIds],
-  );
+  const selectedSchools = useMemo(() => getSchoolsByIds(selectedIds), [selectedIds]);
   const cities = useMemo(() => getCities(schoolsDataset), []);
   const hasActiveFilters =
     filters.query.trim().length > 0 ||
@@ -55,6 +82,22 @@ export default function SchoolsPage() {
   };
 
   useEffect(() => {
+    const stored = readStoredSelectedIds();
+    setSelectedIds(stored);
+    if (stored.length > 0) setSearchSubmitted(true);
+    setSelectionHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!selectionHydrated || typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(SELECTED_IDS_STORAGE_KEY, JSON.stringify(selectedIds));
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, [selectedIds, selectionHydrated]);
+
+  useEffect(() => {
     if (!moduleMenuOpen) return;
     const onPointerDown = (e: PointerEvent) => {
       const el = moduleMenuRef.current;
@@ -64,10 +107,59 @@ export default function SchoolsPage() {
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [moduleMenuOpen]);
 
-  const showToast = (message: string) => {
+  const showToast = useCallback((message: string) => {
     setToast(message);
     window.setTimeout(() => setToast((current) => (current === message ? null : current)), 2300);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!selectionHydrated) return;
+
+    const slug = searchParams.get("add")?.trim() ?? "";
+    if (!slug) {
+      lastHandledAddSlugRef.current = null;
+      return;
+    }
+    if (lastHandledAddSlugRef.current === slug) return;
+    lastHandledAddSlugRef.current = slug;
+
+    router.replace("/schools", { scroll: false });
+
+    const school = getSchoolBySlug(slug);
+    if (!school) return;
+
+    setSearchSubmitted(true);
+
+    setSelectedIds((current) => {
+      if (current.includes(school.id)) return current;
+      if (current.length >= MAX_SELECTED) {
+        queueMicrotask(() => showToast("Máximo 3 escuelas en comparación"));
+        return current;
+      }
+      return [...current, school.id];
+    });
+
+    queueMicrotask(() => {
+      comparisonPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [searchParams, router, showToast, selectionHydrated]);
+
+  useEffect(() => {
+    if (!selectionHydrated) return;
+    if (searchParams.get("results") !== "1") return;
+
+    router.replace("/schools", { scroll: false });
+    setSearchSubmitted(true);
+    pendingResultsScrollRef.current = true;
+  }, [searchParams, router, selectionHydrated]);
+
+  useEffect(() => {
+    if (!pendingResultsScrollRef.current || !hasSearchActive) return;
+    pendingResultsScrollRef.current = false;
+    requestAnimationFrame(() => {
+      resultsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [hasSearchActive]);
 
   const notifyMentoring = () => {
     showToast("Mentoría FlyPath próximamente");
@@ -385,7 +477,7 @@ export default function SchoolsPage() {
               Buscar escuelas
             </button>
           </div>
-          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+          <div ref={comparisonPanelRef} className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">Comparación activa</p>
             <p className="mt-0.5 text-sm font-medium text-[#0f1a33]">{selectedSchools.length}/3 escuelas seleccionadas</p>
             <p className="mt-0.5 text-xs text-slate-600">{comparisonStatusText}</p>
@@ -417,8 +509,11 @@ export default function SchoolsPage() {
         {selectedSchools.length >= 2 ? <ComparisonResults schools={selectedSchools} /> : null}
 
         {hasSearchActive ? (
-          <section className="space-y-4">
-            <p className="text-lg font-semibold text-[#0f1a33]">Resultados encontrados</p>
+          <section ref={resultsSectionRef} className={`${selectedSchools.length >= 2 ? "mt-8" : ""} space-y-4`}>
+            <div className="space-y-1">
+              <p className="text-lg font-semibold text-[#0f1a33]">Cambiar escuelas seleccionadas</p>
+              <p className="text-sm text-slate-600">Busca o cambia las opciones para actualizar la comparación.</p>
+            </div>
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
                 No hay escuelas que coincidan con estos filtros.
@@ -467,3 +562,10 @@ export default function SchoolsPage() {
   );
 }
 
+export default function SchoolsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f8fafc]" aria-hidden />}>
+      <SchoolsPageContent />
+    </Suspense>
+  );
+}

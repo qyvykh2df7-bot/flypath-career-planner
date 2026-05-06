@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSchoolBySlug, getPriceGap, routeTypeLabel } from "@/lib/schools/utils";
+import { availabilityLabel, getSchoolBySlug, getPriceGap, routeTypeLabel } from "@/lib/schools/schoolUtils";
 
 function euro(value: number): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -74,7 +74,7 @@ export default async function SchoolDetailPage({
             <ul className="mt-3 space-y-2 text-sm text-slate-700">
               <li>Duración programa: <span className="font-semibold">{school.programDurationMonths} meses</span></li>
               <li>Flota: <span className="font-semibold">{school.fleetSummary}</span></li>
-              <li>Disponibilidad aeronaves: <span className="font-semibold">{school.aircraftAvailability}</span></li>
+              <li>Disponibilidad aeronaves: <span className="font-semibold">{availabilityLabel(school.aircraftAvailability)}</span></li>
               <li>Ratio alumno/avión: <span className="font-semibold">{school.studentAircraftRatio || "No disponible"}</span></li>
               <li>Ratio instructor/alumno: <span className="font-semibold">{school.instructorStudentRatio || "No disponible"}</span></li>
               <li>Idioma formación: <span className="font-semibold">{school.languageOfInstruction}</span></li>
@@ -135,7 +135,7 @@ export default async function SchoolDetailPage({
             <Link href={`/schools?add=${school.slug}`} className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33]">
               Añadir a comparación
             </Link>
-            <Link href="/schools" className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold">
+            <Link href="/schools?results=1" className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold">
               Volver al comparador
             </Link>
           </div>
