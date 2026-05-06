@@ -1,0 +1,1032 @@
+[
+  {
+    "code": "E-ATO-010",
+    "name": "REAL AERO CLUB DE SEVILLA",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-010 REAL AERO CLUB DE SEVILLA Aeropuerto de Sevilla - Antigua Terminal. 41020 - Sevilla ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-014",
+    "name": "REAL AERO CLUB DE ZARAGOZA",
+    "commercial": "Real Aero Club de Zaragoza",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "E-ATO-014 REAL AERO CLUB DE ZARAGOZA C/ Gomez Laguna, 25, Planta 1. 50009 - Zaragoza ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-019",
+    "name": "AEROCLUB LLANERA",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-019 AEROCLUB LLANERA Avenida de los Telares, 23. 33400 - Avilés, Asturias. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-022",
+    "name": "PANAMEDIA, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-022 PANAMEDIA, S.L. Aeropuerto Son Bonet. Edificio Servicios nº 7, Pont D'Inca. 07141 - Marratxi, Baleares. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-034",
+    "name": "REAL AERO CLUB DE BURGOS",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-034 REAL AERO CLUB DE BURGOS Río Nela, 25 . 09006 - Burgos ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-035",
+    "name": "REAL AERO CLUB DE LEON",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-035 REAL AERO CLUB DE LEON C/ Santa Nonia, 8. 24003 - León ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-037",
+    "name": "AEROCLUB BARCELONA-SABADELL",
+    "commercial": "L'Aeroclub Barcelona-Sabadell",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "E-ATO-037 AEROCLUB BARCELONA-SABADELL Aeropuerto de Sabadell. Edificio Aeroclub. 08205 - Sabadell, Barcelona. ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-039",
+    "name": "GRUPO AVIACIÓN Y NÁUTICA, S.L. Carreterea de Bellaterra, s/n. Apdo. 23",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-039 GRUPO AVIACIÓN Y NÁUTICA, S.L. Carreterea de Bellaterra, s/n. Apdo. 23 Aeropuerto de Sabadell. 08205 - Sabadell, Barcelona. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-042",
+    "name": "AERO CLUB DE REUS",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-042 AERO CLUB DE REUS Carretera del Aeropuerto S/N. 43204 - Reus, Tarragona. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-047",
+    "name": "AEROFLOTA DEL NOROESTE, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-047 AEROFLOTA DEL NOROESTE, S.L. Aeropuerto de Alvedro, s/n. 15180 - Culleredo, La Coruña. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-048",
+    "name": "CLUB AERO CELTA DE VUELO CON MOTOR",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-048 CLUB AERO CELTA DE VUELO CON MOTOR Aeropuerto de Vigo - Terminal de Pasajeros, Local 45-S-T1-P00. 36318 - Vigo, Pontevedra. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-055",
+    "name": "AEROCENTER ESCUELA DE AVIACIÓN, S.L. Cuatro Vientos, Edificio Servicios, Oficina 2-19",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-055 AEROCENTER ESCUELA DE AVIACIÓN, S.L. Cuatro Vientos, Edificio Servicios, Oficina 2-19. 28044 - Madrid ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-065",
+    "name": "REAL AEROCLUB DE NAVARRA De Pamplona-Noain",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-065 REAL AEROCLUB DE NAVARRA De Pamplona-Noain Carretera de Zaragoza, Km. 5. 31110 - Noain, Navarra. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-066",
+    "name": "AEROCLUB DE VITORIA HERACLIO ALFARO",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-066 AEROCLUB DE VITORIA HERACLIO ALFARO Aeropuerto de Vitoria-Gasteiz. 01196 - Foronda Vitoria, Álava. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-068",
+    "name": "REAL AEROCLUB DE VIZCAYA de Bilbao Carlos Haya s/n",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-068 REAL AEROCLUB DE VIZCAYA de Bilbao Carlos Haya s/n. 48150 - Sondika, Vizcaya. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-070",
+    "name": "REAL AEROCLUB DE ALICANTE",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-070 REAL AEROCLUB DE ALICANTE De Mutxamiel Partida de la Almaina, 92 . 03110 - Mutxamiel, Alicante. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-086",
+    "name": "AERO LINK AIR SERVICES, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-086 AERO LINK AIR SERVICES, S.L. Aeropuerto de Sabadell. Edificio Aero Link. Carretera Bellaterra s/n. 08205 - Sabadell, Barcelona. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-101",
+    "name": "AIR PULL AVIATION, S.L. Avinguda d'Els Arcs, 11",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-101 AIR PULL AVIATION, S.L. Avinguda d'Els Arcs, 11. 46940 - Manises, Valencia. Pagina web/Website: e-mail: academy@airpull.com Teléfono/Phone No.: +34 96 152 51 39 Fax: Bases/Training sites: Aeródromo de Requena",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-107",
+    "name": "PEGASUS AVIACION, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-107 PEGASUS AVIACION, S.A. Aeródromo Sebastián Almagro, Carretera Fuente Palmera, Km. 4,5. 14700 - Palma del Río, Córdoba. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-111",
+    "name": "LEONESA DE AVIACION, S.L.U. ALFONSO V, 2 - 5º B",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-111 LEONESA DE AVIACION, S.L.U. ALFONSO V, 2 - 5º B. 24001 - LEÓN Pagina web/Website: e-mail: leonavia@gmail.com Teléfono/Phone No.: +34670448868 Fax: Bases/Training sites: Aeropuerto de León",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-124",
+    "name": "HELIPISTAS, S.L. Heliport Teresa Vilà",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-124 HELIPISTAS, S.L. Heliport Teresa Vilà. 08231 - Ullastrell, Barcelona. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-127",
+    "name": "TRABAJOS AEREOS Y SERVICIOS TAS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-127 TRABAJOS AEREOS Y SERVICIOS TAS, S.L. C/ Jose Bergamin, 48. 28030 - Madrid ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-130",
+    "name": "SERVICIOS AEREOS COSTA CALIDA, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-130 SERVICIOS AEREOS COSTA CALIDA, S.L. Calle Puerta Nueva, 18 Bajo. 30008 - Murcia ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-131",
+    "name": "AERIS GESTION, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-131 AERIS GESTION, S.L. Villanueva 5, 4º Exterior Derecha . 28001 - Madrid ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-146",
+    "name": "AEROALJARAFE, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-146 AEROALJARAFE, S.L. C/ Campelo, 25. 41806 - Umbrete, Sevilla. Pagina web/Website: e-mail: ht@aeroaljarafe.es Teléfono/Phone No.: 656690287 Fax: Bases/Training sites: Aeródromo La Juliana, Instalaciones Teóricas",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-155",
+    "name": "CHISTAU ADVENTOURS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-155 CHISTAU ADVENTOURS, S.L. C/ Manso, 52. 08015 - Barcelona Pagina web/Website: https://chistau.es/ e-mail: alroyuela@hotmail.com Teléfono/Phone No.: 646767323 Fax: Bases/Training sites: Aeródromo de Igualada",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-166",
+    "name": "FLY BAI, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-166 FLY BAI, S.L. Avenida República Argentina 15, 2ºA. 24004 - León Pagina web/Website: e-mail: flyby.p01@gmail.com Teléfono/Phone No.: 688814881 Fax: Bases/Training sites: Base Principal Aeropuerto de Burgos, Base Logroño",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-172",
+    "name": "CANAVIA LINEAS AEREAS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-172 CANAVIA LINEAS AEREAS, S.L. C/ Mister Blisse 1 -primera Planta, La Estrella. 35212 - Telde, Las Palmas. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-173",
+    "name": "AVIATION VIP, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-173 AVIATION VIP, S.L Avenida Juan Pablo II, 2, 2ºD. 28860 - Paracuellos de Jarama, Madrid. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-185",
+    "name": "AEROTEC ESCUELA DE PILOTOS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "E-ATO-185 AEROTEC ESCUELA DE PILOTOS, S.L. Aeródromo de Cuatro Vientos Edificio Aerotec. 28054 - Madrid. 28054 - Madrid ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-189",
+    "name": "FLIGHT LEVEL TRAINING Fernando el Catolico, 47, 3-3",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-189 FLIGHT LEVEL TRAINING Fernando el Catolico, 47, 3-3. 28015 - Madrid Pagina web/Website: e-mail: flightlevelato@gmail.com Teléfono/Phone No.: 622306596 Fax: Bases/Training sites: Aeródromo de Matilla de los Caños",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-190",
+    "name": "GRUPO ONE AIR AVIACION, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": true,
+    "exists_index": false,
+    "raw": "E-ATO-190 GRUPO ONE AIR AVIACION, S.L. C/ Jaen, 9. Edificio Galia, Bajos, 5, 7, 10, 12. Planta 1ª 101, 107, 109. Planta 2ª 209. Planta 3ª 3. 29004 - Málaga ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-191",
+    "name": "FLY & FUN, S.L.U. CUATRO VIENTOS",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-191 FLY & FUN, S.L.U. CUATRO VIENTOS. 28054 - MADRID Pagina web/Website: www.flyanfun.es e-mail: info@flyanfun.es Teléfono/Phone No.: 915086004 Fax: Bases/Training sites: Aeropuerto de Cuatro Vientos",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-197",
+    "name": "QUALITY FLY, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "E-ATO-197 QUALITY FLY, S.A. Aeropuerto de Madrid - Cuatro VientosCarretera de la Fortuna, s/n. 28054 - Madrid ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-198",
+    "name": "AERBRAVA, S.C.P. Pla de Salt, 12-14 piso 1º puerta 3ª",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-198 AERBRAVA, S.C.P. Pla de Salt, 12-14 piso 1º puerta 3ª. 17190 - Salt, Girona. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-207",
+    "name": "AIRPILOT ESCUELA DE VUELO, S.L. Avda 25 de septiembre nº8",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-207 AIRPILOT ESCUELA DE VUELO, S.L. Avda 25 de septiembre nº8. 28022 - Madrid Pagina web/Website: www.flyschool.es e-mail: examenes@flyschool.es Teléfono/Phone No.: 91 116 21 87 Fax: Bases/Training sites: Aeropuerto de Cuatro Vientos, Aeródromo Son Bonet, Aeródromo Casarrubios del Monte",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-226",
+    "name": "AERODYNAMICS MALAGA, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-226 AERODYNAMICS MALAGA, S.L.",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-227",
+    "name": "CORFLIGHT SCHOOL, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "E-ATO-227 CORFLIGHT SCHOOL, S.L. Aeropuerto de Cordoba Ctra. N-437 KM. 5,500. 14005 - Córdoba ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-228",
+    "name": "EUROPEAN FLYERS, S.L. Aerodromo de Madrid-Cuatro Vientos",
+    "commercial": "no publicado",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "E-ATO-228 EUROPEAN FLYERS, S.L. Aerodromo de Madrid-Cuatro Vientos. Carretera de la Fortuna, s/n. 28054 - Madrid ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-229",
+    "name": "VUELING AIRLINES, S.A. Viladecans Business Park, Edificio Brasil",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-229 VUELING AIRLINES, S.A. Viladecans Business Park, Edificio Brasil. Calle Catalunya 83. 08840 - Viladecans, Barcelona. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-230",
+    "name": "EUROPEAN AVIATION COLLEGE, S.A. DE MADRID. KM. 14",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-230 EUROPEAN AVIATION COLLEGE, S.A. DE MADRID. KM. 14. 37893 - Matacán, Salamanca. Pagina web/Website: e-mail: MD@ADVENTIA.ORG Teléfono/Phone No.: +34923041011 Fax: Bases/Training sites: Aeropuerto de Matacán",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-231",
+    "name": "IBERIA LINEAS AEREAS DE ESPAÑA S.A. OPERADORA",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-231 IBERIA LINEAS AEREAS DE ESPAÑA S.A. OPERADORA Calle Martínez Villergas, 49. 28027 - Madrid Pagina web/Website: e-mail: info@iberia.es Teléfono/Phone No.: 656903637 Fax: Bases/Training sites:",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-233",
+    "name": "QUALIFLIGHT AVIATION TRAINING, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-233 QUALIFLIGHT AVIATION TRAINING, S.L. C/ Decano Antonio Zedano, 3, 1ª planta, Oficina 20. 29620 - Torremolinos, Málaga. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-235",
+    "name": "AIRBUS HELICOPTERS ESPAÑA, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-235 AIRBUS HELICOPTERS ESPAÑA, S.A. Parque Aeronautico y Logistico, Carretera de las Peñas, km 5.3. 02006 - Albacete ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-236",
+    "name": "MYDOFLY AVIATION ASSESSMENT, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-236 MYDOFLY AVIATION ASSESSMENT, S.L. C/ Na Rodona, 2, 1º, B1, Urb. Maioris Decima. 07609 - Llucmajor, Baleares. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-237",
+    "name": "ATAHORMA, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-237 ATAHORMA, S.L. C/ Principe de Vergara, 29, 6º izquierda. 28001 - Madrid ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-238",
+    "name": "CINETIC PLUS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-238 CINETIC PLUS, S.L. Avda. de la Circunvalacion, 9. 28860 - Paracuellos de Jarama, Madrid. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-239",
+    "name": "PLUS ULTRA LINEAS AEREAS, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-239 PLUS ULTRA LINEAS AEREAS, S.A. Avenida de Europa 22, 3ª planta, Oficinas C y D. 28108 - Alcobendas, Madrid. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-241",
+    "name": "BINTER CANARIAS, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-241 BINTER CANARIAS, S.A. C/ Ignacio Ellacuría Beascoechea, 2, Parque Empresarial Melenara. 35200 - Telde, Las Palmas. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-243",
+    "name": "CANARY FLY, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-243 CANARY FLY, S.L. Aeropuerto de Gran Canaria, Hangar L. Apto84. 35200 - Telde, Las Palmas. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-244",
+    "name": "AIR EUROPA LINEAS AEREAS, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-244 AIR EUROPA LINEAS AEREAS, S.A. Polígono Son Noguera - Centro Empresarial Globalia, Apd. co 132. 07620 - Llucmajor, Baleares. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-245",
+    "name": "TITAN FIREFIGHTING COMPANY, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-245 TITAN FIREFIGHTING COMPANY, S.L. Carretera de Benafer s/n, CV-211 Km 7. 12460 - Viver, Castellón. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-246",
+    "name": "AERONOVA, S.L. Ctra. Arenal-Llucmajor, Km, 21.5",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-246 AERONOVA, S.L. Ctra. Arenal-Llucmajor, Km, 21.5 Polígono Son Noguera. 07620 - Llucmajor, Baleares. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-247",
+    "name": "FUNDACIÓN REGO",
+    "commercial": "CESDA",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-247 FUNDACIÓN REGO Carretera del Aeropuerto s/n. 43200 - Reus, Tarragona. Pagina web/Website: www.cesda.com e-mail: cesda@cesda.com Teléfono/Phone No.: 977 30 00 27 Fax: 977 30 00 28 Bases/Training sites: Aeropuerto de Reus, Base de Operaciones",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-248",
+    "name": "SKY HELICOPTEROS, S.A. AERÓDROMO DE SON BONET - HANGAR 1",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-248 SKY HELICOPTEROS, S.A. AERÓDROMO DE SON BONET - HANGAR 1. 07141 - Marratxi, Baleares. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-250",
+    "name": "GLOBAL TRAINING AVIATION, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-250 GLOBAL TRAINING AVIATION, S.L. Avenida de la Hispanidad 12 - Complejo Senasa. 28042 - Barajas, Madrid. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-252",
+    "name": "AIRBUS DEFENCE AND SPACE, S.A. (GETAFE)",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-252 AIRBUS DEFENCE AND SPACE, S.A. (GETAFE) C/ Aviocar, 2. 28906 - Getafe, Madrid. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-255",
+    "name": "AVINCIS AVIATION ESPAÑA, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-255 AVINCIS AVIATION ESPAÑA, S.A. AERODROMO DE MUTXAMEL, PARTIDA LA ALMAINA, 92. 03110 - Mutxamel, Alicante. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-256",
+    "name": "FLIGHT TRAINING EUROPE, S.L",
+    "commercial": "FTE Jerez",
+    "exists_dataset": true,
+    "exists_index": true,
+    "raw": "E-ATO-256 FLIGHT TRAINING EUROPE, S.L. Aeropuerto Jerez de la Frontera, Base Aérea la Parra. 11401 - Jerez de la Frontera, Cádiz. ",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-259",
+    "name": "SWIFTAIR, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-259 SWIFTAIR, S.A. Calle Ingeniero Torres Quevedo, 14. 28022 - Madrid Pagina web/Website: e-mail: swiftair@swiftair.com Teléfono/Phone No.: 917480760 Fax: Bases/Training sites:",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-261",
+    "name": "ELIANCE HELICOPTER GLOBAL SERVICES, S.L. Ctra. de la Fortuna s/n",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-261 ELIANCE HELICOPTER GLOBAL SERVICES, S.L. Ctra. de la Fortuna s/n Aeropuerto de Cuatro Vientos Sector C. 28054 - Madrid ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-262",
+    "name": "WAMOS AIR, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-262 WAMOS AIR, S.A. Calle Mahonia 2, 6º. 28043 - Madrid Pagina web/Website: e-mail: wamosair@wamosair.com Teléfono/Phone No.: Fax: Bases/Training sites:",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-264",
+    "name": "SIMCREW TRAINING, S.L. EUSEBIO SEMPERE 9",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-264 SIMCREW TRAINING, S.L. EUSEBIO SEMPERE 9. 03003 - ALICANTE ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-265",
+    "name": "FLIGHTLINE, S.L. Riera de Tena 18-20",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-265 FLIGHTLINE, S.L. Riera de Tena 18-20. 08014 - Barcelona Pagina web/Website: e-mail: ato@flightlinebcn.com Teléfono/Phone No.: Fax: Bases/Training sites:",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-266",
+    "name": "COPTERING, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-266 COPTERING, S.L. C/ Numancia, 185, 3º, 2ª. 08034 - Barcelona Pagina web/Website: e-mail: seguridad@coptering.com Teléfono/Phone No.: 655316137 Fax: Bases/Training sites: Aeropuerto de Sabadell",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-271",
+    "name": "HELITRANS PYRINEES, S.L. Aeroport de L'Alt Urgell-Andorra",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-271 HELITRANS PYRINEES, S.L. Aeroport de L'Alt Urgell-Andorra. 25979 - Adrall, Lleida. Pagina web/Website: e-mail: gerencia@hlh.es Teléfono/Phone No.: 649486318 Fax: Bases/Training sites: Aeropuerto de Urgell",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-272",
+    "name": "WORLD AVIATION, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-272 WORLD AVIATION, S.L. Aeropuerto Internacional de Malaga - Crta Aeroclub s/n. Terminal Ejecutiva FBO - Oficina 13. 29004 - Malaga, Málaga. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-279",
+    "name": "DARES AVIATION, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-279 DARES AVIATION, S.L. Aeródromo de Cuatro Vientos. Edificio de Servicios, Oficina 2.28. 28054 - Madrid ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-280",
+    "name": "AERO TABLADA, S.L. CAZORLA, 3",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-280 AERO TABLADA, S.L. CAZORLA, 3. 41110 - Bollullos de la Mitación, Sevilla. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-285",
+    "name": "ULTRAMAGIC, S.A. Aeròdrom General Vives, s/n",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-285 ULTRAMAGIC, S.A. Aeròdrom General Vives, s/n. 08711 - Igualada, Barcelona. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-286",
+    "name": "DREAMAIRFLIGHTSCHOOL, S.L. CARRER DE RIBES 9, ENT. 2ª LOCAL 1",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-286 DREAMAIRFLIGHTSCHOOL, S.L. CARRER DE RIBES 9, ENT. 2ª LOCAL 1. 08013 - Barcelona ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-288",
+    "name": "EUROPEAN AVIATION SCHOOL OF BARCELONA, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-288 EUROPEAN AVIATION SCHOOL OF BARCELONA, S.L. Rector Triado, 94 - Entlo. 08014 - Barcelona Pagina web/Website: www.easbcn.com e-mail: info@easbcn.es Teléfono/Phone No.: 932502020 Fax: Bases/Training sites: Aeropuerto de Sabadell",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-289",
+    "name": "EVELOP AIRLINES, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-289 EVELOP AIRLINES, S.L. Calle Gremi Fusters 23. 07009 - Palma de Mallorca, Baleares. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-291",
+    "name": "M AEROSPACE FLY, S.L. DE CUATRO VIENTOS OFICINA 1.20",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-291 M AEROSPACE FLY, S.L. DE CUATRO VIENTOS OFICINA 1.20. 28054 - Madrid ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-294",
+    "name": "BIGAS GRUP HELICOPTERS, S.L. EDIFICIO TERMINAL S/N, AEROPUERTO SABADELL",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-294 BIGAS GRUP HELICOPTERS, S.L. EDIFICIO TERMINAL S/N, AEROPUERTO SABADELL. 08203 - Sabadell, Barcelona. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-295",
+    "name": "ROTORSUN, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-295 ROTORSUN, S.L. C/ Atalaya de Tebar, s/n. 30880 - Aguilas, Murcia. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-299",
+    "name": "AVIATION EXCHANGE GROUP, S.L. DECANO ANTONIO ZEDANO, Nº3, PORTAL 2, OFICINA 33",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-299 AVIATION EXCHANGE GROUP, S.L. DECANO ANTONIO ZEDANO, Nº3, PORTAL 2, OFICINA 33. 29620 - TORREMOLINOS, Málaga. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-304",
+    "name": "PLANIFICACIÓN Y SOLUCIONES AÉREAS, S.L. Comarcas Del Pais Valenciano 2 (Comarcas Del Pais Valenciano 2)",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-304 PLANIFICACIÓN Y SOLUCIONES AÉREAS, S.L. Comarcas Del Pais Valenciano 2 (Comarcas Del Pais Valenciano 2). 46930 - Quart De Poblet, Valencia. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-307",
+    "name": "VOLOTEA FLIGHT ACADEMY, S.A. Travessera de Gràcia, nº. 56, 4ª planta",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-307 VOLOTEA FLIGHT ACADEMY, S.A. Travessera de Gràcia, nº. 56, 4ª planta. 08006 - Barcelona ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-308",
+    "name": "ADVANCED AVIATION GROUP, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-308 ADVANCED AVIATION GROUP, S.L. JOAN MIRO, 63. 17310 - LLORET DE MAR, Girona. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-309",
+    "name": "INTERNATIONAL AVIATION TRAINING, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-309 INTERNATIONAL AVIATION TRAINING, S.L. C/ Recogidas, 24, Portal A, Escalera B, Piso 6º. 18002 - Granada ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-310",
+    "name": "INDRA SISTEMAS, S.A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-310 INDRA SISTEMAS, S.A. Avenida Bruselas, 35. - Alcobendas, Madrid. 28108 - Alcobendas, Madrid. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-313",
+    "name": "AIRWORKS HELICOPTERS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-313 AIRWORKS HELICOPTERS, S.L. Calle Santa María la Blanca 15. 37008 - Salamanca Pagina web/Website: e-mail: info@awh.es Teléfono/Phone No.: (923) 21.09.2 Fax: (923) 21.59.4 Bases/Training sites: airworks",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-314",
+    "name": "AERODYNAMICS TYPE RATINGS S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-314 AERODYNAMICS TYPE RATINGS S.L",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-315",
+    "name": "AeroTest Privado prueba nodo MADRID",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-315 AeroTest Privado prueba nodo MADRID. 28023 - MADRID Pagina web/Website: www.aesa.es e-mail: sipa@fomento.es Teléfono/Phone No.: 777 Fax: Bases/Training sites:",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-316",
+    "name": "ONE AIR TRTO MÁLAGA, S.L Jaén, 9, Ed. Galia, Of. 310",
+    "commercial": "no publicado",
+    "exists_dataset": true,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-316 ONE AIR TRTO MÁLAGA, S.L Jaén, 9, Ed. Galia, Of. 310. 29004 - Málaga Pagina web/Website: https://oneairtyperating.com/ e-mail: info@oneairtyperating.com Teléfono/Phone No.: +34951211333 Fax: Bases/Training sites:",
+    "status": "already_imported",
+    "reason": "Ya existe en schoolsSpain.ts"
+  },
+  {
+    "code": "E-ATO-317",
+    "name": "FLIGHT TRAINING SOLUTIONS, S.L Centro Comercial Las Lomas",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-317 FLIGHT TRAINING SOLUTIONS, S.L Centro Comercial Las Lomas, C/ Valle del Tormes 2, Local 87. 28860 - Boadilla del Monte, Madrid. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-318",
+    "name": "BLUE TEAM FLIGHT SCHOOL, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-318 BLUE TEAM FLIGHT SCHOOL, S.L. Aeropuerto Tenerife Sur, Sn. 38610 - Granadilla De Abona, Santa Cruz de Tenerife. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-319",
+    "name": "BRAVO 19, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-319 BRAVO 19, S.L. C/ Mariano Cuesta, 2. 28250 - Torrelodones, Madrid. Pagina web/Website: e-mail: secretaria@bravo19.es Teléfono/Phone No.: Fax: Bases/Training sites:",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-320",
+    "name": "BALEARIC HELICOPTERS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-320 BALEARIC HELICOPTERS, S.L. Aeródromo de Son Bonet. 07141 - Palma de Mallorca, Baleares. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-321",
+    "name": "PULSE FLIGHT TRAINING S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-321 PULSE FLIGHT TRAINING S.L Carretera Barrio de la Fortuna s/n (Oficina 1.31). 28044 - Aeropuerto de Madrid Cuatrovientos, Madrid. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-322",
+    "name": "AIR NOSTRUM TRAINING OPERATIONS, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-322 AIR NOSTRUM TRAINING OPERATIONS, S.L. Avda. Comarques del País Valencià, 2. 46930 - Quart de Poblet, Valencia. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-323",
+    "name": "GOWFLY AVIATION GROUP S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-323 GOWFLY AVIATION GROUP S.L c/ Alejandro Dumas nº17. 29004 - Málaga Pagina web/Website: e-mail: jose91_em@hotmail.com Teléfono/Phone No.: 663521720 Fax: Bases/Training sites:",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-324",
+    "name": "FLYBY TRTO S.L Avda República Argentina, 15-2A",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-324 FLYBY TRTO S.L Avda República Argentina, 15-2A. 24004 - León Pagina web/Website: e-mail: flyby.p01@gmail.com Teléfono/Phone No.: 688814881 Fax: Bases/Training sites:",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-325",
+    "name": "REAL AERO CLUB DE ESPAÑA Barrio de la Fortuna, nº 14",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "Núm./No. Nombre/Name Dirección/Address E-ATO-325 REAL AERO CLUB DE ESPAÑA Barrio de la Fortuna, nº 14. 28054 - Madrid Pagina web/Website: e-mail: ato@race.aero Teléfono/Phone No.: 915085801 Fax: Bases/Training sites: Base Principal",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-326",
+    "name": "FIRECUT BCN, S.L. Avinguda Corts Catalanes, 5-7 Planta 1 Despacho 36-37",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-326 FIRECUT BCN, S.L. Avinguda Corts Catalanes, 5-7 Planta 1 Despacho 36-37. 08173 - Sant Cugat del Vallès, Barcelona. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-327",
+    "name": "LEADING EDGE AVIATION, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-327 LEADING EDGE AVIATION, S.L. C/ Juan de la Cierva y Codorniu, s/n. 30840 - Alhama de Murcia, Murcia. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-328",
+    "name": "SIMPLE AVIATION SOLUTIONS S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-328 SIMPLE AVIATION SOLUTIONS S.L C/Marqués de Lozoya nº26, 4ºb. 28007 - Madrid ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-329",
+    "name": "Asociación Europea de Formación Aeronáutica «easyATPL»",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-329 Asociación Europea de Formación Aeronáutica «easyATPL» Aeropuerto Madrid - Cuatro Vientos, Carretera Barrio de la Fortuna nº14 (Chalet Social del RACE). 28054 - Madrid ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-PSo",
+    "name": "JUMP AVIATION, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-PSo JUMP AVIATION, S.L. Camino del Serradal, 2, 5ºC. 12100 - El Grao de Castellón, Castellón. ",
+    "status": "add_minimal_now",
+    "reason": "ATO oficial AESA con señal clara de escuela/formacion de piloto"
+  },
+  {
+    "code": "E-ATO-Plm",
+    "name": "KAIROS AEROESPACIAL, SL CALLE AFRICA, 13",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-Plm KAIROS AEROESPACIAL, SL CALLE AFRICA, 13. 28863 - CORBEÑA-MADRID, Madrid. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  },
+  {
+    "code": "E-ATO-PmH",
+    "name": "NEXTGEN SIMULATIONS TECHNOLOGIES S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-PmH NEXTGEN SIMULATIONS TECHNOLOGIES S.L C/Ingeniero Rafael Rubio Elola nº1-planta 3 puerta 5. 41300 - La Rinconada, Sevilla. ",
+    "status": "ignore_for_now",
+    "reason": "ATO orientada a aerolinea/type rating/corporativo, baja relevancia para comparador ab-initio"
+  },
+  {
+    "code": "E-ATO-PtX",
+    "name": "EVOLVE FLIGHT TRAINING SERVICES, S.L",
+    "commercial": "no publicado",
+    "exists_dataset": false,
+    "exists_index": false,
+    "raw": "E-ATO-PtX EVOLVE FLIGHT TRAINING SERVICES, S.L. Plaza Mestre Estalella 6, 2o 2a. 08820 - El Prat de LLobregat, Barcelona. ",
+    "status": "research_before_add",
+    "reason": "ATO oficial AESA, pero alcance comercial/formativo no claro"
+  }
+]

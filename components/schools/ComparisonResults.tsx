@@ -1,5 +1,6 @@
 import {
   confidenceLabel,
+  dataStatusLabel,
   getPriceGap,
   getSchoolInitials,
   summarizeComparison,
@@ -31,6 +32,10 @@ function euro(value: number): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 }
 
+function priceDisplay(value: number, pendingLabel: string): string {
+  return value > 0 ? euro(value) : pendingLabel;
+}
+
 function flypathReading(school: SchoolEntry, gap: number): string {
   const missingCoreExtras = [school.examFeesIncluded, school.skillTestsIncluded, school.trainingMaterialsIncluded].filter(
     (item) => item === "unknown" || item === "no",
@@ -39,7 +44,7 @@ function flypathReading(school: SchoolEntry, gap: number): string {
   if (school.pendingData.length >= 3 || school.dataConfidence === "low") {
     return "Datos todavía incompletos antes de tomar una decisión.";
   }
-  if (gap >= 7000) {
+  if (Number.isFinite(gap) && gap >= 7000) {
     return "Brecha alta; conviene confirmar el coste final por escrito.";
   }
   if (missingCoreExtras >= 2) {
@@ -94,7 +99,9 @@ function shortScheduleSummary(text: string): string {
 export function ComparisonResults({ schools }: Props) {
   const summary = summarizeComparison(schools);
   if (!summary) return null;
-  const maxEstimated = Math.max(...schools.map((s) => s.flypathEstimatedRealCostEUR));
+  const maxComparableCost = Math.max(
+    ...schools.map((s) => Math.max(s.advertisedPriceEUR, s.flypathEstimatedRealCostEUR, 0)),
+  );
   const gridColsClass = schools.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3";
 
   return (
@@ -108,14 +115,17 @@ export function ComparisonResults({ schools }: Props) {
       <div className={`grid gap-3.5 ${gridColsClass}`}>
         {schools.map((school) => {
           const gap = getPriceGap(school);
-          const announcedPct = Math.max(
-            6,
-            Math.round((school.advertisedPriceEUR / maxEstimated) * 100),
-          );
-          const estimatedPct = Math.max(
-            8,
-            Math.round((school.flypathEstimatedRealCostEUR / maxEstimated) * 100),
-          );
+          const hasAnnounced = school.advertisedPriceEUR > 0;
+          const hasEstimated = school.flypathEstimatedRealCostEUR > 0;
+          const hasComparableCosts = hasAnnounced && hasEstimated && Number.isFinite(gap);
+          const announcedPct =
+            hasComparableCosts && maxComparableCost > 0
+              ? Math.max(6, Math.round((school.advertisedPriceEUR / maxComparableCost) * 100))
+              : 0;
+          const estimatedPct =
+            hasComparableCosts && maxComparableCost > 0
+              ? Math.max(8, Math.round((school.flypathEstimatedRealCostEUR / maxComparableCost) * 100))
+              : 0;
           const flags = school.redFlags.slice(0, 2);
           const questions = school.keyQuestions.slice(0, 3);
           const reading = flypathReading(school, gap);
@@ -134,7 +144,7 @@ export function ComparisonResults({ schools }: Props) {
                     <p className="mt-0.5 text-[11px] text-slate-300">{school.city} · {school.baseAirport}</p>
                   </div>
                   <span className="rounded-full border border-[#c9a454]/35 bg-[#fff8e8] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7a5a16]">
-                    {school.dataStatus}
+                    {dataStatusLabel(school.dataStatus)}
                   </span>
                 </div>
               </div>
@@ -143,32 +153,41 @@ export function ComparisonResults({ schools }: Props) {
                 <section className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">A. Costes</p>
                   <div className="mt-1.5 space-y-1.5 text-sm text-slate-700">
-                    <p className="text-xs text-slate-600">Precio anunciado: <span className="font-semibold text-slate-700">{euro(school.advertisedPriceEUR)}</span></p>
+                    <p className="text-xs text-slate-600">
+                      Precio anunciado:{" "}
+                      <span className="text-base font-bold text-[#0f1a33]">
+                        {priceDisplay(school.advertisedPriceEUR, "No publicado")}
+                      </span>
+                    </p>
                     <p>
                       <span className="font-semibold text-[#0f1a33]">Coste real estimado FlyPath:</span>{" "}
-                      <span className="text-[17px] font-bold text-[#0f1a33]">{euro(school.flypathEstimatedRealCostEUR)}</span>
+                      <span className="text-[17px] font-bold text-[#0f1a33]">{priceDisplay(school.flypathEstimatedRealCostEUR, "Pendiente")}</span>
                     </p>
                     <p>
                       <span className="font-semibold text-slate-700">Brecha estimada:</span>{" "}
                       <span className="inline-flex rounded-full border border-[#c9a454]/45 bg-[#fff8e8] px-2 py-0.5 text-sm font-semibold text-[#7a5a16]">
-                        {euro(gap)}
+                        {hasComparableCosts ? euro(gap) : "Pendiente"}
                       </span>
                     </p>
                   </div>
-                  <div className="mt-2.5 space-y-1.5">
-                    <div>
-                      <p className="mb-0.5 text-[11px] text-slate-500">Anunciado</p>
-                      <div className="h-1.5 rounded-full bg-slate-100">
-                        <div className="h-1.5 rounded-full bg-slate-400/70" style={{ width: `${announcedPct}%` }} />
+                  {hasComparableCosts ? (
+                    <div className="mt-2.5 space-y-1.5">
+                      <div>
+                        <p className="mb-0.5 text-[11px] text-slate-500">Anunciado</p>
+                        <div className="h-1.5 rounded-full bg-slate-100">
+                          <div className="h-1.5 rounded-full bg-slate-400/70" style={{ width: `${announcedPct}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-0.5 text-[11px] text-slate-500">Real estimado</p>
+                        <div className="h-1.5 rounded-full bg-slate-100">
+                          <div className="h-1.5 rounded-full bg-[#0f1a33]" style={{ width: `${estimatedPct}%` }} />
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <p className="mb-0.5 text-[11px] text-slate-500">Real estimado</p>
-                      <div className="h-1.5 rounded-full bg-slate-100">
-                        <div className="h-1.5 rounded-full bg-[#0f1a33]" style={{ width: `${estimatedPct}%` }} />
-                      </div>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="mt-2.5 text-xs text-slate-500">Dato pendiente</p>
+                  )}
                 </section>
 
                 <section className="rounded-xl border border-slate-200 bg-white p-2.5">

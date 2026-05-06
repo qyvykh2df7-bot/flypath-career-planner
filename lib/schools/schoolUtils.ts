@@ -1,5 +1,5 @@
 import { schoolsSpainDataset } from "@/lib/schools/schoolsSpain";
-import type { Availability, DataConfidence, RouteType, SchoolEntry } from "@/types/schools";
+import type { Availability, DataConfidence, DataStatus, RouteType, SchoolEntry } from "@/types/schools";
 
 export type SchoolsFilters = {
   query: string;
@@ -42,16 +42,27 @@ export function getCities(entries: SchoolEntry[]): string[] {
 }
 
 export function getPriceGap(entry: SchoolEntry): number {
+  if (entry.advertisedPriceEUR <= 0 || entry.flypathEstimatedRealCostEUR <= 0) return NaN;
   return entry.flypathEstimatedRealCostEUR - entry.advertisedPriceEUR;
 }
 
 export function filterSchools(entries: SchoolEntry[], filters: SchoolsFilters): SchoolEntry[] {
   const query = filters.query.trim().toLowerCase();
   return entries.filter((entry) => {
+    const routeType = entry.routeType as RouteType | "mixed";
     const queryMatch =
       query.length === 0 ||
       `${entry.name} ${entry.city} ${entry.baseAirport}`.toLowerCase().includes(query);
-    const routeMatch = filters.routeType === "all" || entry.routeType === filters.routeType;
+    const routeMatch =
+      filters.routeType === "all" ||
+      (filters.routeType === "modular" &&
+        (routeType === "modular" || routeType === "mixed")) ||
+      (filters.routeType === "integrated" &&
+        (routeType === "integrated" ||
+          routeType === "university_plus_license" ||
+          routeType === "mixed")) ||
+      (filters.routeType === "university_plus_license" &&
+        routeType === "university_plus_license");
     const cityMatch = filters.city === "all" || entry.city === filters.city;
     const priceMatch = entry.advertisedPriceEUR <= filters.maxAdvertisedPrice;
     const confidenceMatch =
@@ -69,7 +80,10 @@ export function summarizeComparison(entries: SchoolEntry[]) {
   const bestTransparency = [...entries].sort(
     (a, b) => b.scores.documentTransparency - a.scores.documentTransparency,
   )[0];
-  const lowestGap = withGap.sort((a, b) => a.gap - b.gap)[0].school;
+  const lowestGap =
+    withGap
+      .filter((item) => Number.isFinite(item.gap))
+      .sort((a, b) => a.gap - b.gap)[0]?.school ?? entries[0];
   const mostPending = [...entries].sort((a, b) => b.pendingData.length - a.pendingData.length)[0];
 
   return {
@@ -97,4 +111,11 @@ export function availabilityLabel(level: Availability): string {
   if (level === "medium") return "Media";
   if (level === "low") return "Baja";
   return "Desconocido";
+}
+
+export function dataStatusLabel(status: DataStatus): string {
+  if (status === "partial") return "DATOS PARCIALES";
+  if (status === "verified") return "VERIFICADO";
+  if (status === "unknown") return "POR CONFIRMAR";
+  return "DEMO";
 }

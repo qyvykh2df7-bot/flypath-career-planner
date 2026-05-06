@@ -77,6 +77,14 @@ function SchoolsPageContent() {
     filters.maxAdvertisedPrice !== defaultMaxAdvertisedPrice ||
     filters.dataConfidence !== "all";
   const hasSearchActive = hasActiveFilters || searchSubmitted;
+  const totalSchoolsCount = schoolsDataset.length;
+  const filteredSchoolsCount = filtered.length;
+  const resultsCounterText =
+    filteredSchoolsCount === 0
+      ? "0 escuelas encontradas con estos filtros"
+      : hasActiveFilters
+        ? `Mostrando ${filteredSchoolsCount} de ${totalSchoolsCount} escuelas según tus filtros`
+        : `Mostrando ${totalSchoolsCount} escuelas`;
 
   const toggleSelection = (id: string) => {
     setSelectedIds((current) => {
@@ -506,9 +514,6 @@ function SchoolsPageContent() {
               </div>
             ) : null}
           </div>
-          <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            Versión demo: los datos actuales son ejemplos para probar la herramienta. La base real de escuelas en España se añadirá con fuentes, fecha de actualización y nivel de confianza.
-          </p>
         </section>
 
         {selectedSchools.length >= 2 ? <ComparisonResults schools={selectedSchools} /> : null}
@@ -516,8 +521,8 @@ function SchoolsPageContent() {
         {hasSearchActive ? (
           <section ref={resultsSectionRef} className={`${selectedSchools.length >= 2 ? "mt-8" : ""} space-y-4`}>
             <div className="space-y-1">
-              <p className="text-lg font-semibold text-[#0f1a33]">Cambiar escuelas seleccionadas</p>
-              <p className="text-sm text-slate-600">Busca o cambia las opciones para actualizar la comparación.</p>
+              <p className="text-lg font-semibold text-[#0f1a33]">Escuelas encontradas</p>
+              <p className="pt-1 text-sm font-medium text-slate-600/95">{resultsCounterText}</p>
             </div>
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">

@@ -6,6 +6,14 @@ function euro(value: number): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 }
 
+function displayAdvertisedPrice(value: number): string {
+  return value > 0 ? euro(value) : "No publicado";
+}
+
+function displayEstimatedPrice(value: number): string {
+  return value > 0 ? euro(value) : "Pendiente";
+}
+
 function label(value: string): string {
   if (value === "yes") return "Sí";
   if (value === "no") return "No";
@@ -24,6 +32,7 @@ export default async function SchoolDetailPage({
   if (!school) notFound();
 
   const priceGap = getPriceGap(school);
+  const hasComparableCosts = Number.isFinite(priceGap);
 
   return (
     <main className="min-h-screen bg-[#f8fafc] px-4 py-6 text-[#0f1a33] sm:px-6 lg:px-10 lg:py-8">
@@ -41,15 +50,15 @@ export default async function SchoolDetailPage({
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-slate-500">Precio anunciado</p>
-            <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(school.advertisedPriceEUR)}</p>
+            <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{displayAdvertisedPrice(school.advertisedPriceEUR)}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-slate-500">Coste real estimado FlyPath</p>
-            <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(school.flypathEstimatedRealCostEUR)}</p>
+            <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{displayEstimatedPrice(school.flypathEstimatedRealCostEUR)}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-slate-500">Brecha estimada</p>
-            <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(priceGap)}</p>
+            <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{hasComparableCosts ? euro(priceGap) : "Pendiente"}</p>
           </div>
         </section>
 
