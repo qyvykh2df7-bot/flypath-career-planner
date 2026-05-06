@@ -2155,7 +2155,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   };
 
   const handleOnboardingNext = () => {
-    if (onboardingStep === 3) {
+    if (onboardingStep === 3 && cameFromSchoolsComparator) {
+      setCostInputs({ ...defaultCostInputs });
+    }
+    if (onboardingStep === 5) {
       if (profile.costEstimateSource === "user_approx") {
         setCostInputs(mapOnboardingApproxToCostInputs(onboardingApproxDraft));
       } else {
@@ -2809,62 +2812,64 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       onChange={(v) => setProfile((p) => ({ ...p, toleranciaRiesgo: v as Profile["toleranciaRiesgo"] }))}
                     />
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-[#0f1a33]">¿Tienes ya precios aproximados de una escuela o ruta?</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "flypath_base" }))}
-                        className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
-                          profile.costEstimateSource === "flypath_base"
-                            ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                        }`}
-                      >
-                        No, usar estimación base FlyPath
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "user_approx" }))}
-                        className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
-                          profile.costEstimateSource === "user_approx"
-                            ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                        }`}
-                      >
-                        Sí, tengo precios aproximados
-                      </button>
-                    </div>
-                    {profile.costEstimateSource === "user_approx" ? (
-                      <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 md:grid-cols-2">
-                        <NumberField
-                          label="Precio anunciado de formación / escuela"
-                          value={onboardingApproxDraft.precioFormacion}
-                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, precioFormacion: Math.max(0, v) }))}
-                        />
-                        <NumberField
-                          label="Extras no incluidos estimados"
-                          value={onboardingApproxDraft.extrasEstimados}
-                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, extrasEstimados: Math.max(0, v) }))}
-                        />
-                        <NumberField
-                          label="Coste de vida y logística estimado"
-                          value={onboardingApproxDraft.vidaLogistica}
-                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, vidaLogistica: Math.max(0, v) }))}
-                        />
-                        <NumberField
-                          label="Margen de seguridad recomendado %"
-                          value={onboardingApproxDraft.bufferPct}
-                          onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, bufferPct: clamp(v, 0, 100) }))}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
                 </div>
               )}
               {onboardingStep === 4 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Disponibilidad" value={profile.disponibilidad} options={[{value:"full-time",label:"Full-time"},{value:"part-time",label:"Part-time"}]} onChange={(v)=>setProfile(p=>({...p,disponibilidad:v as Profile["disponibilidad"]}))} /><NumberField label="Horas por semana" value={profile.horasSemana} onChange={(v)=>setProfile(p=>({...p,horasSemana:v}))} /><SelectField label="Necesita trabajar durante formación" value={profile.necesitaTrabajar} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,necesitaTrabajar:v as Profile["necesitaTrabajar"]}))} /><SelectField label="Movilidad" value={profile.movilidad} options={[{value:"solo_espana",label:"Solo España"},{value:"europa",label:"Europa"},{value:"mundial",label:"Mundial"}]} onChange={(v)=>setProfile(p=>({...p,movilidad:v as Profile["movilidad"]}))} /><SelectField label="Urgencia" value={profile.urgencia} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,urgencia:v as Profile["urgencia"]}))} /></div>}
               {onboardingStep === 5 && (
                 <div className="space-y-4">
+                  {!cameFromSchoolsComparator ? (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="text-sm font-semibold text-[#0f1a33]">¿Tienes ya precios aproximados de una escuela o ruta?</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "flypath_base" }))}
+                          className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
+                            profile.costEstimateSource === "flypath_base"
+                              ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
+                              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          No, usar estimación base FlyPath
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "user_approx" }))}
+                          className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
+                            profile.costEstimateSource === "user_approx"
+                              ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
+                              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          Sí, tengo precios aproximados
+                        </button>
+                      </div>
+                      {profile.costEstimateSource === "user_approx" ? (
+                        <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 md:grid-cols-2">
+                          <NumberField
+                            label="Precio anunciado de formación / escuela"
+                            value={onboardingApproxDraft.precioFormacion}
+                            onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, precioFormacion: Math.max(0, v) }))}
+                          />
+                          <NumberField
+                            label="Extras no incluidos estimados"
+                            value={onboardingApproxDraft.extrasEstimados}
+                            onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, extrasEstimados: Math.max(0, v) }))}
+                          />
+                          <NumberField
+                            label="Coste de vida y logística estimado"
+                            value={onboardingApproxDraft.vidaLogistica}
+                            onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, vidaLogistica: Math.max(0, v) }))}
+                          />
+                          <NumberField
+                            label="Margen de seguridad recomendado %"
+                            value={onboardingApproxDraft.bufferPct}
+                            onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, bufferPct: clamp(v, 0, 100) }))}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {cameFromSchoolsComparator && hasComparatorImportedSchools ? (
                     <div className="rounded-xl border border-slate-200 bg-[#fffdf7] px-3 py-2.5">
                       <p className="text-sm text-slate-700">
