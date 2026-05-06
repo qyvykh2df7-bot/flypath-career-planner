@@ -19,7 +19,7 @@ export function SchoolCard({ school, selected, onToggleSelect }: Props) {
       />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1 pl-2">
-          <h3 className="text-[1.08rem] font-semibold leading-tight text-[#0f1a33] sm:text-[1.12rem]">
+          <h3 className="line-clamp-2 text-[1.18rem] font-bold leading-snug text-[#0f1a33] sm:text-[1.22rem]">
             {school.name}
           </h3>
           <p className="mt-1.5 text-[13px] text-slate-500 sm:text-sm">

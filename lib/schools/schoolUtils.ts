@@ -106,6 +106,38 @@ export function confidenceLabel(confidence: DataConfidence): string {
   return "Baja";
 }
 
+/**
+ * Guía interna FlyPath para asignar dataConfidence/dataConfidenceScore.
+ *
+ * - high (alta): 80-90
+ *   Usar solo con fuente oficial actualizada + precio vigente + incluidos/excluidos claros +
+ *   contrato/condiciones antes de pagar + calendario de pagos + reembolso + bases/duracion/flota/requisitos.
+ *
+ * - medium (media): 60-75
+ *   Hay bastantes datos oficiales públicos, pero faltan elementos críticos para decidir pago
+ *   (p. ej. contrato completo, calendario de pagos, depósito/matrícula, política de reembolso,
+ *   vigencia exacta del precio o condiciones de reintentos).
+ *
+ * - low (baja): 30-55
+ *   La escuela existe y hay algunos datos oficiales, pero la parte económica/contractual/incluidos
+ *   sigue incompleta.
+ *
+ * - muy baja: 0-30
+ *   Apenas hay datos verificables.
+ */
+export const FLYPATH_DATA_CONFIDENCE_SCORE_GUIDE = {
+  high: { min: 80, max: 90 },
+  medium: { min: 60, max: 75 },
+  low: { min: 30, max: 55 },
+  veryLow: { min: 0, max: 30 },
+} as const;
+
+export function getConfidenceScoreBand(confidence: DataConfidence): { min: number; max: number } {
+  if (confidence === "high") return FLYPATH_DATA_CONFIDENCE_SCORE_GUIDE.high;
+  if (confidence === "medium") return FLYPATH_DATA_CONFIDENCE_SCORE_GUIDE.medium;
+  return FLYPATH_DATA_CONFIDENCE_SCORE_GUIDE.low;
+}
+
 export function availabilityLabel(level: Availability): string {
   if (level === "high") return "Alta";
   if (level === "medium") return "Media";
@@ -113,9 +145,10 @@ export function availabilityLabel(level: Availability): string {
   return "Desconocido";
 }
 
-export function dataStatusLabel(status: DataStatus): string {
-  if (status === "partial") return "DATOS PARCIALES";
-  if (status === "verified") return "VERIFICADO";
-  if (status === "unknown") return "POR CONFIRMAR";
-  return "DEMO";
+export function dataStatusLabel(status: DataStatus | "pending" | "minimal"): string {
+  if (status === "partial") return "En revisión";
+  if (status === "unknown" || status === "pending") return "Pendiente";
+  if (status === "minimal") return "Datos mínimos";
+  if (status === "verified") return "Verificada";
+  return "Demo";
 }
