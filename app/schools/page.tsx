@@ -64,6 +64,11 @@ function SchoolsPageContent() {
 
   const filtered = useMemo(() => filterSchools(schoolsDataset, filters), [filters]);
   const selectedSchools = useMemo(() => getSchoolsByIds(selectedIds), [selectedIds]);
+  const plannerCtaHref = useMemo(() => {
+    if (selectedSchools.length === 0) return "/";
+    const slugs = selectedSchools.map((school) => school.slug).join(",");
+    return `/?schools=${encodeURIComponent(slugs)}&start=onboarding&source=schools-comparator`;
+  }, [selectedSchools]);
   const cities = useMemo(() => getCities(schoolsDataset), []);
   const hasActiveFilters =
     filters.query.trim().length > 0 ||
@@ -541,7 +546,7 @@ function SchoolsPageContent() {
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
-                href="/"
+                href={plannerCtaHref}
                 className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2 text-sm font-semibold text-[#0f1a33] hover:bg-[#ddb75c]"
               >
                 Analizar mi caso en Career Planner

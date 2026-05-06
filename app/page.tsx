@@ -26,6 +26,8 @@ import {
   X,
 } from "lucide-react";
 import type { FlyPathInformePdfInput, FlyPathResumenPadresPdfInput } from "@/lib/flypathReportPdf";
+import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
+import type { SchoolEntry } from "@/types/schools";
 
 type Screen = "landing" | "onboarding" | "dashboard";
 export type Tab = "route" | "cost" | "schools" | "plan" | "readiness" | "report";
@@ -576,6 +578,89 @@ function mapOnboardingApproxToCostInputs(approx: {
     otrosGastosVida: v[3],
     bufferPct: clamp(Math.round(approx.bufferPct), 0, 100),
   };
+}
+
+function mapComparatorSchoolToPlannerSchool(source: SchoolEntry, id: number): School {
+  const paymentText = source.paymentScheduleSummary.trim().toLowerCase();
+  const refundText = source.refundPolicySummary.trim().toLowerCase();
+  const supportText = source.jobSupportSummary.trim().toLowerCase();
+
+  const calendarioPagosClaro: YesNoUnknown = paymentText.length > 0 ? "si" : "no_se";
+  const reembolsoClaro: YesNoUnknown =
+    refundText.includes("sin") || refundText.includes("no ")
+      ? "no"
+      : refundText.length > 0
+        ? "si"
+        : "no_se";
+  const careerSupport: YesNoUnknown = supportText.length > 0 ? "si" : "no_se";
+
+  return {
+    id,
+    nombre: source.name,
+    pais: source.country,
+    ciudad: source.city,
+    programa:
+      source.routeType === "integrated"
+        ? "integrado"
+        : source.routeType === "modular"
+          ? "modular"
+          : "no_lo_se",
+    precioAnunciado: source.advertisedPriceEUR,
+    duracionMeses: source.programDurationMonths,
+    depositoRequerido: source.depositOrEnrollmentFeeEUR,
+    calendarioPagosClaro,
+    mccIncluido: mapYesNoOptionalUnknownToPlanner(source.mccJocIncluded),
+    uprtIncluido: mapYesNoOptionalUnknownToPlanner(source.advancedUprtIncluded),
+    tasasIncluidas: mapYesNoUnknownToPlanner(source.examFeesIncluded),
+    skillTestsIncluidos: mapYesNoUnknownToPlanner(source.skillTestsIncluded),
+    alojamientoIncluido: mapYesNoOptionalUnknownToPlanner(source.accommodationIncluded),
+    reembolsoClaro,
+    contratoAntesPagar: mapYesNoPartialUnknownToPlanner(source.contractAvailableBeforePayment),
+    flotaExplicada: source.fleetSummary.trim().length > 0 ? "si" : "no_se",
+    mantenimientoExplicado: "no_se",
+    ratioAlumnoAvionConocido: source.studentAircraftRatio ? "si" : "no_se",
+    permiteHablarAlumnos: "no_se",
+    careerSupport,
+    promesasEmpleo: mapEmploymentClaimsToPlanner(source.employmentClaimsType),
+    fuentePrecio: "no_verificado",
+    fechaActualizacion: source.lastUpdatedAt,
+    estadoVerificacion:
+      source.dataStatus === "verified"
+        ? "verificado"
+        : source.dataStatus === "partial"
+          ? "parcialmente_verificado"
+          : source.dataStatus === "unknown"
+            ? "pendiente"
+            : "no_verificado",
+    enlaceReferencia: `comparador:${source.slug}`,
+    notas: `Importada desde comparador FlyPath (${source.slug}).`,
+  };
+}
+
+function mapYesNoOptionalUnknownToPlanner(value: "yes" | "no" | "optional" | "unknown"): YesNoUnknown {
+  if (value === "yes") return "si";
+  if (value === "no") return "no";
+  return "no_se";
+}
+
+function mapYesNoUnknownToPlanner(value: "yes" | "no" | "unknown"): YesNoUnknown {
+  if (value === "yes") return "si";
+  if (value === "no") return "no";
+  return "no_se";
+}
+
+function mapYesNoPartialUnknownToPlanner(value: "yes" | "no" | "partial" | "unknown"): YesNoUnknown {
+  if (value === "yes") return "si";
+  if (value === "no") return "no";
+  return "no_se";
+}
+
+function mapEmploymentClaimsToPlanner(value: SchoolEntry["employmentClaimsType"]): School["promesasEmpleo"] {
+  if (value === "none") return "ninguna";
+  if (value === "vague") return "vagas";
+  if (value === "clear_non_guaranteed") return "claras_no_garantizadas";
+  if (value === "guaranteed_claimed") return "garantia_contractual";
+  return "no_se";
 }
 
 const exampleSchools: School[] = [
@@ -1695,6 +1780,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [landingGuideCoverAvailable, setLandingGuideCoverAvailable] = useState(false);
   const [landingHeroBgPhotoSrc, setLandingHeroBgPhotoSrc] = useState<string | null>(null);
   const [landingModuleMenuOpen, setLandingModuleMenuOpen] = useState(false);
+  const [cameFromSchoolsComparator, setCameFromSchoolsComparator] = useState(false);
   const landingModuleMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1753,6 +1839,11 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
 
     const params = new URLSearchParams(window.location.search);
     const reviewParam = params.get("review");
+    const schoolsParam = params.get("schools");
+    const startParam = params.get("start");
+    const sourceParam = params.get("source");
+    const isSchoolsComparatorSource = sourceParam === "schools-comparator";
+    const shouldStartOnboarding = startParam === "onboarding" || isSchoolsComparatorSource;
     const requestedTab = params.get("tab") as Tab | null;
     const validTabs: Tab[] = ["route", "cost", "schools", "plan", "readiness", "report"];
 
@@ -1762,6 +1853,69 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       if (requestedTab && validTabs.includes(requestedTab)) {
         setTab(requestedTab);
       }
+    }
+
+    if (schoolsParam) {
+      const slugs = schoolsParam
+        .split(",")
+        .map((value) => decodeURIComponent(value).trim())
+        .filter(Boolean);
+
+      if (slugs.length > 0) {
+        setSchools((current) => {
+          const existingSlugKeys = new Set(
+            current
+              .map((school) =>
+                school.enlaceReferencia.startsWith("comparador:")
+                  ? school.enlaceReferencia.replace("comparador:", "")
+                  : null,
+              )
+              .filter((value): value is string => Boolean(value)),
+          );
+          const existingNames = new Set(current.map((school) => school.nombre.trim().toLowerCase()));
+
+          const availableSlots = Math.max(0, 3 - current.length);
+          const schoolsToImport: School[] = [];
+          let nextId = current.length > 0 ? Math.max(...current.map((school) => school.id)) + 1 : 1;
+
+          for (const slug of slugs) {
+            if (schoolsToImport.length >= availableSlots) break;
+            if (existingSlugKeys.has(slug)) continue;
+
+            const comparatorSchool = getSchoolBySlug(slug);
+            if (!comparatorSchool) continue;
+
+            const normalizedName = comparatorSchool.name.trim().toLowerCase();
+            if (existingNames.has(normalizedName)) continue;
+
+            schoolsToImport.push(mapComparatorSchoolToPlannerSchool(comparatorSchool, nextId));
+            existingSlugKeys.add(slug);
+            existingNames.add(normalizedName);
+            nextId += 1;
+          }
+
+          if (schoolsToImport.length > 0) {
+            setToast("Escuelas importadas desde el comparador.");
+            window.setTimeout(
+              () => setToast((currentToast) => (currentToast === "Escuelas importadas desde el comparador." ? null : currentToast)),
+              2300,
+            );
+            return [...current, ...schoolsToImport];
+          }
+
+          return current;
+        });
+      }
+    }
+
+    if (isSchoolsComparatorSource) {
+      setCameFromSchoolsComparator(true);
+      setProfile((current) => ({ ...current, costEstimateSource: "flypath_base" }));
+    }
+
+    if (shouldStartOnboarding) {
+      setScreen("onboarding");
+      setOnboardingStep(1);
     }
   }, [reviewMode]);
 
@@ -1858,6 +2012,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
 
   const shouldPayNow = decisionReadiness.decision === "Listo para decidir con condiciones";
   const hasExampleSchools = schools.some((s) => s.isExample);
+  const hasComparatorImportedSchools = schools.some((s) => s.enlaceReferencia.startsWith("comparador:"));
   const keyDataEdited = Boolean(profile.nombre.trim()) && profile.dineroDisponible !== defaultProfile.dineroDisponible && schools.length > 0;
   const isUsingDemoData = hasExampleSchools || !keyDataEdited;
   const routePriorityLabels = useMemo(() => {
@@ -2708,7 +2863,33 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
               )}
               {onboardingStep === 4 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Disponibilidad" value={profile.disponibilidad} options={[{value:"full-time",label:"Full-time"},{value:"part-time",label:"Part-time"}]} onChange={(v)=>setProfile(p=>({...p,disponibilidad:v as Profile["disponibilidad"]}))} /><NumberField label="Horas por semana" value={profile.horasSemana} onChange={(v)=>setProfile(p=>({...p,horasSemana:v}))} /><SelectField label="Necesita trabajar durante formación" value={profile.necesitaTrabajar} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,necesitaTrabajar:v as Profile["necesitaTrabajar"]}))} /><SelectField label="Movilidad" value={profile.movilidad} options={[{value:"solo_espana",label:"Solo España"},{value:"europa",label:"Europa"},{value:"mundial",label:"Mundial"}]} onChange={(v)=>setProfile(p=>({...p,movilidad:v as Profile["movilidad"]}))} /><SelectField label="Urgencia" value={profile.urgencia} options={[{value:"baja",label:"Baja"},{value:"media",label:"Media"},{value:"alta",label:"Alta"}]} onChange={(v)=>setProfile(p=>({...p,urgencia:v as Profile["urgencia"]}))} /></div>}
-              {onboardingStep === 5 && <div className="space-y-4"><p className="text-sm text-slate-600">Puedes añadir hasta 3 escuelas iniciales.</p><div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} /><TextField label="País" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} /><NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} /><NumberField label="Duración anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} /><SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} /><SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} /><TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} /><SelectField label="Estado de verificación" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} /></div><button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Añadir escuela inicial</button></div>}
+              {onboardingStep === 5 && (
+                <div className="space-y-4">
+                  {cameFromSchoolsComparator && hasComparatorImportedSchools ? (
+                    <div className="rounded-xl border border-slate-200 bg-[#fffdf7] px-3 py-2.5">
+                      <p className="text-sm text-slate-700">
+                        Hemos importado tus escuelas seleccionadas desde el comparador. Usaremos esos datos como base y podrás ajustar costes después en el dashboard.
+                      </p>
+                    </div>
+                  ) : null}
+                  <p className="text-sm text-slate-600">
+                    {cameFromSchoolsComparator && hasComparatorImportedSchools
+                      ? "Ya hemos cargado tus escuelas seleccionadas. Puedes añadir o ajustar datos si lo necesitas."
+                      : "Puedes añadir hasta 3 escuelas iniciales."}
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} />
+                    <TextField label="País" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} />
+                    <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} />
+                    <NumberField label="Duración anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} />
+                    <SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} />
+                    <SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} />
+                    <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} />
+                    <SelectField label="Estado de verificación" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} />
+                  </div>
+                  <button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Añadir escuela inicial</button>
+                </div>
+              )}
               {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razón principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} /></div>}
             </div>
             <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5">
@@ -2751,7 +2932,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       <div className="mx-auto flex min-w-0 max-w-[1600px]">
         <aside
           id="dashboard-sidebar-nav"
-          className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-1rem))] flex-col overflow-y-auto border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-7 text-slate-100 shadow-[4px_0_24px_rgba(15,26,51,0.18)] transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-72 lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:overflow-y-auto lg:shadow-sm ${
+          className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-1rem))] flex-col overflow-y-auto border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-7 text-slate-100 shadow-[4px_0_24px_rgba(15,26,51,0.18)] transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:h-auto lg:min-h-full lg:w-72 lg:max-w-none lg:self-stretch lg:shrink-0 lg:translate-x-0 lg:overflow-y-auto lg:shadow-sm ${
             dashboardMobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >
