@@ -1,54 +1,134 @@
 "use client";
 
 import Link from "next/link";
-import { dataStatusLabel } from "@/lib/schools/schoolUtils";
+import {
+  dataStatusLabel,
+  getSchoolCardBackgroundUrl,
+  schoolListingCardBody,
+} from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
 
 type Props = {
   school: SchoolEntry;
   selected: boolean;
   onToggleSelect: (id: string) => void;
+  /** Si es false, no se puede añadir a comparación desde esta card (listado pendientes). */
+  allowComparison: boolean;
+  /** True cuando ya hay el máximo de escuelas en comparación y esta card no está seleccionada. */
+  selectionFull?: boolean;
+  /** En la sección secundaria del listado, el badge muestra siempre “PENDIENTE”. */
+  forcePendingListingBadge?: boolean;
 };
 
-export function SchoolCard({ school, selected, onToggleSelect }: Props) {
+export function SchoolCard({
+  school,
+  selected,
+  onToggleSelect,
+  allowComparison,
+  selectionFull,
+  forcePendingListingBadge,
+}: Props) {
+  const listingBody = schoolListingCardBody(school);
+  const badgeText = forcePendingListingBadge ? "PENDIENTE" : dataStatusLabel(school.dataStatus);
+  const backgroundUrl = getSchoolCardBackgroundUrl(school);
+
   return (
-    <article className="relative rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-5 shadow-[0_10px_26px_-18px_rgba(15,26,51,0.35)] sm:p-6">
-      <span
-        aria-hidden="true"
-        className="absolute left-0 top-4 bottom-4 w-[3px] rounded-r-full bg-[#0f1a33]/85"
-      />
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1 pl-2">
-          <h3 className="line-clamp-2 text-[1.18rem] font-bold leading-snug text-[#0f1a33] sm:text-[1.22rem]">
-            {school.name}
-          </h3>
-          <p className="mt-1.5 text-[13px] text-slate-500 sm:text-sm">
-            {school.city}, {school.country} · Base {school.baseAirport}
-          </p>
-        </div>
-        <span className="mt-0.5 shrink-0 rounded-full border border-[#c9a454]/30 bg-[#fffaf0] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#7a5a16]">
-          {dataStatusLabel(school.dataStatus)}
-        </span>
-      </div>
-      <p className="mt-3.5 pl-2 text-sm leading-6 text-slate-600">{school.shortDescription}</p>
-      <div className="mt-5 flex flex-wrap gap-2.5 pl-2">
-        <button
-          type="button"
-          onClick={() => onToggleSelect(school.id)}
-          className={`inline-flex min-h-[38px] items-center justify-center rounded-xl px-3.5 py-2 text-sm font-semibold transition ${
-            selected
-              ? "border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
-              : "border border-[#0f1a33] bg-[#0f1a33] text-white hover:border-[#17284d] hover:bg-[#17284d]"
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_10px_30px_-14px_rgba(15,26,51,0.22)] transition duration-300 hover:-translate-y-0.5 hover:border-[#c9a454]/45 hover:shadow-[0_18px_40px_-14px_rgba(15,26,51,0.32)]">
+      {/* Franja superior compacta: imagen de categoría + overlay navy + nombre a la izquierda. */}
+      <div className="relative h-[66px] overflow-hidden">
+        {/* Capa 1 (fallback): gradiente premium navy. Queda visible si la imagen no carga. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-br from-[#0a1228] via-[#132447] to-[#1f3066]"
+        />
+        {/* Capa 2: imagen de categoría como background-image (cover, center). */}
+        <div
+          aria-hidden="true"
+          role="presentation"
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${backgroundUrl})` }}
+        />
+        {/* Capa 3: overlay navy uniforme (suficiente contraste para texto blanco). */}
+        <div aria-hidden="true" className="absolute inset-0 bg-[#0a1228]/68" />
+        {/* Capa 4: blob dorado sutil + viñeta lateral para look premium. */}
+        <div
+          aria-hidden="true"
+          className="absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#c9a454]/18 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -left-10 bottom-[-28px] h-28 w-28 rounded-full bg-white/5 blur-2xl"
+        />
+        {/* Capa 5: línea dorada inferior como separador. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#c9a454]/55 to-transparent"
+        />
+
+        {/* Badge de estado: top-right del strip (compacto para no robar protagonismo al nombre). */}
+        <span
+          className={`absolute right-2.5 top-2.5 z-10 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] backdrop-blur-sm ${
+            forcePendingListingBadge
+              ? "border-amber-200/55 bg-amber-100/15 text-amber-100"
+              : "border-[#c9a454]/55 bg-[#c9a454]/15 text-[#f2ddaa]"
           }`}
         >
-          {selected ? "Quitar de comparación" : "Añadir a comparación"}
-        </button>
-        <Link
-          href={`/schools/${school.slug}`}
-          className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-[#0f1a33] hover:bg-slate-50"
-        >
-          Ver ficha
-        </Link>
+          {badgeText}
+        </span>
+
+        {/* Nombre de la escuela: alineado a la IZQUIERDA, centrado verticalmente. */}
+        {/* `pr-24` reserva espacio al badge (top-right) para evitar cualquier solape. */}
+        <div className="pointer-events-none absolute inset-0 flex items-center pl-5 pr-24 sm:pl-6">
+          <h3
+            className="line-clamp-2 text-[1.125rem] font-extrabold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-[1.375rem]"
+            title={school.name}
+          >
+            {school.name}
+          </h3>
+        </div>
+      </div>
+
+      {/* Cuerpo */}
+      <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
+        <p className="text-[13px] text-slate-500 sm:text-sm">
+          {school.city}, {school.country} · Base {school.baseAirport}
+        </p>
+        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{listingBody}</p>
+
+        {/* Botones inferiores: principal dorado de marca + secundario outline */}
+        <div className="mt-auto flex flex-wrap items-stretch gap-2.5 pt-5">
+          {allowComparison || selected ? (
+            <button
+              type="button"
+              disabled={Boolean(selectionFull && !selected)}
+              title={
+                selectionFull && !selected ? "Ya has seleccionado el máximo de escuelas para comparar (2)." : undefined
+              }
+              onClick={() => onToggleSelect(school.id)}
+              className={`inline-flex min-h-[40px] flex-1 basis-[140px] items-center justify-center rounded-xl px-3.5 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 disabled:cursor-not-allowed disabled:opacity-55 ${
+                selected
+                  ? "border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  : "border border-[#c9a454] bg-[#c9a454] text-[#0f1a33] shadow-sm hover:border-[#ddb75c] hover:bg-[#ddb75c]"
+              }`}
+            >
+              {selected ? "Quitar de comparación" : "Añadir a comparación"}
+            </button>
+          ) : (
+            <span
+              role="status"
+              title="Esta entidad aún no tiene datos mínimos comparables en FlyPath."
+              className="inline-flex min-h-[40px] flex-1 basis-[140px] cursor-not-allowed items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-500"
+            >
+              Pendiente de datos
+            </span>
+          )}
+          <Link
+            href={`/schools/${school.slug}`}
+            className="inline-flex min-h-[40px] flex-1 basis-[120px] items-center justify-center rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-[#0f1a33] transition hover:border-[#0f1a33]/55 hover:bg-slate-50"
+          >
+            Ver ficha
+          </Link>
+        </div>
       </div>
     </article>
   );

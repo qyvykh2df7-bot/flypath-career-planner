@@ -11,9 +11,9 @@ export function ComparisonPanel({ selectedSchools, onRemove }: Props) {
   const count = selectedSchools.length;
   const helperText =
     count === 0
-      ? "Añade al menos 2 escuelas para desbloquear la comparación visual."
+      ? "Añade 2 escuelas para desbloquear la comparación visual."
       : count === 1
-        ? "Selecciona al menos una escuela más para comparar."
+        ? "Selecciona la segunda escuela para comparar."
         : "Comparación lista. Puedes revisar el resumen comparativo más abajo.";
   return (
     <section
@@ -35,7 +35,7 @@ export function ComparisonPanel({ selectedSchools, onRemove }: Props) {
       <p
         className={`mt-1 ${count >= 2 ? "text-sm text-slate-200" : count === 0 ? "text-[13px] text-slate-600" : "text-[13px] text-slate-200"}`}
       >
-        {count}/3 escuelas seleccionadas
+        {count}/2 escuelas seleccionadas
       </p>
       <p
         className={`mt-1 ${count >= 2 ? "text-sm text-slate-300" : count === 0 ? "text-[12px] text-slate-500" : "text-[12px] text-slate-300"}`}

@@ -6,18 +6,22 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, Plane } from "lucide-react";
 import { ComparisonResults } from "@/components/schools/ComparisonResults";
+import { FlypathComparisonConclusion } from "@/components/schools/FlypathComparisonConclusion";
 import { SchoolCard } from "@/components/schools/SchoolCard";
 import {
   filterSchools,
-  getAllSchools,
   getCities,
-  getSchoolBySlug,
+  getComparableSchoolBySlug,
+  getComparableSchools,
   getSchoolsByIds,
+  isMainListingSchool,
+  schoolAllowsListingComparison,
+  sortMainListingSchools,
   type SchoolsFilters,
 } from "@/lib/schools/schoolUtils";
-import type { DataConfidence, RouteType } from "@/types/schools";
+import type { DataConfidence, RouteType, SchoolEntry } from "@/types/schools";
 
-const MAX_SELECTED = 3;
+const MAX_SELECTED = 2;
 const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
 
 function readStoredSelectedIds(): string[] {
@@ -27,7 +31,7 @@ function readStoredSelectedIds(): string[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
-    const valid = new Set(getAllSchools().map((s) => s.id));
+    const valid = new Set(getComparableSchools().map((s) => s.id));
     return parsed
       .filter((id): id is string => typeof id === "string" && valid.has(id))
       .slice(0, MAX_SELECTED);
@@ -37,7 +41,7 @@ function readStoredSelectedIds(): string[] {
 }
 
 function SchoolsPageContent() {
-  const schoolsDataset = getAllSchools();
+  const schoolsDataset = useMemo(() => getComparableSchools(), []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultMaxAdvertisedPrice = 140000;
@@ -62,14 +66,36 @@ function SchoolsPageContent() {
   const [headerLogoFallback, setHeaderLogoFallback] = useState(false);
   const moduleMenuRef = useRef<HTMLDivElement>(null);
 
-  const filtered = useMemo(() => filterSchools(schoolsDataset, filters), [filters]);
+  const filtered = useMemo(() => filterSchools(schoolsDataset, filters), [schoolsDataset, filters]);
+  const listingBuckets = useMemo(() => {
+    const main: SchoolEntry[] = [];
+    const pending: SchoolEntry[] = [];
+    for (const s of filtered) {
+      if (isMainListingSchool(s)) main.push(s);
+      else pending.push(s);
+    }
+    pending.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return { mainSchools: sortMainListingSchools(main), pendingSchools: pending };
+  }, [filtered]);
+  const catalogBuckets = useMemo(() => {
+    let catalogMain = 0;
+    let catalogPending = 0;
+    for (const s of schoolsDataset) {
+      if (isMainListingSchool(s)) catalogMain++;
+      else catalogPending++;
+    }
+    return { catalogMain, catalogPending };
+  }, [schoolsDataset]);
   const selectedSchools = useMemo(() => getSchoolsByIds(selectedIds), [selectedIds]);
   const plannerCtaHref = useMemo(() => {
     if (selectedSchools.length === 0) return "/";
     const slugs = selectedSchools.map((school) => school.slug).join(",");
     return `/?schools=${encodeURIComponent(slugs)}&start=onboarding&source=schools-comparator`;
   }, [selectedSchools]);
-  const cities = useMemo(() => getCities(schoolsDataset), []);
+  const cities = useMemo(
+    () => getCities(schoolsDataset.filter(isMainListingSchool)),
+    [schoolsDataset],
+  );
   const hasActiveFilters =
     filters.query.trim().length > 0 ||
     filters.routeType !== "all" ||
@@ -77,14 +103,7 @@ function SchoolsPageContent() {
     filters.maxAdvertisedPrice !== defaultMaxAdvertisedPrice ||
     filters.dataConfidence !== "all";
   const hasSearchActive = hasActiveFilters || searchSubmitted;
-  const totalSchoolsCount = schoolsDataset.length;
   const filteredSchoolsCount = filtered.length;
-  const resultsCounterText =
-    filteredSchoolsCount === 0
-      ? "0 escuelas encontradas con estos filtros"
-      : hasActiveFilters
-        ? `Mostrando ${filteredSchoolsCount} de ${totalSchoolsCount} escuelas según tus filtros`
-        : `Mostrando ${totalSchoolsCount} escuelas`;
 
   const toggleSelection = (id: string) => {
     setSelectedIds((current) => {
@@ -138,7 +157,7 @@ function SchoolsPageContent() {
 
     router.replace("/schools", { scroll: false });
 
-    const school = getSchoolBySlug(slug);
+    const school = getComparableSchoolBySlug(slug);
     if (!school) return;
 
     setSearchSubmitted(true);
@@ -146,7 +165,7 @@ function SchoolsPageContent() {
     setSelectedIds((current) => {
       if (current.includes(school.id)) return current;
       if (current.length >= MAX_SELECTED) {
-        queueMicrotask(() => showToast("Máximo 3 escuelas en comparación"));
+        queueMicrotask(() => showToast("Máximo 2 escuelas en comparación"));
         return current;
       }
       return [...current, school.id];
@@ -180,9 +199,9 @@ function SchoolsPageContent() {
 
   const comparisonStatusText =
     selectedSchools.length === 0
-      ? "Añade al menos 2 escuelas para desbloquear la comparación visual."
+      ? "Añade 2 escuelas para desbloquear la comparación visual."
       : selectedSchools.length === 1
-        ? "Añade una escuela más para comparar."
+        ? "Selecciona la segunda escuela para comparar."
         : "Comparación desbloqueada. Revisa el panel comparativo más abajo.";
 
   const startComparison = () => {
@@ -366,7 +385,7 @@ function SchoolsPageContent() {
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-600">
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">1. Busca</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">2. Selecciona 2-3 escuelas</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">2. Selecciona 2 escuelas</span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">3. Compara riesgos</span>
               </div>
             </div>
@@ -376,7 +395,6 @@ function SchoolsPageContent() {
                 {[
                   { name: "Escuela A", cost: "Mayor brecha", tone: "bg-amber-300/55" },
                   { name: "Escuela B", cost: "Más claridad", tone: "bg-emerald-300/55" },
-                  { name: "Escuela C", cost: "Datos pendientes", tone: "bg-slate-300/55" },
                 ].map((row) => (
                   <div key={row.name} className="rounded-xl border border-white/10 bg-white/[0.06] p-3">
                     <div className="flex items-center justify-between gap-2">
@@ -406,7 +424,7 @@ function SchoolsPageContent() {
         <section ref={searchSectionRef} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-lg font-semibold text-[#0f1a33]">Empieza tu comparación</p>
           <p className="mt-1 text-sm text-slate-600">
-            Busca una escuela, ciudad o tipo de ruta. Después selecciona 2 o 3 opciones para compararlas con criterios FlyPath.
+            Busca una escuela, ciudad o tipo de ruta. Después selecciona 2 escuelas para compararlas con criterios FlyPath.
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
             <label className="block">
@@ -492,7 +510,7 @@ function SchoolsPageContent() {
           </div>
           <div ref={comparisonPanelRef} className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">Comparación activa</p>
-            <p className="mt-0.5 text-sm font-medium text-[#0f1a33]">{selectedSchools.length}/3 escuelas seleccionadas</p>
+            <p className="mt-0.5 text-sm font-medium text-[#0f1a33]">{selectedSchools.length}/{MAX_SELECTED} escuelas seleccionadas</p>
             <p className="mt-0.5 text-xs text-slate-600">{comparisonStatusText}</p>
             {selectedSchools.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -516,28 +534,95 @@ function SchoolsPageContent() {
           </div>
         </section>
 
-        {selectedSchools.length >= 2 ? <ComparisonResults schools={selectedSchools} /> : null}
+        {selectedSchools.length === 2 ? (
+          <>
+            <ComparisonResults schools={selectedSchools} />
+            <FlypathComparisonConclusion
+              schools={[selectedSchools[0], selectedSchools[1]]}
+              onProfileCta={() => {
+                if (selectedSchools.length !== 2) {
+                  showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
+                  return;
+                }
+                const slugs = selectedSchools
+                  .map((school) => school.slug)
+                  .filter(Boolean);
+                if (slugs.length !== 2) {
+                  showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
+                  return;
+                }
+                try {
+                  window.localStorage.setItem(
+                    "flypath_pending_comparator_schools",
+                    JSON.stringify(slugs),
+                  );
+                } catch {
+                  // localStorage opcional: la URL ya transporta los slugs.
+                }
+                const query = new URLSearchParams({
+                  source: "schools-comparator",
+                  schools: slugs.join(","),
+                });
+                router.push(`/?${query.toString()}`);
+              }}
+            />
+          </>
+        ) : null}
 
         {hasSearchActive ? (
           <section ref={resultsSectionRef} className={`${selectedSchools.length >= 2 ? "mt-8" : ""} space-y-4`}>
             <div className="space-y-1">
               <p className="text-lg font-semibold text-[#0f1a33]">Escuelas encontradas</p>
-              <p className="pt-1 text-sm font-medium text-slate-600/95">{resultsCounterText}</p>
+              {filteredSchoolsCount === 0 ? (
+                <p className="pt-1 text-sm font-medium text-slate-600/95">
+                  0 escuelas encontradas con estos filtros
+                </p>
+              ) : (
+                <p className="pt-1 text-sm font-medium text-slate-600/95">
+                  Mostrando {listingBuckets.mainSchools.length} de {catalogBuckets.catalogMain} escuelas
+                </p>
+              )}
             </div>
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
                 No hay escuelas que coincidan con estos filtros.
               </div>
             ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
-                {filtered.map((school) => (
-                  <SchoolCard
-                    key={school.id}
-                    school={school}
-                    selected={selectedIds.includes(school.id)}
-                    onToggleSelect={toggleSelection}
-                  />
-                ))}
+              <div className="space-y-8">
+                {listingBuckets.mainSchools.length > 0 ? (
+                  <div className="grid items-stretch gap-4 lg:grid-cols-2">
+                    {listingBuckets.mainSchools.map((school) => (
+                      <SchoolCard
+                        key={school.id}
+                        school={school}
+                        selected={selectedIds.includes(school.id)}
+                        onToggleSelect={toggleSelection}
+                        allowComparison={schoolAllowsListingComparison(school)}
+                        selectionFull={selectedIds.length >= MAX_SELECTED && !selectedIds.includes(school.id)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                {listingBuckets.pendingSchools.length > 0 ? (
+                  <div className="space-y-3">
+                    <h3 className="text-base font-semibold text-[#0f1a33]">
+                      Pendientes de revisión / formación inicial
+                    </h3>
+                    <div className="grid items-stretch gap-4 lg:grid-cols-2">
+                      {listingBuckets.pendingSchools.map((school) => (
+                        <SchoolCard
+                          key={school.id}
+                          school={school}
+                          selected={selectedIds.includes(school.id)}
+                          onToggleSelect={toggleSelection}
+                          allowComparison={schoolAllowsListingComparison(school)}
+                          selectionFull={selectedIds.length >= MAX_SELECTED && !selectedIds.includes(school.id)}
+                          forcePendingListingBadge
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </section>

@@ -1843,9 +1843,18 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     const startParam = params.get("start");
     const sourceParam = params.get("source");
     const isSchoolsComparatorSource = sourceParam === "schools-comparator";
-    const shouldStartOnboarding = startParam === "onboarding" || isSchoolsComparatorSource;
     const requestedTab = params.get("tab") as Tab | null;
     const validTabs: Tab[] = ["route", "cost", "schools", "plan", "readiness", "report"];
+
+    // Onboarding ya completado se lee directamente de localStorage para decidir
+    // de forma síncrona si saltamos al dashboard cuando llegamos desde el comparador.
+    let onboardingDoneFromStorage = false;
+    try {
+      const raw = window.localStorage.getItem("flypath_onboarding_completed");
+      onboardingDoneFromStorage = raw ? JSON.parse(raw) === true : false;
+    } catch {
+      onboardingDoneFromStorage = false;
+    }
 
     if (reviewParam === "dashboard") {
       setOnboardingCompleted(true);
@@ -1855,65 +1864,111 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       }
     }
 
+    // Slugs pueden venir por query (preferente) o por localStorage de respaldo
+    // (flypath_pending_comparator_schools), generado al pulsar "Analizar con mi perfil".
+    let slugs: string[] = [];
     if (schoolsParam) {
-      const slugs = schoolsParam
+      slugs = schoolsParam
         .split(",")
         .map((value) => decodeURIComponent(value).trim())
         .filter(Boolean);
-
-      if (slugs.length > 0) {
-        setSchools((current) => {
-          const existingSlugKeys = new Set(
-            current
-              .map((school) =>
-                school.enlaceReferencia.startsWith("comparador:")
-                  ? school.enlaceReferencia.replace("comparador:", "")
-                  : null,
-              )
-              .filter((value): value is string => Boolean(value)),
-          );
-          const existingNames = new Set(current.map((school) => school.nombre.trim().toLowerCase()));
-
-          const availableSlots = Math.max(0, 3 - current.length);
-          const schoolsToImport: School[] = [];
-          let nextId = current.length > 0 ? Math.max(...current.map((school) => school.id)) + 1 : 1;
-
-          for (const slug of slugs) {
-            if (schoolsToImport.length >= availableSlots) break;
-            if (existingSlugKeys.has(slug)) continue;
-
-            const comparatorSchool = getSchoolBySlug(slug);
-            if (!comparatorSchool) continue;
-
-            const normalizedName = comparatorSchool.name.trim().toLowerCase();
-            if (existingNames.has(normalizedName)) continue;
-
-            schoolsToImport.push(mapComparatorSchoolToPlannerSchool(comparatorSchool, nextId));
-            existingSlugKeys.add(slug);
-            existingNames.add(normalizedName);
-            nextId += 1;
+    } else if (isSchoolsComparatorSource) {
+      try {
+        const raw = window.localStorage.getItem("flypath_pending_comparator_schools");
+        if (raw) {
+          const parsed = JSON.parse(raw) as unknown;
+          if (Array.isArray(parsed)) {
+            slugs = parsed
+              .filter((value): value is string => typeof value === "string")
+              .map((value) => value.trim())
+              .filter(Boolean);
           }
-
-          if (schoolsToImport.length > 0) {
-            setToast("Escuelas importadas desde el comparador.");
-            window.setTimeout(
-              () => setToast((currentToast) => (currentToast === "Escuelas importadas desde el comparador." ? null : currentToast)),
-              2300,
-            );
-            return [...current, ...schoolsToImport];
-          }
-
-          return current;
-        });
+        }
+      } catch {
+        slugs = [];
       }
+    }
+
+    if (slugs.length > 0) {
+      setSchools((current) => {
+        // Las escuelas manuales se preservan. Las escuelas importadas desde el
+        // comparador ocupan hasta 2 slots de análisis separados y reemplazan
+        // importaciones anteriores del comparador.
+        const manualSchools = current.filter(
+          (school) => !school.enlaceReferencia.startsWith("comparador:"),
+        );
+        const previousComparatorSlugs = current
+          .filter((school) => school.enlaceReferencia.startsWith("comparador:"))
+          .map((school) => school.enlaceReferencia.replace("comparador:", ""));
+
+        // Idempotencia: si los slugs entrantes coinciden exactamente con los que ya
+        // estaban importados desde comparador, no hacer nada (evita duplicados al
+        // pulsar varias veces o al recargar la URL).
+        const incomingSet = new Set(slugs);
+        const previousSet = new Set(previousComparatorSlugs);
+        const sameAsBefore =
+          incomingSet.size > 0 &&
+          incomingSet.size === previousSet.size &&
+          [...incomingSet].every((slug) => previousSet.has(slug));
+        if (sameAsBefore) {
+          return current;
+        }
+
+        const existingNames = new Set(
+          manualSchools.map((school) => school.nombre.trim().toLowerCase()),
+        );
+        const maxComparatorSlots = 2;
+
+        const schoolsToImport: School[] = [];
+        let nextId = current.length > 0 ? Math.max(...current.map((school) => school.id)) + 1 : 1;
+
+        for (const slug of slugs) {
+          if (schoolsToImport.length >= maxComparatorSlots) break;
+          const comparatorSchool = getSchoolBySlug(slug);
+          if (!comparatorSchool) continue;
+          const normalizedName = comparatorSchool.name.trim().toLowerCase();
+          if (existingNames.has(normalizedName)) continue;
+          schoolsToImport.push(mapComparatorSchoolToPlannerSchool(comparatorSchool, nextId));
+          existingNames.add(normalizedName);
+          nextId += 1;
+        }
+
+        if (schoolsToImport.length === 0) {
+          return current;
+        }
+
+        setToast("Escuelas importadas desde el comparador.");
+        window.setTimeout(
+          () =>
+            setToast((currentToast) =>
+              currentToast === "Escuelas importadas desde el comparador." ? null : currentToast,
+            ),
+          2300,
+        );
+        return [...manualSchools, ...schoolsToImport];
+      });
     }
 
     if (isSchoolsComparatorSource) {
       setCameFromSchoolsComparator(true);
       setProfile((current) => ({ ...current, costEstimateSource: "flypath_base" }));
+      // Limpieza del respaldo en localStorage tras consumirlo: la siguiente
+      // navegación al planner sin query ya no debe re-importar nada.
+      try {
+        window.localStorage.removeItem("flypath_pending_comparator_schools");
+      } catch {
+        // no-op: el respaldo es opcional.
+      }
     }
 
-    if (shouldStartOnboarding) {
+    // Decisión de pantalla. Si venimos del comparador y el usuario ya tenía onboarding
+    // completado, vamos directo al dashboard, tab "Escuelas". En caso contrario,
+    // arrancamos onboarding (sin onboarding o con start=onboarding explícito).
+    if (isSchoolsComparatorSource && onboardingDoneFromStorage) {
+      setOnboardingCompleted(true);
+      setScreen("dashboard");
+      setTab("schools");
+    } else if (startParam === "onboarding" || (isSchoolsComparatorSource && !onboardingDoneFromStorage)) {
       setScreen("onboarding");
       setOnboardingStep(1);
     }
@@ -3819,20 +3874,21 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
 
                 <div className="rounded-3xl border border-[#c9a454]/30 bg-[#0f1a33] p-5 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)] sm:p-7">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">PRÓXIMAMENTE</p>
-                  <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">Comparador de escuelas FlyPath</h3>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">COMPARADOR FLYPATH</p>
+                  <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">Compara escuelas reales antes de decidir</h3>
                   <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200">
-                    Estamos preparando una base de datos con escuelas, criterios de comparación y reviews verificadas para ayudarte a contrastar opciones antes de pagar.
+                    Elige 2 escuelas del comparador FlyPath y tráelas al Planner para analizarlas con tu perfil, presupuesto, Class 1, inglés y disponibilidad.
                   </p>
                   <p className="mt-2 max-w-3xl text-xs leading-relaxed text-slate-400">
-                    De momento, usa este diagnóstico para revisar las escuelas candidatas que tú estás valorando.
+                    También puedes seguir añadiendo escuelas manualmente si prefieres comparar tus propios datos.
                   </p>
                   <button
                     type="button"
-                    onClick={() => showToast("Comparador de escuelas próximamente")}
-                    className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454]/55 bg-[#c9a454] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                    onClick={() => router.push("/schools")}
+                    className="mt-5 inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
                   >
-                    Quiero enterarme
+                    Ir al comparador de escuelas
+                    <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
                   </button>
                 </div>
               </div>
