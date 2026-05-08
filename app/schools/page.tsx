@@ -87,6 +87,11 @@ function SchoolsPageContent() {
     return { catalogMain, catalogPending };
   }, [schoolsDataset]);
   const selectedSchools = useMemo(() => getSchoolsByIds(selectedIds), [selectedIds]);
+  // Origen del comparador: solo cuando el usuario llega desde un CTA del Planner > Escuelas
+  // (que añade ?from=planner en la URL). En cualquier otra entrada (menú, hamburger, hero,
+  // landing, URL directa /schools…) este flag es false y el botón "Volver al Planner" no se
+  // muestra en la Conclusión FlyPath.
+  const cameFromPlanner = searchParams.get("from") === "planner";
   const plannerCtaHref = useMemo(() => {
     if (selectedSchools.length === 0) return "/";
     const slugs = selectedSchools.map((school) => school.slug).join(",");
@@ -230,7 +235,7 @@ function SchoolsPageContent() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
       {toast && (
-        <div className="fixed right-3 top-3 z-50 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg">
+        <div className="fixed right-3 top-3 z-50 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg">
           {toast}
         </div>
       )}
@@ -260,7 +265,7 @@ function SchoolsPageContent() {
             )}
           </div>
           <p
-            className="pointer-events-none hidden min-w-0 select-none truncate text-center text-[13px] font-medium tracking-[0.14em] text-[#f2ddaa]/90 md:flex md:flex-1 md:items-center md:justify-center"
+            className="pointer-events-none hidden min-w-0 select-none truncate text-center text-sm font-medium tracking-[0.14em] text-[#f2ddaa]/90 md:flex md:flex-1 md:items-center md:justify-center"
             aria-hidden
           >
             Comparador de escuelas
@@ -356,14 +361,14 @@ function SchoolsPageContent() {
               <h1 className="mt-2 text-3xl font-semibold leading-tight text-[#0f1a33] sm:text-4xl">
                 Compara escuelas antes de pagar matrícula.
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">
+              <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-base">
                 No te quedes solo con el precio anunciado. Compara coste real estimado, extras incluidos, contrato, reembolso, calendario de pagos y señales de riesgo antes de decidir.
               </p>
               <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
                 <button
                   type="button"
                   onClick={startComparison}
-                  className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm hover:bg-[#ddb75c]"
+                  className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2 text-[15px] font-semibold text-[#0f1a33] shadow-sm hover:bg-[#ddb75c]"
                 >
                   Empezar comparación
                 </button>
@@ -398,7 +403,7 @@ function SchoolsPageContent() {
                 ].map((row) => (
                   <div key={row.name} className="rounded-xl border border-white/10 bg-white/[0.06] p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-white">{row.name}</p>
+                      <p className="text-[15px] font-semibold text-white">{row.name}</p>
                       <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-200">
                         {row.cost}
                       </span>
@@ -423,29 +428,29 @@ function SchoolsPageContent() {
 
         <section ref={searchSectionRef} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-lg font-semibold text-[#0f1a33]">Empieza tu comparación</p>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-[15px] text-slate-600">
             Busca una escuela, ciudad o tipo de ruta. Después selecciona 2 escuelas para compararlas con criterios FlyPath.
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
             <label className="block">
-              <span className="text-xs font-medium text-slate-500">Buscar por nombre o ciudad</span>
+              <span className="text-[15px] font-medium text-slate-500">Buscar por nombre o ciudad</span>
               <input
                 value={filters.query}
                 onChange={(e) => {
                   setFilters((f) => ({ ...f, query: e.target.value }));
                 }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
                 placeholder="Ej. Madrid"
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-500">Tipo de ruta</span>
+              <span className="text-[15px] font-medium text-slate-500">Tipo de ruta</span>
               <select
                 value={filters.routeType}
                 onChange={(e) => {
                   setFilters((f) => ({ ...f, routeType: e.target.value as RouteType | "all" }));
                 }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
               >
                 <option value="all">Todas</option>
                 <option value="integrated">Escuela integrada</option>
@@ -454,13 +459,13 @@ function SchoolsPageContent() {
               </select>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-500">Ciudad</span>
+              <span className="text-[15px] font-medium text-slate-500">Ciudad</span>
               <select
                 value={filters.city}
                 onChange={(e) => {
                   setFilters((f) => ({ ...f, city: e.target.value }));
                 }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
               >
                 <option value="all">Todas</option>
                 {cities.map((city) => (
@@ -469,7 +474,7 @@ function SchoolsPageContent() {
               </select>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-500">Precio anunciado máximo</span>
+              <span className="text-[15px] font-medium text-slate-500">Precio anunciado máximo</span>
               <input
                 type="range"
                 min={40000}
@@ -481,16 +486,16 @@ function SchoolsPageContent() {
                 }}
                 className="mt-3 w-full"
               />
-              <p className="text-xs text-slate-600">Hasta {filters.maxAdvertisedPrice.toLocaleString("es-ES")} EUR</p>
+              <p className="text-[15px] text-slate-600">Hasta {filters.maxAdvertisedPrice.toLocaleString("es-ES")} EUR</p>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-500">Confianza del dato</span>
+              <span className="text-[15px] font-medium text-slate-500">Confianza del dato</span>
               <select
                 value={filters.dataConfidence}
                 onChange={(e) => {
                   setFilters((f) => ({ ...f, dataConfidence: e.target.value as DataConfidence | "all" }));
                 }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
               >
                 <option value="all">Todas</option>
                 <option value="high">Alta</option>
@@ -503,15 +508,15 @@ function SchoolsPageContent() {
             <button
               type="button"
               onClick={runSearch}
-              className="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm hover:bg-[#ddb75c]"
+              className="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33] shadow-sm hover:bg-[#ddb75c]"
             >
               Buscar escuelas
             </button>
           </div>
           <div ref={comparisonPanelRef} className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">Comparación activa</p>
-            <p className="mt-0.5 text-sm font-medium text-[#0f1a33]">{selectedSchools.length}/{MAX_SELECTED} escuelas seleccionadas</p>
-            <p className="mt-0.5 text-xs text-slate-600">{comparisonStatusText}</p>
+            <p className="mt-0.5 text-[15px] font-medium text-[#0f1a33]">{selectedSchools.length}/{MAX_SELECTED} escuelas seleccionadas</p>
+            <p className="mt-0.5 text-[15px] text-slate-600">{comparisonStatusText}</p>
             {selectedSchools.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {selectedSchools.map((school) => (
@@ -539,6 +544,13 @@ function SchoolsPageContent() {
             <ComparisonResults schools={selectedSchools} />
             <FlypathComparisonConclusion
               schools={[selectedSchools[0], selectedSchools[1]]}
+              onBackToPlanner={
+                cameFromPlanner
+                  ? () => {
+                      router.push("/?review=dashboard&tab=schools");
+                    }
+                  : undefined
+              }
               onProfileCta={() => {
                 if (selectedSchools.length !== 2) {
                   showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
@@ -574,17 +586,17 @@ function SchoolsPageContent() {
             <div className="space-y-1">
               <p className="text-lg font-semibold text-[#0f1a33]">Escuelas encontradas</p>
               {filteredSchoolsCount === 0 ? (
-                <p className="pt-1 text-sm font-medium text-slate-600/95">
+                <p className="pt-1 text-[15px] font-medium text-slate-600/95">
                   0 escuelas encontradas con estos filtros
                 </p>
               ) : (
-                <p className="pt-1 text-sm font-medium text-slate-600/95">
+                <p className="pt-1 text-[15px] font-medium text-slate-600/95">
                   Mostrando {listingBuckets.mainSchools.length} de {catalogBuckets.catalogMain} escuelas
                 </p>
               )}
             </div>
             {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-[15px] text-slate-600 shadow-sm">
                 No hay escuelas que coincidan con estos filtros.
               </div>
             ) : (
@@ -631,20 +643,20 @@ function SchoolsPageContent() {
         {selectedSchools.length >= 2 ? (
           <section className="rounded-3xl border border-[#c9a454]/35 bg-gradient-to-br from-[#0f1a33] via-[#122041] to-[#15264a] p-6 text-white shadow-sm">
             <p className="text-lg font-semibold">¿Quieres saber si estas opciones encajan con tu caso?</p>
-            <p className="mt-2 text-sm text-slate-200">
+            <p className="mt-2 text-[15px] text-slate-200">
               Usa el Career Planner para cruzar esta comparación con tu presupuesto, Class 1, tiempo disponible, inglés y nivel de riesgo personal.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={plannerCtaHref}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2 text-sm font-semibold text-[#0f1a33] hover:bg-[#ddb75c]"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2 text-[15px] font-semibold text-[#0f1a33] hover:bg-[#ddb75c]"
               >
                 Analizar mi caso en Career Planner
               </Link>
               <button
                 type="button"
                 onClick={notifyMentoring}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white hover:bg-white/15"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-2 text-[15px] font-semibold text-white hover:bg-white/15"
               >
                 Reservar mentoría
               </button>

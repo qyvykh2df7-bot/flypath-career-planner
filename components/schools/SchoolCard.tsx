@@ -90,10 +90,10 @@ export function SchoolCard({
 
       {/* Cuerpo */}
       <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
-        <p className="text-[13px] text-slate-500 sm:text-sm">
+        <p className="text-[15px] text-slate-500">
           {school.city}, {school.country} · Base {school.baseAirport}
         </p>
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{listingBody}</p>
+        <p className="mt-3 line-clamp-3 text-[15px] leading-6 text-slate-600">{listingBody}</p>
 
         {/* Botones inferiores: principal dorado de marca + secundario outline */}
         <div className="mt-auto flex flex-wrap items-stretch gap-2.5 pt-5">

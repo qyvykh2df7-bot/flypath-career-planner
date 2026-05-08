@@ -221,23 +221,53 @@ function offersUniversityDegreeWithLicense(entry: SchoolEntry): boolean {
   return associated.length > 0;
 }
 
+/**
+ * ¿Esta escuela ofrece la ruta solicitada por el filtro?
+ *
+ * El campo `routeType` del dataset indica solo la RUTA PRINCIPAL publicada por la escuela,
+ * no todas las rutas que ofrece. Por eso para los filtros "Integrado ATPL" y "Ruta modular"
+ * no basta con `entry.routeType === selected`: una escuela con integrado ATPL como producto
+ * principal puede también publicar un catálogo modular completo (PPL/CPL/IR/ME/ATPL teórico),
+ * y debería aparecer en ambos filtros.
+ *
+ * Como `SchoolEntry` no tiene un array `availableRoutes`, usamos como "campo estructurado
+ * equivalente" la lista curada `SCHOOL_CARD_MIXED_SLUGS` (definida arriba), que ya marca
+ * editorialmente las escuelas que publican simultáneamente integrado + modular. NO usamos
+ * señales tipo MCC/JOC, UPRT, PBN, skill tests o alojamiento incluidos como prueba de ruta
+ * modular: esos extras pueden venir incluidos también en programas integrados y no implican
+ * un catálogo modular publicado.
+ */
+export function schoolOffersRoute(entry: SchoolEntry, route: SchoolsFilters["routeType"]): boolean {
+  if (route === "all") return true;
+
+  const isMixed = SCHOOL_CARD_MIXED_SLUGS.has(entry.slug);
+
+  if (route === "modular") {
+    return entry.routeType === "modular" || isMixed;
+  }
+
+  if (route === "integrated") {
+    return (
+      entry.routeType === "integrated" ||
+      entry.routeType === "university_plus_license" ||
+      isMixed
+    );
+  }
+
+  if (route === "university_plus_license") {
+    return offersUniversityDegreeWithLicense(entry);
+  }
+
+  return false;
+}
+
 export function filterSchools(entries: SchoolEntry[], filters: SchoolsFilters): SchoolEntry[] {
   const query = filters.query.trim().toLowerCase();
   return entries.filter((entry) => {
-    const routeType = entry.routeType as RouteType | "mixed";
     const queryMatch =
       query.length === 0 ||
       `${entry.name} ${entry.city} ${entry.baseAirport}`.toLowerCase().includes(query);
-    const routeMatch =
-      filters.routeType === "all" ||
-      (filters.routeType === "modular" &&
-        (routeType === "modular" || routeType === "mixed")) ||
-      (filters.routeType === "integrated" &&
-        (routeType === "integrated" ||
-          routeType === "university_plus_license" ||
-          routeType === "mixed")) ||
-      (filters.routeType === "university_plus_license" &&
-        offersUniversityDegreeWithLicense(entry));
+    const routeMatch = schoolOffersRoute(entry, filters.routeType);
     const cityMatch =
       filters.city === "all" || getSchoolCities(entry).includes(filters.city);
     const priceMatch = entry.advertisedPriceEUR <= filters.maxAdvertisedPrice;

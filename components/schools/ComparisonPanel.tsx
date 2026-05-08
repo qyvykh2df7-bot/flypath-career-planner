@@ -33,12 +33,12 @@ export function ComparisonPanel({ selectedSchools, onRemove }: Props) {
         Comparación activa
       </p>
       <p
-        className={`mt-1 ${count >= 2 ? "text-sm text-slate-200" : count === 0 ? "text-[13px] text-slate-600" : "text-[13px] text-slate-200"}`}
+        className={`mt-1 ${count >= 2 ? "text-[15px] text-slate-200" : count === 0 ? "text-[15px] text-slate-600" : "text-[15px] text-slate-200"}`}
       >
         {count}/2 escuelas seleccionadas
       </p>
       <p
-        className={`mt-1 ${count >= 2 ? "text-sm text-slate-300" : count === 0 ? "text-[12px] text-slate-500" : "text-[12px] text-slate-300"}`}
+        className={`mt-1 ${count >= 2 ? "text-[15px] text-slate-300" : count === 0 ? "text-[12px] text-slate-500" : "text-[12px] text-slate-300"}`}
       >
         {helperText}
       </p>

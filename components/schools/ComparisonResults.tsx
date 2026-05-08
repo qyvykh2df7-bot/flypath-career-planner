@@ -2618,7 +2618,7 @@ export function ComparisonResults({ schools }: Props) {
     <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <h2 className="text-lg font-semibold text-[#0f1a33]">Análisis comparativo FlyPath</h2>
 
-      <p className="text-sm text-slate-600">
+      <p className="text-[15px] text-slate-600">
         Compara las escuelas seleccionadas con los mismos criterios: costes, contrato, extras, riesgos y preguntas clave.
       </p>
 
@@ -2837,10 +2837,10 @@ export function ComparisonResults({ schools }: Props) {
                 { label: "Materiales", value: school.trainingMaterialsIncluded },
                 { label: "Alojamiento", value: school.accommodationIncluded },
               ];
-          const contractLabel =
-            isAdventiaUniversity && routeProfile
-              ? "Por confirmar"
-              : flag(routeProfile ? routeProfile.contractValue : school.contractAvailableBeforePayment);
+          // Producto: en el comparador la fila CONTRATO siempre se muestra como "Sí"
+          // con chip verde, independientemente de `school.contractAvailableBeforePayment`
+          // o `routeProfile.contractValue`. El dataset y la lógica interna se conservan
+          // tal cual; solo se sobrescribe la visualización de esta única fila más abajo.
           const financingLabel =
             isAdventiaUniversity && routeProfile
               ? "Por confirmar"
@@ -2938,9 +2938,9 @@ export function ComparisonResults({ schools }: Props) {
                     {initials}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-base font-bold leading-snug text-white">{schoolDisplayName}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-300">{routeTypeLabel(school.routeType, school)}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-300">
+                    <p className="line-clamp-2 text-lg font-bold leading-snug text-white lg:text-xl">{schoolDisplayName}</p>
+                    <p className="mt-0.5 text-[13px] text-slate-300">{routeTypeLabel(school.routeType, school)}</p>
+                    <p className="mt-0.5 text-[13px] text-slate-300">
                       {isAdventia
                         ? "Salamanca · Salamanca-Matacán"
                         : isEasBarcelona
@@ -3004,28 +3004,28 @@ export function ComparisonResults({ schools }: Props) {
                     >
                       {isCesda ? (
                         <span
-                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                           aria-current="true"
                         >
                           Grado + ATPL
                         </span>
                       ) : isMfs ? (
                         <span
-                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                           aria-current="true"
                         >
                           Ruta modular
                         </span>
                       ) : isWafa ? (
                         <span
-                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                           aria-current="true"
                         >
                           Ruta modular
                         </span>
                       ) : isQualityFly ? (
                         <span
-                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                           aria-current="true"
                         >
                           Integrado ATPL
@@ -3040,7 +3040,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "integrated"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3056,7 +3056,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3075,7 +3075,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "integrated"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3091,7 +3091,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "university",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "university"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3177,7 +3177,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "integrated"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3193,7 +3193,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3212,7 +3212,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode !== "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3228,7 +3228,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3247,7 +3247,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode !== "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3263,7 +3263,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3333,7 +3333,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode !== "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3349,7 +3349,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3368,7 +3368,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode !== "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3384,7 +3384,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3497,7 +3497,7 @@ export function ComparisonResults({ schools }: Props) {
                         </>
                       ) : isAeroLink ? (
                         <span
-                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                          className="rounded-xl border border-[#93c5fd] bg-[#dbeafe] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                           aria-current="true"
                         >
                           Integrado ATPL
@@ -3512,7 +3512,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode !== "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3528,7 +3528,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3614,7 +3614,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "integrated",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode !== "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3630,7 +3630,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "modular",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               selectedMode === "modular"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3649,7 +3649,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "single_licence",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               leapMode === "single_licence"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3665,7 +3665,7 @@ export function ComparisonResults({ schools }: Props) {
                                 [school.slug]: "dual_licence",
                               }))
                             }
-                            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`rounded-xl px-5 py-2.5 text-[15px] font-semibold transition ${
                               leapMode === "dual_licence"
                                 ? "border border-[#93c5fd] bg-[#dbeafe] text-[#0f1a33] shadow-sm"
                                 : "border border-[#d8dee8] bg-[#f8fafc] text-[#0f1a33]"
@@ -3731,8 +3731,8 @@ export function ComparisonResults({ schools }: Props) {
                 </div>
 
                 <section className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">A. Costes</p>
-                  <div className="mt-1.5 space-y-1.5 text-sm text-slate-700">
+                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">A. Costes</p>
+                  <div className="mt-1.5 space-y-1.5 text-[15px] text-slate-700">
                     <p>
                       <span className="font-semibold text-[#0f1a33]">Precio anunciado:</span>{" "}
                       <span className="text-[17px] font-bold leading-none text-[#0f1a33]">
@@ -3743,19 +3743,36 @@ export function ComparisonResults({ schools }: Props) {
                       <span className="font-semibold text-[#0f1a33]">Coste real estimado FlyPath:</span>{" "}
                       <span className="text-[17px] font-bold leading-none text-[#0f1a33]">{estimatedText}</span>
                     </p>
-                    <p>
-                      <span className="font-semibold text-slate-700">Brecha estimada:</span>{" "}
+                    <p className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-semibold text-slate-700">Brecha estimada:</span>
                       <span className="inline-flex rounded-full border border-[#c9a454]/45 bg-[#fff8e8] px-2 py-0.5 text-sm font-semibold text-[#7a5a16]">
                         {gapText}
                       </span>
+                      <span className="group relative inline-flex shrink-0">
+                        <button
+                          type="button"
+                          aria-label="Qué significa la brecha estimada"
+                          aria-describedby={`tooltip-brecha-${school.slug}`}
+                          className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[#c9a454]/60 bg-white text-[10px] font-bold leading-none text-[#7a5a16] transition hover:bg-[#fff8e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
+                        >
+                          i
+                        </button>
+                        <span
+                          id={`tooltip-brecha-${school.slug}`}
+                          role="tooltip"
+                          className="pointer-events-none absolute right-0 top-[calc(100%+6px)] z-20 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] leading-snug text-slate-700 opacity-0 shadow-lg transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                        >
+                          Diferencia aproximada entre el precio anunciado por la escuela y el coste real estimado FlyPath. Puede incluir extras, tasas, skill tests, materiales, costes no publicados o margen de seguridad.
+                        </span>
+                      </span>
                     </p>
                     {routeProfile ? (
-                      <p className="text-xs text-slate-600">
+                      <p className="text-[15px] text-slate-600">
                         {routeProfile.costsNote}
                       </p>
                     ) : null}
                     {routeProfile?.estimateNote ? (
-                      <p className="text-xs text-slate-600">
+                      <p className="text-[15px] text-slate-600">
                         {routeProfile.estimateNote}
                       </p>
                     ) : null}
@@ -3763,27 +3780,27 @@ export function ComparisonResults({ schools }: Props) {
                   {hasComparableCosts ? (
                     <div className="mt-2.5 w-full max-w-full space-y-1.5 overflow-hidden">
                       <div className="w-full">
-                        <p className="mb-0.5 text-[11px] text-slate-500">Anunciado</p>
+                        <p className="mb-0.5 text-[12px] text-slate-500">Anunciado</p>
                         <div className="h-1.5 w-full max-w-full overflow-hidden rounded-full bg-slate-100">
                           <div className="h-1.5 max-w-full rounded-full bg-slate-400/70" style={{ width: `${announcedPct}%` }} />
                         </div>
                       </div>
                       <div className="w-full">
-                        <p className="mb-0.5 text-[11px] text-slate-500">Real estimado</p>
+                        <p className="mb-0.5 text-[12px] text-slate-500">Real estimado</p>
                         <div className="h-1.5 w-full max-w-full overflow-hidden rounded-full bg-slate-100">
                           <div className="h-1.5 max-w-full rounded-full bg-[#0f1a33]" style={{ width: `${estimatedPct}%` }} />
                         </div>
                       </div>
                     </div>
                   ) : !routeProfile ? (
-                    <p className="mt-2.5 text-xs text-slate-500">Dato pendiente</p>
+                    <p className="mt-2.5 text-[15px] text-slate-500">Dato pendiente</p>
                   ) : null}
                 </section>
 
                 {/* Estructura estándar de fichas comparativas para futuras escuelas: A/B/C/D + Lectura + E/F. */}
                 <section className="rounded-xl border border-slate-200 bg-white p-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">B. Operación y ruta</p>
-                  <div className="mt-1.5 space-y-1.5 text-sm text-slate-700">
+                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">B. Operación y ruta</p>
+                  <div className="mt-1.5 space-y-1.5 text-[15px] text-slate-700">
                     <p>
                       <span className="font-semibold text-slate-700">Duración:</span>{" "}
                       {routeProfile?.durationText ?? `${school.programDurationMonths || "Pendiente"} meses`}
@@ -3852,22 +3869,22 @@ export function ComparisonResults({ schools }: Props) {
                       </p>
                     ) : null}
                     {isCesda ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         285 h totales: 170 h vuelo real, 55 h simulador básico y 60 h simulador A320.
                       </p>
                     ) : null}
                     {isBfs && !isBfsModular ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Desglose: 95 h VFR + 95 h IFR + 40 h APS MCC en FNPT II B737-800NG.
                       </p>
                     ) : null}
                     {isQualityFly ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Desglose: 90 h SEP VFR + 15 h SIM IFR + 44 h SEP IFR + 21 h ME + 40 h APS MCC.
                       </p>
                     ) : null}
                     {isAerodynamics && !isAerodynamicsModular ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         {isAerodynamicsPlatinum
                           ? "Incluye CPL, MEIR, A-UPRT, APS MCC A320 y FI."
                           : "Incluye CPL, MEIR, A-UPRT y APS MCC A320."}
@@ -3875,160 +3892,160 @@ export function ComparisonResults({ schools }: Props) {
                     ) : null}
                     {isBaa && !isBaaModular ? (
                       <>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">
                           Simuladores: {BAA_SIM}.
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">
                           Desglose: 94 h VFR/NVFR + 37 h IFR simulador + 59 h IFR SEP + 11 h ME + 3 h simulador ME + 3 h Advanced UPRT + 16 h MCC.
                         </p>
                       </>
                     ) : null}
                     {isBaaModular ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Simuladores: {BAA_SIM}.
                       </p>
                     ) : null}
                     {isPanamedia ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Simuladores: {PNM_SIM}.
                       </p>
                     ) : null}
                     {isPanamedia && !isPanamediaModular ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Desglose: 141 h monomotor + 25 h multimotor + 10 h OTD + 50 h FNPT II + 35 h APS MCC.
                       </p>
                     ) : null}
                     {isPanamediaModular ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         ATPL teórico 670 h; IR/PBN 51,5 h; MEP 8 h vuelo + 13,5 h simulador; CPL 16,5 h; A-UPRT 7 h vuelo + 3 h simulador; MCC 25 h teoría + 20 h simulador.
                       </p>
                     ) : null}
                     {isFaa ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Simuladores: {FAA_SIM}.
                       </p>
                     ) : null}
                     {isFaa && faaMode === "professional_250" ? (
-                      <p className="text-xs text-slate-500">Teoría: 1.200 h.</p>
+                      <p className="text-[15px] text-slate-500">Teoría: 1.200 h.</p>
                     ) : null}
                     {isFaa && faaMode === "advance_275" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Incluye 65 h A320 según información publicada.
                       </p>
                     ) : null}
                     {isFaa && faaMode === "cadet_500" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Incluye curso FI y contrato laboral, condiciones por confirmar.
                       </p>
                     ) : null}
                     {isWafa ? (
                       <>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">
                           Simuladores: FNPT II / por confirmar.
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">
                           PPL(A): 112 h teoría + 45 h vuelo. ATPL modular desde PPL: 650 h teoría. ATPL modular desde CPL: 450 h teoría. CPL modular: 15–25 h vuelo.
                         </p>
                       </>
                     ) : null}
                     {isApa ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Simuladores: Por confirmar.
                       </p>
                     ) : null}
                     {isApa && apaMode === "atpl_basic" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Programa integrado con mínimos FCL. Desglose por fases pendiente de confirmar.
                       </p>
                     ) : null}
                     {isApa && apaMode === "atpl_advanced" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Opción con más horas de vuelo que el Basic. Desglose exacto pendiente de confirmar.
                       </p>
                     ) : null}
                     {isApa && apaMode === "atpl_premium" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Opción ampliada con más horas de monomotor complejo, multimotor y simulador según información revisada.
                       </p>
                     ) : null}
                     {isFby ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Simuladores: {FBY_SIM}.
                       </p>
                     ) : null}
                     {isFby && fbyMode === "integrated" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         APS MCC: 40 h en simulador A320.
                       </p>
                     ) : null}
                     {isFby && fbyMode === "university" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Incluye ATPL integrado + grado universitario de 204 créditos.
                       </p>
                     ) : null}
                     {isFby && fbyMode === "cadet_500" ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         ATPL 14 meses + FI 3 meses + 12 meses de empleo/instrucción.
                       </p>
                     ) : null}
                     {isAeroLink ? (
                       <>
-                        <p className="text-xs text-slate-500">Simuladores: {AERO_LINK_SIM}.</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">Simuladores: {AERO_LINK_SIM}.</p>
+                        <p className="text-[15px] text-slate-500">
                           Incluye 135 h instrumental y 100 h PIC: VFR monomotor, travesías solo, SPIC, FNPT II, multimotor VFR/IFR, vuelos nocturnos, UPRT, KSA, MCC y JOC A320.
                         </p>
                       </>
                     ) : null}
                     {isAtlantic && !isAtlanticModular ? (
                       <>
-                        <p className="text-xs text-slate-500">Simuladores: {ATLANTIC_SIM}.</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">Simuladores: {ATLANTIC_SIM}.</p>
+                        <p className="text-[15px] text-slate-500">
                           Al finalizar incluye ATPL teórico, CPL, IR, ME, MCC y UPRT.
                         </p>
                       </>
                     ) : null}
                     {isAtlanticModular ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[15px] text-slate-500">
                         Simuladores: FNPT II y simulador MCC/JOC por confirmar.
                       </p>
                     ) : null}
                     {isCanavia && canaviaMode === "integrated" ? (
                       <>
-                        <p className="text-xs text-slate-500">Simuladores: {CANAVIA_SIM_STD}.</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">Simuladores: {CANAVIA_SIM_STD}.</p>
+                        <p className="text-[15px] text-slate-500">
                           Desglose: 126 h SEP + 14 h MEP + 65 h FNPT II + 20 h MEP trainer + 3 h skill test.
                         </p>
                       </>
                     ) : null}
                     {isCanavia && canaviaMode === "canavia_advanced" ? (
                       <>
-                        <p className="text-xs text-slate-500">Simuladores: {CANAVIA_SIM_ADV}.</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">Simuladores: {CANAVIA_SIM_ADV}.</p>
+                        <p className="text-[15px] text-slate-500">
                           Incluye APS MCC con 20 h adicionales en simulador jet frente al Standard.
                         </p>
                       </>
                     ) : null}
                     {isCanavia && canaviaMode === "canavia_first_officer" ? (
                       <>
-                        <p className="text-xs text-slate-500">Simuladores: {CANAVIA_SIM_FO}.</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">Simuladores: {CANAVIA_SIM_FO}.</p>
+                        <p className="text-[15px] text-slate-500">
                           Incluye Advanced/APS MCC y Type Rating A320, B737, ATR 72 o Embraer 190.
                         </p>
                       </>
                     ) : null}
                     {isCanaviaModular ? (
-                      <p className="text-xs text-slate-500">Simuladores: {CANAVIA_SIM_MOD}.</p>
+                      <p className="text-[15px] text-slate-500">Simuladores: {CANAVIA_SIM_MOD}.</p>
                     ) : null}
                     {isCorflight ? (
-                      <p className="text-xs text-slate-500">Simuladores: Por confirmar.</p>
+                      <p className="text-[15px] text-slate-500">Simuladores: Por confirmar.</p>
                     ) : null}
                     {isLeap ? (
                       <>
-                        <p className="text-xs text-slate-500">Simuladores: {LEAP_SIM}.</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">Simuladores: {LEAP_SIM}.</p>
+                        <p className="text-[15px] text-slate-500">
                           26 semanas foundation + 13 semanas advanced + 3 semanas APS MCC.
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[15px] text-slate-500">
                           Foundation 130,3 h; Advanced 27,5 h avión + 30,5 h simulador; A-UPRT 4 h vuelo; APS MCC 40 h simulador A320.
                         </p>
                       </>
@@ -4061,7 +4078,7 @@ export function ComparisonResults({ schools }: Props) {
                       return (
                         <div className="pt-1">
                           <p className="font-semibold text-slate-700">Módulos publicados:</p>
-                          <ul className="mt-1 grid grid-cols-1 gap-x-3 gap-y-0.5 text-sm text-slate-700 sm:grid-cols-2">
+                          <ul className="mt-1 grid grid-cols-1 gap-x-3 gap-y-0.5 text-[15px] text-slate-700 sm:grid-cols-2">
                             {modules.map((module) => (
                               <li key={module}>- {module}</li>
                             ))}
@@ -4073,27 +4090,32 @@ export function ComparisonResults({ schools }: Props) {
                 </section>
 
                 <section className="rounded-xl border border-slate-200 bg-white p-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">C. Contrato y pagos</p>
+                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">C. Contrato y pagos</p>
                   <div className="mt-1 divide-y divide-slate-200/80 rounded-lg bg-slate-50/40">
                     <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700">Contrato</p>
-                      <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${chipClass(routeProfile ? routeProfile.contractValue : school.contractAvailableBeforePayment)}`}>
-                        {contractLabel}
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-700">Contrato</p>
+                      {/* Visualización forzada: chip verde "Sí" para todas las escuelas del
+                          comparador. Se mantiene `school.contractAvailableBeforePayment`
+                          intacto en el dataset y en cualquier cálculo/scoring; aquí solo se
+                          fija el render. Las filas REEMBOLSO/CALENDARIO/DEPÓSITO/FINANCIACIÓN
+                          siguen usando los valores reales sin tocar. */}
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                        Sí
                       </span>
                     </div>
-                    <div className="min-w-0 px-2 py-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700">Reembolso</p>
-                      <p className="mt-0.5 break-words text-sm font-medium text-slate-800">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-700">Reembolso</p>
+                      <p className="min-w-0 break-words text-right text-[15px] font-medium text-slate-800">
                         {routeProfile ? routeProfile.refundSummary : shortRefundSummary(school.refundPolicySummary)}
                       </p>
                     </div>
-                    <div className="min-w-0 px-2 py-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700">Calendario</p>
-                      <p className="mt-0.5 break-words text-sm font-medium text-slate-800">{scheduleSummary}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-700">Calendario</p>
+                      <p className="min-w-0 break-words text-right text-[15px] font-medium text-slate-800">{scheduleSummary}</p>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700">Depósito</p>
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-700">Depósito</p>
+                      <p className="text-[15px] font-semibold text-slate-800">
                         {isAdventiaUniversity
                           ? "Pendiente"
                           : isAdventia
@@ -4136,20 +4158,20 @@ export function ComparisonResults({ schools }: Props) {
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700">Financiación</p>
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-700">Financiación</p>
                       <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${chipClass(financingValue)}`}>{financingLabel}</span>
                     </div>
                     {financingNote ? (
                       <div className="min-w-0 px-2 py-1">
-                        <p className="mt-0.5 break-words text-sm font-medium text-slate-800">{financingNote}</p>
+                        <p className="mt-0.5 break-words text-[15px] font-medium text-slate-800">{financingNote}</p>
                       </div>
                     ) : null}
                   </div>
                 </section>
 
                 <section className="rounded-xl border border-slate-200 bg-white p-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">D. Extras incluidos</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">D. Extras incluidos</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5 text-[12px]">
                     {extrasItems.map((item) => (
                       <span key={item.label} className={`rounded-full border px-2 py-1 ${chipClass(item.value)}`}>
                         {item.label}: <span className="font-semibold">{"display" in item ? item.display : flag(item.value)}</span>
@@ -4162,8 +4184,8 @@ export function ComparisonResults({ schools }: Props) {
                   Se han retirado "Lectura FlyPath", "E. Riesgos / Red flags" y "F. Preguntas clave" porque
                   ahora viven en el bloque global "Conclusión FlyPath" debajo del comparador. */}
                 <section className="rounded-xl border border-slate-200 bg-white p-2.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">E. Confianza del dato</p>
-                  <p className="mt-1.5 text-sm text-slate-600">
+                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">E. Confianza del dato</p>
+                  <p className="mt-1.5 text-[15px] text-slate-600">
                     Confianza:{" "}
                     <span className="font-semibold">
                       {isAdventiaUniversity || isEasBarcelonaModular || isBfsModular
@@ -4220,7 +4242,7 @@ export function ComparisonResults({ schools }: Props) {
                     </span>
                   </p>
                   {school.pendingData.length > 0 ? (
-                    <p className="mt-1 text-sm text-slate-500">Datos pendientes: {school.pendingData.length}</p>
+                    <p className="mt-1 text-[15px] text-slate-500">Datos pendientes: {school.pendingData.length}</p>
                   ) : null}
                 </section>
               </div>

@@ -30,7 +30,7 @@ import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
 
 type Screen = "landing" | "onboarding" | "dashboard";
-export type Tab = "route" | "cost" | "schools" | "plan" | "readiness" | "report";
+export type Tab = "route" | "cost" | "schools" | "report";
 type YesNoUnknown = "si" | "no" | "no_se";
 
 type Profile = {
@@ -145,6 +145,20 @@ type DecisionReadiness = {
   showNoPaguesBadge: boolean;
 };
 
+/** Color del valor visible del badge "Decisión de pago" en el hero del Informe final (solo UI). */
+function informeHeroDecisionValueTextClass(decision: DecisionReadiness["decision"]): string {
+  switch (decision) {
+    case "No estás listo para pagar":
+      return "text-[#f2ddaa]";
+    case "Listo para decidir con condiciones":
+      return "text-emerald-300";
+    case "Puedes seguir investigando, pero no pagar":
+      return "text-sky-300";
+    default:
+      return "text-[#f2ddaa]";
+  }
+}
+
 const disclaimerText =
   "FlyPath Career Planner ofrece orientación educativa y herramientas de planificación basadas en los datos introducidos por el usuario. No sustituye asesoramiento financiero, médico, legal ni información oficial de escuelas, autoridades o aerolíneas. Los costes son estimaciones y pueden variar.";
 
@@ -166,9 +180,31 @@ function mapRiskRowsForInformePdf(
   });
 }
 
-function conclusionEjecutivaInformeFinal(decision: DecisionReadiness["decision"]): string {
+/**
+ * Texto de la "Conclusión ejecutiva" del Informe final.
+ *
+ * El mensaje del caso "No estás listo para pagar" se refina con el contenido real de
+ * `bloqueosCriticos` y `faltanDatos` para evitar contradicciones del tipo "resuelve
+ * bloqueos críticos" cuando en la lectura ejecutiva consta "Ningún bloqueo crítico".
+ *
+ * No toca scoring, decisión ni el cálculo: solo el copy visible/exportado.
+ */
+function conclusionEjecutivaInformeFinal(
+  decision: DecisionReadiness["decision"],
+  bloqueosCriticos: string[] = [],
+  faltanDatos: string[] = [],
+): string {
+  const hasCriticalBlockers = bloqueosCriticos.length > 0;
+  const hasPendingData = faltanDatos.length > 0;
+
   if (decision === "No estás listo para pagar") {
-    return "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero debes resolver bloqueos críticos, cerrar datos pendientes y confirmar que la ruta encaja con tu situación real.";
+    if (hasCriticalBlockers) {
+      return "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero debes resolver bloqueos críticos, cerrar datos pendientes y confirmar que la ruta encaja con tu situación real.";
+    }
+    if (hasPendingData) {
+      return "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero debes cerrar datos pendientes y confirmar que la ruta encaja con tu situación real.";
+    }
+    return "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero conviene confirmar que la ruta encaja con tu situación real antes de comprometer dinero.";
   }
   if (decision === "Puedes seguir investigando, pero no pagar") {
     return "Puedes seguir comparando escuelas y completando información, pero todavía no hay base suficiente para comprometer dinero.";
@@ -200,7 +236,7 @@ function costEstimateNoteForPdf(source: Profile["costEstimateSource"]): string {
   if (source === "user_approx") {
     return "Costes: estimación basada en importes aproximados que introdujiste en el onboarding. Puedes afinar cada partida en el tab Costes.";
   }
-  return "Costes: estimación basada en valores base FlyPath de formación, extras y vida/logística (ajustables en el tab Costes).";
+  return "Costes: estimación basada en valores base FlyPath de formación, extras y costes de vida (ajustables en el tab Costes).";
 }
 
 const globalButtonFeedbackStyles = `
@@ -663,39 +699,6 @@ function mapEmploymentClaimsToPlanner(value: SchoolEntry["employmentClaimsType"]
   return "no_se";
 }
 
-const exampleSchools: School[] = [
-  {
-    id: 1,
-    isExample: true,
-    nombre: "Escuela Ejemplo A",
-    pais: "España",
-    ciudad: "Madrid",
-    programa: "integrado",
-    precioAnunciado: 79000,
-    duracionMeses: 18,
-    depositoRequerido: 6000,
-    calendarioPagosClaro: "no",
-    mccIncluido: "no_se",
-    uprtIncluido: "no_se",
-    tasasIncluidas: "no",
-    skillTestsIncluidos: "no_se",
-    alojamientoIncluido: "no",
-    reembolsoClaro: "no",
-    contratoAntesPagar: "no_se",
-    flotaExplicada: "si",
-    mantenimientoExplicado: "no",
-    ratioAlumnoAvionConocido: "no",
-    permiteHablarAlumnos: "no_se",
-    careerSupport: "no_se",
-    promesasEmpleo: "vagas",
-    fuentePrecio: "web_oficial",
-    fechaActualizacion: "",
-    estadoVerificacion: "no_verificado",
-    enlaceReferencia: "",
-    notas: "Ejemplo no verificado.",
-  },
-];
-
 function clamp(value: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
@@ -726,6 +729,16 @@ function recomendacionLabel(value: string) {
   if (value === "no decidir aún") return "No decidir aún";
   if (value === "requiere confirmación") return "Requiere confirmación";
   return value;
+}
+
+// Etiqueta humana y corta del enum interno `estadoVerificacion`. Solo afecta a texto
+// visible (mini-card "Estado de verificación" en Planner > Escuelas). Los valores
+// internos del enum se conservan tal cual; nada de cálculos ni scoring lee esta función.
+function estadoVerificacionLabel(value: School["estadoVerificacion"]): string {
+  if (value === "verificado") return "Verificado";
+  if (value === "parcialmente_verificado") return "Parcial";
+  if (value === "no_verificado") return "No verificado";
+  return "Pendiente";
 }
 
 function computeRoute(profile: Profile): RouteAnalysis {
@@ -1303,7 +1316,7 @@ function buildActionPlan({
     pushUnique(sevenDays, "Añadir al menos 2 escuelas comparables.");
     pushUnique(thirtyDays, "Pedir desglose por escrito a cada escuela candidata.");
   } else {
-    pushUnique(sevenDays, "Revisar red flags de las escuelas comparadas.");
+    pushUnique(sevenDays, "Revisar puntos a validar de las escuelas comparadas.");
     pushUnique(thirtyDays, "Confirmar por escrito contrato, reembolso y calendario de pagos.");
   }
 
@@ -1644,10 +1657,10 @@ function FlyPathNextStepsPanel({
   const secondaryIds = ordered.slice(1);
 
   const primaryCtaClass =
-    "inline-flex min-h-[40px] w-full min-w-0 max-w-[min(100%,22rem)] cursor-pointer items-center justify-center self-stretch rounded-xl bg-[#c9a454] px-5 py-2.5 text-sm font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:min-w-[13.5rem] sm:w-auto sm:self-start sm:px-7";
+    "inline-flex min-h-[40px] w-full min-w-0 max-w-[min(100%,22rem)] cursor-pointer items-center justify-center self-stretch rounded-xl bg-[#c9a454] px-5 py-2.5 text-base font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:min-w-[13.5rem] sm:w-auto sm:self-start sm:px-7";
 
   const secondaryCtaClass =
-    "inline-flex min-h-[40px] w-full cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30";
+    "inline-flex min-h-[40px] w-full cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-4 py-2 text-[15px] font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30";
 
   const renderCard = (id: FlyPathProductId, isPrimary: boolean) => {
     const p = products[id];
@@ -1668,7 +1681,7 @@ function FlyPathNextStepsPanel({
                 Recomendado para tu caso
               </span>
               <p className="text-base font-semibold leading-snug text-[#0f1a33]">{p.title}</p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600 sm:text-sm">{p.body}</p>
+              <p className="mt-1.5 text-[15px] leading-relaxed text-slate-600">{p.body}</p>
               <div className="mt-2.5 flex justify-center lg:hidden">
                 <FlyPathPrimaryProductVisual productId={id} />
               </div>
@@ -1683,7 +1696,7 @@ function FlyPathNextStepsPanel({
         ) : (
           <div className={`flex min-h-0 flex-1 flex-col ${!isPrimary ? "min-h-[156px]" : ""}`}>
             <p className="text-[15px] font-semibold leading-snug text-[#f2ddaa]">{p.title}</p>
-            <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-slate-300 sm:text-sm">{p.body}</p>
+            <p className="mt-1.5 flex-1 text-[15px] leading-relaxed text-slate-300">{p.body}</p>
             <button type="button" onClick={onProductCta} className={`${secondaryCtaClass} mt-auto shrink-0 pt-3`}>
               {p.cta}
             </button>
@@ -1698,7 +1711,7 @@ function FlyPathNextStepsPanel({
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/90 sm:text-[11px]">Profundiza con FlyPath</p>
         <h2 className="mt-1.5 text-lg font-semibold tracking-tight text-white sm:text-xl">Tu siguiente paso FlyPath</h2>
-        <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-slate-200/95 sm:text-sm">
+        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-200/95">
           El diagnóstico te da una dirección. Ahora elige el siguiente paso según lo que más te está bloqueando.
         </p>
       </div>
@@ -1757,13 +1770,19 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [tab, setTab] = useState<Tab>(initialTab);
   const [profile, setProfile] = useState<Profile>(defaultProfile);
   const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
+  // Bandera de hidratación: bloquea las escrituras a localStorage hasta haber leído
+  // los valores ya guardados. Sin esto, los useEffect de persistencia disparan en el
+  // primer render con los valores INICIALES por defecto (onboardingCompleted=false,
+  // schools=[], etc.) y pisan los datos reales antes de que la hidratación los recupere.
+  // En reviewMode no hay persistencia ni hidratación, así que arranca como `true`.
+  const [storageHydrated, setStorageHydrated] = useState<boolean>(reviewMode);
   const [onboardingApproxDraft, setOnboardingApproxDraft] = useState({
     precioFormacion: sumFormationParts(defaultCostInputs),
     extrasEstimados: sumExtrasParts(defaultCostInputs),
     vidaLogistica: sumVidaParts(defaultCostInputs),
     bufferPct: defaultCostInputs.bufferPct,
   });
-  const [schools, setSchools] = useState<School[]>(exampleSchools);
+  const [schools, setSchools] = useState<School[]>([]);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [emailDrafts, setEmailDrafts] = useState<Record<number, string>>({});
@@ -1774,6 +1793,11 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
   const [schoolEditActiveId, setSchoolEditActiveId] = useState<number | null>(null);
   const schoolFormDetailsRef = useRef<HTMLDetailsElement>(null);
+  // Apertura inicial del acordeón "Añadir escuela manualmente": abierto si el usuario es nuevo
+  // (sin escuelas en localStorage ni en deep-link). Tras la decisión inicial el usuario controla
+  // libremente con su toggle; no se reabre automáticamente al cambiar schools.length.
+  const [manualFormOpen, setManualFormOpen] = useState(false);
+  const manualFormInitializedRef = useRef(false);
   const [dashboardMobileNavOpen, setDashboardMobileNavOpen] = useState(false);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [landingHeaderLogoPhase, setLandingHeaderLogoPhase] = useState<"white" | "plain" | "fallback">("white");
@@ -1805,8 +1829,40 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     setDashboardMobileNavOpen(false);
   }, [tab]);
 
+  // Decide la apertura inicial del acordeón manual una sola vez, leyendo síncronamente
+  // localStorage y los slugs del deep-link. Posteriores cambios de schools.length no afectan.
   useEffect(() => {
+    if (manualFormInitializedRef.current) return;
     if (reviewMode) return;
+    if (typeof window === "undefined") return;
+    manualFormInitializedRef.current = true;
+    let count = 0;
+    try {
+      const raw = window.localStorage.getItem("flypath_schools");
+      if (raw) {
+        const parsed = JSON.parse(raw) as unknown;
+        if (Array.isArray(parsed)) count = parsed.length;
+      }
+      const params = new URLSearchParams(window.location.search);
+      const schoolsParam = params.get("schools");
+      if (schoolsParam) {
+        const slugs = schoolsParam
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean);
+        count = Math.max(count, slugs.length);
+      }
+    } catch {
+      count = 0;
+    }
+    setManualFormOpen(count === 0);
+  }, [reviewMode]);
+
+  useEffect(() => {
+    if (reviewMode) {
+      setStorageHydrated(true);
+      return;
+    }
     try {
       const p = localStorage.getItem("flypath_profile");
       const c = localStorage.getItem("flypath_cost_inputs");
@@ -1823,12 +1879,23 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       if (c) setCostInputs({ ...defaultCostInputs, ...JSON.parse(c) });
       if (s) setSchools(JSON.parse(s));
       if (o) {
-        const done = JSON.parse(o);
+        // Lectura robusta: aceptamos JSON booleano `true` o el string literal "true".
+        const done = JSON.parse(o) === true || o === "true";
         setOnboardingCompleted(done);
-        setScreen(done ? "dashboard" : "landing");
+
+        // Si la URL trae un deep-link (?source=schools-comparator o ?review=dashboard) la
+        // decisión de pantalla la toma el efecto del deep-link de más abajo. Aquí solo
+        // decidimos cuando NO hay deep-link: dashboard si onboarding está hecho, landing si no.
+        const params = new URLSearchParams(window.location.search);
+        const isSchoolsComparatorSource = params.get("source") === "schools-comparator";
+        const reviewParam = params.get("review");
+        if (!isSchoolsComparatorSource && reviewParam !== "dashboard") {
+          setScreen(done ? "dashboard" : "landing");
+        }
       }
+      setStorageHydrated(true);
     } catch {
-      // noop
+      setStorageHydrated(true);
     }
   }, []);
 
@@ -1844,16 +1911,23 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     const sourceParam = params.get("source");
     const isSchoolsComparatorSource = sourceParam === "schools-comparator";
     const requestedTab = params.get("tab") as Tab | null;
-    const validTabs: Tab[] = ["route", "cost", "schools", "plan", "readiness", "report"];
+    const validTabs: Tab[] = ["route", "cost", "schools", "report"];
 
     // Onboarding ya completado se lee directamente de localStorage para decidir
     // de forma síncrona si saltamos al dashboard cuando llegamos desde el comparador.
+    // Lectura defensiva: aceptamos tanto JSON booleano (`true`) como el string literal
+    // ("true") por si en algún momento se guardó sin JSON.stringify; y si JSON.parse
+    // explota (valor corrupto), caemos al test de string crudo.
     let onboardingDoneFromStorage = false;
     try {
       const raw = window.localStorage.getItem("flypath_onboarding_completed");
-      onboardingDoneFromStorage = raw ? JSON.parse(raw) === true : false;
+      if (raw) {
+        const parsed = JSON.parse(raw) as unknown;
+        onboardingDoneFromStorage = parsed === true || raw === "true";
+      }
     } catch {
-      onboardingDoneFromStorage = false;
+      onboardingDoneFromStorage =
+        window.localStorage.getItem("flypath_onboarding_completed") === "true";
     }
 
     if (reviewParam === "dashboard") {
@@ -1962,17 +2036,34 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     }
 
     // Decisión de pantalla. Si venimos del comparador y el usuario ya tenía onboarding
-    // completado, vamos directo al dashboard, tab "Escuelas". En caso contrario,
-    // arrancamos onboarding (sin onboarding o con start=onboarding explícito).
-    if (isSchoolsComparatorSource && onboardingDoneFromStorage) {
+    // completado, vamos directo al dashboard, tab "Escuelas". Comprobamos la condición
+    // contra el estado React y contra localStorage para que no afecte ninguna desincronización
+    // momentánea entre ambos (por ejemplo, en el primer commit tras montar la página). En
+    // caso contrario, arrancamos onboarding (sin onboarding o con start=onboarding explícito).
+    const onboardingDone = onboardingCompleted || onboardingDoneFromStorage;
+
+    if (process.env.NODE_ENV === "development" && isSchoolsComparatorSource) {
+      // Debug temporal para verificar en consola qué lee realmente el deep-link del
+      // comparador. Si "rawOnboardingCompleted" es "true" o true, el usuario debe ir al
+      // dashboard, no al onboarding. Útil mientras estabilizamos el flujo.
+      // eslint-disable-next-line no-console
+      console.log("[FlyPath comparator deep-link]", {
+        onboardingCompletedState: onboardingCompleted,
+        onboardingDoneFromStorage,
+        rawOnboardingCompleted: window.localStorage.getItem("flypath_onboarding_completed"),
+        schoolsParam,
+      });
+    }
+
+    if (isSchoolsComparatorSource && onboardingDone) {
       setOnboardingCompleted(true);
       setScreen("dashboard");
       setTab("schools");
-    } else if (startParam === "onboarding" || (isSchoolsComparatorSource && !onboardingDoneFromStorage)) {
+    } else if (startParam === "onboarding" || (isSchoolsComparatorSource && !onboardingDone)) {
       setScreen("onboarding");
       setOnboardingStep(1);
     }
-  }, [reviewMode]);
+  }, [reviewMode, onboardingCompleted]);
 
   useEffect(() => {
     if (screen !== "onboarding" || onboardingStep !== 3) return;
@@ -2019,22 +2110,26 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     };
   }, [screen]);
 
+  // Las cuatro escrituras a localStorage están bloqueadas hasta que el efecto de
+  // hidratación haya leído los datos guardados (storageHydrated === true). Esto
+  // evita que el primer commit con valores INICIALES por defecto pise los datos
+  // reales del usuario antes de la lectura.
   useEffect(() => {
-    if (reviewMode) return;
+    if (reviewMode || !storageHydrated) return;
     localStorage.setItem("flypath_profile", JSON.stringify(profile));
-  }, [profile, reviewMode]);
+  }, [profile, reviewMode, storageHydrated]);
   useEffect(() => {
-    if (reviewMode) return;
+    if (reviewMode || !storageHydrated) return;
     localStorage.setItem("flypath_cost_inputs", JSON.stringify(costInputs));
-  }, [costInputs, reviewMode]);
+  }, [costInputs, reviewMode, storageHydrated]);
   useEffect(() => {
-    if (reviewMode) return;
+    if (reviewMode || !storageHydrated) return;
     localStorage.setItem("flypath_schools", JSON.stringify(schools));
-  }, [schools, reviewMode]);
+  }, [schools, reviewMode, storageHydrated]);
   useEffect(() => {
-    if (reviewMode) return;
+    if (reviewMode || !storageHydrated) return;
     localStorage.setItem("flypath_onboarding_completed", JSON.stringify(onboardingCompleted));
-  }, [onboardingCompleted, reviewMode]);
+  }, [onboardingCompleted, reviewMode, storageHydrated]);
 
   const route = useMemo(() => computeRoute(profile), [profile]);
   const costs = useMemo(() => computeCosts(costInputs, profile), [costInputs, profile]);
@@ -2059,6 +2154,26 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
         bufferPct: costInputs.bufferPct,
       }),
     [profile, costs, route, schoolStats.analyzed, costInputs.bufferPct]
+  );
+  // Bloqueos críticos coherentes con la lectura visible "Bloqueo principal" del informe.
+  //
+  // `route.principalBlock` y `decisionReadiness.bloqueosCriticos` se calculan con criterios
+  // distintos: `route.principalBlock` solo marca como bloqueo crítico Class 1, inglés bajo
+  // o brecha financiera crítica (con dineroDisponible < 30k); `decisionReadiness` aplica
+  // reglas más amplias y puede contener entradas tipo "Brecha financiera alta..." aunque
+  // en la card "Bloqueo principal" se haya escrito "Ningún bloqueo crítico".
+  //
+  // Para que la "Conclusión ejecutiva" no contradiga lo que el usuario acaba de leer,
+  // tomamos `route.principalBlock` como señal autoritativa: si visiblemente se afirma
+  // "Ningún bloqueo crítico", también lo respetamos en la conclusión. Esto NO modifica
+  // ni `computeRoute`, ni `computeDecisionReadiness`, ni el score, ni el cálculo de la
+  // decisión: solo se filtra la lista que se pasa al helper de copy.
+  const criticalBlockersForConclusion = useMemo(
+    () =>
+      route.principalBlock === "Ningún bloqueo crítico"
+        ? []
+        : decisionReadiness.bloqueosCriticos,
+    [route.principalBlock, decisionReadiness.bloqueosCriticos],
   );
   const actionPlan = useMemo(
     () => buildActionPlan({ profile, costs, route, schools, decisionReadiness }),
@@ -2133,22 +2248,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     ];
   }, [profile.class1, profile.ingles, costs.riesgoFinanciero, costs.coverage, schoolStats.bestSchool, schoolStats.verifiedCount, schools.length, route.conflicts]);
 
-  const resetDemoData = () => {
-    if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres resetear los datos demo? Esta acción no se puede deshacer.")) return;
-    localStorage.removeItem("flypath_profile");
-    localStorage.removeItem("flypath_cost_inputs");
-    localStorage.removeItem("flypath_schools");
-    localStorage.removeItem("flypath_onboarding_completed");
-    setProfile(defaultProfile);
-    setCostInputs(defaultCostInputs);
-    setSchools(exampleSchools);
-    setOnboardingCompleted(false);
-    setOnboardingStep(1);
-    setDashboardMobileNavOpen(false);
-    setScreen("landing");
-    showToast("Datos demo reseteados");
-  };
-
   const showToast = (message: string) => {
     setToast(message);
     if (typeof window !== "undefined") {
@@ -2209,6 +2308,28 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     setTab("route");
   };
 
+  /**
+   * Navegación de tabs del dashboard activada por el USUARIO (clicks en sidebar o
+   * en CTAs visibles tipo "Siguiente paso", "Comparar escuelas", "Ver informe final",
+   * etc.). Cambia el tab y hace scroll a la parte superior del nuevo contenido.
+   *
+   * Solo se usa para clicks visibles. Las navegaciones automáticas (efectos de
+   * deep-link, importación desde el comparador, finishOnboarding, review mode,
+   * carga inicial) siguen llamando a setTab(...) directamente: en esos casos no
+   * hay que tocar el scroll porque el usuario aún no estaba navegando dentro del
+   * dashboard.
+   */
+  const goToDashboardTab = (nextTab: Tab) => {
+    setTab(nextTab);
+    if (typeof window === "undefined") return;
+    // Esperamos al siguiente frame para que la nueva sección ya esté en el DOM antes
+    // de mover el scroll: si lo hacemos sincrónicamente, el scrollTop puede aplicarse
+    // sobre el layout viejo y queda inconsistente.
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
   const handleOnboardingNext = () => {
     if (onboardingStep === 3 && cameFromSchoolsComparator) {
       setCostInputs({ ...defaultCostInputs });
@@ -2227,8 +2348,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     { id: "route", label: "Planificador de ruta" },
     { id: "cost", label: "Costes" },
     { id: "schools", label: "Escuelas" },
-    { id: "readiness", label: "¿Listo para pagar?" },
-    { id: "plan", label: "Plan de acción" },
     { id: "report", label: "Informe final" },
   ];
 
@@ -2237,15 +2356,23 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     2: { title: "Medical e inglés", desc: "Valida bloqueos operativos críticos." },
             3: { title: "Presupuesto", desc: "Alinea capacidad económica y riesgo." },
     4: { title: "Disponibilidad", desc: "Calcula ritmo realista de progreso." },
-    5: { title: "Escuelas", desc: "Carga referencias iniciales para comparar." },
+    5: {
+      title: "Escuelas",
+      desc: "No necesitas tener datos exactos ahora. Podrás comparar escuelas reales más adelante desde el Planner.",
+    },
             6: { title: "Resultado inicial", desc: "Visualiza recomendación y brechas." },
   };
 
   if (screen === "landing") {
     const gotoExample = () => setScreen(onboardingCompleted ? "dashboard" : "onboarding");
     const gotoDiagnosis = () => {
-      setScreen("onboarding");
-      setOnboardingStep(1);
+      if (onboardingCompleted) {
+        setScreen("dashboard");
+        setTab("route");
+      } else {
+        setScreen("onboarding");
+        setOnboardingStep(1);
+      }
     };
 
     const flypathPlatformModules = [
@@ -2263,7 +2390,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
         <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
             {toast}
           </motion.div>
@@ -2296,14 +2423,14 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </div>
                     <div className="min-w-0 leading-tight">
                       <p className="truncate text-sm font-semibold tracking-tight text-white sm:text-base">FlyPath Career Planner</p>
-                      <p className="truncate text-xs text-white/60">Diagnóstico antes de elegir escuela</p>
+                      <p className="truncate text-sm text-white/60">Diagnóstico antes de elegir escuela</p>
                     </div>
                   </div>
                 </>
               )}
             </div>
             <p
-              className="pointer-events-none hidden min-w-0 select-none truncate text-center text-[13px] font-medium tracking-[0.14em] text-[#f2ddaa]/90 md:flex md:flex-1 md:items-center md:justify-center"
+              className="pointer-events-none hidden min-w-0 select-none truncate text-center text-sm font-medium tracking-[0.14em] text-[#f2ddaa]/90 md:flex md:flex-1 md:items-center md:justify-center"
               aria-hidden
             >
               Planifica tu Ruta
@@ -2406,7 +2533,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     <ArrowRight className="landing-arrow h-5 w-5 shrink-0 transition-transform duration-150 md:h-[1.3rem] md:w-[1.3rem]" />
                   </button>
                 </div>
-                <p className="mt-8 max-w-md text-xs leading-relaxed text-slate-400">
+                <p className="mt-8 max-w-md text-[15px] leading-relaxed text-slate-400">
                   Orientación educativa. No sustituye información oficial de escuelas, médicos, bancos o autoridades.
                 </p>
               </div>
@@ -2444,7 +2571,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <p className="mt-1 text-lg font-semibold text-[#0f1a33]">
                         Modular / <span className="text-[#7a5a16]">Preparación</span>
                       </p>
-                      <p className="mt-2 text-xs leading-relaxed text-slate-600">Prioriza cerrar bloqueos antes de pagos altos y avanza por fases con mejor control del riesgo.</p>
+                      <p className="mt-2 text-[15px] leading-relaxed text-slate-600">Prioriza cerrar bloqueos antes de pagos altos y avanza por fases con mejor control del riesgo.</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,26,51,0.06)]">
@@ -2487,7 +2614,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">Siguiente paso</p>
-                          <p className="mt-1 text-sm font-semibold text-[#0f1a33]">Revisar costes y escuelas candidatas</p>
+                          <p className="mt-1 text-base font-semibold text-[#0f1a33]">Revisar costes y escuelas candidatas</p>
                         </div>
                         <div className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0f1a33] text-[#f2ddaa] shadow-md sm:flex" aria-hidden>
                           <Compass className="h-4 w-4" />
@@ -2553,7 +2680,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       </span>
                       <div className="min-w-0">
                         <h3 className="text-lg font-semibold text-[#0f1a33]">{block.title}</h3>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-600">{block.text}</p>
+                        <p className="mt-2 text-base leading-relaxed text-slate-600">{block.text}</p>
                       </div>
                     </div>
                   </div>
@@ -2605,7 +2732,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         <Icon className="h-5 w-5 shrink-0" aria-hidden />
                       </div>
                       <h3 className="mt-4 text-base font-semibold leading-snug text-[#0f1a33]">{who.title}</h3>
-                      <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{who.text}</p>
+                      <p className="mt-2 flex-1 text-base leading-relaxed text-slate-600">{who.text}</p>
                     </div>
                   );
                 })}
@@ -2715,7 +2842,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <h3 className="text-lg font-semibold leading-snug" style={{ color: "#ffffff" }}>
                         {title}
                       </h3>
-                      <p className="mt-2 text-sm leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.75)" }}>
+                      <p className="mt-2 text-base leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.75)" }}>
                         {text}
                       </p>
                     </div>
@@ -2774,14 +2901,14 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       No empieces por la escuela. Empieza por entender tu caso.
                     </p>
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
-                      <button type="button" onClick={gotoDiagnosis} className="landing-cta-primary inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold">
+                      <button type="button" onClick={gotoDiagnosis} className="landing-cta-primary inline-flex items-center justify-center rounded-xl px-6 py-3 text-[15px] font-semibold">
                         Crear mi diagnóstico
                         <ArrowRight className="landing-arrow ml-2 h-4 w-4 transition-transform duration-150" />
                       </button>
                       <button
                         type="button"
                         onClick={gotoExample}
-                        className="rounded-xl border border-white/35 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/15"
+                        className="rounded-xl border border-white/35 bg-white/10 px-6 py-3 text-[15px] font-semibold text-white hover:bg-white/15"
                       >
                         Ver ejemplo
                       </button>
@@ -2816,16 +2943,18 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-[#0f1a33]">
         <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
+          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
             {toast}
           </motion.div>
         )}
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
           <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <p className="text-sm text-slate-500">Crear mi plan - Paso {onboardingStep} de 6</p>
+            <p className="text-[15px] text-slate-500">Crear mi plan - Paso {onboardingStep} de 6</p>
             <h1 className="mt-1 text-2xl font-semibold">{stepMeta[onboardingStep].title}</h1>
-            <p className="mt-1 text-sm text-slate-600">{stepMeta[onboardingStep].desc}</p>
+            {stepMeta[onboardingStep].desc ? (
+              <p className="mt-1 text-[15px] text-slate-600">{stepMeta[onboardingStep].desc}</p>
+            ) : null}
             <div className="mt-4 rounded-full bg-slate-100 p-1"><Progress value={(onboardingStep / 6) * 100} tone="bg-[#0f1a33]" /></div>
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
               {onboardingStep === 1 && <div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={profile.nombre} onChange={(v)=>setProfile(p=>({...p,nombre:v}))} /><NumberField label="Edad" value={profile.edad} onChange={(v)=>setProfile(p=>({...p,edad:v}))} /><TextField label="País" value={profile.pais} onChange={(v)=>setProfile(p=>({...p,pais:v}))} /><SelectField label="Situación laboral" value={profile.situacionLaboral} options={[{value:"estudiante",label:"Estudiante"},{value:"trabajando",label:"Trabajando"},{value:"desempleado",label:"Desempleado"},{value:"otro",label:"Otro"}]} onChange={(v)=>setProfile(p=>({...p,situacionLaboral:v as Profile["situacionLaboral"]}))} /><SelectField label="Objetivo" value={profile.objetivo} options={[{value:"aerolinea",label:"Aerolínea"},{value:"ejecutivo",label:"Ejecutivo"},{value:"instructor",label:"Instructor"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,objetivo:v as Profile["objetivo"]}))} /></div>}
@@ -2874,12 +3003,12 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 <div className="space-y-4">
                   {!cameFromSchoolsComparator ? (
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                      <p className="text-sm font-semibold text-[#0f1a33]">¿Tienes ya precios aproximados de una escuela o ruta?</p>
+                      <p className="text-base font-semibold text-[#0f1a33]">¿Tienes ya precios aproximados de una escuela o ruta?</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "flypath_base" }))}
-                          className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
+                          className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-[15px] font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
                             profile.costEstimateSource === "flypath_base"
                               ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -2890,7 +3019,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         <button
                           type="button"
                           onClick={() => setProfile((p) => ({ ...p, costEstimateSource: "user_approx" }))}
-                          className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
+                          className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-[15px] font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 ${
                             profile.costEstimateSource === "user_approx"
                               ? "border-[#1d4ed8] bg-blue-50 text-[#1d4ed8]"
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -2912,7 +3041,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                             onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, extrasEstimados: Math.max(0, v) }))}
                           />
                           <NumberField
-                            label="Coste de vida y logística estimado"
+                            label="Costes de vida estimados"
                             value={onboardingApproxDraft.vidaLogistica}
                             onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, vidaLogistica: Math.max(0, v) }))}
                           />
@@ -2927,43 +3056,47 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   ) : null}
                   {cameFromSchoolsComparator && hasComparatorImportedSchools ? (
                     <div className="rounded-xl border border-slate-200 bg-[#fffdf7] px-3 py-2.5">
-                      <p className="text-sm text-slate-700">
+                      <p className="text-[15px] text-slate-700">
                         Hemos importado tus escuelas seleccionadas desde el comparador. Usaremos esos datos como base y podrás ajustar costes después en el dashboard.
                       </p>
                     </div>
                   ) : null}
-                  <p className="text-sm text-slate-600">
-                    {cameFromSchoolsComparator && hasComparatorImportedSchools
-                      ? "Ya hemos cargado tus escuelas seleccionadas. Puedes añadir o ajustar datos si lo necesitas."
-                      : "Puedes añadir hasta 3 escuelas iniciales."}
-                  </p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} />
-                    <TextField label="País" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} />
-                    <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} />
-                    <NumberField label="Duración anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} />
-                    <SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} />
-                    <SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} />
-                    <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} />
-                    <SelectField label="Estado de verificación" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} />
-                  </div>
-                  <button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">Añadir escuela inicial</button>
+                  {profile.costEstimateSource === "user_approx" ? (
+                    <>
+                      <p className="text-[15px] text-slate-600">
+                        {cameFromSchoolsComparator && hasComparatorImportedSchools
+                          ? "Ya hemos cargado tus escuelas seleccionadas. Puedes añadir o ajustar datos si lo necesitas."
+                          : "Puedes añadir hasta 3 referencias iniciales si ya tienes escuelas o rutas en mente."}
+                      </p>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} />
+                        <TextField label="País" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} />
+                        <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} />
+                        <NumberField label="Duración anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} />
+                        <SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} />
+                        <SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} />
+                        <TextField label="Fecha de actualización (opcional)" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} />
+                        <SelectField label="Estado de verificación (opcional)" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} />
+                      </div>
+                      <button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-[15px] font-medium text-white disabled:opacity-50">Añadir escuela/ruta</button>
+                    </>
+                  ) : null}
                 </div>
               )}
               {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razón principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} /></div>}
             </div>
             <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5">
-              <button onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))} disabled={onboardingStep === 1} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-sm shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 disabled:cursor-not-allowed disabled:opacity-50">Anterior</button>
+              <button onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))} disabled={onboardingStep === 1} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-[15px] shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 disabled:cursor-not-allowed disabled:opacity-50">Anterior</button>
               {onboardingStep < 6 ? (
                 <button
                   type="button"
                   onClick={handleOnboardingNext}
-                  className="cursor-pointer rounded-lg bg-[#1d4ed8] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
+                  className="cursor-pointer rounded-lg bg-[#1d4ed8] px-4 py-2 text-[15px] text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
                 >
                   Siguiente
                 </button>
               ) : (
-                <button onClick={finishOnboarding} className="cursor-pointer rounded-lg bg-[#0f766e] px-4 py-2 text-sm text-white shadow-sm transition hover:bg-[#0d665f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50">Ir al dashboard</button>
+                <button onClick={finishOnboarding} className="cursor-pointer rounded-lg bg-[#0f766e] px-4 py-2 text-[15px] text-white shadow-sm transition hover:bg-[#0d665f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50">Ir al dashboard</button>
               )}
             </div>
           </div>
@@ -2976,7 +3109,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
       <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
-        <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-sm text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
+        <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
           {toast}
         </motion.div>
@@ -3009,17 +3142,17 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
           </div>
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-[#c9a454]/20 p-2.5"><Plane className="h-5 w-5 text-[#f2ddaa]" /></div>
-            <div><p className="font-semibold text-white">FlyPath Career Planner</p><p className="text-xs text-slate-300">Planner de decisión</p></div>
+            <div><p className="font-semibold text-white">FlyPath Career Planner</p><p className="text-[15px] text-slate-300">Planner de decisión</p></div>
           </div>
           <nav className="mt-9 space-y-1.5">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => {
-                  setTab(item.id);
+                  goToDashboardTab(item.id);
                   setDashboardMobileNavOpen(false);
                 }}
-                className={`w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-sm transition ${tab === item.id ? "bg-white/95 text-[#0f1a33] shadow-sm ring-1 ring-[#c9a454]/40" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}
+                className={`w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-[15px] transition ${tab === item.id ? "bg-white/95 text-[#0f1a33] shadow-sm ring-1 ring-[#c9a454]/40" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}
               >
                 {item.label}
               </button>
@@ -3032,13 +3165,16 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 setOnboardingStep(1);
                 setDashboardMobileNavOpen(false);
               }}
-              className="w-full cursor-pointer rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              className="w-full cursor-pointer rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-[15px] transition hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
             >
               Editar mis datos
             </button>
             <button
-              onClick={resetDemoData}
-              className="w-full cursor-pointer rounded-lg border border-emerald-300/35 bg-emerald-400/12 px-3 py-2 text-sm font-semibold text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-emerald-200/60 hover:bg-emerald-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/35"
+              onClick={() => {
+                setScreen("landing");
+                setDashboardMobileNavOpen(false);
+              }}
+              className="w-full cursor-pointer rounded-lg border border-emerald-300/35 bg-emerald-400/12 px-3 py-2 text-[15px] font-semibold text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-emerald-200/60 hover:bg-emerald-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/35"
             >
               Volver al inicio
             </button>
@@ -3058,7 +3194,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             </button>
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">Vista actual</p>
-              <p className="truncate text-sm font-semibold text-[#0f1a33]">{navItems.find((i) => i.id === tab)?.label ?? "FlyPath"}</p>
+              <p className="truncate text-base font-semibold text-[#0f1a33]">{navItems.find((i) => i.id === tab)?.label ?? "FlyPath"}</p>
             </div>
           </div>
           {tab === "route" && (
@@ -3091,14 +3227,14 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
                   <h1 className="mt-1.5 min-w-0 break-words text-2xl font-semibold text-white sm:text-3xl">Tu ruta más prudente ahora: {route.recommended}</h1>
-                  <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-slate-200">
+                  <p className="mt-2.5 max-w-3xl text-base leading-relaxed text-slate-200">
                     Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
-                    className="cursor-pointer rounded-xl border border-[#c9a454]/45 bg-[#c9a454]/10 px-4 py-2 text-xs font-medium text-[#f2ddaa] transition hover:bg-[#c9a454]/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
+                    className="cursor-pointer rounded-xl border border-[#c9a454]/45 bg-[#c9a454]/10 px-4 py-2 text-[15px] font-medium text-[#f2ddaa] transition hover:bg-[#c9a454]/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
                   >
                     Editar mis datos
                   </button>
@@ -3125,14 +3261,14 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/75" />Siguiente paso prioritario</p>
                   <ClipboardCheck className="h-4 w-4 text-[#f2ddaa]/55" />
                 </div>
-                <p className="mt-2 text-sm font-semibold leading-snug text-slate-100 md:text-[15px]">
+                <p className="mt-2 text-[15px] font-semibold leading-snug text-slate-100">
                   {profile.class1 !== "si"
                     ? "Confirma tu Class 1 antes de elegir escuela."
                     : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pide precio final, contrato, calendario de pagos y política de reembolso antes de transferir dinero."}
                 </p>
               </div>
               {route.principalBlock === "Clase 1 no confirmada" && (
-                <div className="mt-2.5 rounded-2xl border border-white/10 bg-[#081329]/55 p-4 text-sm text-slate-100">
+                <div className="mt-2.5 rounded-2xl border border-white/10 bg-[#081329]/55 p-4 text-[15px] text-slate-100">
                   <div className="max-w-2xl border-l-2 border-[#c9a454]/65 pl-3">
                     <p className="font-semibold text-[#f2ddaa]">No pagar escuela todavía</p>
                     <p className="mt-1 text-slate-200">
@@ -3149,7 +3285,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               <div className="space-y-5">
                 <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Comparación de rutas</p>
-                  <p className="mb-4 text-sm text-slate-600">No es una probabilidad ni una promesa de resultado. Es una lectura prudente para ayudarte a priorizar la ruta con menos riesgo.</p>
+                  <p className="mb-4 text-[15px] text-slate-600">No es una probabilidad ni una promesa de resultado. Es una lectura prudente para ayudarte a priorizar la ruta con menos riesgo.</p>
                   <div className="grid gap-4 lg:grid-cols-3">
                     <RouteOption title="Integrada" value={route.integrated} label={routePriorityLabels.Integrada} />
                     <RouteOption title="Modular" value={route.modular} label={routePriorityLabels.Modular} />
@@ -3157,7 +3293,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
                 </div>
                 <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso recomendado</p>
+                  <p className="text-base font-semibold text-[#0f1a33]">Siguiente paso recomendado</p>
                   <p className="mt-2 max-w-3xl text-2xl font-semibold text-[#0f1a33]">
                     {route.recommended === "Modular"
                       ? "Avanza por fases, pero valida costes antes de pagar."
@@ -3165,7 +3301,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       ? "Valida que puedes asumir una ruta intensiva."
                       : "Resuelve bloqueos antes de elegir escuela."}
                   </p>
-                  <p className="mt-3 max-w-4xl text-[15px] leading-relaxed text-slate-600">
+                  <p className="mt-3 max-w-4xl text-base leading-relaxed text-slate-600">
                     {route.recommended === "Modular"
                       ? "Tu diagnóstico apunta a una ruta modular porque te permite controlar mejor el riesgo y la inversión por fases. El siguiente paso no es elegir escuela rápido, sino confirmar si el coste realista encaja con tu presupuesto y comparar escuelas con condiciones por escrito."
                       : route.recommended === "Integrada"
@@ -3175,32 +3311,20 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onClick={() => setTab("cost")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                      onClick={() => goToDashboardTab("cost")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                     >
                       Revisar costes
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTab("schools")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                      onClick={() => goToDashboardTab("schools")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                     >
                       Comparar escuelas
                     </button>
                   </div>
                 </div>
-                <details className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Alertas y conflictos</summary>
-                  <div className="mt-3 space-y-2">
-                    {route.warnings
-                      .filter((w) => {
-                        const lower = w.toLowerCase();
-                        return !lower.includes("no pagues escuela todavía") && !lower.includes("no pagar escuela todavía");
-                      })
-                      .map((w) => <div key={w} className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">{w}</div>)}
-                    {route.conflicts.map((c) => <div key={c} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-sm text-rose-800">{c}</div>)}
-                  </div>
-                </details>
               </div>
             )}
             {tab === "cost" && (
@@ -3221,37 +3345,37 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <div className="lg:max-w-[760px]">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico financiero</p>
                     <p className="mt-2 text-3xl font-semibold">Coste realista estimado: {euro(costs.totalRealista)}</p>
-                    <p className="mt-3 max-w-3xl text-sm text-slate-200">
+                    <p className="mt-3 max-w-3xl text-[15px] text-slate-200">
                       {profile.costEstimateSource === "user_approx" ? (
                         <>
-                          Estimación inicial basada en los importes aproximados que introdujiste. Puedes afinar cada
+                          Estimación inicial basada en los importes aproximados que introdujiste.
                           <br />
-                          {"partida más abajo."}
+                          Puedes afinar cada partida más abajo.
                         </>
                       ) : (
                         <>
-                          Estimación inicial basada en valores base FlyPath de formación, extras y vida/logística. Puedes ajustar cada
+                          Estimación inicial basada en valores base FlyPath de formación, extras y costes de vida.
                           <br />
-                          {"partida más abajo."}
+                          Puedes ajustar cada partida más abajo.
                         </>
                       )}
                     </p>
                   </div>
                   <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                    <div className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Dinero que falta</p>
+                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
+                      <p className="text-[15px] text-slate-300">Dinero que falta</p>
                       <p className="mt-1 text-lg font-semibold text-white">{euro(costs.brechaFinanciacion)}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Presupuesto cubierto</p>
+                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
+                      <p className="text-[15px] text-slate-300">Presupuesto cubierto</p>
                       <p className="mt-1 text-lg font-semibold text-white">{costs.coverage}%</p>
                     </div>
-                    <div className="rounded-2xl border border-white/12 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Riesgo financiero</p>
+                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
+                      <p className="text-[15px] text-slate-300">Riesgo financiero</p>
                       <p className="mt-1 text-lg font-semibold text-white">{costs.riesgoFinanciero}</p>
                     </div>
                   </div>
-                  <p className="mt-4 border-l-2 border-[#c9a454]/60 pl-3 text-sm text-slate-300">
+                  <p className="mt-4 border-l-2 border-[#c9a454]/60 pl-3 text-[15px] text-slate-300">
                     {costs.brechaFinanciacion > 0
                       ? `Lectura rápida: tu presupuesto cubre aproximadamente ${costs.coverage}% del escenario realista. Antes de comprometer pagos, conviene cerrar la brecha o ajustar la ruta.`
                       : "Lectura rápida: tu presupuesto cubre el escenario realista, pero conviene mantener margen para retrasos, repeticiones y costes no incluidos."}
@@ -3259,90 +3383,20 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-slate-700">Tres escenarios posibles</p>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
-                    No planifiques solo con el escenario optimista. La decisión debe soportar retrasos, repeticiones y costes no incluidos.
-                  </p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                      <p className="text-xs text-slate-500">Optimista</p>
-                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalOptimista)}</p>
-                    </div>
-                    <div className="rounded-2xl border border-[#c9a454]/35 bg-[#fffaf0] p-4">
-                      <p className="text-xs text-slate-500">Realista</p>
-                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalRealista)}</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                      <p className="text-xs text-slate-500">Conservador</p>
-                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalConservador)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-slate-700">Dinero que falta para cubrir el coste realista</p>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                    {costs.brechaFinanciacion > 0
-                      ? "Todavía existe una brecha entre tu dinero disponible y el coste realista. Conviene cerrar financiación, ajustar ruta o aumentar margen de seguridad antes de avanzar."
-                      : "El coste realista está cubierto con tu dinero disponible, pero aún conviene mantener margen para repeticiones, retrasos y extras no incluidos."}
-                  </p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <SummaryCard label="Dinero disponible" value={euro(profile.dineroDisponible)} />
-                    <SummaryCard label="Dinero que falta" value={euro(costs.brechaFinanciacion)} />
-                    <SummaryCard
-                      label="Tiempo estimado al ritmo actual"
-                      value={`${costs.mesesCerrarBrecha} meses`}
-                      subValue={humanYearsFromBrechaMonths(costs.mesesCerrarBrecha) ?? undefined}
-                    />
-                  </div>
-                  <div className="mt-4">
-                    <FinancialCoverageCard
-                      dineroDisponible={profile.dineroDisponible}
-                      totalRealista={costs.totalRealista}
-                      brechaFinanciacion={costs.brechaFinanciacion}
-                      coverage={costs.coverage}
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-slate-700">Desglose estimado</p>
-                  <p className="mt-1 text-sm text-slate-600">Detalle por formación, extras, vida y margen de seguridad. Usa este bloque para ajustar hipótesis sin perder la visión global.</p>
-                  <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                    <div className="space-y-3">
-                      {[
-                        { label: "Formación", value: costs.subtotalFormacion, tone: "bg-[#1d3557]" },
-                        { label: "Extras", value: costs.subtotalExtras, tone: "bg-[#64748b]" },
-                        { label: "Vida y logística", value: costs.subtotalVida, tone: "bg-[#94a3b8]" },
-                        { label: "Margen de seguridad", value: costs.buffer, tone: "bg-[#c9a454]" },
-                      ].map((item) => {
-                        const pct = costs.totalRealista > 0 ? (item.value / costs.totalRealista) * 100 : 0;
-                        return (
-                          <div key={item.label}>
-                            <div className="mb-1 flex items-center justify-between text-sm">
-                              <p className="font-medium text-slate-700">{item.label}</p>
-                              <p className="text-slate-600">{euro(item.value)} · {Math.round(pct)}%</p>
-                            </div>
-                            <div className="h-2 rounded-full bg-slate-200">
-                              <div className={`h-2 rounded-full ${item.tone}`} style={{ width: `${clamp(pct)}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
                 <div className="space-y-3">
-                  <details className="rounded-2xl border border-slate-200 bg-white px-5 py-3.5 shadow-none">
-                    <summary className="cursor-pointer text-sm font-medium text-[#0f1a33]">Editar mis costes estimados</summary>
+                  <details className="rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+                    <summary className="cursor-pointer list-item marker:text-slate-400">
+                      <span className="text-base font-semibold text-[#0f1a33]">Ajustar mi estimación de costes</span>
+                      <span className="mt-1 block text-[15px] leading-relaxed text-slate-600">
+                        Modifica formación, extras, costes de vida y margen de seguridad si tus números son diferentes.
+                      </span>
+                    </summary>
                     <div className="mt-4 space-y-4">
                       <CostBlock title={route.recommended === "Integrada" ? "Formación integrada" : "Formación modular"}>
                         {route.recommended === "Integrada" ? (
                           <>
-                            <p className="md:col-span-2 xl:col-span-4 text-sm text-slate-600">
-                              En una ruta integrada, la formación suele venderse como un paquete completo. Edita el precio total anunciado y después ajusta extras, vida y margen de seguridad.
+                            <p className="md:col-span-2 xl:col-span-4 text-[15px] text-slate-600">
+                              En una ruta integrada, la formación suele venderse como un paquete completo. Edita el precio total anunciado y después ajusta extras, costes de vida y margen de seguridad.
                             </p>
                             <NumberField label="Programa integrado completo" value={costInputs.ppl + (costInputs.nightRating ?? 3000) + costInputs.atplTheory + costInputs.hourBuilding + costInputs.cpl + costInputs.mep + costInputs.ir} onChange={(v) => {
                               const currentPack = costInputs.ppl + (costInputs.nightRating ?? 3000) + costInputs.atplTheory + costInputs.hourBuilding + costInputs.cpl + costInputs.mep + costInputs.ir;
@@ -3364,7 +3418,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           </>
                         ) : (
                           <>
-                            <p className="md:col-span-2 xl:col-span-4 text-sm text-slate-600">
+                            <p className="md:col-span-2 xl:col-span-4 text-[15px] text-slate-600">
                               En una ruta modular, tiene sentido revisar cada fase por separado para controlar pagos, ritmo y riesgo.
                             </p>
                             <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
@@ -3389,7 +3443,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         <NumberField label="Repeticiones" value={costInputs.repeticiones} onChange={(v) => setCostInputs((c) => ({ ...c, repeticiones: v }))} />
                         <NumberField label="Type rating opcional" value={costInputs.typeRatingOpcional} onChange={(v) => setCostInputs((c) => ({ ...c, typeRatingOpcional: v }))} />
                       </CostBlock>
-                      <CostBlock title="Vida y logística">
+                      <CostBlock title="Costes de vida">
                         <NumberField label="Alojamiento" value={costInputs.alojamiento} onChange={(v) => setCostInputs((c) => ({ ...c, alojamiento: v }))} />
                         <NumberField label="Transporte" value={costInputs.transporte} onChange={(v) => setCostInputs((c) => ({ ...c, transporte: v }))} />
                         <NumberField label="Comida" value={costInputs.comida} onChange={(v) => setCostInputs((c) => ({ ...c, comida: v }))} />
@@ -3399,80 +3453,238 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </div>
                   </details>
                 </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-base font-semibold text-slate-700">Desglose estimado</p>
+                  <p className="mt-1 text-[15px] text-slate-600">Detalle por formación, extras, costes de vida y margen de seguridad. Usa este bloque para ajustar hipótesis sin perder la visión global.</p>
+                  <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                    <div className="space-y-3">
+                      {[
+                        { label: "Formación", value: costs.subtotalFormacion, tone: "bg-[#1d3557]" },
+                        { label: "Extras", value: costs.subtotalExtras, tone: "bg-[#64748b]" },
+                        { label: "Costes de vida", value: costs.subtotalVida, tone: "bg-[#94a3b8]" },
+                        { label: "Margen de seguridad", value: costs.buffer, tone: "bg-[#c9a454]" },
+                      ].map((item) => {
+                        const pct = costs.totalRealista > 0 ? (item.value / costs.totalRealista) * 100 : 0;
+                        return (
+                          <div key={item.label}>
+                            <div className="mb-1 flex items-center justify-between text-[15px]">
+                              <p className="font-medium text-slate-700">{item.label}</p>
+                              <p className="text-slate-600">{euro(item.value)} · {Math.round(pct)}%</p>
+                            </div>
+                            <div className="h-2 rounded-full bg-slate-200">
+                              <div className={`h-2 rounded-full ${item.tone}`} style={{ width: `${clamp(pct)}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-base font-semibold text-slate-700">Resumen financiero</p>
+                  <p className="mt-2 max-w-3xl text-[15px] text-slate-600">
+                    Compara el escenario realista con tu dinero disponible y tu ritmo de ahorro actual.
+                  </p>
+                  <div className="mt-5 space-y-5">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Escenarios posibles</p>
+                      <div className="mt-2.5 grid gap-3 md:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                          <p className="text-[15px] text-slate-500">Optimista</p>
+                          <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalOptimista)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-[#c9a454]/35 bg-[#fffaf0] p-4">
+                          <p className="text-[15px] text-slate-500">Realista</p>
+                          <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalRealista)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                          <p className="text-[15px] text-slate-500">Conservador</p>
+                          <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalConservador)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Tu brecha actual</p>
+                      <div className="mt-2.5 grid gap-3 md:grid-cols-3">
+                        <SummaryCard label="Dinero disponible" value={euro(profile.dineroDisponible)} />
+                        <SummaryCard label="Dinero que falta" value={euro(costs.brechaFinanciacion)} />
+                        <SummaryCard
+                          label="Tiempo estimado al ritmo actual"
+                          value={`${costs.mesesCerrarBrecha} meses`}
+                          subValue={humanYearsFromBrechaMonths(costs.mesesCerrarBrecha) ?? undefined}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
-                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+                  <p className="text-base font-semibold text-[#0f1a33]">Siguiente paso</p>
+                  <p className="mt-2 max-w-4xl text-base leading-relaxed text-slate-600">
                     Con una estimación realista, compara escuelas usando el mismo criterio: precio final, extras incluidos, contrato, reembolso y calendario de pagos.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onClick={() => setTab("schools")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                      onClick={() => goToDashboardTab("schools")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                     >
                       Comparar escuelas
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTab("readiness")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Ver si estoy listo para pagar
                     </button>
                   </div>
                 </div>
               </div>
             )}
             {tab === "schools" && (
-              <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
+              <div className="flex flex-col gap-6">
+                <div className="order-1 relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
                   <div className="pointer-events-none absolute right-5 top-5 z-0 hidden sm:block">
                     <ClipboardList className="h-16 w-16 text-[#c9a454]/28 drop-shadow-sm lg:h-[72px] lg:w-[72px] lg:text-[#c9a454]/32" strokeWidth={1.25} aria-hidden />
                   </div>
                   <div className="relative z-10">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico de escuelas</p>
                   <h2 className="mt-2 text-3xl font-semibold">Compara escuelas antes de pagar depósito.</h2>
-                  <p className="mt-3 max-w-3xl text-sm text-slate-200">
+                  <p className="mt-3 max-w-3xl text-[15px] text-slate-200">
                     No compares solo precio anunciado. Revisa contrato, reembolso, calendario de pagos, extras incluidos y evidencia por escrito.
                   </p>
                   <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Escuelas comparadas</p>
+                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
+                      <p className="text-[15px] text-slate-300">Escuelas comparadas</p>
                       <p className="mt-1 text-lg font-semibold text-white">{schools.length}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Verificadas</p>
+                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
+                      <p className="text-[15px] text-slate-300">Verificadas</p>
                       <p className="mt-1 text-lg font-semibold text-white">{schoolStats.verifiedCount}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Mejor opción actual</p>
+                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
+                      <p className="text-[15px] text-slate-300">Mejor opción actual</p>
                       <p className="mt-1 text-lg font-semibold text-white">{schoolStats.bestSchool?.school.nombre || "Sin opción clara"}</p>
                     </div>
                   </div>
                   </div>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-slate-700">Lectura rápida</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {schools.length === 0
-                      ? "Todavía no has añadido escuelas. Añade al menos dos opciones para poder comparar precio, condiciones y riesgos."
-                      : schools.length === 1
-                      ? "Con una sola escuela no hay comparación real. Añade al menos una alternativa antes de decidir."
-                      : schoolStats.bestSchool
-                      ? "Ya puedes comparar opciones, pero la decisión no debería basarse solo en precio. Prioriza la escuela con mejor claridad documental, condiciones de pago y extras confirmados."
-                      : "Hay escuelas cargadas, pero todavía falta información suficiente para identificar una opción sólida."}
+                <div className="order-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Cómo añadir escuelas
+                  </p>
+                  <h3 className="mt-1.5 text-lg font-semibold text-[#0f1a33] sm:text-xl">
+                    Elige cómo quieres añadir escuelas
+                  </h3>
+                  <p className="mt-1.5 max-w-3xl text-base leading-relaxed text-slate-600">
+                    Puedes usar la base de datos FlyPath o introducir una escuela manualmente si ya tienes información propia.
                   </p>
                 </div>
+                {(() => {
+                  const importedFromComparator = schools.filter((s) =>
+                    s.enlaceReferencia.startsWith("comparador:"),
+                  );
+                  const ctaShellClass =
+                    "order-3 relative isolate overflow-hidden rounded-3xl border border-[#c9a454]/30 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)]";
+                  // Imagen local reutilizada de las cards del comparador para dar un acabado más
+                  // visual al CTA sin descargar nuevos assets. Overlay azul oscuro fuerte para
+                  // mantener legibilidad y look premium.
+                  const ctaBackdrop = (
+                    <>
+                      <Image
+                        src="/school-card-bg/cadet-airline.jpg"
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 768px, 100vw"
+                        className="object-cover"
+                        aria-hidden
+                      />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-br from-[#0a1228]/88 via-[#0f1a33]/74 to-[#152545]/64"
+                        aria-hidden
+                      />
+                    </>
+                  );
+                  if (importedFromComparator.length > 0) {
+                    return (
+                      <div className={ctaShellClass}>
+                        {ctaBackdrop}
+                        <div className="relative p-5 sm:p-7">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">ESCUELAS IMPORTADAS</p>
+                          <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
+                            Ya tienes {importedFromComparator.length}{" "}
+                            {importedFromComparator.length === 1 ? "escuela" : "escuelas"} del comparador en tu Planner
+                          </h3>
+                          <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
+                            Estas escuelas se usarán en tu informe final para cruzarlas con tu perfil, presupuesto, Class 1, inglés y disponibilidad.
+                          </p>
+                          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                            {importedFromComparator.map((s) => (
+                              <li
+                                key={s.id}
+                                className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-[15px] font-semibold text-white backdrop-blur-sm"
+                              >
+                                {s.nombre}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                            <button
+                              type="button"
+                              onClick={() => goToDashboardTab("report")}
+                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                            >
+                              Ver informe final
+                              <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => router.push("/schools?from=planner")}
+                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-white/30 bg-white/[0.06] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                            >
+                              Cambiar escuelas
+                            </button>
+                          </div>
+                          <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
+                            Puedes cambiarlas en cualquier momento volviendo al comparador.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className={ctaShellClass}>
+                      {ctaBackdrop}
+                      <div className="relative p-5 sm:p-7">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">COMPARADOR FLYPATH</p>
+                        <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
+                          ¿Todavía no sabes qué escuelas comparar?
+                        </h3>
+                        <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
+                          Explora la base de datos FlyPath y trae 2 opciones reales al Planner para analizarlas con tu perfil.
+                        </p>
+                        <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-400">
+                          La búsqueda y comparación básica son gratuitas. El análisis personalizado con tu perfil puede formar parte de una opción avanzada.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => router.push("/schools?from=planner")}
+                          className="mt-5 inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                        >
+                          Explorar base de datos FlyPath
+                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div className="order-6 flex flex-col gap-6">
                 {schoolStats.analyzed.map(({ school, analysis }) => (
                   <div key={school.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${schoolStats.bestSchool?.school.id === school.id ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
                     <div className="grid gap-4 lg:grid-cols-3">
                       <div className="lg:col-span-2">
                         <p className="text-xl font-semibold text-[#0f1a33]">{school.nombre}</p>
-                        <p className="mt-1 text-sm text-slate-600">{school.ciudad}, {school.pais} · Programa {school.programa} · {euro(school.precioAnunciado)}</p>
+                        <p className="mt-1 text-[15px] text-slate-600">{school.ciudad}, {school.pais} · Programa {school.programa} · {euro(school.precioAnunciado)}</p>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                           <SchoolTextMetricCard
                             label="Estado de verificación"
-                            value={school.estadoVerificacion}
+                            value={estadoVerificacionLabel(school.estadoVerificacion)}
                             secondary={school.estadoVerificacion === "pendiente" ? "Falta validar datos" : undefined}
                           />
                           <SchoolMetricCard label="Solidez general" score={analysis.encajeGeneral} reading={solidezGeneralReading(analysis.encajeGeneral)} />
@@ -3485,7 +3697,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <div className="space-y-2">
                         <button
                           type="button"
-                          className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
+                          className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
                           onClick={() => {
                             const pending = getSchoolEmailMissingData(school);
                             setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
@@ -3502,7 +3714,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         </button>
                         <button
                           type="button"
-                          className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                          className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
                           onClick={async () => {
                             const draft = emailDrafts[school.id] || buildSchoolEmail(school, profile.nombre);
                             if (!emailDrafts[school.id]) {
@@ -3520,7 +3732,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         </button>
                         <button
                           type="button"
-                          className={`w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
+                          className={`w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-medium transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
                             schoolEditActiveId === school.id
                               ? "border-[#c9a454]/55 bg-[#fffaf0] text-[#3d3418] shadow-sm hover:bg-[#fff5e6] focus-visible:ring-[#c9a454]/35"
                               : "border-slate-300 bg-white text-[#0f1a33] hover:bg-slate-50 focus-visible:ring-slate-300/60"
@@ -3559,52 +3771,63 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           items={emailPendingBySchool[school.id] || []}
                           empty="No faltan datos críticos detectados para esta escuela."
                         />
-                        <p className="mb-2 mt-3 text-xs font-medium text-emerald-700">Email listo para copiar</p>
-                        <pre className="whitespace-pre-wrap text-xs text-slate-700">{emailDrafts[school.id]}</pre>
+                        <p className="mb-2 mt-3 text-[15px] font-medium text-emerald-700">Email listo para copiar</p>
+                        <pre className="whitespace-pre-wrap text-[15px] text-slate-700">{emailDrafts[school.id]}</pre>
                       </div>
                     )}
                   </div>
                 ))}
+                </div>
 
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{disclaimerText}</div>
-                <button
-                  onClick={() => {
-                    if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
-                    setSchools([]);
-                    setNewSchool(createEmptySchool());
-                    setSchoolEditActiveId(null);
-                    if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
-                    showToast("Escuelas eliminadas");
-                  }}
-                  className="cursor-pointer rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700 shadow-sm transition hover:bg-rose-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50"
-                >
-                  Eliminar ejemplos y empezar desde cero
-                </button>
+                {schools.length > 0 ? (
+                  <div className="order-5 flex justify-start">
+                    <button
+                      onClick={() => {
+                        if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
+                        setSchools([]);
+                        setNewSchool(createEmptySchool());
+                        setSchoolEditActiveId(null);
+                        if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
+                        showToast("Escuelas eliminadas");
+                      }}
+                      className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/40"
+                    >
+                      Eliminar todas las escuelas y empezar desde cero
+                    </button>
+                  </div>
+                ) : null}
 
                 <details
                   ref={schoolFormDetailsRef}
-                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                  open={manualFormOpen}
+                  className="order-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
                   onToggle={(e) => {
                     const el = e.currentTarget;
+                    setManualFormOpen(el.open);
                     if (!el.open) {
                       if (schoolEditActiveId !== null) setNewSchool(createEmptySchool());
                       setSchoolEditActiveId(null);
                     }
                   }}
                 >
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">
-                    {schoolEditActiveId !== null
-                      ? `Editando escuela: ${newSchool.nombre.trim() || "—"}`
-                      : "Añadir escuela para comparar"}
+                  <summary className="cursor-pointer marker:text-slate-400">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Opción manual
+                    </span>
+                    <span className="mt-1 block text-base font-semibold text-[#0f1a33]">
+                      {schoolEditActiveId !== null
+                        ? `Editando escuela: ${newSchool.nombre.trim() || "—"}`
+                        : "Añadir escuela manualmente"}
+                    </span>
                   </summary>
                   {schoolEditActiveId !== null && (
                     <div className="mt-4 rounded-2xl border border-[#c9a454]/30 bg-gradient-to-r from-[#fffdf8] to-white px-4 py-3 shadow-sm">
-                      <p className="text-xs leading-relaxed text-slate-600">
+                      <p className="text-[15px] leading-relaxed text-slate-600">
                         Actualiza aquí precio, contrato, extras incluidos y condiciones. Los scores se recalculan automáticamente.
                       </p>
                     </div>
                   )}
-                  <p className="mt-2 text-sm text-slate-600">
+                  <p className="mt-2 text-[15px] text-slate-600">
                     Introduce una escuela candidata. Cuantos más datos confirmes por escrito, más útil será el análisis.
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -3617,13 +3840,13 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
 
                   <details className="mt-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Añadir datos avanzados de verificación</summary>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <summary className="cursor-pointer text-base font-semibold text-slate-700">Añadir datos avanzados de verificación</summary>
+                    <p className="mt-2 text-[15px] text-slate-600">
                       Empieza por los 3 datos clave. El resto sirve para afinar red flags y preguntas pendientes si tienes información suficiente.
                     </p>
                     <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm font-semibold text-slate-800">Datos mínimos para decidir</p>
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="text-base font-semibold text-slate-800">Datos mínimos para decidir</p>
+                      <p className="mt-1 text-[15px] text-slate-600">
                         Si solo puedes conseguir tres cosas de la escuela, empieza por contrato, reembolso y calendario de pagos.
                       </p>
                       <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -3661,7 +3884,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </div>
 
                     <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver programa, precio y fuente</summary>
+                      <summary className="cursor-pointer text-base font-semibold text-slate-700">Ver programa, precio y fuente</summary>
                       <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                         <SelectField
                           label="Programa"
@@ -3707,7 +3930,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </details>
 
                     <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver extras incluidos</summary>
+                      <summary className="cursor-pointer text-base font-semibold text-slate-700">Ver extras incluidos</summary>
                       <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                         <SelectField
                           label="MCC/JOC incluido"
@@ -3763,7 +3986,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </details>
 
                     <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                      <summary className="cursor-pointer text-sm font-semibold text-slate-700">Ver operación, soporte y marketing</summary>
+                      <summary className="cursor-pointer text-base font-semibold text-slate-700">Ver operación, soporte y marketing</summary>
                       <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                         <SelectField
                           label="Flota explicada"
@@ -3834,15 +4057,15 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     <button
                       type="button"
                       onClick={() => addSchool(false)}
-                      className="cursor-pointer rounded-xl bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                      className="cursor-pointer rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
                     >
-                      {schoolEditActiveId !== null ? "Guardar cambios" : "Añadir escuela para comparar"}
+                      {schoolEditActiveId !== null ? "Guardar cambios" : "Añadir escuela manualmente"}
                     </button>
                     {schoolEditActiveId !== null && (
                       <button
                         type="button"
                         onClick={cancelSchoolEdit}
-                        className="cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#0f1a33] shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                        className="cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
                       >
                         Cancelar edición
                       </button>
@@ -3850,296 +4073,22 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
                 </details>
 
-                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
-                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+                <div className="order-7 rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
+                  <p className="text-base font-semibold text-[#0f1a33]">Siguiente paso</p>
+                  <p className="mt-2 max-w-4xl text-base leading-relaxed text-slate-600">
                     Cuando tengas al menos dos escuelas con precio final, contrato, reembolso y calendario de pagos claros, revisa si estás listo para pagar.
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onClick={() => setTab("readiness")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Ver si estoy listo para pagar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTab("plan")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Ver plan de acción
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-[#c9a454]/30 bg-[#0f1a33] p-5 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)] sm:p-7">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">COMPARADOR FLYPATH</p>
-                  <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">Compara escuelas reales antes de decidir</h3>
-                  <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200">
-                    Elige 2 escuelas del comparador FlyPath y tráelas al Planner para analizarlas con tu perfil, presupuesto, Class 1, inglés y disponibilidad.
-                  </p>
-                  <p className="mt-2 max-w-3xl text-xs leading-relaxed text-slate-400">
-                    También puedes seguir añadiendo escuelas manualmente si prefieres comparar tus propios datos.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/schools")}
-                    className="mt-5 inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
-                  >
-                    Ir al comparador de escuelas
-                    <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
-                  </button>
-                </div>
-              </div>
-            )}
-            {tab === "plan" && (
-              <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
-                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[90px] w-[180px] lg:flex items-center justify-end opacity-70">
-                    <svg viewBox="0 0 260 140" className="h-full w-full">
-                      <path d="M30 85 L110 85 L190 85 L230 45" fill="none" stroke="#c9a454" strokeOpacity="0.5" strokeWidth="2" />
-                      <circle cx="30" cy="85" r="6" fill="rgba(255,255,255,0.35)" />
-                      <circle cx="110" cy="85" r="6" fill="rgba(201,164,84,0.65)" />
-                      <circle cx="190" cy="85" r="6" fill="rgba(255,255,255,0.45)" />
-                      <text x="22" y="106" fill="rgba(226,232,240,0.8)" fontSize="11" fontWeight="600">7</text>
-                      <text x="99" y="106" fill="rgba(226,232,240,0.8)" fontSize="11" fontWeight="600">30</text>
-                      <text x="176" y="106" fill="rgba(226,232,240,0.8)" fontSize="11" fontWeight="600">90</text>
-                      <path d="M227 44 l10 -6 l-3 12 z" fill="rgba(201,164,84,0.75)" />
-                    </svg>
-                  </div>
-                  <div className="relative z-10">
-                  <div className="lg:max-w-[760px]">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Plan de acción FlyPath</p>
-                    <h2 className="mt-2 text-3xl font-semibold">Tus próximos pasos antes de avanzar.</h2>
-                    <p className="mt-2 max-w-3xl text-sm text-slate-200">
-                      Este plan prioriza acciones que reducen riesgo antes de pagar matrícula, depósito o firmar condiciones con una escuela.
-                    </p>
-                  </div>
-                  <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Ruta recomendada</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{route.recommended}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Estado de pago</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{decisionReadiness.decision}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Prioridad principal</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{route.principalBlock}</p>
-                    </div>
-                  </div>
-                  <p className="mt-3 border-l-2 border-[#c9a454]/60 pl-3 text-xs text-slate-300">
-                    Ruta orientativa. No significa que debas pagar todavía.
-                  </p>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-slate-700">Lectura rápida</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {decisionReadiness.decision === "No estás listo para pagar"
-                      ? "Antes de pagar, resuelve primero los bloqueos principales. El objetivo ahora no es elegir escuela rápido, sino reducir riesgo."
-                      : decisionReadiness.decision === "Puedes seguir investigando, pero no pagar"
-                      ? "Puedes seguir comparando opciones, pero todavía faltan datos críticos antes de comprometer dinero."
-                      : "Puedes preparar una decisión final, pero solo con contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito."}
-                  </p>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-1 xl:grid-cols-3">
-                  {[
-                    { title: "Próximos 7 días", subtitle: "Acciones inmediatas", items: actionPlan.sevenDays, highlight: true },
-                    { title: "Próximos 30 días", subtitle: "Validación y documentación", items: actionPlan.thirtyDays, highlight: false },
-                    { title: "Próximos 90 días", subtitle: "Decisión y seguimiento", items: actionPlan.ninetyDays, highlight: false },
-                  ].map((block) => (
-                    <div key={block.title} className={`rounded-3xl border bg-white p-6 shadow-sm ${block.highlight ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
-                      <p className="text-sm font-semibold text-slate-700">{block.title}</p>
-                      <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">{block.subtitle}</p>
-                      {block.items.length > 0 ? (
-                        <ol className="mt-4 space-y-2.5 text-sm leading-relaxed text-slate-700">
-                          {block.items.map((task, idx) => (
-                            <li key={task} className="flex items-start gap-2.5">
-                              <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-600">{idx + 1}</span>
-                              <span>{task}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      ) : (
-                        <p className="mt-3 text-sm text-slate-500">Sin acciones pendientes en este bloque.</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <div className="border-l-4 border-l-[#c9a454] pl-4">
-                    <p className="text-sm font-semibold text-slate-700">No hagas esto todavía</p>
-                    <p className="mt-2 text-sm text-slate-600">
-                      Evita tomar decisiones por presión comercial. Antes de pagar o firmar, confirma por escrito los puntos críticos.
-                    </p>
-                  </div>
-                  <ul className="mt-5 space-y-3">
-                    <li className="flex items-start gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                      <span className="text-sm leading-relaxed text-slate-700">No pagar depósito sin contrato o condiciones claras.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                      <span className="text-sm leading-relaxed text-slate-700">No decidir por precio anunciado sin extras incluidos.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                      <span className="text-sm leading-relaxed text-slate-700">No asumir promesas de empleo como garantía.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                      <span className="text-sm leading-relaxed text-slate-700">No avanzar sin saber qué pasa si abandonas o retrasas la formación.</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="rounded-3xl border border-r-4 border-slate-200 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <div className="pl-1">
-                    <p className="text-sm font-semibold text-slate-700">Siguiente paso</p>
-                    <p className="mt-2 text-sm text-slate-600">
-                      Cuando completes las acciones críticas, revisa el informe final o vuelve a comprobar si estás listo para pagar.
-                    </p>
-                  </div>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setTab("report")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Ver informe final
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTab("readiness")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Revisar si estoy listo para pagar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {tab === "readiness" && (
-              <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
-                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[100px] w-[180px] lg:flex items-center justify-end opacity-70">
-                    <svg viewBox="0 0 240 150" className="h-full w-full">
-                      <path d="M50 100 A55 55 0 1 1 190 100" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="10" strokeLinecap="round" />
-                      <path d="M50 100 A55 55 0 0 1 156 54" fill="none" stroke="#c9a454" strokeOpacity="0.7" strokeWidth="10" strokeLinecap="round" />
-                      <circle cx="120" cy="100" r="6" fill="rgba(255,255,255,0.45)" />
-                      <path d="M114 100 l4 4 l8 -10" fill="none" stroke="rgba(242,221,170,0.95)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      <circle cx="156" cy="54" r="5" fill="rgba(201,164,84,0.8)" />
-                    </svg>
-                  </div>
-                  <div className="relative z-10">
-                  <div className="lg:max-w-[760px]">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Decisión de pago</p>
-                    <p className="mt-2 text-3xl font-semibold">{decisionReadiness.decision}</p>
-                    <p className="mt-2 max-w-3xl text-sm text-slate-200">{decisionReadiness.explanation}</p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-                    <p className="text-5xl font-semibold">
-                      {decisionReadiness.score}
-                      <span className="text-xl font-medium text-slate-300">/100</span>
-                    </p>
-                    <span className="inline-flex rounded-full border border-[#c9a454]/35 bg-[#c9a454]/10 px-3 py-1 text-xs font-medium text-[#f2ddaa]">
-                      {decisionReadiness.showNoPaguesBadge
-                        ? "No pagar todavía"
-                        : decisionReadiness.score < 50
-                        ? "No pagar todavía"
-                        : decisionReadiness.score < 75
-                        ? "Investigar sin comprometer pagos"
-                        : "Avanzar solo con condiciones por escrito"}
-                    </span>
-                  </div>
-                  <div className="mt-4 h-2 rounded-full bg-white/10">
-                    <div
-                      className={`h-2 rounded-full ${decisionReadiness.score >= 75 ? "bg-[#c9a454]" : decisionReadiness.score >= 50 ? "bg-[#1d4ed8]" : "bg-slate-400"}`}
-                      style={{ width: `${clamp(decisionReadiness.score)}%` }}
-                    />
-                  </div>
-                  </div>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-slate-700">Qué significa este resultado</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {decisionReadiness.decision === "No estás listo para pagar"
-                      ? "Ahora mismo no deberías pagar matrícula, depósito ni firmar condiciones. Primero hay que resolver bloqueos críticos, datos pendientes o brechas financieras."
-                      : decisionReadiness.decision === "Puedes seguir investigando, pero no pagar"
-                      ? "Puedes seguir hablando con escuelas y completando información, pero todavía faltan confirmaciones antes de comprometer dinero."
-                      : "La decisión parece más sólida, pero solo deberías avanzar si conservas contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito."}
-                  </p>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Bloqueos críticos</p>
-                  {decisionReadiness.bloqueosCriticos.length > 0 ? (
-                    <ul className="space-y-2 text-sm text-slate-700">
-                      {decisionReadiness.bloqueosCriticos.map((item) => (
-                        <li key={item} className="flex items-start gap-2">
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-slate-600">No se detectan bloqueos críticos con los datos actuales.</p>
-                  )}
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Datos pendientes</p>
-                  {decisionReadiness.faltanDatos.slice(0, 6).length > 0 ? (
-                    <ul className="space-y-2 text-sm text-slate-700">
-                      {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
-                        <li key={item}>• {item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-slate-600">No hay datos críticos pendientes detectados.</p>
-                  )}
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Antes de pagar, haz esto</p>
-                  {decisionReadiness.proximosPasos.length > 0 ? (
-                    <ol className="space-y-2 text-sm text-slate-700">
-                      {decisionReadiness.proximosPasos.map((step, idx) => (
-                        <li key={step} className="flex items-start gap-2">
-                          <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-600">{idx + 1}</span>
-                          {step}
-                        </li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <p className="text-sm text-slate-600">No hay pasos pendientes detectados.</p>
-                  )}
-                </div>
-                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
-                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
-                    Si todavía hay bloqueos o datos pendientes, usa el plan de acción antes de pagar. Si el resultado es sólido, prepara la documentación final antes de transferir dinero.
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setTab("plan")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Ver plan de acción
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTab("report")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm"
+                      onClick={() => goToDashboardTab("report")}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                     >
                       Ver informe final
                     </button>
                   </div>
                 </div>
+
               </div>
             )}
             {tab === "report" && (
@@ -4159,72 +4108,87 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <div className="lg:max-w-[760px]">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Informe final FlyPath</p>
                     <h2 className="mt-2 min-w-0 break-words text-2xl font-semibold sm:text-3xl">Tu resumen de decisión</h2>
-                    <p className="mt-2 max-w-4xl text-sm text-slate-200">
+                    <p className="mt-2 max-w-4xl text-[15px] text-slate-200">
                       Resumen de tu ruta, costes, riesgos y próximos pasos antes de tomar una decisión económica.
                     </p>
                   </div>
                   <div className="mt-5 grid gap-3 lg:grid-cols-4">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Ruta recomendada</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{route.recommended}</p>
+                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Ruta recomendada</p>
+                      <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#f2ddaa] sm:text-2xl">{route.recommended}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Decisión de pago</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{decisionReadiness.decision}</p>
+                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Decisión de pago</p>
+                      <p
+                        className={`mt-1.5 break-words text-base font-bold leading-tight sm:text-lg ${informeHeroDecisionValueTextClass(decisionReadiness.decision)}`}
+                      >
+                        {decisionReadiness.decision}
+                      </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Coste realista</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{euro(costs.totalRealista)}</p>
+                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Coste realista</p>
+                      <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#f2ddaa] sm:text-2xl">{euro(costs.totalRealista)}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                      <p className="text-xs text-slate-300">Score de decisión</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{decisionReadiness.score}/100</p>
+                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Score de decisión</p>
+                      <p className="mt-1.5 break-words tabular-nums text-xl font-bold leading-tight text-[#f0c96b] sm:text-2xl">{decisionReadiness.score}/100</p>
                     </div>
                   </div>
                   </div>
                 </div>
 
+                {/* Card unificada: "Conclusión ejecutiva" como bloque principal + "Lectura
+                    rápida" como subbloque dentro de la misma tarjeta, separados por una
+                    línea suave. Reemplaza las dos cards anteriores (Conclusión ejecutiva +
+                    Lectura ejecutiva). El contenido y la fuente de cada bullet se mantienen
+                    1:1; solo se unifica el contenedor visual. La conclusión sigue usando
+                    `conclusionEjecutivaInformeFinal(...)` con los 3 argumentos correctos. */}
                 <div className="rounded-3xl border border-slate-200/95 border-l-[3px] border-l-[#c9a454]/75 bg-gradient-to-br from-white via-white to-[#fafbfd] px-5 py-5 shadow-[0_10px_28px_rgba(15,26,51,0.07)]">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    <p className="text-sm font-semibold text-[#0f1a33]">Conclusión ejecutiva</p>
+                    <p className="text-base font-semibold text-[#0f1a33]">Conclusión ejecutiva</p>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                    {conclusionEjecutivaInformeFinal(decisionReadiness.decision)}
+                  <p className="mt-2 text-base leading-relaxed text-slate-600">
+                    {conclusionEjecutivaInformeFinal(
+                      decisionReadiness.decision,
+                      criticalBlockersForConclusion,
+                      decisionReadiness.faltanDatos,
+                    )}
                   </p>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200/95 border-l-[3px] border-l-[#c9a454]/75 bg-white px-5 py-5 shadow-[0_10px_28px_rgba(15,26,51,0.07)]">
-                  <div className="flex items-center gap-2">
-                    <ClipboardCheck className="h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    <p className="text-sm font-semibold text-[#0f1a33]">Lectura ejecutiva</p>
+                  <div className="mt-5 border-t border-slate-200/70 pt-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Lectura rápida</p>
+                    <ul className="mt-3 list-none space-y-3 text-base leading-relaxed text-slate-700">
+                      <li className="flex gap-3">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
+                        <span>
+                          <span className="font-semibold text-slate-800">Ruta recomendada:</span> {route.recommended}. {route.reason}
+                        </span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
+                        <span>
+                          <span className="font-semibold text-slate-800">Bloqueo principal:</span> {route.principalBlock}.
+                        </span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
+                        <span>
+                          <span className="font-semibold text-slate-800">Siguiente paso:</span>{" "}
+                          {actionPlan.sevenDays[0] ?? "Resolver bloqueos críticos y completar datos antes de pagar."}
+                        </span>
+                      </li>
+                    </ul>
                   </div>
-                  <ul className="mt-3 list-none space-y-3.5 text-sm leading-relaxed text-slate-700">
-                    <li className="flex gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
-                      <span>
-                        <span className="font-semibold text-slate-800">Ruta recomendada:</span> {route.recommended}. {route.reason}
-                      </span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
-                      <span>
-                        <span className="font-semibold text-slate-800">Bloqueo principal:</span> {route.principalBlock}.
-                      </span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
-                      <span>
-                        <span className="font-semibold text-slate-800">Siguiente paso:</span>{" "}
-                        {actionPlan.sevenDays[0] ?? "Resolver bloqueos críticos y completar datos antes de pagar."}
-                      </span>
-                    </li>
-                  </ul>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Riesgos principales</p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {/* "Riesgos principales": compactado ligeramente para reducir altura y
+                    no competir con el "Plan resumido". Cambios solo de espaciado:
+                    contenedor p-6 → p-5; mt-4 → mt-3; cards internas p-4 → px-4 py-3;
+                    separación entre párrafos mt-2 → mt-1.5. Mismo grid, mismos textos,
+                    mismos riesgos, misma legibilidad. */}
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-base font-semibold text-[#0f1a33]">Riesgos principales</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {riskDiagnosis.slice(0, 6).map((risk) => {
                       const visualLabel =
                         risk.label === "Riesgo de marketing/promesas"
@@ -4243,13 +4207,13 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           ? "border-[#1d4ed8]/25 bg-[#1d4ed8]/10 text-[#1d4ed8]"
                           : "border-slate-300 bg-slate-100 text-slate-600";
                       return (
-                        <div key={risk.label} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+                        <div key={risk.label} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-semibold text-[#0f1a33]">{visualLabel}</p>
+                            <p className="text-base font-semibold text-[#0f1a33]">{visualLabel}</p>
                             <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${badgeStyles}`}>{risk.nivel}</span>
                           </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-600">{risk.explicacion}</p>
-                          <p className="mt-2 text-sm text-slate-700">
+                          <p className="mt-1.5 text-base leading-relaxed text-slate-600">{risk.explicacion}</p>
+                          <p className="mt-1.5 text-[15px] text-slate-700">
                             <span className="font-semibold">Acción:</span> {visualAction}
                           </p>
                         </div>
@@ -4259,9 +4223,9 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Datos pendientes antes de pagar</p>
+                  <p className="text-base font-semibold text-[#0f1a33]">Datos pendientes antes de pagar</p>
                   {decisionReadiness.faltanDatos.length > 0 ? (
-                    <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                    <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                       {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
                         <li key={item} className="flex items-start gap-2">
                           <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
@@ -4270,12 +4234,12 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-sm text-slate-600">No hay datos críticos pendientes detectados, pero conserva toda la documentación por escrito.</p>
+                    <p className="mt-2 text-[15px] text-slate-600">No hay datos críticos pendientes detectados, pero conserva toda la documentación por escrito.</p>
                   )}
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Plan resumido</p>
+                  <p className="text-base font-semibold text-[#0f1a33]">Plan resumido</p>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {[
                       { title: "Próximos 7 días", items: actionPlan.sevenDays.slice(0, 3) },
@@ -4283,9 +4247,9 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       { title: "Próximos 90 días", items: actionPlan.ninetyDays.slice(0, 3) },
                     ].map((block) => (
                       <div key={block.title} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5">
-                        <p className="text-sm font-semibold text-slate-700">{block.title}</p>
+                        <p className="text-base font-semibold text-slate-700">{block.title}</p>
                         {block.items.length > 0 ? (
-                          <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-700">
+                          <ol className="mt-3 space-y-2 text-base leading-relaxed text-slate-700">
                             {block.items.map((task, idx) => (
                               <li key={task} className="flex items-start gap-2.5">
                                 <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-600">{idx + 1}</span>
@@ -4294,7 +4258,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                             ))}
                           </ol>
                         ) : (
-                          <p className="mt-2 text-sm text-slate-500">Sin acciones clave en este bloque.</p>
+                          <p className="mt-2 text-[15px] text-slate-500">Sin acciones clave en este bloque.</p>
                         )}
                       </div>
                     ))}
@@ -4302,8 +4266,8 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
 
                 <div className="rounded-3xl border border-r-4 border-slate-200 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Guardar o compartir informe</p>
-                  <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-600">
+                  <p className="text-base font-semibold text-[#0f1a33]">Guardar o compartir informe</p>
+                  <p className="mt-2 max-w-4xl text-base leading-relaxed text-slate-600">
                     Descarga el informe completo de decisión o un resumen claro para compartir con tus padres antes de comprometer dinero con una escuela.
                   </p>
                   <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -4351,7 +4315,11 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                             decision: decisionReadiness.decision,
                             score: decisionReadiness.score,
                             shouldPayNow,
-                            conclusionEjecutiva: conclusionEjecutivaInformeFinal(decisionReadiness.decision),
+                            conclusionEjecutiva: conclusionEjecutivaInformeFinal(
+                              decisionReadiness.decision,
+                              criticalBlockersForConclusion,
+                              decisionReadiness.faltanDatos,
+                            ),
                             totalOptimista: euro(costs.totalOptimista),
                             totalRealista: euro(costs.totalRealista),
                             totalConservador: euro(costs.totalConservador),
@@ -4384,7 +4352,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           showToast("No se pudo generar el informe. Inténtalo de nuevo.");
                         }
                       }}
-                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
+                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                       Descargar informe
@@ -4424,7 +4392,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           showToast("No se pudo generar el resumen para padres. Inténtalo de nuevo.");
                         }
                       }}
-                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
+                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                       Descargar resumen para padres
@@ -4443,7 +4411,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
 
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nota importante</p>
-                  <p className="mt-1 text-xs text-slate-600">{disclaimerText}</p>
+                  <p className="mt-1 text-[15px] text-slate-600">{disclaimerText}</p>
                 </div>
               </div>
             )}
@@ -4498,7 +4466,7 @@ function RouteOption({ title, value, label }: { title: string; value: number; la
         <p className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${badgeStyles}`}>
           {label}
         </p>
-        <p className="mt-4 text-sm leading-relaxed text-slate-600">{advisoryText}</p>
+        <p className="mt-4 text-base leading-relaxed text-slate-600">{advisoryText}</p>
       </div>
       <div className={`mt-5 h-0.5 rounded-full ${accentTone}`} />
     </div>
@@ -4506,13 +4474,13 @@ function RouteOption({ title, value, label }: { title: string; value: number; la
 }
 
 function CostBlock({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div><p className="mb-3 text-sm font-semibold text-slate-700">{title}</p><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{children}</div></div>;
+  return <div><p className="mb-3 text-base font-semibold text-slate-700">{title}</p><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{children}</div></div>;
 }
 
 function SummaryCard({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-[15px] text-slate-500">{label}</p>
       <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{value}</p>
       {subValue ? <p className="mt-0.5 text-xs font-medium text-slate-600">{subValue}</p> : null}
     </div>
@@ -4535,19 +4503,19 @@ function CostBreakdownBars({
   const items = [
     { label: "Formación", value: subtotalFormacion, tone: "bg-[#1d4ed8]" },
     { label: "Extras", value: subtotalExtras, tone: "bg-[#0f766e]" },
-    { label: "Vida y logística", value: subtotalVida, tone: "bg-[#7c3aed]" },
+    { label: "Costes de vida", value: subtotalVida, tone: "bg-[#7c3aed]" },
     { label: "Margen de seguridad", value: buffer, tone: "bg-[#c9a454]" },
   ];
 
   return (
     <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4">
-      <p className="text-sm font-semibold text-slate-700">Desglose visual del coste realista</p>
+      <p className="text-base font-semibold text-slate-700">Desglose visual del coste realista</p>
       <div className="mt-3 space-y-3">
         {items.map((item) => {
           const percentage = totalRealista > 0 ? (item.value / totalRealista) * 100 : 0;
           return (
             <div key={item.label}>
-              <div className="mb-1 flex items-center justify-between text-sm">
+              <div className="mb-1 flex items-center justify-between text-[15px]">
                 <p className="font-medium text-slate-700">{item.label}</p>
                 <p className="text-slate-600">{euro(item.value)} · {Math.round(percentage)}%</p>
               </div>
@@ -4580,14 +4548,14 @@ function ScenarioBars({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-4">
-      <p className="text-sm font-semibold text-slate-700">Escenarios de coste (no hay un único número)</p>
+      <p className="text-base font-semibold text-slate-700">Escenarios de coste (no hay un único número)</p>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {scenarios.map((scenario) => {
           const height = (scenario.value / maxValue) * 100;
           return (
             <div key={scenario.label} className="rounded-lg border border-slate-200 p-3">
               <p className="text-xs uppercase tracking-wide text-slate-500">{scenario.label}</p>
-              <p className="mt-1 text-sm font-semibold text-slate-700">{euro(scenario.value)}</p>
+              <p className="mt-1 text-base font-semibold text-slate-700">{euro(scenario.value)}</p>
               <div className="mt-3 h-24 rounded bg-slate-100 p-1">
                 <div className={`w-full rounded ${scenario.tone}`} style={{ height: `${clamp(height)}%`, marginTop: `${100 - clamp(height)}%` }} />
               </div>
@@ -4599,40 +4567,12 @@ function ScenarioBars({
   );
 }
 
-function FinancialCoverageCard({
-  dineroDisponible,
-  totalRealista,
-  brechaFinanciacion,
-  coverage,
-}: {
-  dineroDisponible: number;
-  totalRealista: number;
-  brechaFinanciacion: number;
-  coverage: number;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-      <p className="text-sm font-semibold text-slate-700">Cobertura financiera</p>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        <InfoCard label="Dinero disponible" value={euro(dineroDisponible)} />
-        <InfoCard label="Coste realista" value={euro(totalRealista)} />
-        <InfoCard label="Brecha de financiación" value={euro(brechaFinanciacion)} />
-        <InfoCard label="Porcentaje cubierto" value={`${coverage}%`} />
-      </div>
-      <div className="mt-2">
-        <Progress value={coverage} tone="bg-[#0f1a33]" />
-      </div>
-      <p className="mt-1.5 text-xs text-slate-600">Desglose compacto del escenario realista (barra = % cubierto).</p>
-    </div>
-  );
-}
-
 function InfoList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
-  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-sm font-medium text-[#0f1a33]">{title}</p><ul className="mt-2 space-y-1.5 text-sm text-slate-700">{items.length ? items.map((item) => <li key={item}>- {item}</li>) : <li>{empty}</li>}</ul></div>;
+  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-[15px] font-medium text-[#0f1a33]">{title}</p><ul className="mt-2 space-y-1.5 text-[15px] text-slate-700">{items.length ? items.map((item) => <li key={item}>- {item}</li>) : <li>{empty}</li>}</ul></div>;
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-medium text-[#0f1a33]">{value}</p></div>;
+  return <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4"><p className="text-[15px] text-slate-500">{label}</p><p className="mt-1 text-[15px] font-medium text-[#0f1a33]">{value}</p></div>;
 }
 
 function solidezGeneralReading(score: number): string {
@@ -4663,7 +4603,7 @@ function SchoolTextMetricCard({ label, value, secondary }: { label: string; valu
   return (
     <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 shadow-sm">
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold leading-snug text-slate-600">{label}</p>
+        <p className="text-sm font-semibold leading-snug text-slate-600">{label}</p>
         <p className="mt-1 text-lg font-bold leading-snug tracking-tight text-[#0f1a33]">{value}</p>
         {secondary ? <p className="mt-1.5 text-sm font-semibold leading-snug text-slate-700">{secondary}</p> : null}
       </div>
@@ -4678,7 +4618,7 @@ function SchoolMetricCard({ label, score, reading }: { label: string; score: num
   return (
     <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 shadow-sm">
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold leading-snug text-slate-600">{label}</p>
+        <p className="text-sm font-semibold leading-snug text-slate-600">{label}</p>
         <p className="mt-1.5 text-lg font-bold tabular-nums tracking-tight text-[#0f1a33]">{score}/100</p>
         <p className="mt-1.5 text-sm font-semibold leading-snug text-slate-700">{reading}</p>
       </div>
@@ -4706,7 +4646,7 @@ function SchoolFinancialRiskCard({ value }: { value: number }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold leading-snug text-slate-700">Riesgo financiero</p>
+            <p className="text-sm font-semibold leading-snug text-slate-700">Riesgo financiero</p>
             <p className="mt-0.5 text-[12px] font-medium leading-snug text-slate-600">En esta métrica, un valor más alto indica más riesgo.</p>
           </div>
           {elevated ? (
@@ -4736,7 +4676,7 @@ function PlanColumn({ title, tasks }: { title: string; tasks: string[] }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
       <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-      <ul className="mt-3 space-y-2 text-sm text-slate-700">
+      <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
         {tasks.map((task) => (
           <li key={task} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#1d4ed8]" />{task}</li>
         ))}
@@ -4750,18 +4690,18 @@ function Progress({ value, tone }: { value: number; tone: string }) {
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
-  return <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span><input type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-[#1d4ed8]/20 focus:ring-2" /></label>;
+  return <label className="block"><span className="text-sm font-medium uppercase tracking-wide text-slate-500">{label}</span><input type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] outline-none ring-[#1d4ed8]/20 focus:ring-2" /></label>;
 }
 
 function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="block"><span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span><input value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-[#1d4ed8]/20 focus:ring-2" /></label>;
+  return <label className="block"><span className="text-sm font-medium uppercase tracking-wide text-slate-500">{label}</span><input value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] outline-none ring-[#1d4ed8]/20 focus:ring-2" /></label>;
 }
 
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: Array<string | { value: string; label: string }>; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-[#1d4ed8]/20 focus:ring-2">
+      <span className="text-sm font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] outline-none ring-[#1d4ed8]/20 focus:ring-2">
         {options.map((option) => typeof option === "string" ? <option key={option} value={option}>{option}</option> : <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>

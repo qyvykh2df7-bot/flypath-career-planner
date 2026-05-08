@@ -6,9 +6,13 @@ import type { SchoolEntry } from "@/types/schools";
 type Props = {
   schools: readonly [SchoolEntry, SchoolEntry];
   onProfileCta: () => void;
+  // Opcional: solo se renderiza el botón "Volver al Planner" cuando el caller lo proporciona.
+  // El caller (app/schools/page.tsx) lo pasa únicamente cuando el usuario llegó al comparador
+  // desde un CTA del Planner > Escuelas (`?from=planner`).
+  onBackToPlanner?: () => void;
 };
 
-export function FlypathComparisonConclusion({ schools, onProfileCta }: Props) {
+export function FlypathComparisonConclusion({ schools, onProfileCta, onBackToPlanner }: Props) {
   const [a, b] = schools;
   const model = buildFlypathComparisonConclusion(a, b);
 
@@ -38,7 +42,7 @@ export function FlypathComparisonConclusion({ schools, onProfileCta }: Props) {
         <h2 className="mt-1 text-2xl font-semibold leading-tight text-white sm:text-[1.6rem]">
           Conclusión FlyPath
         </h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-300">
+        <p className="mt-1.5 text-base leading-relaxed text-slate-300">
           Resumen práctico de la comparación antes de pedir información o pagar una matrícula.
         </p>
       </div>
@@ -57,12 +61,12 @@ export function FlypathComparisonConclusion({ schools, onProfileCta }: Props) {
 
       <div className={`mt-4 ${innerWhiteCard}`}>
         <p className={innerEyebrow}>Principal riesgo antes de pagar</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{model.mainRisk}</p>
+        <p className="mt-1.5 text-base leading-relaxed text-slate-700">{model.mainRisk}</p>
       </div>
 
       <div className={`mt-4 ${innerWhiteCard}`}>
         <p className={innerEyebrow}>Qué pedir por email</p>
-        <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-700">
+        <ul className="mt-2 list-inside list-disc space-y-1 text-[15px] text-slate-700">
           {model.emailPoints.map((item) => (
             <li key={item} className="leading-relaxed">
               {item}
@@ -73,26 +77,42 @@ export function FlypathComparisonConclusion({ schools, onProfileCta }: Props) {
 
       <div className={`mt-4 ${innerWhiteCard}`}>
         <p className={innerEyebrow}>Lectura FlyPath</p>
-        <p className="mt-2 text-sm leading-relaxed text-slate-700">{model.reading}</p>
+        <p className="mt-2 text-base leading-relaxed text-slate-700">{model.reading}</p>
       </div>
 
-      {/* CTA de cierre: cierre natural de la Conclusión, integrado en el panel navy. */}
-      <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-        <div className="min-w-0">
+      {/* CTA de cierre: cierre natural de la Conclusión, integrado en el panel navy.
+          Layout: en desktop (lg) el texto va a la izquierda y los botones agrupados a la
+          derecha con separación clara. En móvil/tablet se apilan: texto arriba y botones
+          debajo. Los botones, dentro de su grupo, también se apilan en móvil pequeño y se
+          ponen en fila desde sm. "Volver al Planner" sólo se muestra cuando el caller pasa
+          el handler (origen=planner). "Analizar con mi perfil" se muestra siempre. */}
+      <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+        <div className="min-w-0 lg:flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
             Siguiente paso recomendado
           </p>
-          <p className="mt-1.5 text-base font-semibold leading-snug text-white sm:whitespace-nowrap sm:text-[17px] lg:text-lg">
+          <p className="mt-1.5 text-base font-semibold leading-snug text-white lg:text-lg">
             Analiza estas 2 escuelas con tu perfil y recibe una conclusión FlyPath personalizada.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onProfileCta}
-          className="inline-flex min-h-[52px] shrink-0 items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-7 py-3.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:px-8 sm:text-base"
-        >
-          Analizar con mi perfil
-        </button>
+        <div className="flex shrink-0 flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          {onBackToPlanner ? (
+            <button
+              type="button"
+              onClick={onBackToPlanner}
+              className="inline-flex min-h-[52px] shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/5 px-6 py-3.5 text-[15px] font-semibold text-white transition hover:border-white/50 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:px-7 sm:text-base"
+            >
+              Volver al Planner
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onProfileCta}
+            className="inline-flex min-h-[52px] shrink-0 items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-7 py-3.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:px-8 sm:text-base"
+          >
+            Analizar con mi perfil
+          </button>
+        </div>
       </div>
     </section>
   );

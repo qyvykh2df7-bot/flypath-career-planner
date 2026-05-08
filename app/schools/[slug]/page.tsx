@@ -86,7 +86,7 @@ export default async function SchoolDetailPage({
                 : routeTypeLabel(school.routeType)}
           </p>
           <h1 className="mt-2 text-3xl font-semibold">{isAdventia ? "Adventia" : school.name}</h1>
-          <p className="mt-2 text-sm text-slate-200">
+          <p className="mt-2 text-[15px] text-slate-200">
             {isEasBarcelona
               ? "Barcelona, España · Base Barcelona / Sabadell · ATO EAS Barcelona"
               : isFteJerez
@@ -119,24 +119,24 @@ export default async function SchoolDetailPage({
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-slate-500">Precio anunciado</p>
+            <p className="text-[15px] text-slate-500">Precio anunciado</p>
             <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{isFaa ? "80.000 € / 84.000 € / 95.000 €" : isWafa ? "Parcial" : isFby ? "79.500 € / 89.500 € / 91.400–101.600 €" : displayAdvertisedPrice(school.advertisedPriceEUR)}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-slate-500">Coste real estimado FlyPath</p>
+            <p className="text-[15px] text-slate-500">Coste real estimado FlyPath</p>
             <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{isFaa ? "82.000 € / 86.000 € / 98.000 €" : isWafa ? "Pendiente" : isFby ? "82.000 € / 92.000 € / 95.000–105.000 €" : displayEstimatedPrice(school.flypathEstimatedRealCostEUR)}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs text-slate-500">Brecha estimada</p>
+            <p className="text-[15px] text-slate-500">Brecha estimada</p>
             <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{isFaa ? "2.000 € / 2.000 € / 3.000 €" : isWafa ? "Pendiente" : isFby ? "2.500 € / 2.500 € / 3.400–3.600 €" : hasComparableCosts ? euro(priceGap) : "Pendiente"}</p>
           </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-[#0f1a33]">{isAdventia || isEuropeanFlyers || isEasBarcelona || isFteJerez || isCesda || isBfs || isMfs || isQualityFly || isAerodynamics || isBaa || isPanamedia || isFaa || isWafa || isApa || isFby ? "Incluidos principales" : "Incluidos y condiciones"}</p>
+            <p className="text-base font-semibold text-[#0f1a33]">{isAdventia || isEuropeanFlyers || isEasBarcelona || isFteJerez || isCesda || isBfs || isMfs || isQualityFly || isAerodynamics || isBaa || isPanamedia || isFaa || isWafa || isApa || isFby ? "Incluidos principales" : "Incluidos y condiciones"}</p>
             {isAdventia ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Sí</span></li>
@@ -150,7 +150,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Sí</span></li>
               </ul>
             ) : isEuropeanFlyers ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>Tasas: <span className="font-semibold">Sí</span></li>
@@ -162,7 +162,7 @@ export default async function SchoolDetailPage({
                 <li>Reembolso: <span className="font-semibold">No publicado</span></li>
               </ul>
             ) : isEasBarcelona ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC A320</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Sí</span></li>
@@ -177,7 +177,7 @@ export default async function SchoolDetailPage({
                 <li>Pagos: <span className="font-semibold">2.750 € reserva + 20.000 € al inicio + 4.275 €/mes x 18</span></li>
               </ul>
             ) : isFteJerez ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Sí</span></li>
@@ -192,7 +192,7 @@ export default async function SchoolDetailPage({
                 <li>Pagos: <span className="font-semibold">5.500 € depósito + 29.000 € antes del inicio + pagos por semanas 20, 30, 40 y 50</span></li>
               </ul>
             ) : isCesda ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC A320</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Sí</span></li>
@@ -209,7 +209,7 @@ export default async function SchoolDetailPage({
                 <li>Pagos: <span className="font-semibold">1, 2, 4 o 9 cuotas sin coste añadido por curso</span></li>
               </ul>
             ) : isBfs ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC B737-800NG</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Por confirmar</span></li>
@@ -223,7 +223,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Por confirmar</span></li>
               </ul>
             ) : isMfs ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Tasas: <span className="font-semibold">Por confirmar</span></li>
                 <li>Skill tests: <span className="font-semibold">Por confirmar</span></li>
                 <li>Material: <span className="font-semibold">Por confirmar</span></li>
@@ -234,7 +234,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Por confirmar</span></li>
               </ul>
             ) : isQualityFly ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC A320</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Sí</span></li>
@@ -251,7 +251,7 @@ export default async function SchoolDetailPage({
                 <li>Pagos: <span className="font-semibold">precio oferta 2026 de 86.000 €, resto de pagos mensuales, financiación CaixaBank hasta 150.000 €</span></li>
               </ul>
             ) : isAerodynamics ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC A320</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Por confirmar</span></li>
@@ -265,7 +265,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Por confirmar</span></li>
               </ul>
             ) : isBaa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · 16 h MCC</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí · 3 h</span></li>
                 <li>PBN: <span className="font-semibold">Sí · dentro de IFR</span></li>
@@ -279,7 +279,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Por confirmar</span></li>
               </ul>
             ) : isPanamedia ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC 35 h</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Por confirmar</span></li>
                 <li>PBN: <span className="font-semibold">Sí · IR-PBN</span></li>
@@ -293,7 +293,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Sí · BBVA</span></li>
               </ul>
             ) : isFaa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Sí</span></li>
@@ -309,7 +309,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Por confirmar</span></li>
               </ul>
             ) : isWafa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Módulo aparte / por confirmar</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Módulo aparte / por confirmar</span></li>
                 <li>PBN: <span className="font-semibold">Por confirmar</span></li>
@@ -323,7 +323,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Por confirmar</span></li>
               </ul>
             ) : isApa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Por confirmar</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Por confirmar</span></li>
                 <li>PBN: <span className="font-semibold">Por confirmar</span></li>
@@ -337,7 +337,7 @@ export default async function SchoolDetailPage({
                 <li>Financiación: <span className="font-semibold">Por confirmar</span></li>
               </ul>
             ) : isFby ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>MCC/JOC: <span className="font-semibold">Sí · APS MCC 40 h A320</span></li>
                 <li>Advanced UPRT: <span className="font-semibold">Sí</span></li>
                 <li>PBN: <span className="font-semibold">Sí</span></li>
@@ -355,7 +355,7 @@ export default async function SchoolDetailPage({
               </ul>
             ) : (
               <>
-                <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                   <li>MCC/JOC: <span className="font-semibold">{label(school.mccJocIncluded)}</span></li>
                   <li>Advanced UPRT: <span className="font-semibold">{label(school.advancedUprtIncluded)}</span></li>
                   <li>Tasas: <span className="font-semibold">{label(school.examFeesIncluded)}</span></li>
@@ -364,16 +364,16 @@ export default async function SchoolDetailPage({
                   <li>Alojamiento: <span className="font-semibold">{label(school.accommodationIncluded)}</span></li>
                   <li>Contrato antes de pagar: <span className="font-semibold">{label(school.contractAvailableBeforePayment)}</span></li>
                 </ul>
-                <p className="mt-3 text-sm text-slate-600">Pagos: {school.paymentScheduleSummary}</p>
-                <p className="mt-1 text-sm text-slate-600">Reembolso: {school.refundPolicySummary}</p>
+                <p className="mt-3 text-[15px] text-slate-600">Pagos: {school.paymentScheduleSummary}</p>
+                <p className="mt-1 text-[15px] text-slate-600">Reembolso: {school.refundPolicySummary}</p>
               </>
             )}
           </article>
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-[#0f1a33]">Operación y ruta</p>
+            <p className="text-base font-semibold text-[#0f1a33]">Operación y ruta</p>
             {isAdventia ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">20 meses</span></li>
                 <li>Base: <span className="font-semibold">Salamanca-Matacán</span></li>
                 <li>Flota: <span className="font-semibold">Aerospatiale Tobago TB10, Beechcraft Bonanza F33A y Beechcraft Baron B55</span></li>
@@ -383,7 +383,7 @@ export default async function SchoolDetailPage({
                 <li>Clase 1: <span className="font-semibold">Requerida</span></li>
               </ul>
             ) : isEuropeanFlyers ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">24 meses</span></li>
                 <li>Bases: <span className="font-semibold">Madrid (Cuatro Vientos) / Alicante (Mutxamel)</span></li>
                 <li>Flota: <span className="font-semibold">Cessna 172 G1000 y Diamond DA42 NG</span></li>
@@ -392,7 +392,7 @@ export default async function SchoolDetailPage({
                 <li>Clase 1: <span className="font-semibold">Requerida para integrado y cursos profesionales; PPL requiere Clase 2.</span></li>
               </ul>
             ) : isEasBarcelona ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">18 meses</span></li>
                 <li>Base: <span className="font-semibold">Barcelona / Sabadell</span></li>
                 <li>Flota: <span className="font-semibold">Tecnam P2002JF, Tecnam P2008JC, P-Mentor, Tecnam P2006T y C150 Aerobat</span></li>
@@ -401,7 +401,7 @@ export default async function SchoolDetailPage({
                 <li>Clase 1: <span className="font-semibold">Requerida</span></li>
               </ul>
             ) : isFteJerez ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">62 semanas de formación</span></li>
                 <li>Base: <span className="font-semibold">Jerez de la Frontera / Aeropuerto de Jerez</span></li>
                 <li>Flota: <span className="font-semibold">Piper PA28 Warrior, Piper PA28 Archer DTX, Diamond DA42, Robin R2160 y Citabria High Country Explorer</span></li>
@@ -411,7 +411,7 @@ export default async function SchoolDetailPage({
                 <li>Clase 1: <span className="font-semibold">Requerida</span></li>
               </ul>
             ) : isCesda ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">4 cursos académicos</span></li>
                 <li>Base: <span className="font-semibold">Campus Aeronáutico de Reus / Aeropuerto de Reus / Aeropuerto de Lleida</span></li>
                 <li>Flota: <span className="font-semibold">Diamond DA20-C1, Diamond DA42NG y Piper PA-28R-201</span></li>
@@ -421,7 +421,7 @@ export default async function SchoolDetailPage({
                 <li>Titulación: <span className="font-semibold">Grado universitario oficial + licencia ATPL</span></li>
               </ul>
             ) : isBfs ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">18–24 meses</span></li>
                 <li>Base: <span className="font-semibold">Barcelona / Sabadell</span></li>
                 <li>Flota: <span className="font-semibold">C152, P92, C172R-S, P2006T, FNPT II P2006T y FNPT II B737-800NG</span></li>
@@ -431,7 +431,7 @@ export default async function SchoolDetailPage({
                 <li>Clase 1: <span className="font-semibold">Requerida</span></li>
               </ul>
             ) : isMfs ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">Variable según módulos</span></li>
                 <li>Base: <span className="font-semibold">Reus / Aeropuerto de Reus</span></li>
                 <li>Flota: <span className="font-semibold">Por confirmar</span></li>
@@ -441,7 +441,7 @@ export default async function SchoolDetailPage({
                 <li>Módulos publicados: <span className="font-semibold">PPL, Time building, ATPL teórico, MEP, IR, CPL, UPRT, PBN — precios no publicados</span></li>
               </ul>
             ) : isQualityFly ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">20 meses</span></li>
                 <li>Base: <span className="font-semibold">Madrid / Cuatro Vientos</span></li>
                 <li>Flota: <span className="font-semibold">Tecnam P2006T, Tecnam P2008 y Cessna 172S</span></li>
@@ -451,7 +451,7 @@ export default async function SchoolDetailPage({
                 <li>Clase 1: <span className="font-semibold">Requerida</span></li>
               </ul>
             ) : isAerodynamics ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">Classic 16–18 meses / Platinum 20–24 meses / modular variable</span></li>
                 <li>Base: <span className="font-semibold">Málaga / Aeropuerto de Málaga / Vélez-Málaga</span></li>
                 <li>Flota: <span className="font-semibold">Por confirmar</span></li>
@@ -461,7 +461,7 @@ export default async function SchoolDetailPage({
                 <li>Rutas publicadas: <span className="font-semibold">Integrated ATPL Classic, Integrated ATPL Platinum y ruta modular CPL + MEIR + ATPL</span></li>
               </ul>
             ) : isBaa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">16–18 meses</span></li>
                 <li>Base: <span className="font-semibold">Lleida / Aeródromo de Lleida-Alguaire</span></li>
                 <li>Flota: <span className="font-semibold">10 Cessna 172S y 1 Tecnam P2006T</span></li>
@@ -472,7 +472,7 @@ export default async function SchoolDetailPage({
                 <li>Rutas publicadas: <span className="font-semibold">Integrado ATPL y ruta modular/CPL</span></li>
               </ul>
             ) : isPanamedia ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">integrado con 828 h de teoría + fase práctica; modular 18–36 meses</span></li>
                 <li>Bases: <span className="font-semibold">Mallorca / Valencia / Castellón</span></li>
                 <li>Flota: <span className="font-semibold">Cessna F150/F172, Piper Arrow, Piper Turbo Arrow, Tecnam P-Mentor y Piper Turbo Seneca III</span></li>
@@ -484,7 +484,7 @@ export default async function SchoolDetailPage({
                 <li>Rutas publicadas: <span className="font-semibold">Integrado ATPL y ruta modular CPL/ATPL</span></li>
               </ul>
             ) : isFaa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">Por confirmar</span></li>
                 <li>Bases: <span className="font-semibold">Madrid / Cuatro Vientos y Mallorca / Son Bonet</span></li>
                 <li>Flota: <span className="font-semibold">Por confirmar</span></li>
@@ -495,7 +495,7 @@ export default async function SchoolDetailPage({
                 <li>Rutas publicadas: <span className="font-semibold">Profesional 250 h, Advance 275 h y Cadet 500 h</span></li>
               </ul>
             ) : isWafa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">Variable según módulos</span></li>
                 <li>Bases: <span className="font-semibold">Málaga / Madrid</span></li>
                 <li>Flota: <span className="font-semibold">Por confirmar</span></li>
@@ -516,7 +516,7 @@ export default async function SchoolDetailPage({
                 <li>- A-UPRT: <span className="font-semibold">Precio no publicado</span></li>
               </ul>
             ) : isApa ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">15 meses</span></li>
                 <li>Base: <span className="font-semibold">Requena / Aeródromo de Requena</span></li>
                 <li>Flota: <span className="font-semibold">Por confirmar</span></li>
@@ -527,7 +527,7 @@ export default async function SchoolDetailPage({
                 <li>Rutas publicadas: <span className="font-semibold">ATPL Basic, ATPL Advanced y ATPL Premium</span></li>
               </ul>
             ) : isFby ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">14 meses integrado / 3 años grado / 29 meses cadet</span></li>
                 <li>Bases: <span className="font-semibold">Burgos / Logroño</span></li>
                 <li>Flota: <span className="font-semibold">45 aviones: Tecnam P2008JC, P-Mentor, P2002JF, PS-28 Cruiser, Cessna 172, Piper PA-28, Super Decathlon y Tecnam P2006T</span></li>
@@ -536,10 +536,10 @@ export default async function SchoolDetailPage({
                 <li>Idioma formación: <span className="font-semibold">Inglés</span></li>
                 <li>Clase 1: <span className="font-semibold">Requerida</span></li>
                 <li>Rutas publicadas: <span className="font-semibold">Integrado ATPL, Grado + ATPL, Cadet ATPL + FI</span></li>
-                <li className="text-xs text-slate-500">Programa India EASA + DGCA: no incluido como toggle principal; tratar como programa específico internacional.</li>
+                <li className="text-[15px] text-slate-500">Programa India EASA + DGCA: no incluido como toggle principal; tratar como programa específico internacional.</li>
               </ul>
             ) : (
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
                 <li>Duración programa: <span className="font-semibold">{school.programDurationMonths} meses</span></li>
                 <li>Flota: <span className="font-semibold">{school.fleetSummary}</span></li>
                 <li>Disponibilidad aeronaves: <span className="font-semibold">{availabilityLabel(school.aircraftAvailability)}</span></li>
@@ -554,8 +554,8 @@ export default async function SchoolDetailPage({
 
         {isAdventia ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-[#0f1a33]">Pagos y condiciones</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-700">
+            <p className="text-base font-semibold text-[#0f1a33]">Pagos y condiciones</p>
+            <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
               <li>Pre-reserva: <span className="font-semibold">470 €</span></li>
               <li>Apertura de expediente: <span className="font-semibold">25.000 €</span></li>
               <li>Matrícula: <span className="font-semibold">74.000 €</span></li>
@@ -567,8 +567,8 @@ export default async function SchoolDetailPage({
 
         {school.universityTrack ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-[#0f1a33]">Bloque universidad / grado + licencia</p>
-            <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+            <p className="text-base font-semibold text-[#0f1a33]">Bloque universidad / grado + licencia</p>
+            <div className="mt-3 grid gap-2 text-[15px] text-slate-700 md:grid-cols-2">
               <p>Universidad: <span className="font-semibold">{school.universityTrack.universityName}</span></p>
               <p>Grado: <span className="font-semibold">{school.universityTrack.degreeName}</span></p>
               <p>ECTS: <span className="font-semibold">{school.universityTrack.ects}</span></p>
@@ -583,7 +583,7 @@ export default async function SchoolDetailPage({
 
         <section className="grid gap-4 lg:grid-cols-2">
           <article className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <p className="text-sm font-semibold text-amber-900">Red flags</p>
+            <p className="text-sm font-semibold text-amber-900">Puntos a validar antes de pagar</p>
             <ul className="mt-2 space-y-1 text-sm text-amber-900">
               {(
                 isAdventia
@@ -722,8 +722,8 @@ export default async function SchoolDetailPage({
             </ul>
           </article>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-[#0f1a33]">Datos pendientes y preguntas clave</p>
-            <ul className="mt-2 space-y-1 text-sm text-slate-700">
+            <p className="text-base font-semibold text-[#0f1a33]">Preguntas que deberías enviar a la escuela</p>
+            <ul className="mt-2 space-y-1 text-[15px] text-slate-700">
               {(isAdventia
                 ? [
                     "Vigencia actual del precio 99.470 €.",
@@ -899,8 +899,8 @@ export default async function SchoolDetailPage({
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-[#0f1a33]">Opiniones verificadas FlyPath: próximamente</p>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="text-base font-semibold text-[#0f1a33]">Opiniones verificadas FlyPath: próximamente</p>
+          <p className="mt-1 text-[15px] text-slate-600">
             Estamos diseñando un sistema de reviews verificadas por fase de formación.
           </p>
         </section>
@@ -909,7 +909,7 @@ export default async function SchoolDetailPage({
           <p className="text-sm font-semibold text-[#f2ddaa]">
             {isAdventia || isEasBarcelona || isFteJerez || isCesda || isBfs || isMfs || isQualityFly || isAerodynamics || isBaa || isPanamedia || isFaa || isWafa || isApa || isFby ? "Lectura FlyPath" : "Análisis avanzado FlyPath: próximamente"}
           </p>
-          <p className="mt-1 text-sm text-slate-200">
+          <p className="mt-1 text-[15px] text-slate-200">
             {isAdventia
               ? "Adventia publica bastante información del integrado: precio, pagos, duración, horas, flota, incluidos y financiación. Aun así, el precio aparece pendiente de actualización y hay tasas/costes administrativos y de expedición de licencia que quedan fuera."
               : isEuropeanFlyers
@@ -943,10 +943,10 @@ export default async function SchoolDetailPage({
               : "La versión avanzada incluirá histórico de datos, comparación extendida y alertas de riesgo."}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href={`/schools?add=${school.slug}`} className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-sm font-semibold text-[#0f1a33]">
+            <Link href={`/schools?add=${school.slug}`} className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33]">
               Añadir a comparación
             </Link>
-            <Link href="/schools?results=1" className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold">
+            <Link href="/schools?results=1" className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-[15px] font-semibold">
               Volver al comparador
             </Link>
           </div>
