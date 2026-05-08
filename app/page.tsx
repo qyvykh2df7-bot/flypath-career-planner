@@ -3594,6 +3594,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         sizes="(min-width: 1024px) 768px, 100vw"
                         className="object-cover"
                         aria-hidden
+                        priority
                       />
                       <div
                         className="absolute inset-0 bg-gradient-to-br from-[#0a1228]/88 via-[#0f1a33]/74 to-[#152545]/64"
