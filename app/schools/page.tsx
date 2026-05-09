@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, Plane } from "lucide-react";
@@ -62,6 +61,11 @@ function SchoolsPageContent() {
   const [heroVisualAvailable, setHeroVisualAvailable] = useState(true);
   const searchSectionRef = useRef<HTMLElement>(null);
   const comparisonPanelRef = useRef<HTMLDivElement>(null);
+  // Wrapper alrededor de FlypathComparisonConclusion para que el CTA premium
+  // inferior pueda hacer scroll al panel donde vive el overlay premium ya
+  // renderizado (free user => isLocked => overlay visible). No modifica el
+  // componente Conclusión ni el overlay.
+  const conclusionSectionRef = useRef<HTMLDivElement>(null);
   const resultsSectionRef = useRef<HTMLElement>(null);
   const lastHandledAddSlugRef = useRef<string | null>(null);
   const pendingResultsScrollRef = useRef(false);
@@ -208,6 +212,59 @@ function SchoolsPageContent() {
   const notifyMentoring = () => {
     showToast("Mentoría FlyPath próximamente");
   };
+
+  /**
+   * Cuando sea `true`, el CTA premium del comparador volverá a importar las 2
+   * escuelas seleccionadas y abrir el Planner (flujo antiguo). Se mantiene a
+   * `false` hasta conectar el pago real.
+   */
+  const comparatorPremiumUnlocked = false;
+
+  /**
+   * Flujo antiguo "Analizar mi caso en Career Planner": importa las 2 escuelas
+   * vía `localStorage` y navega al Planner. Se conserva intacto detrás de la
+   * constante `comparatorPremiumUnlocked` para reactivarlo cuando el pago real
+   * esté operativo.
+   */
+  const handleAnalyzeWithProfileLegacy = useCallback(() => {
+    if (selectedSchools.length !== 2) return;
+    const slugs = selectedSchools.map((school) => school.slug).filter(Boolean);
+    if (slugs.length !== 2) return;
+    try {
+      window.localStorage.setItem(
+        "flypath_pending_comparator_schools",
+        JSON.stringify(slugs),
+      );
+    } catch {
+      /* localStorage opcional */
+    }
+    router.push(plannerCtaHref);
+  }, [router, selectedSchools, plannerCtaHref]);
+
+  /**
+   * CTA inferior "Desbloquear análisis premium":
+   *
+   * - Si `comparatorPremiumUnlocked === true`, ejecuta el flujo antiguo
+   *   (importar escuelas + abrir Planner).
+   * - Si `comparatorPremiumUnlocked === false` (estado actual), hace scroll al
+   *   panel de la Conclusión FlyPath para reutilizar el MISMO overlay premium
+   *   que ya se monta sobre el contenido bloqueado. No navega, no importa
+   *   escuelas, no escribe `flypath_pending_comparator_schools` ni crea otro
+   *   overlay.
+   */
+  const handlePremiumComparatorCta = useCallback(() => {
+    if (comparatorPremiumUnlocked) {
+      handleAnalyzeWithProfileLegacy();
+      return;
+    }
+    if (typeof window === "undefined") return;
+    requestAnimationFrame(() => {
+      conclusionSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [comparatorPremiumUnlocked, handleAnalyzeWithProfileLegacy]);
 
   const comparisonStatusText =
     selectedSchools.length === 0
@@ -560,44 +617,46 @@ function SchoolsPageContent() {
                   true, deja visible el ENCABEZADO (eyebrow + título + subtítulo)
                   como teaser y aplica blur + overlay solo al contenido inferior
                   (badges, riesgo, email, lectura, CTA). */}
-            <FlypathComparisonConclusion
-              schools={[selectedSchools[0], selectedSchools[1]]}
-              isLocked={!canSeePremium}
-              onUnlockClick={() => showToast("Pago FlyPath próximamente")}
-              onBackToPlanner={
-                cameFromPlanner
-                  ? () => {
-                      router.push("/?review=dashboard&tab=schools");
-                    }
-                  : undefined
-              }
-              onProfileCta={() => {
-                if (selectedSchools.length !== 2) {
-                  showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
-                  return;
+            <div ref={conclusionSectionRef}>
+              <FlypathComparisonConclusion
+                schools={[selectedSchools[0], selectedSchools[1]]}
+                isLocked={!canSeePremium}
+                onUnlockClick={() => showToast("Pago FlyPath próximamente")}
+                onBackToPlanner={
+                  cameFromPlanner
+                    ? () => {
+                        router.push("/?review=dashboard&tab=schools");
+                      }
+                    : undefined
                 }
-                const slugs = selectedSchools
-                  .map((school) => school.slug)
-                  .filter(Boolean);
-                if (slugs.length !== 2) {
-                  showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
-                  return;
-                }
-                try {
-                  window.localStorage.setItem(
-                    "flypath_pending_comparator_schools",
-                    JSON.stringify(slugs),
-                  );
-                } catch {
-                  // localStorage opcional: la URL ya transporta los slugs.
-                }
-                const query = new URLSearchParams({
-                  source: "schools-comparator",
-                  schools: slugs.join(","),
-                });
-                router.push(`/?${query.toString()}`);
-              }}
-            />
+                onProfileCta={() => {
+                  if (selectedSchools.length !== 2) {
+                    showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
+                    return;
+                  }
+                  const slugs = selectedSchools
+                    .map((school) => school.slug)
+                    .filter(Boolean);
+                  if (slugs.length !== 2) {
+                    showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
+                    return;
+                  }
+                  try {
+                    window.localStorage.setItem(
+                      "flypath_pending_comparator_schools",
+                      JSON.stringify(slugs),
+                    );
+                  } catch {
+                    // localStorage opcional: la URL ya transporta los slugs.
+                  }
+                  const query = new URLSearchParams({
+                    source: "schools-comparator",
+                    schools: slugs.join(","),
+                  });
+                  router.push(`/?${query.toString()}`);
+                }}
+              />
+            </div>
           </>
         ) : null}
 
@@ -661,26 +720,36 @@ function SchoolsPageContent() {
         ) : null}
 
         {selectedSchools.length >= 2 ? (
-          <section className="rounded-3xl border border-[#c9a454]/35 bg-gradient-to-br from-[#0f1a33] via-[#122041] to-[#15264a] p-6 text-white shadow-sm">
-            <p className="text-lg font-semibold">¿Quieres saber si estas opciones encajan con tu caso?</p>
-            <p className="mt-2 text-[15px] text-slate-200">
-              Usa el Career Planner para cruzar esta comparación con tu presupuesto, Class 1, tiempo disponible, inglés y nivel de riesgo personal.
+          <section className="rounded-3xl border border-[#c9a454]/45 bg-gradient-to-br from-[#0a1228] via-[#0f1a33] to-[#152545] p-6 text-white shadow-[0_18px_48px_-18px_rgba(15,26,51,0.45)] ring-1 ring-[#c9a454]/20 sm:p-7">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]/95">
+              FlyPath Premium
             </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link
-                href={plannerCtaHref}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2 text-[15px] font-semibold text-[#0f1a33] hover:bg-[#ddb75c]"
+            <h2 className="mt-2 text-xl font-semibold leading-snug text-white sm:text-2xl">
+              Desbloquea el análisis premium de tus escuelas
+            </h2>
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-300">
+              La comparación básica te muestra los datos. El análisis premium cruza estas escuelas con tu perfil,
+              presupuesto y riesgo antes de decidir o pagar una matrícula.
+            </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <button
+                type="button"
+                onClick={handlePremiumComparatorCta}
+                className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55 sm:w-auto sm:min-w-[220px]"
               >
-                Analizar mi caso en Career Planner
-              </Link>
+                Desbloquear análisis premium
+              </button>
               <button
                 type="button"
                 onClick={notifyMentoring}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-2 text-[15px] font-semibold text-white hover:bg-white/15"
+                className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/22 bg-white/[0.07] px-6 py-2.5 text-[15px] font-semibold text-white transition hover:border-white/35 hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 sm:w-auto"
               >
                 Reservar mentoría
               </button>
             </div>
+            <p className="mt-4 max-w-xl text-[12px] leading-snug text-slate-400">
+              Incluye recomendación FlyPath, informe premium y email personalizado para la escuela.
+            </p>
           </section>
         ) : null}
       </div>
