@@ -16,6 +16,7 @@ import {
   Download,
   Languages,
   LayoutList,
+  Lock,
   Mail,
   Menu,
   MessagesSquare,
@@ -28,6 +29,8 @@ import {
 import type { FlyPathInformePdfInput, FlyPathResumenPadresPdfInput } from "@/lib/flypathReportPdf";
 import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
+import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
+import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 
 type Screen = "landing" | "onboarding" | "dashboard";
 export type Tab = "route" | "cost" | "schools" | "report";
@@ -240,56 +243,58 @@ function costEstimateNoteForPdf(source: Profile["costEstimateSource"]): string {
 }
 
 const globalButtonFeedbackStyles = `
-  button {
-    position: relative;
-    cursor: pointer !important;
-    overflow: hidden;
-    user-select: none;
-    transform-origin: center;
-    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease !important;
-    -webkit-tap-highlight-color: transparent;
-  }
+  @layer base {
+    button {
+      position: relative;
+      cursor: pointer !important;
+      overflow: hidden;
+      user-select: none;
+      transform-origin: center;
+      transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease !important;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-  button::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: rgba(201, 164, 84, 0.28);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 120ms ease;
-  }
+    button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(201, 164, 84, 0.28);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+    }
 
-  button:hover:not(:disabled) {
-    transform: translateY(-2px) scale(1.015) !important;
-    filter: brightness(1.09) saturate(1.08) !important;
-    box-shadow: 0 14px 28px rgba(15, 26, 51, 0.18) !important;
-  }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px) scale(1.015) !important;
+      filter: brightness(1.09) saturate(1.08) !important;
+      box-shadow: 0 14px 28px rgba(15, 26, 51, 0.18) !important;
+    }
 
-  button:hover:not(:disabled)::after {
-    opacity: 0.16;
-  }
+    button:hover:not(:disabled)::after {
+      opacity: 0.16;
+    }
 
-  button:active:not(:disabled) {
-    transform: translateY(4px) scale(0.90) !important;
-    filter: brightness(0.78) saturate(1.12) !important;
-    box-shadow: inset 0 6px 16px rgba(15, 26, 51, 0.45), 0 1px 2px rgba(15, 26, 51, 0.10) !important;
-  }
+    button:active:not(:disabled) {
+      transform: translateY(4px) scale(0.90) !important;
+      filter: brightness(0.78) saturate(1.12) !important;
+      box-shadow: inset 0 6px 16px rgba(15, 26, 51, 0.45), 0 1px 2px rgba(15, 26, 51, 0.10) !important;
+    }
 
-  button:active:not(:disabled)::after {
-    opacity: 0.42;
-    background: rgba(15, 26, 51, 0.18);
-  }
+    button:active:not(:disabled)::after {
+      opacity: 0.42;
+      background: rgba(15, 26, 51, 0.18);
+    }
 
-  button:focus-visible {
-    outline: 3px solid rgba(201, 164, 84, 0.75) !important;
-    outline-offset: 3px;
-  }
+    button:focus-visible {
+      outline: 3px solid rgba(201, 164, 84, 0.75) !important;
+      outline-offset: 3px;
+    }
 
-  button:disabled {
-    cursor: not-allowed !important;
-    opacity: 0.55;
+    button:disabled {
+      cursor: not-allowed !important;
+      opacity: 0.55;
+    }
   }
 
   .action-success-pulse {
@@ -1799,6 +1804,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [manualFormOpen, setManualFormOpen] = useState(false);
   const manualFormInitializedRef = useRef(false);
   const [dashboardMobileNavOpen, setDashboardMobileNavOpen] = useState(false);
+  const [plannerSchoolsPremiumModalOpen, setPlannerSchoolsPremiumModalOpen] = useState(false);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [landingHeaderLogoPhase, setLandingHeaderLogoPhase] = useState<"white" | "plain" | "fallback">("white");
   const [landingGuideCoverAvailable, setLandingGuideCoverAvailable] = useState(false);
@@ -1806,6 +1812,15 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [landingModuleMenuOpen, setLandingModuleMenuOpen] = useState(false);
   const [cameFromSchoolsComparator, setCameFromSchoolsComparator] = useState(false);
   const landingModuleMenuRef = useRef<HTMLDivElement>(null);
+
+  const { qaPremiumMode, toggleQaPremium } = useQaPremiumMode();
+  // Misma clave localStorage que el comparador (`flypath_qa_premium_mode`).
+  // Futuros bloques premium del Informe final: reutilizar `plannerPremiumContentVisible`.
+  const premiumUnlockedPlanner = false;
+  const plannerPremiumContentVisible = canSeePremiumForDevQa(
+    premiumUnlockedPlanner,
+    qaPremiumMode,
+  );
 
   useEffect(() => {
     if (screen !== "landing") setLandingModuleMenuOpen(false);
@@ -1828,6 +1843,23 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   useEffect(() => {
     setDashboardMobileNavOpen(false);
   }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "schools") setPlannerSchoolsPremiumModalOpen(false);
+  }, [tab]);
+
+  useEffect(() => {
+    if (schools.length < 2) setPlannerSchoolsPremiumModalOpen(false);
+  }, [schools.length]);
+
+  useEffect(() => {
+    if (!plannerSchoolsPremiumModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPlannerSchoolsPremiumModalOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [plannerSchoolsPremiumModalOpen]);
 
   // Decide la apertura inicial del acordeón manual una sola vez, leyendo síncronamente
   // localStorage y los slugs del deep-link. Posteriores cambios de schools.length no afectan.
@@ -3106,6 +3138,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   }
 
   return (
+    <>
     <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
       <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
@@ -3559,12 +3592,98 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <p className="mt-1 text-lg font-semibold text-white">{schoolStats.verifiedCount}</p>
                     </div>
                     <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
-                      <p className="text-[15px] text-slate-300">Mejor opción actual</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{schoolStats.bestSchool?.school.nombre || "Sin opción clara"}</p>
+                      <p className="text-[15px] text-slate-300">Recomendación FlyPath</p>
+                      {schools.length < 2 ? (
+                        <p className="mt-1 text-lg font-semibold text-white">Añade 2 escuelas</p>
+                      ) : plannerPremiumContentVisible ? (
+                        <p className="mt-1 text-lg font-semibold text-white">
+                          {schoolStats.bestSchool?.school.nombre || "Sin opción clara"}
+                        </p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPlannerSchoolsPremiumModalOpen(true)}
+                          className="mt-1 inline-flex cursor-pointer border-none bg-transparent p-0 text-left text-lg font-bold leading-snug text-[#f2ddaa] underline-offset-2 transition hover:underline hover:opacity-90 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/45"
+                        >
+                          Desbloquear análisis premium
+                        </button>
+                      )}
                     </div>
                   </div>
                   </div>
                 </div>
+                {plannerSchoolsPremiumModalOpen ? (
+                  <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6">
+                    <button
+                      type="button"
+                      aria-label="Cerrar ventana"
+                      className="absolute inset-0 bg-[#071226]/65 backdrop-blur-sm"
+                      onClick={() => setPlannerSchoolsPremiumModalOpen(false)}
+                    />
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="planner-schools-premium-title"
+                      aria-describedby="planner-schools-premium-desc"
+                      className="relative z-[1] w-full max-w-[32rem] rounded-3xl border border-[#c9a454]/35 bg-[#0f1a33] px-6 py-7 text-white shadow-2xl sm:px-7 sm:py-8"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPlannerSchoolsPremiumModalOpen(false)}
+                        aria-label="Cerrar"
+                        className="absolute right-5 top-5 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                      <div className="flex items-center gap-2 pr-12">
+                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#c9a454]/15 ring-1 ring-[#c9a454]/35">
+                          <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
+                        </span>
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
+                          ANÁLISIS PREMIUM FLYPATH
+                        </span>
+                      </div>
+                      <h3
+                        id="planner-schools-premium-title"
+                        className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl"
+                      >
+                        Descubre qué escuela encaja mejor contigo
+                      </h3>
+                      <p
+                        id="planner-schools-premium-desc"
+                        className="mt-2 text-[15px] leading-relaxed text-slate-300"
+                      >
+                        Compara tus escuelas con tu perfil, presupuesto y riesgo antes de comprometer una matrícula.
+                      </p>
+                      <ul className="mt-4 space-y-2 text-[15px] text-slate-200">
+                        {[
+                          "Recomendación FlyPath aplicada a tu perfil",
+                          "Comparación personalizada entre tus escuelas",
+                          "Informe premium de decisión",
+                          "Próximos pasos adaptados a tu caso",
+                        ].map((item) => (
+                          <li key={item} className="flex items-start gap-2.5 leading-relaxed">
+                            <span
+                              aria-hidden
+                              className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
+                            />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => showToast("Pago FlyPath próximamente")}
+                        className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:text-base"
+                      >
+                        Desbloquear análisis premium
+                      </button>
+                      <p className="mt-3 text-center text-[12px] text-slate-400">
+                        Pago seguro. Acceso inmediato al análisis.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="order-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                     Cómo añadir escuelas
@@ -3661,7 +3780,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           Explora la base de datos FlyPath y trae 2 opciones reales al Planner para analizarlas con tu perfil.
                         </p>
                         <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-400">
-                          La búsqueda y comparación básica son gratuitas. El análisis personalizado con tu perfil puede formar parte de una opción avanzada.
+                          La búsqueda y comparación básica son gratuitas. El análisis personalizado está disponible como opción premium.
                         </p>
                         <button
                           type="button"
@@ -3696,41 +3815,55 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <button
-                          type="button"
-                          className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
-                          onClick={() => {
-                            const pending = getSchoolEmailMissingData(school);
-                            setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
-                            setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
-                            setGeneratedEmailKey(school.id);
-                            if (typeof window !== "undefined") {
-                              window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
-                            }
-                            showToast("Email generado");
-                          }}
-                        >
-                          {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Mail className="mr-2 h-4 w-4" />}
-                          {generatedEmailKey === school.id ? "Email generado" : "Generar email a escuela"}
-                        </button>
-                        <button
-                          type="button"
-                          className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
-                          onClick={async () => {
-                            const draft = emailDrafts[school.id] || buildSchoolEmail(school, profile.nombre);
-                            if (!emailDrafts[school.id]) {
+                        {plannerPremiumContentVisible ? (
+                          <button
+                            type="button"
+                            className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
+                            onClick={() => {
                               const pending = getSchoolEmailMissingData(school);
                               setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
-                              setEmailDrafts((d) => ({ ...d, [school.id]: draft }));
-                            }
-                            const ok = await copyText(draft);
-                            if (ok) markCopied(`email-${school.id}`);
-                            showToast(ok ? "Email copiado" : "No se pudo copiar el email");
-                          }}
-                        >
-                          {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
-                          {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
-                        </button>
+                              setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
+                              setGeneratedEmailKey(school.id);
+                              if (typeof window !== "undefined") {
+                                window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
+                              }
+                              showToast("Email generado");
+                            }}
+                          >
+                            {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Mail className="mr-2 h-4 w-4" />}
+                            {generatedEmailKey === school.id ? "Email generado" : "Generar email a escuela"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setPlannerSchoolsPremiumModalOpen(true)}
+                            aria-label="Email personalizado disponible con análisis premium"
+                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border-2 border-[#c9a454] bg-[#fffaf0] px-4 py-2 text-[15px] font-semibold text-[#7b5e1f] transition hover:bg-[#fff5e6] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
+                          >
+                            <Lock className="mr-2 h-4 w-4" aria-hidden />
+                            Email personalizado · Premium
+                          </button>
+                        )}
+                        {plannerPremiumContentVisible && (
+                          <button
+                            type="button"
+                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                            onClick={async () => {
+                              const draft = emailDrafts[school.id] || buildSchoolEmail(school, profile.nombre);
+                              if (!emailDrafts[school.id]) {
+                                const pending = getSchoolEmailMissingData(school);
+                                setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
+                                setEmailDrafts((d) => ({ ...d, [school.id]: draft }));
+                              }
+                              const ok = await copyText(draft);
+                              if (ok) markCopied(`email-${school.id}`);
+                              showToast(ok ? "Email copiado" : "No se pudo copiar el email");
+                            }}
+                          >
+                            {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
+                            {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className={`w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-medium transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
@@ -3765,7 +3898,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <InfoList title="Red flags" items={analysis.redFlags.slice(0, 3)} empty="Sin red flags críticos con los datos actuales." />
                       <InfoList title="Datos pendientes" items={analysis.preguntasPendientes.slice(0, 4)} empty="Sin datos críticos pendientes." />
                     </div>
-                    {emailDrafts[school.id] && (
+                    {plannerPremiumContentVisible && emailDrafts[school.id] && (
                       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <InfoList
                           title="Este email se ha adaptado porque faltan estos datos:"
@@ -4420,6 +4553,21 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
         </main>
       </div>
     </div>
+    {process.env.NODE_ENV === "development" && (
+      <button
+        type="button"
+        onClick={toggleQaPremium}
+        className="fixed bottom-4 right-4 z-[9999] inline-flex w-auto max-w-[calc(100vw-2rem)] items-center justify-center rounded-full border border-[#c9a454]/50 bg-[#0f1a33] px-4 py-2 text-xs font-semibold text-[#f2ddaa] shadow-lg transition hover:bg-[#152547]"
+        aria-label={
+          qaPremiumMode === "premium"
+            ? "Alternar a modo gratis para revisión QA"
+            : "Alternar a modo premium para revisión QA"
+        }
+      >
+        {qaPremiumMode === "premium" ? "QA: ver modo gratis" : "QA: ver premium"}
+      </button>
+    )}
+    </>
   );
 }
 

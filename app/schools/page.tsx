@@ -20,6 +20,9 @@ import {
   type SchoolsFilters,
 } from "@/lib/schools/schoolUtils";
 import type { DataConfidence, RouteType, SchoolEntry } from "@/types/schools";
+import { QaPremiumFloatingToggle } from "@/components/dev/QaPremiumFloatingToggle";
+import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
+import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 
 const MAX_SELECTED = 2;
 const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
@@ -65,6 +68,10 @@ function SchoolsPageContent() {
   const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
   const [headerLogoFallback, setHeaderLogoFallback] = useState(false);
   const moduleMenuRef = useRef<HTMLDivElement>(null);
+  const { qaPremiumMode, toggleQaPremium, hydrated: qaHydrated } = useQaPremiumMode();
+
+  const premiumUnlocked = false; // pago real futuro (Stripe / backend)
+  const canSeePremium = canSeePremiumForDevQa(premiumUnlocked, qaPremiumMode);
 
   const filtered = useMemo(() => filterSchools(schoolsDataset, filters), [schoolsDataset, filters]);
   const listingBuckets = useMemo(() => {
@@ -239,6 +246,8 @@ function SchoolsPageContent() {
           {toast}
         </div>
       )}
+      {/* QA temporal: quitar al conectar pago real. */}
+      <QaPremiumFloatingToggle mode={qaPremiumMode} onToggle={toggleQaPremium} hydrated={qaHydrated} />
       <header className="border-b border-white/10 bg-[#0f1a33] text-white shadow-[0_12px_40px_rgba(15,26,51,0.35)]">
         <div className="mx-auto flex max-h-[90px] max-w-7xl items-center justify-between gap-3 px-6 py-3 sm:gap-4 md:justify-normal md:gap-4 lg:px-10">
           <div className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none md:min-w-0 md:flex-1 md:justify-start">
@@ -542,8 +551,19 @@ function SchoolsPageContent() {
         {selectedSchools.length === 2 ? (
           <>
             <ComparisonResults schools={selectedSchools} />
+            {/* Conclusión FlyPath con gating premium temporal.
+                - El contenido real SIEMPRE se renderiza dentro del componente
+                  (nunca se sustituye ni se duplica) para que QA y dev puedan
+                  revisarlo y para que al desbloquear premium aparezca sin
+                  reconstruir la sección.
+                - El propio componente decide qué blurréa: cuando `isLocked` es
+                  true, deja visible el ENCABEZADO (eyebrow + título + subtítulo)
+                  como teaser y aplica blur + overlay solo al contenido inferior
+                  (badges, riesgo, email, lectura, CTA). */}
             <FlypathComparisonConclusion
               schools={[selectedSchools[0], selectedSchools[1]]}
+              isLocked={!canSeePremium}
+              onUnlockClick={() => showToast("Pago FlyPath próximamente")}
               onBackToPlanner={
                 cameFromPlanner
                   ? () => {
