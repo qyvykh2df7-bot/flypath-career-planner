@@ -2176,6 +2176,45 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     return { analyzed, verifiedCount, pendingCount, bestSchool: viable[0] || null };
   }, [schools, costs.totalRealista]);
 
+  /** Recomendación FlyPath unificada: hero Escuelas + Informe final premium (Conclusión de decisión).
+   *  Regla: con 2+ escuelas siempre devolvemos la mejor relativa. Las señales documentales solo matizan
+   *  el texto explicativo, no bloquean la recomendación. */
+  const flypathSchoolRecommendation = useMemo(() => {
+    const candidates = [...schoolStats.analyzed].sort(
+      (a, b) => b.analysis.encajeGeneral - a.analysis.encajeGeneral,
+    );
+    const best = candidates[0];
+
+    if (!best || candidates.length < 2) {
+      return {
+        school: null as School | null,
+        reason:
+          "Añade al menos 2 escuelas comparables para que FlyPath pueda cruzar tu perfil con opciones reales.",
+      };
+    }
+
+    const hasEnoughDocumentSignal =
+      best.school.contratoAntesPagar === "si" ||
+      best.school.reembolsoClaro === "si" ||
+      best.school.calendarioPagosClaro === "si" ||
+      best.school.estadoVerificacion === "verificado" ||
+      best.school.estadoVerificacion === "parcialmente_verificado";
+
+    if (best.analysis.encajeGeneral >= 60 && hasEnoughDocumentSignal) {
+      return {
+        school: best.school,
+        reason:
+          "Con los datos actuales, esta escuela es la opción más sólida dentro de las escuelas añadidas. Aun así, la recomendación depende de confirmar precio, contrato, reembolso y calendario antes de pagar.",
+      };
+    }
+
+    return {
+      school: best.school,
+      reason:
+        "Con los datos actuales, esta escuela es la opción más sólida dentro de las escuelas añadidas, pero la recomendación no es suficiente para pagar todavía. Faltan condiciones clave por confirmar: contrato, reembolso, calendario de pagos, coste final o extras incluidos.",
+    };
+  }, [schoolStats.analyzed]);
+
   const decisionReadiness = useMemo(
     () =>
       computeDecisionReadiness({
@@ -3597,7 +3636,9 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         <p className="mt-1 text-lg font-semibold text-white">Añade 2 escuelas</p>
                       ) : plannerPremiumContentVisible ? (
                         <p className="mt-1 text-lg font-semibold text-white">
-                          {schoolStats.bestSchool?.school.nombre || "Sin opción clara"}
+                          {flypathSchoolRecommendation.school
+                            ? flypathSchoolRecommendation.school.nombre
+                            : "Sin recomendación todavía"}
                         </p>
                       ) : (
                         <button
@@ -3796,7 +3837,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 })()}
                 <div className="order-6 flex flex-col gap-6">
                 {schoolStats.analyzed.map(({ school, analysis }) => (
-                  <div key={school.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${schoolStats.bestSchool?.school.id === school.id ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
+                  <div key={school.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${flypathSchoolRecommendation.school?.id === school.id ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
                     <div className="grid gap-4 lg:grid-cols-3">
                       <div className="lg:col-span-2">
                         <p className="text-xl font-semibold text-[#0f1a33]">{school.nombre}</p>
@@ -4301,7 +4342,12 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <li className="flex gap-3">
                         <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
                         <span>
-                          <span className="font-semibold text-slate-800">Bloqueo principal:</span> {route.principalBlock}.
+                          <span className="font-semibold text-slate-800">Bloqueo principal:</span>{" "}
+                          {decisionReadiness.bloqueosCriticos.length > 0
+                            ? decisionReadiness.bloqueosCriticos[0]
+                            : decisionReadiness.faltanDatos.length > 0
+                              ? "Datos pendientes antes de pagar."
+                              : "Ningún bloqueo crítico."}
                         </span>
                       </li>
                       <li className="flex gap-3">
@@ -4400,14 +4446,25 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
 
                 <div className="rounded-3xl border border-r-4 border-slate-200 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-base font-semibold text-[#0f1a33]">Guardar o compartir informe</p>
+                  <p className="text-base font-semibold text-[#0f1a33]">
+                    {plannerPremiumContentVisible
+                      ? "Guardar o compartir informe premium"
+                      : "Guardar o compartir informe"}
+                  </p>
                   <p className="mt-2 max-w-4xl text-base leading-relaxed text-slate-600">
-                    Descarga el informe completo de decisión o un resumen claro para compartir con tus padres antes de comprometer dinero con una escuela.
+                    {plannerPremiumContentVisible
+                      ? "Descarga tu informe premium con análisis de escuelas, recomendación FlyPath y próximos pasos personalizados."
+                      : "Descarga tu informe gratuito o compártelo con tu familia antes de tomar una decisión."}
                   </p>
                   <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
                       onClick={async () => {
+                        if (plannerPremiumContentVisible) {
+                          // TODO: conectar descarga real del informe premium cuando exista el PDF premium.
+                          showToast("Informe premium próximamente");
+                          return;
+                        }
                         try {
                           const { downloadFlyPathInformePdf, getFlyPathPrimaryProductForPdf } = await import("@/lib/flypathReportPdf");
                           const generatedAt = new Intl.DateTimeFormat("es-ES", {
@@ -4489,7 +4546,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                      Descargar informe
+                      {plannerPremiumContentVisible ? "Descargar informe premium" : "Descargar informe gratuito"}
                     </button>
                     <button
                       type="button"
@@ -4533,6 +4590,472 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </button>
                   </div>
                 </div>
+
+                {/* Bloque premium del Informe final. Reordenado: aparece DESPUÉS de "Guardar o
+                    compartir informe" y ANTES de "Tu siguiente paso FlyPath". No bloquea el
+                    informe gratuito. Reusa `setPlannerSchoolsPremiumModalOpen` (no nuevo modal).
+                    En modo gratis: card oscura con CTA. En modo premium: usa la misma recomendación
+                    que el minibadge Recomendación FlyPath (`flypathSchoolRecommendation`). */}
+                {(() => {
+                  const totalSchools = schools.length;
+                  if (!plannerPremiumContentVisible) {
+                    return (
+                      <div className="rounded-3xl border border-[#c9a454]/35 bg-[#0f1a33] p-6 text-white shadow-[0_10px_30px_rgba(15,26,51,0.18)] sm:p-7">
+                        <div className="flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
+                            ANÁLISIS PREMIUM
+                          </span>
+                        </div>
+                        <h3 className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl">
+                          Desbloquea el análisis premium de escuelas
+                        </h3>
+                        <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-300">
+                          El informe gratuito te ayuda a saber si estás preparado para avanzar. El análisis premium cruza tu perfil con las escuelas que has comparado para ayudarte a decidir cuál tiene más sentido antes de pagar matrícula o depósito.
+                        </p>
+                        <ul className="mt-4 space-y-2 text-[15px] text-slate-200">
+                          {[
+                            "Escuela con mejor encaje FlyPath",
+                            "Riesgo económico y documental por escuela",
+                            "Comparación personalizada según tu presupuesto y perfil",
+                            "Qué preguntar a cada escuela antes de pagar",
+                            "Próximos pasos específicos para tu decisión",
+                          ].map((item) => (
+                            <li key={item} className="flex items-start gap-2.5 leading-relaxed">
+                              <span
+                                aria-hidden
+                                className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
+                              />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          onClick={() => setPlannerSchoolsPremiumModalOpen(true)}
+                          className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
+                        >
+                          Desbloquear análisis premium
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  type AnalyzedSchool = (typeof schoolStats.analyzed)[number];
+
+                  const howToStart: string[] =
+                    route.recommended === "Modular"
+                      ? [
+                          "No empieces pagando una integrada completa.",
+                          "Empieza por cerrar Class 1, presupuesto real y escuelas con contrato claro.",
+                          "Prioriza una ruta modular o integrada solo si la financiación y condiciones están cerradas.",
+                        ]
+                      : route.recommended === "Integrada"
+                        ? [
+                            "No transfieras matrícula sin contrato firmado y reembolso claro.",
+                            "Cierra antes la financiación, el presupuesto realista y el Class 1.",
+                            "Confirma calendario de pagos por fases y qué tasas o extras quedan dentro del precio.",
+                          ]
+                        : [
+                            "Aún no decidas escuela ni firmes ningún depósito.",
+                            "Cierra primero Class 1, inglés operativo y presupuesto realista.",
+                            "Vuelve a comparar escuelas cuando tengas datos personales más sólidos.",
+                          ];
+
+                  const sortedByEncaje: AnalyzedSchool[] = [...schoolStats.analyzed].sort(
+                    (a, b) => b.analysis.encajeGeneral - a.analysis.encajeGeneral,
+                  );
+                  const recommendedSchool = flypathSchoolRecommendation.school;
+                  const recommendedItem: AnalyzedSchool | undefined = recommendedSchool
+                    ? sortedByEncaje.find((x) => x.school.id === recommendedSchool.id)
+                    : undefined;
+                  const comparisonSchools: AnalyzedSchool[] = recommendedItem
+                    ? [
+                        recommendedItem,
+                        ...sortedByEncaje.filter((x) => x.school.id !== recommendedItem.school.id).slice(0, 1),
+                      ]
+                    : sortedByEncaje.slice(0, 2);
+                  const alternativeItem: AnalyzedSchool | undefined = recommendedItem
+                    ? comparisonSchools.find((x) => x.school.id !== recommendedItem.school.id)
+                    : undefined;
+
+                  /** Por qué la recomendada va por delante: comparación 1:1 con la alternativa. */
+                  const whyRecommendedAhead = (
+                    rec: AnalyzedSchool,
+                    alt: AnalyzedSchool | undefined,
+                  ): string[] => {
+                    const reasons: string[] = [];
+                    if (rec.school.contratoAntesPagar === "si" && alt?.school.contratoAntesPagar !== "si") {
+                      reasons.push("Contrato disponible antes de pagar.");
+                    }
+                    if (rec.school.calendarioPagosClaro === "si" && alt?.school.calendarioPagosClaro !== "si") {
+                      reasons.push("Calendario de pagos más claro.");
+                    }
+                    if (rec.school.reembolsoClaro === "si" && alt?.school.reembolsoClaro !== "si") {
+                      reasons.push("Política de reembolso más clara.");
+                    }
+                    const recVerified =
+                      rec.school.estadoVerificacion === "verificado" ||
+                      rec.school.estadoVerificacion === "parcialmente_verificado";
+                    const altVerified =
+                      !!alt &&
+                      (alt.school.estadoVerificacion === "verificado" ||
+                        alt.school.estadoVerificacion === "parcialmente_verificado");
+                    if (recVerified && !altVerified) {
+                      reasons.push("Datos con mejor nivel de verificación.");
+                    }
+                    if (alt && rec.analysis.encajeGeneral > alt.analysis.encajeGeneral) {
+                      reasons.push("Opción más sólida frente a las alternativas añadidas.");
+                    }
+                    const unique = Array.from(new Set(reasons));
+                    if (unique.length === 0) {
+                      return ["Mejor resultado relativo dentro de las opciones comparadas."];
+                    }
+                    return unique.slice(0, 3);
+                  };
+
+                  /** Asignación de "Punto fuerte" por escuela con dedup: cada escuela intenta tener un
+                   *  motivo único distinto. Si todas comparten el mismo dato, se permite repetir como
+                   *  fallback. La recomendada (primer item) tiene prioridad de elección. */
+                  const STRENGTH_OPTIONS: Array<{ test: (s: School) => boolean; label: string }> = [
+                    { test: (s) => s.contratoAntesPagar === "si", label: "Contrato disponible antes de pagar." },
+                    { test: (s) => s.reembolsoClaro === "si", label: "Reembolso más claro." },
+                    { test: (s) => s.calendarioPagosClaro === "si", label: "Calendario de pagos definido." },
+                    {
+                      test: (s) => s.tasasIncluidas === "si" && s.skillTestsIncluidos === "si",
+                      label: "Mejor claridad de extras.",
+                    },
+                    {
+                      test: (s) =>
+                        s.estadoVerificacion === "verificado" ||
+                        s.estadoVerificacion === "parcialmente_verificado",
+                      label: "Mejor evidencia documental.",
+                    },
+                  ];
+                  const strengthByItem = new Map<number, string>();
+                  {
+                    const used = new Set<string>();
+                    for (const item of comparisonSchools) {
+                      const cand = STRENGTH_OPTIONS.find(
+                        (opt) => opt.test(item.school) && !used.has(opt.label),
+                      );
+                      if (cand) {
+                        strengthByItem.set(item.school.id, cand.label);
+                        used.add(cand.label);
+                      }
+                    }
+                    for (const item of comparisonSchools) {
+                      if (strengthByItem.has(item.school.id)) continue;
+                      const any = STRENGTH_OPTIONS.find((opt) => opt.test(item.school));
+                      strengthByItem.set(
+                        item.school.id,
+                        any ? any.label : "Necesita más datos antes de valorar.",
+                      );
+                    }
+                  }
+
+                  const riskOf = (item: AnalyzedSchool): string =>
+                    item.analysis.redFlags[0] ??
+                    "No se detecta un riesgo principal con los datos actuales.";
+
+                  const askOf = (item: AnalyzedSchool): string =>
+                    item.analysis.preguntasPendientes[0] ??
+                    "Pedir precio final, contrato y calendario por escrito.";
+
+                  const lecturaFor = (isRec: boolean): string =>
+                    isRec
+                      ? "Empezaría por esta escuela, pero solo para pedir documentación. No es una señal para pagar todavía."
+                      : "Mantenerla como alternativa, sin priorizarla hasta aclarar los puntos pendientes.";
+
+                  const isRecommendedItem = (item: AnalyzedSchool): boolean =>
+                    !!recommendedSchool && item.school.id === recommendedSchool.id;
+
+                  const notReadyToPay = decisionReadiness.decision === "No estás listo para pagar";
+                  const decisionPracticaText = notReadyToPay
+                    ? "Decisión práctica: validar primero, no pagar todavía."
+                    : "Decisión práctica: avanzar con validación, no con pago.";
+
+                  const decisionBlock: { text: string; bullets: string[] } = (() => {
+                    if (recommendedSchool && notReadyToPay) {
+                      return {
+                        text: `FlyPath no recomienda pagar todavía. La decisión razonable ahora es avanzar con ${recommendedSchool.nombre} como primera opción de validación, mantener la otra escuela como alternativa y pedir documentación antes de transferir dinero.`,
+                        bullets: [
+                          "No pagar matrícula ni depósito todavía.",
+                          "Pedir precio final, contrato, reembolso y calendario por escrito.",
+                          `Comparar la respuesta de ${recommendedSchool.nombre} con la alternativa antes de decidir.`,
+                        ],
+                      };
+                    }
+                    if (recommendedSchool) {
+                      return {
+                        text: `Puedes avanzar en la conversación con ${recommendedSchool.nombre}, pero solo si confirma por escrito las condiciones críticas.`,
+                        bullets: [
+                          "Validar documentación.",
+                          "Confirmar coste final.",
+                          "No decidir solo por precio anunciado.",
+                        ],
+                      };
+                    }
+                    return {
+                      text: "FlyPath no puede priorizar una escuela todavía. La decisión correcta es completar datos antes de elegir.",
+                      bullets: [
+                        "Añadir o completar al menos 2 escuelas.",
+                        "Pedir contrato, reembolso y calendario.",
+                        "Recalcular el informe con datos confirmados.",
+                      ],
+                    };
+                  })();
+
+                  const sevenDaysSteps: string[] = recommendedSchool
+                    ? [
+                        `Enviar email a ${recommendedSchool.nombre} pidiendo precio final, contrato, reembolso y calendario.`,
+                        "Enviar el mismo email a la escuela alternativa para comparar respuestas.",
+                        "Actualizar FlyPath con las respuestas recibidas.",
+                        "No pagar hasta que las condiciones estén documentadas.",
+                      ]
+                    : [
+                        "Completar datos de al menos 2 escuelas comparables.",
+                        "Pedir precio final, contrato, reembolso y calendario.",
+                        "Actualizar FlyPath con datos confirmados.",
+                        "Volver a generar el informe antes de pagar.",
+                      ];
+
+                  const renderSectionLabel = (n: number, text: string) => (
+                    <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7b5e1f]">
+                      <span
+                        aria-hidden
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#c9a454]/40 bg-[#c9a454]/15 text-[10px] tabular-nums text-[#7b5e1f]"
+                      >
+                        {n}
+                      </span>
+                      {text}
+                    </p>
+                  );
+
+                  return (
+                    <div className="overflow-hidden rounded-3xl border border-[#c9a454]/40 bg-gradient-to-br from-[#fffbf5] via-white to-[#fff8eb] shadow-[0_16px_48px_rgba(15,26,51,0.12)]">
+                      <div className="relative border-b border-[#c9a454]/25 bg-gradient-to-br from-[#071226] via-[#0f1a33] to-[#152547] px-6 py-7 sm:px-8 sm:py-8">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]/95">
+                              INFORME PREMIUM FLYPATH
+                            </p>
+                            <h3 className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl">
+                              Análisis premium de escuelas
+                            </h3>
+                            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-300">
+                              Decisión aplicada a tu perfil, presupuesto y riesgo antes de pagar matrícula o depósito.
+                            </p>
+                          </div>
+                          <span className="inline-flex shrink-0 items-center self-start rounded-full border border-[#c9a454]/40 bg-[#c9a454]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
+                            Premium desbloqueado
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-7 bg-gradient-to-b from-white to-[#fffbf5] px-6 py-7 sm:px-8 sm:py-8">
+                        {/* Veredicto FlyPath (top synthesis) */}
+                        <section className="rounded-2xl border-2 border-[#c9a454]/55 bg-[#fff7e3] p-5 shadow-sm sm:p-6">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5e1f]">
+                            Veredicto FlyPath
+                          </p>
+                          {recommendedSchool ? (
+                            <>
+                              <p className="mt-2 text-xl font-bold leading-snug text-[#0f1a33] sm:text-2xl">
+                                Opción más sólida ahora:{" "}
+                                <span className="text-[#7b5e1f]">{recommendedSchool.nombre}</span>
+                              </p>
+                              <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
+                                Entre las escuelas que has añadido, {recommendedSchool.nombre} aparece más sólida para tu caso ahora mismo. Esto no significa que debas pagar todavía: significa que, con los datos actuales, es la opción que conviene validar primero.
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="mt-2 text-xl font-bold leading-snug text-[#0f1a33] sm:text-2xl">
+                                No hay recomendación suficiente todavía.
+                              </p>
+                              <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
+                                Con los datos actuales no hay base suficiente para elegir una escuela concreta. Antes de pagar, necesitas completar información documental, económica y contractual.
+                              </p>
+                            </>
+                          )}
+                          <div className="mt-4 rounded-xl border border-[#c9a454]/45 bg-white/70 px-4 py-3">
+                            <p className="text-[14px] font-semibold leading-snug text-[#7b5e1f]">
+                              {decisionPracticaText}
+                            </p>
+                          </div>
+                        </section>
+
+                        {/* 1. Tu ruta recomendada */}
+                        <section>
+                          {renderSectionLabel(1, "Tu ruta recomendada")}
+                          <p className="mt-2 text-lg font-bold leading-snug text-[#0f1a33] sm:text-xl">
+                            Ruta: <span className="text-[#7b5e1f]">{route.recommended}</span>
+                          </p>
+                          <p className="mt-2 text-base leading-relaxed text-slate-700">
+                            <span className="font-semibold text-slate-800">Por qué:</span> {route.reason}
+                          </p>
+                          <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                              Cómo empezar
+                            </p>
+                            <ul className="mt-2 space-y-1.5 text-[15px] leading-relaxed text-slate-700">
+                              {howToStart.map((item) => (
+                                <li key={item} className="flex items-start gap-2.5">
+                                  <span aria-hidden className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </section>
+
+                        {/* 2. Opción prioritaria entre tus escuelas */}
+                        <section className="rounded-2xl border-2 border-[#c9a454]/45 bg-white p-5 shadow-sm sm:p-6">
+                          {renderSectionLabel(2, "Opción prioritaria entre tus escuelas")}
+                          {recommendedSchool && recommendedItem ? (
+                            <>
+                              <p className="mt-3 text-lg font-bold leading-snug text-[#0f1a33] sm:text-xl">
+                                Opción más sólida ahora:{" "}
+                                <span className="text-[#7b5e1f]">{recommendedSchool.nombre}</span>
+                              </p>
+                              <div className="mt-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                  Por qué sale delante
+                                </p>
+                                <ul className="mt-2 space-y-1.5 text-[15px] leading-relaxed text-slate-700">
+                                  {whyRecommendedAhead(recommendedItem, alternativeItem).map((reason) => (
+                                    <li key={reason} className="flex items-start gap-2.5">
+                                      <span aria-hidden className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                                      <span>{reason}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                                {flypathSchoolRecommendation.reason}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="mt-3 text-lg font-bold leading-snug text-[#0f1a33] sm:text-xl">
+                                No hay recomendación todavía.
+                              </p>
+                              <p className="mt-3 text-base leading-relaxed text-slate-700">
+                                {flypathSchoolRecommendation.reason}
+                              </p>
+                            </>
+                          )}
+                        </section>
+
+                        {/* 3. Comparación directa */}
+                        {comparisonSchools.length > 0 && (
+                          <section>
+                            {renderSectionLabel(3, "Comparación directa")}
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                              {comparisonSchools.map((item) => {
+                                const isRec = isRecommendedItem(item);
+                                const cardClasses = isRec
+                                  ? "rounded-2xl border-2 border-[#c9a454]/45 bg-white p-4 shadow-sm sm:p-5"
+                                  : "rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5";
+                                const roleBadgeClasses = isRec
+                                  ? "inline-flex items-center rounded-full border border-[#c9a454]/45 bg-[#c9a454]/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b5e1f]"
+                                  : "inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600";
+                                return (
+                                  <div key={item.school.id} className={cardClasses}>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-base font-bold text-[#0f1a33]">{item.school.nombre}</p>
+                                      {recommendedSchool && (
+                                        <span className={roleBadgeClasses}>
+                                          {isRec ? "Opción más sólida ahora" : "Alternativa a validar"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <dl className="mt-3 space-y-2.5 text-[15px] leading-relaxed">
+                                      <div>
+                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                          Punto fuerte
+                                        </dt>
+                                        <dd className="mt-0.5 text-slate-700">
+                                          {strengthByItem.get(item.school.id) ?? "Necesita más datos antes de valorar."}
+                                        </dd>
+                                      </div>
+                                      <div>
+                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                          Riesgo principal
+                                        </dt>
+                                        <dd className="mt-0.5 text-slate-700">{riskOf(item)}</dd>
+                                      </div>
+                                      <div>
+                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                          Qué pedir
+                                        </dt>
+                                        <dd className="mt-0.5 text-slate-700">{askOf(item)}</dd>
+                                      </div>
+                                    </dl>
+                                    {recommendedSchool && (
+                                      <p className="mt-4 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-[#7b5e1f]">
+                                        <span className="font-semibold uppercase tracking-wide">Lectura FlyPath:</span>{" "}
+                                        <span className="text-slate-700">{lecturaFor(isRec)}</span>
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {totalSchools < 2 && (
+                              <p className="mt-3 text-[15px] leading-relaxed text-slate-500">
+                                Añade al menos 2 escuelas comparables para una comparación directa más útil.
+                              </p>
+                            )}
+                          </section>
+                        )}
+
+                        {/* 4. Decisión FlyPath */}
+                        <section className="rounded-2xl border border-[#c9a454]/35 bg-[#fffdf8] p-5 sm:p-6">
+                          {renderSectionLabel(4, "Decisión FlyPath")}
+                          <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
+                            {decisionBlock.text}
+                          </p>
+                          <ul className="mt-3 space-y-1.5 text-[15px] leading-relaxed text-slate-700">
+                            {decisionBlock.bullets.map((text) => (
+                              <li key={text} className="flex items-start gap-2.5">
+                                <span aria-hidden className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
+                                <span>{text}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+
+                        {/* 5. Acción recomendada con cada escuela */}
+                        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+                          {renderSectionLabel(5, "Acción recomendada con cada escuela")}
+                          <ol className="mt-4 list-none space-y-3">
+                            {sevenDaysSteps.map((stepText, idx) => (
+                              <li key={stepText} className="flex gap-3">
+                                <span
+                                  aria-hidden
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c9a454]/55 bg-[#c9a454]/18 text-xs font-bold tabular-nums text-[#7b5e1f]"
+                                >
+                                  {idx + 1}
+                                </span>
+                                <span className="min-w-0 pt-1 text-[15px] leading-relaxed text-slate-700">
+                                  {stepText}
+                                </span>
+                              </li>
+                            ))}
+                          </ol>
+                        </section>
+
+                        <div className="border-t border-slate-200/90 bg-slate-50/60 px-1 py-4 sm:px-2">
+                          <p className="text-xs leading-relaxed text-slate-500">
+                            Este análisis no sustituye la confirmación oficial de la escuela. Úsalo como filtro de decisión antes de comprometer dinero.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <FlyPathNextStepsPanel
                   profile={profile}
