@@ -4806,19 +4806,9 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     };
                   })();
 
-                  const sevenDaysSteps: string[] = recommendedSchool
-                    ? [
-                        `Enviar email a ${recommendedSchool.nombre} pidiendo precio final, contrato, reembolso y calendario.`,
-                        "Enviar el mismo email a la escuela alternativa para comparar respuestas.",
-                        "Actualizar FlyPath con las respuestas recibidas.",
-                        "No pagar hasta que las condiciones estén documentadas.",
-                      ]
-                    : [
-                        "Completar datos de al menos 2 escuelas comparables.",
-                        "Pedir precio final, contrato, reembolso y calendario.",
-                        "Actualizar FlyPath con datos confirmados.",
-                        "Volver a generar el informe antes de pagar.",
-                      ];
+                  const actionForSchool = (item: AnalyzedSchool): string =>
+                    item.analysis.preguntasPendientes[0] ??
+                    "Pedir precio final, contrato, reembolso y calendario por escrito.";
 
                   const renderSectionLabel = (n: number, text: string) => (
                     <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7b5e1f]">
@@ -5030,21 +5020,43 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         {/* 5. Acción recomendada con cada escuela */}
                         <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
                           {renderSectionLabel(5, "Acción recomendada con cada escuela")}
-                          <ol className="mt-4 list-none space-y-3">
-                            {sevenDaysSteps.map((stepText, idx) => (
-                              <li key={stepText} className="flex gap-3">
-                                <span
-                                  aria-hidden
-                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#c9a454]/55 bg-[#c9a454]/18 text-xs font-bold tabular-nums text-[#7b5e1f]"
-                                >
-                                  {idx + 1}
-                                </span>
-                                <span className="min-w-0 pt-1 text-[15px] leading-relaxed text-slate-700">
-                                  {stepText}
-                                </span>
-                              </li>
-                            ))}
-                          </ol>
+                          {recommendedSchool && comparisonSchools.length > 0 ? (
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                              {comparisonSchools.map((item) => {
+                                const isRec = isRecommendedItem(item);
+                                const priorityLabel = isRec ? "Validar primero" : "Mantener como alternativa";
+                                const priorityClasses = isRec
+                                  ? "inline-flex items-center rounded-full border border-[#c9a454]/45 bg-[#c9a454]/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b5e1f]"
+                                  : "inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600";
+                                const cardClasses = isRec
+                                  ? "rounded-2xl border-2 border-[#c9a454]/40 bg-white p-4 sm:p-5"
+                                  : "rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5";
+                                return (
+                                  <div key={item.school.id} className={cardClasses}>
+                                    <p className="text-base font-bold text-[#0f1a33]">{item.school.nombre}</p>
+                                    <div className="mt-2.5 flex items-center gap-2">
+                                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        Prioridad:
+                                      </span>
+                                      <span className={priorityClasses}>{priorityLabel}</span>
+                                    </div>
+                                    <div className="mt-3">
+                                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        Acción
+                                      </p>
+                                      <p className="mt-0.5 text-[15px] leading-relaxed text-slate-700">
+                                        {actionForSchool(item)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                              Añade al menos 2 escuelas comparables para ver la acción recomendada con cada una.
+                            </p>
+                          )}
                         </section>
 
                         <div className="border-t border-slate-200/90 bg-slate-50/60 px-1 py-4 sm:px-2">
