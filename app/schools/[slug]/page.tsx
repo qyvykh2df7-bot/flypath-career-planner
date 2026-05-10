@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { availabilityLabel, getComparableSchoolBySlug, getPriceGap, routeTypeLabel } from "@/lib/schools/schoolUtils";
+import { LeaveReviewPlaceholderButton } from "@/components/schools/LeaveReviewPlaceholderButton";
 
 function euro(value: number): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -899,16 +900,17 @@ export default async function SchoolDetailPage({
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-base font-semibold text-[#0f1a33]">Opiniones verificadas FlyPath: próximamente</p>
+          <p className="text-base font-semibold text-[#0f1a33]">Opiniones verificadas</p>
           <p className="mt-1 text-[15px] text-slate-600">
-            Estamos diseñando un sistema de reviews verificadas por fase de formación.
+            Estamos preparando un sistema de opiniones verificadas de alumnos y exalumnos
+            para mostrar experiencia real sobre costes, organización, disponibilidad de
+            aviones, instructores y soporte administrativo.
           </p>
+          <LeaveReviewPlaceholderButton />
         </section>
 
         <section className="rounded-2xl border border-[#c9a454]/30 bg-[#0f1a33] p-5 text-white">
-          <p className="text-sm font-semibold text-[#f2ddaa]">
-            {isAdventia || isEasBarcelona || isFteJerez || isCesda || isBfs || isMfs || isQualityFly || isAerodynamics || isBaa || isPanamedia || isFaa || isWafa || isApa || isFby ? "Lectura FlyPath" : "Análisis avanzado FlyPath: próximamente"}
-          </p>
+          <p className="text-sm font-semibold text-[#f2ddaa]">Lectura FlyPath</p>
           <p className="mt-1 text-[15px] text-slate-200">
             {isAdventia
               ? "Adventia publica bastante información del integrado: precio, pagos, duración, horas, flota, incluidos y financiación. Aun así, el precio aparece pendiente de actualización y hay tasas/costes administrativos y de expedición de licencia que quedan fuera."
@@ -940,7 +942,7 @@ export default async function SchoolDetailPage({
                 ? "Airpull Aviation Academy destaca por operar desde una base propia en Requena y por ofrecer tres opciones de ATPL integrado en 15 meses: Basic, Advanced y Premium. La información pública permite identificar parte de la estructura y algunas horas, pero no permite calcular costes ni comparar con otras escuelas. Debe quedar pendiente de email para confirmar precios, horas detalladas, flota, simuladores, extras incluidos, pagos, contrato y reembolso."
               : isFby
                 ? "FlyBy destaca por publicar precios cerrados y una gran cantidad de extras incluidos: alojamiento, manutención, transporte, material, tasas, skill tests, PBN, UPRT y APS MCC. Esto facilita la planificación económica frente a escuelas con precios menos claros. Aun así, antes de pagar conviene pedir contrato completo, reembolso, condiciones de repeticiones, financiación y, en el caso del Cadet, detalles laborales del puesto de instructor."
-              : "La versión avanzada incluirá histórico de datos, comparación extendida y alertas de riesgo."}
+              : "Cruza esta escuela con tu perfil, presupuesto, Class 1, disponibilidad e inglés para saber si es una opción sólida antes de pagar matrícula o depósito."}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href={`/schools?add=${school.slug}`} className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33]">

@@ -7,31 +7,6 @@ import {
 } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
 
-// Placeholders visuales del rating en la card. Se mantienen iguales para todas las
-// escuelas a propósito: hasta que tengamos reviews verificadas reales no queremos
-// inventar datos por escuela ni mezclarlos con "confianza del dato"/rankings.
-const DEFAULT_REVIEW_SCORE = 8.5;
-const DEFAULT_REVIEW_COUNT = 10;
-
-/** Formatea el score con coma decimal en español ("8,5"). */
-function formatReviewScore(score: number): string {
-  return score.toLocaleString("es-ES", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
-
-/**
- * Resumen de reviews para la card del listado.
- *
- * TODO: cuando exista un campo de reviews verificadas en `SchoolEntry`, leerlo aquí
- * (p. ej. `school.verifiedReviews?.score / .count`) y devolver el valor real. Hasta
- * entonces se devuelve el placeholder editorial.
- */
-function getReviewSummaryForSchool(_school: SchoolEntry): { score: number; count: number } {
-  return { score: DEFAULT_REVIEW_SCORE, count: DEFAULT_REVIEW_COUNT };
-}
-
 type Props = {
   school: SchoolEntry;
   selected: boolean;
@@ -54,7 +29,6 @@ export function SchoolCard({
 }: Props) {
   const badgeText = forcePendingListingBadge ? "PENDIENTE" : dataStatusLabel(school.dataStatus);
   const backgroundUrl = getSchoolCardBackgroundUrl(school);
-  const reviewSummary = getReviewSummaryForSchool(school);
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_10px_30px_-14px_rgba(15,26,51,0.22)] transition duration-300 hover:-translate-y-0.5 hover:border-[#c9a454]/45 hover:shadow-[0_18px_40px_-14px_rgba(15,26,51,0.32)]">
@@ -89,8 +63,10 @@ export function SchoolCard({
           className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#c9a454]/55 to-transparent"
         />
 
-        {/* Fila única: nombre (izq.) · rating compacto (placeholder UI, sin datos en dataset) · badge estado (der.).
-            Misma altura de strip `h-[66px]`; sin wrap extra ni padding vertical en el contenedor. */}
+        {/* Fila única: nombre (izq.) · placeholder editorial de opiniones (sin rating
+            inventado: hasta que tengamos reviews verificadas reales mostramos solo el
+            estado "En validación") · badge estado (der.). Misma altura de strip
+            `h-[66px]`; sin wrap extra ni padding vertical en el contenedor. */}
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center gap-2 px-4 sm:gap-2.5 sm:px-5">
           <h3
             className="min-w-0 flex-1 line-clamp-2 text-left text-[1.125rem] font-extrabold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-[1.375rem]"
@@ -100,16 +76,16 @@ export function SchoolCard({
           </h3>
           <div
             className="mr-3 flex shrink-0 flex-col items-center justify-center whitespace-nowrap leading-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)] sm:mr-4"
-            aria-label="Valoración ilustrativa; opiniones verificadas próximamente."
+            aria-label="Opiniones FlyPath: en validación."
           >
-            <span className="text-[17px] font-extrabold leading-none tabular-nums text-[#f2ddaa] sm:text-[18px]">
-              {formatReviewScore(reviewSummary.score)}/10
+            <span className="text-[13px] font-extrabold uppercase leading-none tracking-[0.08em] text-[#f2ddaa] sm:text-[14px]">
+              Opiniones
             </span>
             <span
-              className="mt-0.5 hidden text-[12px] font-semibold leading-none text-white/85 sm:block sm:text-[13px]"
+              className="mt-1 hidden text-[10px] font-semibold uppercase leading-none tracking-[0.08em] text-white/85 sm:block sm:text-[11px]"
               aria-hidden="true"
             >
-              {reviewSummary.count} reseñas
+              En validación
             </span>
           </div>
           <span

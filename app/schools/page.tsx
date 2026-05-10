@@ -289,7 +289,7 @@ function SchoolsPageContent() {
     { id: "inicio", label: "Inicio", status: "available" as const, href: "/" },
     { id: "planifica", label: "Planifica tu ruta", status: "available" as const, href: "/" },
     { id: "compara", label: "Compara escuelas", status: "available" as const, href: "/schools" },
-    { id: "opiniones", label: "Opiniones de escuelas", status: "soon" as const },
+    { id: "opiniones", label: "Opiniones de escuelas", status: "available" as const, href: "/opiniones-escuelas" },
     { id: "atpl", label: "ATPL Planner", status: "soon" as const },
     { id: "ingles", label: "Inglés aeronáutico", status: "soon" as const },
     { id: "mentorias", label: "Mentorías", status: "soon" as const },
@@ -356,23 +356,30 @@ function SchoolsPageContent() {
                   const isAvailable = m.status === "available";
                   const isSoon = m.status === "soon";
                   const isCurrent = m.id === "compara";
+                  // Algunos items "soon" pueden ser navegables a placeholders
+                  // informativos (ej. /school-reviews). Mantenemos el badge
+                  // "Próximamente" pero permitimos navegar si el item declara href.
+                  const hasHref = "href" in m && typeof m.href === "string" && m.href.length > 0;
+                  const isClickable = hasHref || isAvailable;
                   return (
                     <li key={m.id} role="presentation">
                       <button
                         type="button"
                         role="option"
                         aria-selected={isCurrent}
-                        aria-disabled={isSoon}
+                        aria-disabled={isSoon && !hasHref}
                         onClick={() => {
                           setModuleMenuOpen(false);
-                          if (isSoon) {
-                            showToast("Módulo FlyPath próximamente");
+                          if (hasHref && m.href) {
+                            router.push(m.href);
                             return;
                           }
-                          if ("href" in m && m.href) router.push(m.href);
+                          if (isSoon) {
+                            showToast("Módulo FlyPath próximamente");
+                          }
                         }}
                         className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-3.5 text-left transition-colors ${
-                          isSoon ? "cursor-not-allowed" : "cursor-pointer"
+                          isClickable ? "cursor-pointer" : "cursor-not-allowed"
                         } ${isCurrent ? "bg-[#fff8e8]" : ""}`}
                       >
                         <span

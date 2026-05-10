@@ -2450,7 +2450,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       { id: "inicio", label: "Inicio", status: "available" as const },
       { id: "planifica", label: "Planifica tu ruta", status: "available" as const },
       { id: "compara", label: "Compara escuelas", status: "available" as const, href: "/schools" },
-      { id: "opiniones", label: "Opiniones de escuelas", status: "soon" as const },
+      { id: "opiniones", label: "Opiniones de escuelas", status: "available" as const, href: "/opiniones-escuelas" },
       { id: "atpl", label: "ATPL Planner", status: "soon" as const },
       { id: "ingles", label: "Inglés aeronáutico", status: "soon" as const },
       { id: "mentorias", label: "Mentorías", status: "soon" as const },
@@ -2525,30 +2525,50 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   {flypathPlatformModules.map((m) => {
                     const isAvailable = m.status === "available";
                     const isSoon = m.status === "soon";
+                    // En la landing actual, el módulo "vivo" es Planifica tu ruta
+                    // (Inicio y Planifica apuntan ambos a `/`, pero la home muestra
+                    // el flujo del Planner, no un dashboard de Inicio). Marcamos
+                    // ese item como ACTUAL con el mismo estilo dorado/crema que
+                    // usa `Compara escuelas` en `/schools`.
+                    const isCurrent = m.id === "planifica";
+                    // Algunos items "soon" pueden ser navegables a placeholders
+                    // informativos (ej. /opiniones-escuelas). Mantenemos el badge
+                    // "Próximamente" pero permitimos navegar si el item declara href.
+                    const hasHref = "href" in m && typeof m.href === "string" && m.href.length > 0;
+                    const isClickable = hasHref || isAvailable;
                     return (
                       <li key={m.id} role="presentation">
                         <button
                           type="button"
                           role="option"
-                          aria-selected={isAvailable}
-                          aria-disabled={isSoon}
+                          aria-selected={isCurrent}
+                          aria-disabled={isSoon && !hasHref}
                           onClick={() => {
                             setLandingModuleMenuOpen(false);
+                            if (hasHref && m.href) {
+                              router.push(m.href);
+                              return;
+                            }
                             if (isSoon) return;
-                            if ("href" in m && m.href) router.push(m.href);
                           }}
                           className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-3.5 text-left transition-colors ${
-                            isSoon ? "cursor-not-allowed" : "cursor-pointer"
-                          }`}
+                            isClickable ? "cursor-pointer" : "cursor-not-allowed"
+                          } ${isCurrent ? "bg-[#fff8e8]" : ""}`}
                         >
                           <span
-                            className={`min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug ${isSoon ? "text-slate-500" : "text-slate-700"}`}
+                            className={`min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug ${
+                              isSoon ? "text-slate-500" : isCurrent ? "text-[#7a5a16]" : "text-slate-700"
+                            }`}
                           >
                             {m.label}
                           </span>
                           {isSoon ? (
                             <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-slate-400">
                               Próximamente
+                            </span>
+                          ) : isCurrent ? (
+                            <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-[#a5802a]">
+                              Actual
                             </span>
                           ) : (
                             <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-slate-400">

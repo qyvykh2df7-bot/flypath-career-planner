@@ -4250,6 +4250,20 @@ export function ComparisonResults({ schools }: Props) {
           );
         })}
       </div>
+
+      {/* F. Opiniones verificadas — bloque compartido entre las dos escuelas.
+          Mensaje editorial honesto: el sistema está en preparación y, hasta que
+          haya datos reales, esta señal NO entra en la recomendación FlyPath.
+          No hay rating numérico, ni recuento de reseñas, ni datos por escuela. */}
+      <section className="rounded-xl border border-[#c9a454]/30 bg-[#fffdf6] p-3 shadow-[0_4px_18px_-12px_rgba(15,26,51,0.25)] sm:p-3.5">
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-[#7a5a16]">
+          F. Opiniones verificadas
+        </p>
+        <p className="mt-1.5 text-[15px] leading-relaxed text-slate-700">
+          Estamos preparando opiniones verificadas de alumnos y exalumnos. Hasta que
+          haya suficientes datos reales, esta señal no se usa para recomendar escuelas.
+        </p>
+      </section>
     </section>
   );
 }
