@@ -26,6 +26,30 @@ import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 const MAX_SELECTED = 2;
 const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
 
+/**
+ * Desde opiniones: incluir la escuela del query aunque ya hubiera 2 seleccionadas.
+ * Si hay 2 y la escuela no está, sustituye la primera y conserva la segunda.
+ */
+function ensureSelectedSchoolFromReviewsQuery(
+  currentIds: string[],
+  querySchoolId: string,
+): string[] {
+  if (currentIds.includes(querySchoolId)) return currentIds;
+  if (currentIds.length === 0) return [querySchoolId];
+  if (currentIds.length === 1) return [...currentIds, querySchoolId];
+  return [querySchoolId, currentIds[1]!];
+}
+
+function buildSchoolsPathWithoutReviewsSelectionParams(
+  searchParams: { toString(): string },
+): string {
+  const next = new URLSearchParams(searchParams.toString());
+  next.delete("selected");
+  next.delete("source");
+  const q = next.toString();
+  return q ? `/schools?${q}` : "/schools";
+}
+
 function readStoredSelectedIds(): string[] {
   if (typeof window === "undefined") return [];
   try {
@@ -68,6 +92,7 @@ function SchoolsPageContent() {
   const conclusionSectionRef = useRef<HTMLDivElement>(null);
   const resultsSectionRef = useRef<HTMLElement>(null);
   const lastHandledAddSlugRef = useRef<string | null>(null);
+  const lastHandledReviewsSlugRef = useRef<string | null>(null);
   const pendingResultsScrollRef = useRef(false);
   const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
   const [headerLogoFallback, setHeaderLogoFallback] = useState(false);
@@ -191,6 +216,36 @@ function SchoolsPageContent() {
       comparisonPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [searchParams, router, showToast, selectionHydrated]);
+
+  useEffect(() => {
+    if (!selectionHydrated) return;
+
+    const slug = searchParams.get("selected")?.trim() ?? "";
+    const source = searchParams.get("source")?.trim() ?? "";
+    if (source !== "reviews" || !slug) {
+      lastHandledReviewsSlugRef.current = null;
+      return;
+    }
+    if (lastHandledReviewsSlugRef.current === slug) return;
+    lastHandledReviewsSlugRef.current = slug;
+
+    const pathWithoutReviewsParams =
+      buildSchoolsPathWithoutReviewsSelectionParams(searchParams);
+    router.replace(pathWithoutReviewsParams, { scroll: false });
+
+    const school = getComparableSchoolBySlug(slug);
+    setSearchSubmitted(true);
+
+    if (school) {
+      setSelectedIds((current) =>
+        ensureSelectedSchoolFromReviewsQuery(current, school.id),
+      );
+    }
+
+    queueMicrotask(() => {
+      comparisonPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [searchParams, router, selectionHydrated]);
 
   useEffect(() => {
     if (!selectionHydrated) return;

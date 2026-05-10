@@ -636,7 +636,7 @@ export default function OpinionesEscuelasPage() {
                       Dejar una opinión sobre Adventia
                     </button>
                     <Link
-                      href="/schools"
+                      href={`/schools?selected=${encodeURIComponent(ADVENTIA_PREVIEW_SLUG)}&source=reviews`}
                       className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/55 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
                     >
                       Comparar esta escuela
@@ -678,7 +678,7 @@ export default function OpinionesEscuelasPage() {
                     {`Dejar una opinión sobre ${selectedSchoolLabel}`}
                   </button>
                   <Link
-                    href="/schools"
+                    href={`/schools?selected=${encodeURIComponent(selectedSchool)}&source=reviews`}
                     className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/55 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
                   >
                     Comparar esta escuela
@@ -809,7 +809,7 @@ export default function OpinionesEscuelasPage() {
                       {REVIEW_FORM_SUCCESS_MESSAGE}
                     </p>
                   </div>
-                  <p className="mt-4 text-[13px] leading-relaxed text-slate-600">
+                  <p className="mt-4 text-sm leading-relaxed text-slate-600">
                     {REVIEW_FORM_INTRO}
                   </p>
                   <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
@@ -838,10 +838,10 @@ export default function OpinionesEscuelasPage() {
                   className="space-y-7"
                 >
                   <div className="space-y-2">
-                    <p className="text-[13.5px] leading-relaxed text-slate-600">
+                    <p className="text-sm leading-relaxed text-slate-600">
                       {REVIEW_FORM_INTRO}
                     </p>
-                    <p className="rounded-xl border border-[#c9a454]/30 bg-[#fffdf6] px-3 py-1.5 text-[12.5px] leading-snug text-[#7a5a16]">
+                    <p className="rounded-xl border border-[#c9a454]/30 bg-[#fffdf6] px-3 py-1.5 text-sm leading-snug text-[#7a5a16]">
                       {REVIEW_FORM_PREVIEW_NOTICE}
                     </p>
                   </div>
@@ -853,7 +853,7 @@ export default function OpinionesEscuelasPage() {
                     </legend>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <label className="block">
-                        <span className="text-[13px] font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700">
                           Nombre completo <span className="text-rose-600">*</span>
                         </span>
                         <input
@@ -864,7 +864,7 @@ export default function OpinionesEscuelasPage() {
                         />
                       </label>
                       <label className="block">
-                        <span className="text-[13px] font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700">
                           Email <span className="text-rose-600">*</span>
                         </span>
                         <input
@@ -875,7 +875,7 @@ export default function OpinionesEscuelasPage() {
                         />
                       </label>
                       <label className="block">
-                        <span className="text-[13px] font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700">
                           Escuela <span className="text-rose-600">*</span>
                         </span>
                         <select
@@ -892,7 +892,7 @@ export default function OpinionesEscuelasPage() {
                         </select>
                       </label>
                       <label className="block">
-                        <span className="text-[13px] font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700">
                           Programa o fase de formación
                         </span>
                         <input
@@ -912,7 +912,7 @@ export default function OpinionesEscuelasPage() {
                     </legend>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <label className="block">
-                        <span className="text-[13px] font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700">
                           Tu relación <span className="text-rose-600">*</span>
                         </span>
                         <select
@@ -929,7 +929,7 @@ export default function OpinionesEscuelasPage() {
                         </select>
                       </label>
                       <label className="block">
-                        <span className="text-[13px] font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700">
                           Año aproximado
                         </span>
                         <input
@@ -948,22 +948,22 @@ export default function OpinionesEscuelasPage() {
                     <legend className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
                       Valoraciones (1–10)
                     </legend>
-                    <p className="text-[12.5px] leading-snug text-slate-500">
+                    <p className="text-sm leading-snug text-slate-500">
                       Toca las estrellas para valorar cada área. La equivalencia se
                       muestra sobre 10.
                     </p>
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 sm:grid-cols-2">
                       {RATING_FIELDS.map((field) => {
                         const current = ratings[field.name];
                         return (
                           <div
                             key={field.name}
-                            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2.5"
+                            className="rounded-xl border border-slate-200/60 bg-white/80 px-3 py-2.5"
                           >
-                            <span className="text-[13px] font-medium text-slate-700">
+                            <p className="text-sm font-medium leading-snug text-slate-700">
                               {field.label}
-                            </span>
-                            <div className="flex items-center gap-2">
+                            </p>
+                            <div className="mt-1.5 flex items-center gap-2">
                               <div
                                 role="radiogroup"
                                 aria-label={field.label}
@@ -996,7 +996,7 @@ export default function OpinionesEscuelasPage() {
                                   );
                                 })}
                               </div>
-                              <span className="min-w-[58px] shrink-0 text-right text-[11.5px] font-medium tabular-nums text-slate-500">
+                              <span className="text-[11.5px] font-medium tabular-nums text-slate-500">
                                 {current ? `${current}/10` : "Sin valorar"}
                               </span>
                             </div>
@@ -1011,24 +1011,21 @@ export default function OpinionesEscuelasPage() {
                     </div>
                   </fieldset>
 
-                  {/* SECCIÓN 4 — Preguntas clave (cards) */}
+                  {/* SECCIÓN 4 — Preguntas clave */}
                   <fieldset className="space-y-4 border-t border-slate-100 pt-6">
                     <legend className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
                       Preguntas clave
                     </legend>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       {KEY_QUESTIONS.map((q) => (
-                        <label
-                          key={q.name}
-                          className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-3 transition focus-within:border-[#c9a454]/55 focus-within:bg-white"
-                        >
-                          <span className="text-[13px] font-medium leading-snug text-slate-700">
+                        <label key={q.name} className="block">
+                          <span className="text-sm font-medium leading-snug text-slate-700">
                             {q.label}
                           </span>
                           <select
                             name={q.name}
                             defaultValue=""
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
+                            className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
                           >
                             <option value="">Sin responder</option>
                             {KEY_QUESTION_OPTIONS.map((o) => (
@@ -1054,7 +1051,7 @@ export default function OpinionesEscuelasPage() {
                         { name: "advice", label: "Consejo para futuros alumnos" },
                       ].map((t) => (
                         <label key={t.name} className="block">
-                          <span className="text-[13px] font-medium text-slate-700">
+                          <span className="text-sm font-medium text-slate-700">
                             {t.label}
                           </span>
                           <textarea
@@ -1072,7 +1069,7 @@ export default function OpinionesEscuelasPage() {
                     <legend className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
                       Privacidad y revisión
                     </legend>
-                    <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-[14px] leading-snug text-slate-700">
+                    <label className="flex items-start gap-2.5 text-sm leading-snug text-slate-700">
                       <input
                         type="checkbox"
                         name="anonymous"
@@ -1080,7 +1077,7 @@ export default function OpinionesEscuelasPage() {
                       />
                       <span>Quiero que mi opinión se muestre de forma anónima.</span>
                     </label>
-                    <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-[14px] leading-snug text-slate-700">
+                    <label className="flex items-start gap-2.5 text-sm leading-snug text-slate-700">
                       <input
                         type="checkbox"
                         name="acceptReview"
@@ -1094,7 +1091,7 @@ export default function OpinionesEscuelasPage() {
                     </label>
                   </fieldset>
 
-                  <p className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2 text-[12.5px] leading-snug text-slate-600">
+                  <p className="mt-4 border-t border-slate-100 pt-4 text-sm leading-snug text-slate-600">
                     No incluyas datos sensibles ni acusaciones graves sin contexto.
                     FlyPath podrá pedir verificación adicional antes de publicar una
                     opinión.
