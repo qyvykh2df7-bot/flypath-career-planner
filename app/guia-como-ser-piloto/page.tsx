@@ -381,7 +381,7 @@ export default function GuiaComoSerPilotoPage() {
         {/* BLOQUE PRODUCTO — imagen + ficha 2026 */}
         <section
           id="comprar-guia"
-          className="border-b border-slate-200/70 bg-white py-14 lg:py-20"
+          className="border-b border-slate-200/70 bg-white py-12 lg:py-16"
         >
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14">
@@ -465,14 +465,14 @@ export default function GuiaComoSerPilotoPage() {
                 <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
                   CÓMO SER PILOTO – 2026
                 </h2>
-                <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
+                <p className="mt-4 max-w-xl text-lg leading-relaxed text-slate-600">
                   La guía de FlyPath “Cómo ser piloto” reúne en un solo documento lo que un futuro piloto debería saber antes de gastar miles de euros en formación.
                 </p>
 
-                <p className="mt-7 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#0f1a33]/70">
+                <p className="mt-6 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#0f1a33]/70">
                   Incluye:
                 </p>
-                <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                   {PRODUCT_INCLUDES.map((item) => (
                     <li key={item} className="flex gap-2 text-base leading-snug text-slate-700 lg:text-[17px]">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
@@ -481,7 +481,7 @@ export default function GuiaComoSerPilotoPage() {
                   ))}
                 </ul>
 
-                <div className="mt-8 flex flex-col items-center rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white to-[#fffdf8] p-6 text-center shadow-[0_16px_44px_rgba(15,26,51,0.07)] sm:p-7">
+                <div className="mt-7 flex flex-col items-center rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white to-[#fffdf8] p-5 text-center shadow-[0_16px_44px_rgba(15,26,51,0.07)] sm:p-6">
                   <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a5a16]">
                     Formato
                   </p>
@@ -511,7 +511,7 @@ export default function GuiaComoSerPilotoPage() {
                       );
                     })}
                   </div>
-                  <p className="mt-5 flex items-baseline justify-center gap-2">
+                  <p className="mt-4 flex items-baseline justify-center gap-2">
                     <span className="text-[2.75rem] font-semibold leading-none tracking-tight text-[#0f1a33]">
                       {selectedFormat === "fisico" ? "26\u00a0€" : "14,95\u00a0€"}
                     </span>
@@ -522,7 +522,7 @@ export default function GuiaComoSerPilotoPage() {
                   <button
                     type="button"
                     onClick={buyForSelectedFormat}
-                    className="mt-5 inline-flex min-h-[48px] min-w-[14rem] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
+                    className="mt-4 inline-flex min-h-[48px] min-w-[14rem] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
                   >
                     {selectedFormat === "fisico" ? "Comprar física" : "Comprar digital"}
                   </button>
@@ -590,8 +590,9 @@ export default function GuiaComoSerPilotoPage() {
                             {chapter.title}
                           </span>
                           <ChevronDown
-                            className={`h-4 w-4 shrink-0 text-[#7a5a16] transition-transform duration-300 ${
-                              isOpen ? "rotate-180" : ""
+                            strokeWidth={2.25}
+                            className={`h-5 w-5 shrink-0 transition-all duration-300 ${
+                              isOpen ? "rotate-180 text-[#c9a454]" : "text-[#7a5a16]"
                             }`}
                             aria-hidden
                           />
@@ -660,7 +661,7 @@ export default function GuiaComoSerPilotoPage() {
         {/* FORMATOS Y COMPRA */}
         <section
           id="formatos-guia"
-          className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-[#0f1a33] to-[#16264a] py-14 text-white lg:py-20"
+          className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-[#0f1a33] to-[#16264a] py-12 text-white lg:py-16"
         >
           <div
             className="pointer-events-none absolute inset-0 opacity-70"
@@ -674,21 +675,21 @@ export default function GuiaComoSerPilotoPage() {
             <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               Elige tu formato
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-300">
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-300">
               Empieza con la versión que mejor encaje contigo. La guía está pensada para leerla antes de comparar escuelas o pagar una matrícula.
             </p>
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="mt-8 grid gap-5 md:grid-cols-2">
               {/* Tarjeta física */}
-              <div className="flex flex-col rounded-3xl border border-white/12 bg-white/[0.06] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_60px_rgba(0,0,0,0.25)] backdrop-blur-[2px] sm:p-8">
+              <div className="flex flex-col rounded-3xl border border-white/12 bg-white/[0.06] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_60px_rgba(0,0,0,0.25)] backdrop-blur-[2px] sm:p-7">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]/85">
                   Físico
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold text-white">Guía física</h3>
-                <p className="mt-4 flex items-baseline gap-2">
+                <p className="mt-3 flex items-baseline gap-2">
                   <span className="text-4xl font-semibold tracking-tight text-[#f2ddaa]">26&nbsp;€</span>
                   <span className="text-[13px] font-medium text-slate-300">Edición impresa</span>
                 </p>
-                <ul className="mt-6 space-y-2.5 text-[15px] leading-relaxed text-slate-200">
+                <ul className="mt-5 space-y-2 text-[15px] leading-relaxed text-slate-200">
                   <li className="flex gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
                     Versión impresa.
@@ -705,23 +706,23 @@ export default function GuiaComoSerPilotoPage() {
                 <button
                   type="button"
                   onClick={showPhysicalToast}
-                  className="mt-7 inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-white/30 bg-transparent px-6 py-3 text-[15px] font-semibold text-white transition hover:border-white/60 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-white/30 bg-transparent px-6 py-3 text-[15px] font-semibold text-white transition hover:border-white/60 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
                   Comprar física
                 </button>
               </div>
 
               {/* Tarjeta digital */}
-              <div className="flex flex-col rounded-3xl border border-[#c9a454]/45 bg-white/[0.08] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_60px_rgba(0,0,0,0.28)] backdrop-blur-[2px] sm:p-8">
+              <div className="flex flex-col rounded-3xl border border-[#c9a454]/45 bg-white/[0.08] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_60px_rgba(0,0,0,0.28)] backdrop-blur-[2px] sm:p-7">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]/85">
                   Digital
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold text-white">Guía digital</h3>
-                <p className="mt-4 flex items-baseline gap-2">
+                <p className="mt-3 flex items-baseline gap-2">
                   <span className="text-4xl font-semibold tracking-tight text-[#f2ddaa]">14,95&nbsp;€</span>
                   <span className="text-[13px] font-medium text-slate-300">Descarga inmediata</span>
                 </p>
-                <ul className="mt-6 space-y-2.5 text-[15px] leading-relaxed text-slate-200">
+                <ul className="mt-5 space-y-2 text-[15px] leading-relaxed text-slate-200">
                   <li className="flex gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
                     Descarga digital inmediata.
@@ -738,7 +739,7 @@ export default function GuiaComoSerPilotoPage() {
                 <button
                   type="button"
                   onClick={showDigitalToast}
-                  className="mt-7 inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
+                  className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
                 >
                   Comprar digital
                 </button>
