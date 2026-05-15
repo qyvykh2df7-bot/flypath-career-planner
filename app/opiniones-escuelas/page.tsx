@@ -93,14 +93,11 @@ const VERIFICATION_BULLETS: string[] = [
 
 /**
  * Mismo orden y mismas etiquetas que en `/schools` y `/` (landing).
- *
- * `Opiniones de escuelas` aparece ahora como `available` con `href` a esta
- * misma página, de modo que el menú del comparador puede marcarla como
- * `DISPONIBLE` desde otras páginas y como `ACTUAL` cuando el usuario está
- * aquí (`isCurrent` se decide en cada página por id del item).
+ * `isCurrent` se decide en cada página por id del item.
  */
 const PLATFORM_MODULES = [
   { id: "inicio", label: "Inicio", status: "available" as const, href: "/" },
+  { id: "guia", label: "Guía Cómo ser piloto", status: "available" as const, href: "/guia-como-ser-piloto" },
   { id: "planifica", label: "Planifica tu ruta", status: "available" as const, href: "/" },
   { id: "compara", label: "Compara escuelas", status: "available" as const, href: "/schools" },
   {
@@ -110,9 +107,11 @@ const PLATFORM_MODULES = [
     href: "/opiniones-escuelas",
   },
   { id: "atpl", label: "ATPL Planner", status: "soon" as const },
-  { id: "ingles", label: "Inglés aeronáutico", status: "soon" as const },
-  { id: "mentorias", label: "Mentorías", status: "soon" as const },
-  { id: "recursos", label: "Recursos", status: "soon" as const },
+  { id: "ingles", label: "Inglés aeronáutico", status: "available" as const, href: "/ingles-aeronautico" },
+  { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
+  { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
+  { id: "shop", label: "Shop", status: "soon" as const },
+  { id: "blog", label: "Blog", status: "soon" as const },
 ];
 
 const CURRENT_ITEM_ID = "opiniones";
@@ -295,21 +294,20 @@ export default function OpinionesEscuelasPage() {
             {moduleMenuOpen ? (
               <ul
                 role="listbox"
-                className="absolute right-0 z-20 mt-2 w-[min(22rem,calc(100vw-2rem))] max-w-[min(96vw,26rem)] rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2.5 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
+                className="absolute right-0 z-20 mt-2 max-h-[calc(100vh-120px)] w-[min(22rem,calc(100vw-2rem))] max-w-[min(96vw,26rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
               >
                 {PLATFORM_MODULES.map((m) => {
-                  const isAvailable = m.status === "available";
                   const isSoon = m.status === "soon";
                   const isCurrent = m.id === CURRENT_ITEM_ID;
                   const hasHref = "href" in m && typeof m.href === "string" && m.href.length > 0;
-                  const isClickable = hasHref || isAvailable;
+                  const isClickable = hasHref || isSoon;
                   return (
                     <li key={m.id} role="presentation">
                       <button
                         type="button"
                         role="option"
                         aria-selected={isCurrent}
-                        aria-disabled={isSoon && !hasHref}
+                        aria-disabled={false}
                         onClick={() => {
                           setModuleMenuOpen(false);
                           if (hasHref && m.href) {
@@ -317,10 +315,10 @@ export default function OpinionesEscuelasPage() {
                             return;
                           }
                           if (isSoon) {
-                            setToast("Módulo FlyPath próximamente");
+                            setToast("Próximamente");
                           }
                         }}
-                        className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-3.5 text-left transition-colors ${
+                        className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-2.5 text-left transition-colors ${
                           isClickable ? "cursor-pointer" : "cursor-not-allowed"
                         } ${isCurrent ? "bg-[#fff8e8]" : ""}`}
                       >

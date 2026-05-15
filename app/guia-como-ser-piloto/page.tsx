@@ -99,9 +99,9 @@ const PLATFORM_MODULES = [
     href: "/opiniones-escuelas",
   },
   { id: "atpl", label: "ATPL Planner", status: "soon" as const },
-  { id: "ingles", label: "Inglés aeronáutico", status: "soon" as const },
-  { id: "clases", label: "Clases PPL/ATPL", status: "soon" as const },
-  { id: "mentorias", label: "Mentorías", status: "soon" as const },
+  { id: "ingles", label: "Inglés aeronáutico", status: "available" as const, href: "/ingles-aeronautico" },
+  { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
+  { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
   { id: "shop", label: "Shop", status: "soon" as const },
   { id: "blog", label: "Blog", status: "soon" as const },
 ];
