@@ -8,11 +8,13 @@ import { ComparisonResults } from "@/components/schools/ComparisonResults";
 import { FlypathComparisonConclusion } from "@/components/schools/FlypathComparisonConclusion";
 import { SchoolCard } from "@/components/schools/SchoolCard";
 import {
+  getComparableSchoolsSync,
+  isSupabaseSchoolsEnabled,
+  loadComparableSchoolsForComparator,
+} from "@/lib/schools/comparatorSchoolsSource";
+import {
   filterSchools,
   getCities,
-  getComparableSchoolBySlug,
-  getComparableSchools,
-  getSchoolsByIds,
   isMainListingSchool,
   schoolAllowsListingComparison,
   sortMainListingSchools,
@@ -57,7 +59,7 @@ function readStoredSelectedIds(): string[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
-    const valid = new Set(getComparableSchools().map((s) => s.id));
+    const valid = new Set(getComparableSchoolsSync().map((s) => s.id));
     return parsed
       .filter((id): id is string => typeof id === "string" && valid.has(id))
       .slice(0, MAX_SELECTED);
@@ -66,8 +68,26 @@ function readStoredSelectedIds(): string[] {
   }
 }
 
+function findSchoolInDataset(dataset: SchoolEntry[], slug: string): SchoolEntry | undefined {
+  return dataset.find((s) => s.slug === slug);
+}
+
 function SchoolsPageContent() {
-  const schoolsDataset = useMemo(() => getComparableSchools(), []);
+  const [schoolsDataset, setSchoolsDataset] = useState<SchoolEntry[]>(() =>
+    getComparableSchoolsSync(),
+  );
+
+  useEffect(() => {
+    if (!isSupabaseSchoolsEnabled()) return;
+    let cancelled = false;
+    void loadComparableSchoolsForComparator().then((entries) => {
+      if (!cancelled) setSchoolsDataset(entries);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultMaxAdvertisedPrice = 140000;
@@ -122,7 +142,10 @@ function SchoolsPageContent() {
     }
     return { catalogMain, catalogPending };
   }, [schoolsDataset]);
-  const selectedSchools = useMemo(() => getSchoolsByIds(selectedIds), [selectedIds]);
+  const selectedSchools = useMemo(() => {
+    const idSet = new Set(selectedIds);
+    return schoolsDataset.filter((school) => idSet.has(school.id));
+  }, [schoolsDataset, selectedIds]);
   // Origen del comparador: solo cuando el usuario llega desde un CTA del Planner > Escuelas
   // (que añade ?from=planner en la URL). En cualquier otra entrada (menú, hamburger, hero,
   // landing, URL directa /schools…) este flag es false y el botón "Volver al Planner" no se
@@ -198,7 +221,7 @@ function SchoolsPageContent() {
 
     router.replace("/schools", { scroll: false });
 
-    const school = getComparableSchoolBySlug(slug);
+    const school = findSchoolInDataset(schoolsDataset, slug);
     if (!school) return;
 
     setSearchSubmitted(true);
@@ -215,7 +238,7 @@ function SchoolsPageContent() {
     queueMicrotask(() => {
       comparisonPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, [searchParams, router, showToast, selectionHydrated]);
+  }, [searchParams, router, showToast, selectionHydrated, schoolsDataset]);
 
   useEffect(() => {
     if (!selectionHydrated) return;
@@ -233,7 +256,7 @@ function SchoolsPageContent() {
       buildSchoolsPathWithoutReviewsSelectionParams(searchParams);
     router.replace(pathWithoutReviewsParams, { scroll: false });
 
-    const school = getComparableSchoolBySlug(slug);
+    const school = findSchoolInDataset(schoolsDataset, slug);
     setSearchSubmitted(true);
 
     if (school) {
@@ -245,7 +268,7 @@ function SchoolsPageContent() {
     queueMicrotask(() => {
       comparisonPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, [searchParams, router, selectionHydrated]);
+  }, [searchParams, router, selectionHydrated, schoolsDataset]);
 
   useEffect(() => {
     if (!selectionHydrated) return;

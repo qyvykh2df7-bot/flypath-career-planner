@@ -1,3 +1,4 @@
+import { localSlugFromSupabaseSlug } from "@/lib/schools/schoolSlugAliases";
 import {
   getComparableSchoolsFromSupabase,
   getFullSchoolProfileBySlug,
@@ -7,7 +8,9 @@ import {
   type SupabaseModuleRow,
   type SupabaseProgramRow,
   type SupabaseRiskFlagRow,
+  type SupabaseSchoolTextListItemRow,
   type SupabaseSchoolWithMainProgram,
+  type SupabaseUniversityTrackRow,
 } from "@/lib/schoolQueries";
 import type {
   Availability,
@@ -16,6 +19,7 @@ import type {
   EmploymentClaimsType,
   RouteType,
   SchoolEntry,
+  UniversityTrack,
   YesNoOptionalUnknown,
   YesNoPartialUnknown,
 } from "@/types/schools";
@@ -142,6 +146,101 @@ function fleetSummaryFromProgram(program: SupabaseProgramRow | null): string {
   const sim = program.simulators?.trim() ?? "";
   if (fleet && sim) return `${fleet} · ${sim}`;
   return fleet || sim;
+}
+
+function fleetSummaryFromProfile(mainProgram: SupabaseProgramRow | null): string {
+  const comparator = mainProgram?.comparator_fleet_summary?.trim() ?? "";
+  if (comparator) return comparator;
+  return fleetSummaryFromProgram(mainProgram);
+}
+
+function normalizeDataConfidence(value: string | null | undefined): DataConfidence | null {
+  if (value === "high" || value === "medium" || value === "low") return value;
+  return null;
+}
+
+function normalizeAvailability(value: string | null | undefined): Availability {
+  if (value === "high" || value === "medium" || value === "low" || value === "unknown") {
+    return value;
+  }
+  return "unknown";
+}
+
+function normalizeEmploymentClaimsType(value: string | null | undefined): EmploymentClaimsType {
+  const v = (value ?? "").trim();
+  if (
+    v === "none" ||
+    v === "vague" ||
+    v === "clear_non_guaranteed" ||
+    v === "guaranteed_claimed" ||
+    v === "unknown"
+  ) {
+    return v;
+  }
+  return "unknown";
+}
+
+function mapExtrasStatusToYesNoOptional(raw: string | null | undefined): YesNoOptionalUnknown {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (v === "included" || v === "yes") return "yes";
+  if (v === "not_included" || v === "no") return "no";
+  if (v === "not_applicable") return "optional";
+  return "unknown";
+}
+
+function scoreOrZero(value: number | null | undefined): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return 0;
+}
+
+function buildTextListsFromParityItems(
+  items: SupabaseSchoolTextListItemRow[],
+): { redFlags: string[]; pendingData: string[]; keyQuestions: string[] } {
+  const redFlags: string[] = [];
+  const pendingData: string[] = [];
+  const keyQuestions: string[] = [];
+
+  const sorted = [...items].sort((a, b) => {
+    if (a.list_type !== b.list_type) return a.list_type.localeCompare(b.list_type);
+    return a.sort_index - b.sort_index;
+  });
+
+  for (const row of sorted) {
+    const text = row.item_text?.trim() ?? "";
+    if (!text) continue;
+    if (row.list_type === "red_flag") redFlags.push(text);
+    else if (row.list_type === "pending_data") pendingData.push(text);
+    else if (row.list_type === "key_question") keyQuestions.push(text);
+  }
+
+  return { redFlags, pendingData, keyQuestions };
+}
+
+function universityTrackFromRow(row: SupabaseUniversityTrackRow): UniversityTrack {
+  return {
+    universityName: row.university_name,
+    degreeType: row.degree_type,
+    degreeName: row.degree_name,
+    academicDurationYears: Number(row.academic_duration_years),
+    ects: row.ects,
+    licenseIncludedMode: row.license_included_mode,
+    actualLicenseOutcome: row.actual_license_outcome,
+    partnerAto: row.partner_ato,
+    academicCostEUR: row.academic_cost_eur,
+    flightCostEUR: row.flight_cost_eur,
+    totalEstimatedCostEUR: row.total_estimated_cost_eur,
+    class1FailurePolicy: row.class1_failure_policy,
+  };
+}
+
+function resolveEntrySlug(dbSlug: string): string {
+  return localSlugFromSupabaseSlug(dbSlug) ?? dbSlug;
+}
+
+/** Texto opcional alineado con schoolsSpain.ts: vacío en BD → `""`, nunca `undefined`. */
+function optionalSchoolTextField(value: string | null | undefined): string {
+  if (value == null) return "";
+  return value.trim();
 }
 
 function mapContractAvailableBeforePayment(
@@ -282,6 +381,9 @@ export function mapSupabaseProfileToSchoolEntry(profile: FullSchoolProfile): Sch
     costsByProgramId,
     extrasByProgramId,
     riskFlags,
+    schoolScores,
+    schoolTextListItems,
+    universityTrack,
   } = profile;
 
   const programId = mainProgram?.program_id ?? null;
@@ -289,26 +391,53 @@ export function mapSupabaseProfileToSchoolEntry(profile: FullSchoolProfile): Sch
   const extras: SupabaseExtrasRow | null = programId ? extrasByProgramId[programId] ?? null : null;
 
   const dataStatus = normalizeDataStatus(school.data_status);
-  const dataConfidenceScore = dataConfidenceScoreFromDataStatus(dataStatus);
+  const fallbackDataConfidenceScore = dataConfidenceScoreFromDataStatus(dataStatus);
+  const storedDataConfidence = normalizeDataConfidence(school.data_confidence);
+
+  const parityLists = buildTextListsFromParityItems(schoolTextListItems);
+  const hasParityLists =
+    parityLists.redFlags.length > 0 ||
+    parityLists.pendingData.length > 0 ||
+    parityLists.keyQuestions.length > 0;
 
   const filteredFlags = filterRiskFlagsForMainProgram(riskFlags, programId);
-  const { redFlags, pendingData, keyQuestions } = buildRiskDerivedLists(filteredFlags);
+  const riskDerivedLists = buildRiskDerivedLists(filteredFlags);
+  const { redFlags, pendingData, keyQuestions } = hasParityLists ? parityLists : riskDerivedLists;
+
+  const scoresFromDb = schoolScores
+    ? {
+        documentTransparency: scoreOrZero(schoolScores.document_transparency),
+        costClarity: scoreOrZero(schoolScores.cost_clarity),
+        financialRisk: scoreOrZero(schoolScores.financial_risk),
+        commercialRisk: scoreOrZero(schoolScores.commercial_risk),
+        operationalSolidity: scoreOrZero(schoolScores.operational_solidity),
+        dataConfidenceScore: scoreOrZero(schoolScores.data_confidence_score),
+      }
+    : null;
+
+  const dataConfidenceScore =
+    scoresFromDb?.dataConfidenceScore ?? fallbackDataConfidenceScore;
 
   return {
-    id: school.school_id,
-    slug: school.slug,
+    id: school.legacy_entry_id?.trim() || school.school_id,
+    slug: resolveEntrySlug(school.slug),
     name: school.name,
     routeType: normalizeRouteType(mainProgram?.route_type ?? null),
     country: school.country ?? "",
     city: school.city ?? "",
     baseAirport: school.main_base ?? "",
-    atoName: school.name,
-    associatedUniversity: undefined,
-    shortDescription: school.public_notes ?? "",
-    listingCardSummary: school.public_notes ?? undefined,
+    atoName: school.ato_name?.trim() || school.name,
+    associatedUniversity: school.associated_university?.trim() || undefined,
+    shortDescription: school.short_description?.trim() || school.public_notes?.trim() || "",
+    listingCardSummary:
+      school.listing_card_summary?.trim() ||
+      school.short_description?.trim() ||
+      school.public_notes?.trim() ||
+      undefined,
     dataStatus,
     lastUpdatedAt: school.last_updated_at ?? "",
-    dataConfidence: dataConfidenceFromScore(dataConfidenceScore),
+    dataConfidence:
+      storedDataConfidence ?? dataConfidenceFromScore(dataConfidenceScore),
 
     advertisedPriceEUR: priceToSchoolEntryField(mainProgram?.advertised_price_eur ?? null),
     flypathEstimatedRealCostEUR: priceToSchoolEntryField(mainProgram?.estimated_real_cost_eur ?? null),
@@ -320,17 +449,17 @@ export function mapSupabaseProfileToSchoolEntry(profile: FullSchoolProfile): Sch
     ),
     financingAvailable: mapFinancingAvailable(costs?.financing_available),
 
-    mccJocIncluded: "unknown",
-    advancedUprtIncluded: "unknown",
+    mccJocIncluded: mapExtrasStatusToYesNoOptional(extras?.mcc_joc_status),
+    advancedUprtIncluded: mapExtrasStatusToYesNoOptional(extras?.advanced_uprt_status),
     examFeesIncluded: mapExtrasStatusToYesNoUnknown(extras?.exam_fees_status),
     skillTestsIncluded: mapExtrasStatusToYesNoUnknown(extras?.skill_tests_status),
     trainingMaterialsIncluded: mapExtrasStatusToYesNoUnknown(extras?.materials_status),
     accommodationIncluded: mapAccommodationStatus(extras?.accommodation_status),
 
-    fleetSummary: fleetSummaryFromProgram(mainProgram),
-    aircraftAvailability: "unknown" as Availability,
-    studentAircraftRatio: undefined,
-    instructorStudentRatio: undefined,
+    fleetSummary: fleetSummaryFromProfile(mainProgram),
+    aircraftAvailability: normalizeAvailability(school.aircraft_availability),
+    studentAircraftRatio: optionalSchoolTextField(school.student_aircraft_ratio),
+    instructorStudentRatio: optionalSchoolTextField(school.instructor_student_ratio),
     languageOfInstruction: mainProgram?.language ?? "",
     programDurationMonths:
       typeof mainProgram?.duration_months === "number" && Number.isFinite(mainProgram.duration_months)
@@ -338,27 +467,24 @@ export function mapSupabaseProfileToSchoolEntry(profile: FullSchoolProfile): Sch
         : 0,
     class1Requirement: mainProgram?.medical_required?.trim() ?? "",
 
-    jobSupportSummary: "",
-    employmentClaimsType: "unknown" as EmploymentClaimsType,
+    jobSupportSummary: school.job_support_summary?.trim() ?? "",
+    employmentClaimsType: normalizeEmploymentClaimsType(school.employment_claims_type),
 
-    scores: {
-      // TODO: calcular con reglas reales (contrato, calendario, fuentes, completitud de costs/extras).
+    scores: scoresFromDb ?? {
       documentTransparency: 0,
-      // TODO: alinear con claridad de precio publicado vs extras en Supabase.
       costClarity: 0,
-      // TODO: derivar de risk_flags por nivel y categoría.
       financialRisk: 0,
-      // TODO: definir señales comerciales reproducibles desde BD.
       commercialRisk: 0,
-      // TODO: flota, horas, bases desde programs cuando estén validados.
       operationalSolidity: 0,
-      dataConfidenceScore,
+      dataConfidenceScore: fallbackDataConfidenceScore,
     },
     redFlags,
     pendingData,
     keyQuestions,
 
-    universityTrack: undefined,
+    excludedFromPublicComparator: school.excluded_from_public_comparator ?? false,
+    comparatorExclusionNote: school.comparator_exclusion_note?.trim() || undefined,
+    universityTrack: universityTrack ? universityTrackFromRow(universityTrack) : undefined,
   };
 }
 
@@ -459,5 +585,8 @@ export function mapSupabaseSchoolToSchoolEntry(row: SupabaseSchoolWithMainProgra
     modulesByProgramId: {},
     riskFlags: [],
     sources: [],
+    schoolScores: null,
+    schoolTextListItems: [],
+    universityTrack: null,
   });
 }

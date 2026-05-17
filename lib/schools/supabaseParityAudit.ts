@@ -1,3 +1,4 @@
+import { localSlugFromSupabaseSlug } from "@/lib/schools/schoolSlugAliases";
 import type { SchoolEntry } from "@/types/schools";
 
 /** Campos escalares/objeto comparados entre schoolsSpain y Supabase (arrays aparte). */
@@ -23,6 +24,8 @@ export const PARITY_SCALAR_FIELDS = [
   "refundPolicySummary",
   "contractAvailableBeforePayment",
   "financingAvailable",
+  "mccJocIncluded",
+  "advancedUprtIncluded",
   "examFeesIncluded",
   "skillTestsIncluded",
   "trainingMaterialsIncluded",
@@ -46,6 +49,26 @@ export const PARITY_SCALAR_FIELDS = [
 ] as const;
 
 export const PARITY_ARRAY_FIELDS = ["redFlags", "pendingData", "keyQuestions"] as const;
+
+/** Campos donde `""`, `null` y `undefined` son equivalentes solo en auditoría (no en UI). */
+const EMPTY_EQUIVALENT_OPTIONAL_TEXT_FIELDS = new Set<string>([
+  "associatedUniversity",
+  "shortDescription",
+  "listingCardSummary",
+  "paymentScheduleSummary",
+  "refundPolicySummary",
+  "fleetSummary",
+  "studentAircraftRatio",
+  "instructorStudentRatio",
+  "languageOfInstruction",
+  "class1Requirement",
+  "jobSupportSummary",
+  "baseAirport",
+  "atoName",
+]);
+
+/** Comparación con normalización de acentos/mojibake (solo auditoría). */
+const ACCENT_NORMALIZED_GEO_FIELDS = new Set<string>(["country", "city"]);
 
 export type SchoolParityStatus = "ok" | "differences" | "missing_in_supabase" | "missing_in_local";
 
@@ -88,6 +111,10 @@ export type ParityAuditReport = {
   localTotal: number;
   supabaseTotal: number;
   matchedSlugCount: number;
+  /** Escuelas emparejadas por legacy_entry_id, slug directo o alias. */
+  matchedByLegacyIdCount: number;
+  matchedBySlugCount: number;
+  matchedByAliasCount: number;
   onlyInLocalSlugs: string[];
   onlyInSupabaseSlugs: string[];
   parityPercent: number;
@@ -110,12 +137,58 @@ function isMissingValue(value: unknown): boolean {
   return value === undefined || value === null;
 }
 
+function isEmptyOptionalText(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "")
+  );
+}
+
+function isMissingForParityField(field: string, value: unknown): boolean {
+  if (EMPTY_EQUIVALENT_OPTIONAL_TEXT_FIELDS.has(field)) {
+    return isEmptyOptionalText(value);
+  }
+  return isMissingValue(value);
+}
+
+/** Repara mojibake típico (EspaÃ±a → España) antes de quitar acentos para comparar. */
+function repairUtf8Mojibake(text: string): string {
+  if (!text.includes("Ã") && !text.includes("Â")) return text;
+  try {
+    return Buffer.from(text, "latin1").toString("utf8");
+  } catch {
+    return text;
+  }
+}
+
+function normalizeAuditGeoText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const repaired = repairUtf8Mojibake(value.trim());
+  return repaired
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+}
+
 function valuesEqual(a: unknown, b: unknown): boolean {
   if (isMissingValue(a) && isMissingValue(b)) return true;
   if (typeof a === "object" && a !== null && typeof b === "object" && b !== null) {
     return JSON.stringify(a) === JSON.stringify(b);
   }
   return a === b;
+}
+
+function valuesEqualForParityField(field: string, a: unknown, b: unknown): boolean {
+  if (EMPTY_EQUIVALENT_OPTIONAL_TEXT_FIELDS.has(field)) {
+    if (isEmptyOptionalText(a) && isEmptyOptionalText(b)) return true;
+  }
+  if (ACCENT_NORMALIZED_GEO_FIELDS.has(field)) {
+    if (typeof a === "string" || typeof b === "string") {
+      return normalizeAuditGeoText(a) === normalizeAuditGeoText(b);
+    }
+  }
+  return valuesEqual(a, b);
 }
 
 function formatValue(value: unknown): string {
@@ -152,8 +225,8 @@ function compareScalarField(
   const localValue = local ? getNestedValue(local, field) : undefined;
   const supabaseValue = supabase ? getNestedValue(supabase, field) : undefined;
 
-  const localMissing = isMissingValue(localValue);
-  const supabaseMissing = isMissingValue(supabaseValue);
+  const localMissing = isMissingForParityField(field, localValue);
+  const supabaseMissing = isMissingForParityField(field, supabaseValue);
 
   if (localMissing && supabaseMissing) {
     return { field, status: "equal", localValue, supabaseValue };
@@ -164,7 +237,7 @@ function compareScalarField(
   if (!localMissing && supabaseMissing) {
     return { field, status: "missing_in_supabase", localValue, supabaseValue };
   }
-  if (valuesEqual(localValue, supabaseValue)) {
+  if (valuesEqualForParityField(field, localValue, supabaseValue)) {
     return { field, status: "equal", localValue, supabaseValue };
   }
   return { field, status: "different", localValue, supabaseValue };
@@ -292,24 +365,111 @@ function indexBySlug(entries: SchoolEntry[]): Map<string, SchoolEntry> {
   return map;
 }
 
+function indexById(entries: SchoolEntry[]): Map<string, SchoolEntry> {
+  const map = new Map<string, SchoolEntry>();
+  for (const entry of entries) {
+    if (map.has(entry.id)) {
+      console.warn(`[parity-audit] id duplicado en dataset: ${entry.id}`);
+    }
+    map.set(entry.id, entry);
+  }
+  return map;
+}
+
+type SupabaseMatch = {
+  localSlug: string;
+  entry: SchoolEntry;
+  method: "legacy_entry_id" | "slug" | "alias";
+};
+
+function matchSupabaseEntriesToLocal(
+  localEntries: SchoolEntry[],
+  supabaseEntries: SchoolEntry[],
+): {
+  supabaseByLocalSlug: Map<string, SchoolEntry>;
+  onlyInSupabaseSlugs: string[];
+  matchedByLegacyIdCount: number;
+  matchedBySlugCount: number;
+  matchedByAliasCount: number;
+} {
+  const localBySlug = indexBySlug(localEntries);
+  const localById = indexById(localEntries);
+  const claimedLocalSlugs = new Set<string>();
+  const supabaseByLocalSlug = new Map<string, SchoolEntry>();
+  const onlyInSupabaseSlugs: string[] = [];
+
+  let matchedByLegacyIdCount = 0;
+  let matchedBySlugCount = 0;
+  let matchedByAliasCount = 0;
+
+  for (const supabase of supabaseEntries) {
+    let match: SupabaseMatch | null = null;
+
+    const byLegacy = localById.get(supabase.id);
+    if (byLegacy) {
+      match = { localSlug: byLegacy.slug, entry: supabase, method: "legacy_entry_id" };
+    } else if (localBySlug.has(supabase.slug)) {
+      match = { localSlug: supabase.slug, entry: supabase, method: "slug" };
+    } else {
+      const aliasLocalSlug = localSlugFromSupabaseSlug(supabase.slug);
+      if (aliasLocalSlug && localBySlug.has(aliasLocalSlug)) {
+        match = { localSlug: aliasLocalSlug, entry: supabase, method: "alias" };
+      }
+    }
+
+    if (!match) {
+      onlyInSupabaseSlugs.push(supabase.slug);
+      continue;
+    }
+
+    if (claimedLocalSlugs.has(match.localSlug)) {
+      onlyInSupabaseSlugs.push(supabase.slug);
+      continue;
+    }
+
+    claimedLocalSlugs.add(match.localSlug);
+    supabaseByLocalSlug.set(match.localSlug, match.entry);
+
+    if (match.method === "legacy_entry_id") matchedByLegacyIdCount += 1;
+    else if (match.method === "slug") matchedBySlugCount += 1;
+    else matchedByAliasCount += 1;
+  }
+
+  onlyInSupabaseSlugs.sort();
+  return {
+    supabaseByLocalSlug,
+    onlyInSupabaseSlugs,
+    matchedByLegacyIdCount,
+    matchedBySlugCount,
+    matchedByAliasCount,
+  };
+}
+
 export function runSupabaseParityAudit(
   localEntries: SchoolEntry[],
   supabaseEntries: SchoolEntry[],
 ): ParityAuditReport {
   const localBySlug = indexBySlug(localEntries);
-  const supabaseBySlug = indexBySlug(supabaseEntries);
+  const {
+    supabaseByLocalSlug,
+    onlyInSupabaseSlugs,
+    matchedByLegacyIdCount,
+    matchedBySlugCount,
+    matchedByAliasCount,
+  } = matchSupabaseEntriesToLocal(localEntries, supabaseEntries);
 
-  const allSlugs = new Set([...localBySlug.keys(), ...supabaseBySlug.keys()]);
-  const onlyInLocalSlugs = [...localBySlug.keys()].filter((s) => !supabaseBySlug.has(s)).sort();
-  const onlyInSupabaseSlugs = [...supabaseBySlug.keys()].filter((s) => !localBySlug.has(s)).sort();
-  const matchedSlugCount = [...allSlugs].filter(
-    (s) => localBySlug.has(s) && supabaseBySlug.has(s),
-  ).length;
+  const onlyInLocalSlugs = [...localBySlug.keys()]
+    .filter((slug) => !supabaseByLocalSlug.has(slug))
+    .sort();
+
+  const matchedSlugCount = supabaseByLocalSlug.size;
+
+  const allSlugs = new Set([...localBySlug.keys(), ...onlyInSupabaseSlugs]);
 
   const schools = [...allSlugs]
     .sort()
     .map((slug) =>
-      buildSchoolRow(slug, localBySlug.get(slug), supabaseBySlug.get(slug)),
+      buildSchoolRow(slug, localBySlug.get(slug), supabaseByLocalSlug.get(slug)),
     );
 
   const fieldProblemMap = new Map<string, ProblematicFieldStat>();
@@ -364,6 +524,9 @@ export function runSupabaseParityAudit(
     localTotal: localEntries.length,
     supabaseTotal: supabaseEntries.length,
     matchedSlugCount,
+    matchedByLegacyIdCount,
+    matchedBySlugCount,
+    matchedByAliasCount,
     onlyInLocalSlugs,
     onlyInSupabaseSlugs,
     parityPercent,

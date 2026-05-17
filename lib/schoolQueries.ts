@@ -18,6 +18,20 @@ export type SupabaseSchoolRow = {
   last_updated_at: string | null;
   public_notes: string | null;
   internal_notes: string | null;
+  legacy_entry_id: string | null;
+  ato_name: string | null;
+  associated_university: string | null;
+  short_description: string | null;
+  listing_card_summary: string | null;
+  data_confidence: string | null;
+  excluded_from_public_comparator: boolean | null;
+  comparator_exclusion_note: string | null;
+  aircraft_availability: string | null;
+  student_aircraft_ratio: string | null;
+  instructor_student_ratio: string | null;
+  job_support_summary: string | null;
+  employment_claims_type: string | null;
+  school_entry_snapshot: unknown | null;
 };
 
 /** Forma cruda de una fila de la tabla `programs` en Supabase. */
@@ -42,6 +56,7 @@ export type SupabaseProgramRow = {
   medical_required: string | null;
   english_required: string | null;
   status: string | null;
+  comparator_fleet_summary: string | null;
 };
 
 export type SupabaseSchoolWithMainProgram = {
@@ -111,6 +126,50 @@ export type SupabaseExtrasRow = {
   medical_notes: string | null;
   insurance_status: string | null;
   insurance_notes: string | null;
+  mcc_joc_status: string | null;
+  mcc_joc_notes: string | null;
+  advanced_uprt_status: string | null;
+  advanced_uprt_notes: string | null;
+};
+
+/** Fila de `school_scores`. */
+export type SupabaseSchoolScoresRow = {
+  school_id: string;
+  document_transparency: number;
+  cost_clarity: number;
+  financial_risk: number;
+  commercial_risk: number;
+  operational_solidity: number;
+  data_confidence_score: number;
+  updated_at: string | null;
+};
+
+/** Fila de `school_text_list_items`. */
+export type SupabaseSchoolTextListItemRow = {
+  item_id: string;
+  school_id: string;
+  list_type: "red_flag" | "pending_data" | "key_question";
+  sort_index: number;
+  item_text: string;
+};
+
+/** Fila de `university_tracks`. */
+export type SupabaseUniversityTrackRow = {
+  track_id: string;
+  school_id: string;
+  university_name: string;
+  degree_type: string;
+  degree_name: string;
+  academic_duration_years: number;
+  ects: number;
+  license_included_mode: string;
+  actual_license_outcome: string;
+  partner_ato: string;
+  academic_cost_eur: number;
+  flight_cost_eur: number;
+  total_estimated_cost_eur: number;
+  class1_failure_policy: string;
+  updated_at: string | null;
 };
 
 /** Forma cruda de una fila de la tabla `risk_flags`. */
@@ -153,13 +212,16 @@ export type FullSchoolProfile = {
   /** Solo risk flags con `status = "active"` (a nivel escuela y/o programa). */
   riskFlags: SupabaseRiskFlagRow[];
   sources: SupabaseSourceRow[];
+  schoolScores: SupabaseSchoolScoresRow | null;
+  schoolTextListItems: SupabaseSchoolTextListItemRow[];
+  universityTrack: SupabaseUniversityTrackRow | null;
 };
 
 const SCHOOL_FIELDS =
-  "school_id, slug, name, country, city, main_base, other_bases, website_url, logo_url, image_category, school_type, status, data_status, last_updated_at, public_notes, internal_notes";
+  "school_id, slug, name, country, city, main_base, other_bases, website_url, logo_url, image_category, school_type, status, data_status, last_updated_at, public_notes, internal_notes, legacy_entry_id, ato_name, associated_university, short_description, listing_card_summary, data_confidence, excluded_from_public_comparator, comparator_exclusion_note, aircraft_availability, student_aircraft_ratio, instructor_student_ratio, job_support_summary, employment_claims_type, school_entry_snapshot";
 
 const PROGRAM_FIELDS =
-  "program_id, school_id, program_name, route_type, program_category, is_main_program, advertised_price_eur, estimated_real_cost_eur, duration_months, flight_hours, theory_hours, language, bases, fleet, simulators, entry_requirements, minimum_age, medical_required, english_required, status";
+  "program_id, school_id, program_name, route_type, program_category, is_main_program, advertised_price_eur, estimated_real_cost_eur, duration_months, flight_hours, theory_hours, language, bases, fleet, simulators, entry_requirements, minimum_age, medical_required, english_required, status, comparator_fleet_summary";
 
 const MODULE_FIELDS =
   "module_id, school_id, program_id, module_name, module_order, price_eur, price_notes, is_required_for_route, source_url";
@@ -168,7 +230,15 @@ const COSTS_FIELDS =
   "cost_id, program_id, school_id, contract_available_before_payment, refund_policy_available, refund_policy_summary, payment_schedule_available, payment_schedule_summary, deposit_or_enrollment_fee_eur, financing_available, financing_summary, exam_fees_included, skill_tests_included, license_issue_fees_included, admin_fees_included, vat_included, price_year, price_validity_notes";
 
 const EXTRAS_FIELDS =
-  "extras_id, program_id, school_id, exam_fees_status, exam_fees_notes, skill_tests_status, skill_tests_notes, materials_status, materials_notes, uniform_status, uniform_notes, headset_status, headset_notes, ipad_status, ipad_notes, accommodation_status, accommodation_notes, transport_status, transport_notes, medical_status, medical_notes, insurance_status, insurance_notes";
+  "extras_id, program_id, school_id, exam_fees_status, exam_fees_notes, skill_tests_status, skill_tests_notes, materials_status, materials_notes, uniform_status, uniform_notes, headset_status, headset_notes, ipad_status, ipad_notes, accommodation_status, accommodation_notes, transport_status, transport_notes, medical_status, medical_notes, insurance_status, insurance_notes, mcc_joc_status, mcc_joc_notes, advanced_uprt_status, advanced_uprt_notes";
+
+const SCHOOL_SCORES_FIELDS =
+  "school_id, document_transparency, cost_clarity, financial_risk, commercial_risk, operational_solidity, data_confidence_score, updated_at";
+
+const SCHOOL_TEXT_LIST_FIELDS = "item_id, school_id, list_type, sort_index, item_text";
+
+const UNIVERSITY_TRACK_FIELDS =
+  "track_id, school_id, university_name, degree_type, degree_name, academic_duration_years, ects, license_included_mode, actual_license_outcome, partner_ato, academic_cost_eur, flight_cost_eur, total_estimated_cost_eur, class1_failure_policy, updated_at";
 
 const RISK_FLAG_FIELDS =
   "risk_id, school_id, program_id, risk_category, risk_level, risk_title, risk_text, question_to_school, source_url, status";
@@ -368,6 +438,48 @@ export async function getSourcesByProgramId(programId: string): Promise<Supabase
   return (data ?? []) as SupabaseSourceRow[];
 }
 
+export async function getSchoolScoresBySchoolId(
+  schoolId: string,
+): Promise<SupabaseSchoolScoresRow | null> {
+  const { data, error } = await supabase
+    .from("school_scores")
+    .select(SCHOOL_SCORES_FIELDS)
+    .eq("school_id", schoolId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Supabase getSchoolScoresBySchoolId error: ${error.message}`);
+  return (data as SupabaseSchoolScoresRow | null) ?? null;
+}
+
+export async function getSchoolTextListItemsBySchoolId(
+  schoolId: string,
+): Promise<SupabaseSchoolTextListItemRow[]> {
+  const { data, error } = await supabase
+    .from("school_text_list_items")
+    .select(SCHOOL_TEXT_LIST_FIELDS)
+    .eq("school_id", schoolId)
+    .order("list_type", { ascending: true })
+    .order("sort_index", { ascending: true });
+
+  if (error) throw new Error(`Supabase getSchoolTextListItemsBySchoolId error: ${error.message}`);
+  return (data ?? []) as SupabaseSchoolTextListItemRow[];
+}
+
+export async function getUniversityTrackBySchoolId(
+  schoolId: string,
+): Promise<SupabaseUniversityTrackRow | null> {
+  const { data, error } = await supabase
+    .from("university_tracks")
+    .select(UNIVERSITY_TRACK_FIELDS)
+    .eq("school_id", schoolId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Supabase getUniversityTrackBySchoolId error: ${error.message}`);
+  return (data as SupabaseUniversityTrackRow | null) ?? null;
+}
+
 /**
  * Agrega school + programs + costs + extras + módulos + risk_flags + sources en un solo objeto.
  *
@@ -448,10 +560,14 @@ export async function getFullSchoolProfileBySlug(slug: string): Promise<FullScho
     }, {});
   }
 
-  const [riskFlags, sources] = await Promise.all([
-    getRiskFlagsBySchoolId(school.school_id),
-    getSourcesBySchoolId(school.school_id),
-  ]);
+  const [riskFlags, sources, schoolScores, schoolTextListItems, universityTrack] =
+    await Promise.all([
+      getRiskFlagsBySchoolId(school.school_id),
+      getSourcesBySchoolId(school.school_id),
+      getSchoolScoresBySchoolId(school.school_id),
+      getSchoolTextListItemsBySchoolId(school.school_id),
+      getUniversityTrackBySchoolId(school.school_id),
+    ]);
 
   return {
     school,
@@ -462,5 +578,31 @@ export async function getFullSchoolProfileBySlug(slug: string): Promise<FullScho
     modulesByProgramId,
     riskFlags,
     sources,
+    schoolScores,
+    schoolTextListItems,
+    universityTrack,
   };
+}
+
+/** Perfil completo localizado por `schools.legacy_entry_id` (paridad schoolsSpain `id`). */
+export async function getFullSchoolProfileByLegacyEntryId(
+  legacyEntryId: string,
+): Promise<FullSchoolProfile | null> {
+  const { data, error } = await supabase
+    .from("schools")
+    .select("slug")
+    .eq("legacy_entry_id", legacyEntryId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Supabase getFullSchoolProfileByLegacyEntryId error: ${error.message}`,
+    );
+  }
+
+  const slug = (data as { slug: string } | null)?.slug;
+  if (!slug) return null;
+  return getFullSchoolProfileBySlug(slug);
 }

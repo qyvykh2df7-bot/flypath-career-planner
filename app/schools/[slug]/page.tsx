@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { availabilityLabel, getComparableSchoolBySlug, getPriceGap, routeTypeLabel } from "@/lib/schools/schoolUtils";
+import { loadComparableSchoolBySlug } from "@/lib/schools/comparatorSchoolsSource";
+import { availabilityLabel, getPriceGap, routeTypeLabel } from "@/lib/schools/schoolUtils";
 import { LeaveReviewPlaceholderButton } from "@/components/schools/LeaveReviewPlaceholderButton";
+
+/** SSR para poder leer Supabase en runtime cuando el flag está activo. */
+export const dynamic = "force-dynamic";
 
 function euro(value: number): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
@@ -34,7 +38,7 @@ export default async function SchoolDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const school = getComparableSchoolBySlug(slug);
+  const school = await loadComparableSchoolBySlug(slug);
   if (!school) notFound();
 
   const isAdventia = school.slug === "adventia-usal";

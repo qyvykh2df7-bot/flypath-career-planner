@@ -37,9 +37,9 @@ function AuditContent({ report }: { report: ParityAuditReport }) {
         <SummaryCard label="schoolsSpain.ts" value={report.localTotal} />
         <SummaryCard label="Supabase (mapeado)" value={report.supabaseTotal} />
         <SummaryCard
-          label="Coinciden por slug"
+          label="Emparejadas"
           value={report.matchedSlugCount}
-          hint={`Solo local: ${report.onlyInLocalSlugs.length} · Solo Supabase: ${report.onlyInSupabaseSlugs.length}`}
+          hint={`legacy id: ${report.matchedByLegacyIdCount} · slug: ${report.matchedBySlugCount} · alias: ${report.matchedByAliasCount} · Solo local: ${report.onlyInLocalSlugs.length} · Solo Supabase: ${report.onlyInSupabaseSlugs.length}`}
         />
         <SummaryCard
           label="Paridad aproximada"

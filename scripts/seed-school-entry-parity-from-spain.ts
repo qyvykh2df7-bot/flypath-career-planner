@@ -30,6 +30,12 @@ import type { SchoolEntry, UniversityTrack, YesNoOptionalUnknown } from "../type
 const WRITE_TO_SUPABASE = process.env.WRITE_TO_SUPABASE === "true";
 const ROOT = resolve(__dirname, "..");
 
+/**
+ * Si es true, el seed también sobrescribe `schools.name` con `entry.name`.
+ * Por defecto false: evita cambiar marcas visibles en BD sin decisión explícita.
+ */
+const SYNC_DISPLAY_NAME = true;
+
 /** Slug en schoolsSpain.ts → slug real en Supabase (no modifica el slug público de BD). */
 const SCHOOL_SLUG_ALIASES: Readonly<Record<string, string>> = {
   "one-air": "oneair",
@@ -41,6 +47,14 @@ const SCHOOL_SLUG_ALIASES: Readonly<Record<string, string>> = {
 
 type ListType = "red_flag" | "pending_data" | "key_question";
 
+type SchoolRow = {
+  school_id: string;
+  slug: string;
+  name: string;
+  main_base: string | null;
+  city: string | null;
+};
+
 type ProcessResult = {
   slug: string;
   name: string;
@@ -51,6 +65,15 @@ type ProcessResult = {
   mainProgramId?: string;
   fieldsUpdated: string[];
   errors: string[];
+  /** Preview: el valor en BD difiere del que aplicaría el patch visual. */
+  visualWouldChange?: {
+    main_base: boolean;
+    city: boolean;
+    /** Solo true si SYNC_DISPLAY_NAME está activo y el nombre difiere. */
+    name: boolean;
+    /** Si SYNC_DISPLAY_NAME=true, el nombre en BD difiere de entry.name. */
+    nameIfSynced: boolean;
+  };
 };
 
 // ---------------------------------------------------------------------------
@@ -144,26 +167,30 @@ function pickMainProgram<T extends { is_main_program: boolean | null }>(programs
 // DB operations
 // ---------------------------------------------------------------------------
 
+function normalizeCompareText(value: string | null | undefined): string {
+  return (value ?? "").trim();
+}
+
 async function fetchSchoolBySlug(
   supabase: SupabaseClient,
   slug: string,
-): Promise<{ school_id: string; slug: string; name: string } | null> {
+): Promise<SchoolRow | null> {
   const { data, error } = await supabase
     .from("schools")
-    .select("school_id, slug, name")
+    .select("school_id, slug, name, main_base, city")
     .eq("slug", slug)
     .limit(1)
     .maybeSingle();
 
   if (error) throw new Error(`schools[${slug}]: ${error.message}`);
-  return data;
+  return data as SchoolRow | null;
 }
 
 async function resolveSchoolForEntry(
   supabase: SupabaseClient,
   entrySlug: string,
 ): Promise<{
-  school: { school_id: string; slug: string; name: string } | null;
+  school: SchoolRow | null;
   resolvedSlug: string;
   usedAlias: boolean;
 }> {
@@ -221,7 +248,7 @@ async function processEntry(
   result.supabaseSlug = school.slug;
   result.resolvedViaAlias = usedAlias;
 
-  const schoolPatch = {
+  const schoolPatch: Record<string, unknown> = {
     legacy_entry_id: entry.id,
     ato_name: entry.atoName,
     associated_university: entry.associatedUniversity ?? null,
@@ -238,6 +265,23 @@ async function processEntry(
     job_support_summary: entry.jobSupportSummary,
     employment_claims_type: entry.employmentClaimsType,
     school_entry_snapshot: entry,
+    main_base: entry.baseAirport || null,
+    city: entry.city || null,
+  };
+
+  if (SYNC_DISPLAY_NAME) {
+    schoolPatch.name = entry.name;
+  }
+
+  const nameIfSynced =
+    normalizeCompareText(school.name) !== normalizeCompareText(entry.name);
+
+  result.visualWouldChange = {
+    main_base:
+      normalizeCompareText(school.main_base) !== normalizeCompareText(entry.baseAirport),
+    city: normalizeCompareText(school.city) !== normalizeCompareText(entry.city),
+    name: SYNC_DISPLAY_NAME && nameIfSynced,
+    nameIfSynced,
   };
 
   if (WRITE_TO_SUPABASE) {
@@ -503,6 +547,50 @@ async function main(): Promise<void> {
     console.log("\nEscuelas con errores:");
     for (const e of errored) {
       console.log(`  - ${e.slug}: ${e.errors.join("; ")}`);
+    }
+  }
+
+  const okResults = results.filter((r) => r.status === "ok");
+  const mainBaseChanges = okResults.filter((r) => r.visualWouldChange?.main_base);
+  const cityChanges = okResults.filter((r) => r.visualWouldChange?.city);
+  const nameChanges = okResults.filter((r) => r.visualWouldChange?.name);
+
+  console.log("\n" + "─".repeat(72));
+  console.log("PREVIEW CAMPOS VISUALES (schools.main_base / city / name)");
+  console.log("─".repeat(72));
+  console.log(`SYNC_DISPLAY_NAME:                 ${SYNC_DISPLAY_NAME}`);
+  console.log(`main_base cambiaría:               ${mainBaseChanges.length} escuelas`);
+  console.log(`city cambiaría:                    ${cityChanges.length} escuelas`);
+  console.log(
+    `name cambiaría (solo si flag true): ${nameChanges.length} escuelas`,
+  );
+
+  if (mainBaseChanges.length > 0) {
+    console.log("\nmain_base (entry.baseAirport → schools.main_base):");
+    for (const r of mainBaseChanges) {
+      console.log(`  - ${r.slug}${r.supabaseSlug && r.supabaseSlug !== r.slug ? ` [${r.supabaseSlug}]` : ""}`);
+    }
+  }
+
+  if (cityChanges.length > 0) {
+    console.log("\ncity (entry.city → schools.city):");
+    for (const r of cityChanges) {
+      console.log(`  - ${r.slug}${r.supabaseSlug && r.supabaseSlug !== r.slug ? ` [${r.supabaseSlug}]` : ""}`);
+    }
+  }
+
+  if (SYNC_DISPLAY_NAME && nameChanges.length > 0) {
+    console.log("\nname (entry.name → schools.name):");
+    for (const r of nameChanges) {
+      console.log(`  - ${r.slug}: «${r.name}»`);
+    }
+  } else if (!SYNC_DISPLAY_NAME) {
+    const nameIfEnabled = okResults.filter((r) => r.visualWouldChange?.nameIfSynced);
+    console.log(
+      `\nname (SYNC_DISPLAY_NAME=false, no se escribe): ${nameIfEnabled.length} escuelas cambiarían si activas el flag`,
+    );
+    for (const r of nameIfEnabled) {
+      console.log(`  - ${r.slug}: entry «${r.name}»`);
     }
   }
 
