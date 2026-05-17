@@ -360,7 +360,7 @@ function ProgramCard({
         <DataRow label="Bases" value={fallback(program.bases)} />
         <DataRow label="Flota" value={fallback(program.fleet)} />
         <DataRow label="Simuladores" value={fallback(program.simulators)} />
-        <DataRow label="Class 1 / médico requerido" value={fallback(program.medical_required)} />
+        <DataRow label="Clase 1 / médico requerido" value={fallback(program.medical_required)} />
         <DataRow label="Inglés requerido" value={fallback(program.english_required)} />
       </dl>
 
@@ -513,7 +513,7 @@ const EXTRAS_FIELDS_VIEW: { key: keyof SupabaseExtrasRow; notesKey: keyof Supaba
   { key: "ipad_status", notesKey: "ipad_notes", label: "iPad" },
   { key: "accommodation_status", notesKey: "accommodation_notes", label: "Alojamiento" },
   { key: "transport_status", notesKey: "transport_notes", label: "Transporte" },
-  { key: "medical_status", notesKey: "medical_notes", label: "Reconocimiento médico (Class 1)" },
+  { key: "medical_status", notesKey: "medical_notes", label: "Reconocimiento médico (Clase 1)" },
   { key: "insurance_status", notesKey: "insurance_notes", label: "Seguro" },
 ];
 

@@ -374,7 +374,7 @@ function SchoolsPageContent() {
     { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
     { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
     { id: "shop", label: "Shop", status: "available" as const, href: "/shop" },
-    { id: "blog", label: "Blog", status: "soon" as const },
+    { id: "blog", label: "Blog", status: "available" as const, href: "/blog" },
   ];
 
   return (

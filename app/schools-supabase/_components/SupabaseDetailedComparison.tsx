@@ -280,7 +280,7 @@ function SchoolColumn({
           <Row label="Tipo de ruta" value={ROUTE_TYPE_LABEL[school.routeType]} />
           <Row label="Duración" value={durationLabel(school.programDurationMonths)} />
           <Row label="Idioma" value={freeTextOrPending(school.languageOfInstruction)} />
-          <Row label="Requisito Class 1" value={freeTextOrPending(school.class1Requirement)} />
+          <Row label="Requisito Clase 1" value={freeTextOrPending(school.class1Requirement)} />
         </SectionBlock>
 
         <SectionBlock letter="B" title="Costes">

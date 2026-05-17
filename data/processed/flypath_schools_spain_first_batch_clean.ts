@@ -17,7 +17,7 @@ export const firstBatchSchoolsClean = [
     programDurationMonths: 48,
     depositOrEnrollmentFeeEUR: 500,
     paymentScheduleSummary: "Pago unico o fraccionado (45/35/20) segun PDF historico.",
-    refundPolicySummary: "Reembolso de reserva/matricula del primer curso si no supera Class 1.",
+    refundPolicySummary: "Reembolso de reserva/matricula del primer curso si no supera Clase 1.",
     contractAvailableBeforePayment: "unknown",
     financingAvailable: "unknown",
     mccJocIncluded: "unknown",
@@ -31,7 +31,7 @@ export const firstBatchSchoolsClean = [
     instructorStudentRatio: "",
     aircraftAvailability: "unknown",
     languageOfInstruction: "espanol e ingles",
-    class1Requirement: "Class 1 requerido antes de formalizar matricula.",
+    class1Requirement: "Clase 1 requerido antes de formalizar matricula.",
     jobSupportSummary: "No publicado de forma contractual en las fuentes revisadas.",
     employmentClaimsType: "unknown",
     scores: {
@@ -92,7 +92,7 @@ export const firstBatchSchoolsClean = [
     instructorStudentRatio: "",
     aircraftAvailability: "unknown",
     languageOfInstruction: "No publicado",
-    class1Requirement: "Class 1 requerido para matriculacion.",
+    class1Requirement: "Clase 1 requerido para matriculacion.",
     jobSupportSummary: "Incluye preparacion de entrevistas y seleccion en linea aerea.",
     employmentClaimsType: "vague",
     scores: {
@@ -149,7 +149,7 @@ export const firstBatchSchoolsClean = [
     instructorStudentRatio: "",
     aircraftAvailability: "unknown",
     languageOfInstruction: "bilingue (claim)",
-    class1Requirement: "Class 1 requerido para acceso.",
+    class1Requirement: "Clase 1 requerido para acceso.",
     jobSupportSummary: "Preparacion de entrevistas y claim de garantia de trabajo por contrato.",
     employmentClaimsType: "guaranteed_claimed",
     scores: {
@@ -210,7 +210,7 @@ export const firstBatchSchoolsClean = [
     instructorStudentRatio: "",
     aircraftAvailability: "unknown",
     languageOfInstruction: "No publicado",
-    class1Requirement: "Class 1 requerido para acceso.",
+    class1Requirement: "Clase 1 requerido para acceso.",
     jobSupportSummary: "Asesoramiento y preparacion para pruebas de seleccion tras licencia.",
     employmentClaimsType: "vague",
     scores: {
@@ -267,7 +267,7 @@ export const firstBatchSchoolsClean = [
     instructorStudentRatio: "",
     aircraftAvailability: "unknown",
     languageOfInstruction: "No publicado",
-    class1Requirement: "Class 1 requerido para acceso.",
+    class1Requirement: "Clase 1 requerido para acceso.",
     jobSupportSummary: "Preparacion para entrevistas de aerolinea (sin garantia formal publicada).",
     employmentClaimsType: "vague",
     scores: {

@@ -145,7 +145,7 @@ function buildSections(a: SchoolEntry, b: SchoolEntry): Section[] {
           b: freeTextOrPending(b.languageOfInstruction),
         },
         {
-          label: "Requisito Class 1",
+          label: "Requisito Clase 1",
           a: freeTextOrPending(a.class1Requirement),
           b: freeTextOrPending(b.class1Requirement),
         },

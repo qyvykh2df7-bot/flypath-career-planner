@@ -1022,7 +1022,7 @@ function computeDecisionReadiness({
 
   if (profile.class1 !== "si") {
     score -= 45;
-    bloqueosCriticos.push("Class 1 no confirmado.");
+    bloqueosCriticos.push("Clase 1 no confirmado.");
   }
 
   if (profile.ingles === "bajo") {
@@ -1295,7 +1295,7 @@ function buildActionPlan({
   if (profile.class1 !== "si") {
     pushUnique(sevenDays, "Reservar o confirmar Clase 1 antes de comprometer pagos.");
     pushUnique(thirtyDays, "No firmar matrícula ni depósito hasta tener el resultado médico claro.");
-    pushUnique(ninetyDays, "Recalcular ruta cuando el Class 1 esté confirmado.");
+    pushUnique(ninetyDays, "Recalcular ruta cuando la Clase 1 esté confirmada.");
   } else {
     pushUnique(sevenDays, "Guardar evidencia de Clase 1 y fecha de validez.");
   }
@@ -1609,7 +1609,7 @@ function FlyPathNextStepsPanel({
   if (englishFirst) {
     primary = "ingles";
     primaryReasons.push(
-      "PRIORIDAD 1 inglés: bajo, o preocupación fuera de fase totalmente inicial (sin Class1 / Preparación / objetivo no claro y sin escuelas)",
+      "PRIORIDAD 1 inglés: bajo, o preocupación fuera de fase totalmente inicial (sin Clase 1 / Preparación / objetivo no claro y sin escuelas)",
     );
   } else if (mentoriaWins) {
     primary = "mentoria";
@@ -1619,12 +1619,12 @@ function FlyPathNextStepsPanel({
   } else if (atplCandidate && !strongPaymentBlock) {
     primary = "atpl";
     primaryReasons.push(
-      "PRIORIDAD 4 ATPL: Class1, inglés suficiente, teoría ATPL en costes, ruta no solo preparación, sin bloqueo fuerte de pago con escuelas",
+      "PRIORIDAD 4 ATPL: Clase 1, inglés suficiente, teoría ATPL en costes, ruta no solo preparación, sin bloqueo fuerte de pago con escuelas",
     );
   } else if (isInitial || schools.length === 0) {
     primary = "guia";
     primaryReasons.push(
-      "PRIORIDAD 2 guía: perfil inicial (Class1 pendiente, Preparación u objetivo no claro) o aún sin escuelas candidatas",
+      "PRIORIDAD 2 guía: perfil inicial (Clase 1 pendiente, Preparación u objetivo no claro) o aún sin escuelas candidatas",
     );
   } else {
     primary = "guia";
@@ -2457,7 +2457,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
       { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
       { id: "shop", label: "Shop", status: "available" as const, href: "/shop" },
-      { id: "blog", label: "Blog", status: "soon" as const },
+      { id: "blog", label: "Blog", status: "available" as const, href: "/blog" },
     ];
 
     return (
@@ -3050,7 +3050,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             <div className="mt-4 rounded-full bg-slate-100 p-1"><Progress value={(onboardingStep / 6) * 100} tone="bg-[#0f1a33]" /></div>
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
               {onboardingStep === 1 && <div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={profile.nombre} onChange={(v)=>setProfile(p=>({...p,nombre:v}))} /><NumberField label="Edad" value={profile.edad} onChange={(v)=>setProfile(p=>({...p,edad:v}))} /><TextField label="País" value={profile.pais} onChange={(v)=>setProfile(p=>({...p,pais:v}))} /><SelectField label="Situación laboral" value={profile.situacionLaboral} options={[{value:"estudiante",label:"Estudiante"},{value:"trabajando",label:"Trabajando"},{value:"desempleado",label:"Desempleado"},{value:"otro",label:"Otro"}]} onChange={(v)=>setProfile(p=>({...p,situacionLaboral:v as Profile["situacionLaboral"]}))} /><SelectField label="Objetivo" value={profile.objetivo} options={[{value:"aerolinea",label:"Aerolínea"},{value:"ejecutivo",label:"Ejecutivo"},{value:"instructor",label:"Instructor"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,objetivo:v as Profile["objetivo"]}))} /></div>}
-              {onboardingStep === 2 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Class 1" value={profile.class1} options={[{value:"si",label:"Sí"},{value:"no",label:"No"},{value:"reservado",label:"Reservado"}]} onChange={(v)=>setProfile(p=>({...p,class1:v as Profile["class1"]}))} /><SelectField label="Class 2" value={profile.class2} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,class2:v as Profile["class2"]}))} /><SelectField label="Nivel de inglés" value={profile.ingles} options={[{value:"bajo",label:"Bajo"},{value:"medio",label:"Medio"},{value:"alto",label:"Alto"}]} onChange={(v)=>setProfile(p=>({...p,ingles:v as Profile["ingles"]}))} /><SelectField label="ICAO level" value={profile.icaoLevel} options={[{value:"0",label:"0"},{value:"4",label:"4"},{value:"5",label:"5"},{value:"6",label:"6"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,icaoLevel:v as Profile["icaoLevel"]}))} /><SelectField label="Preocupación por inglés" value={profile.preocupacionIngles} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,preocupacionIngles:v as Profile["preocupacionIngles"]}))} /></div>}
+              {onboardingStep === 2 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Clase 1" value={profile.class1} options={[{value:"si",label:"Sí"},{value:"no",label:"No"},{value:"reservado",label:"Reservado"}]} onChange={(v)=>setProfile(p=>({...p,class1:v as Profile["class1"]}))} /><SelectField label="Class 2" value={profile.class2} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,class2:v as Profile["class2"]}))} /><SelectField label="Nivel de inglés" value={profile.ingles} options={[{value:"bajo",label:"Bajo"},{value:"medio",label:"Medio"},{value:"alto",label:"Alto"}]} onChange={(v)=>setProfile(p=>({...p,ingles:v as Profile["ingles"]}))} /><SelectField label="ICAO level" value={profile.icaoLevel} options={[{value:"0",label:"0"},{value:"4",label:"4"},{value:"5",label:"5"},{value:"6",label:"6"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,icaoLevel:v as Profile["icaoLevel"]}))} /><SelectField label="Preocupación por inglés" value={profile.preocupacionIngles} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,preocupacionIngles:v as Profile["preocupacionIngles"]}))} /></div>}
               {onboardingStep === 3 && (
                 <div className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
@@ -3356,7 +3356,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
                 <p className="mt-2 text-[15px] font-semibold leading-snug text-slate-100">
                   {profile.class1 !== "si"
-                    ? "Confirma tu Class 1 antes de elegir escuela."
+                    ? "Confirma tu Clase 1 antes de elegir escuela."
                     : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pide precio final, contrato, calendario de pagos y política de reembolso antes de transferir dinero."}
                 </p>
               </div>
@@ -3794,7 +3794,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                             {importedFromComparator.length === 1 ? "escuela" : "escuelas"} del comparador en tu Planner
                           </h3>
                           <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
-                            Estas escuelas se usarán en tu informe final para cruzarlas con tu perfil, presupuesto, Class 1, inglés y disponibilidad.
+                            Estas escuelas se usarán en tu informe final para cruzarlas con tu perfil, presupuesto, Clase 1, inglés y disponibilidad.
                           </p>
                           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
                             {importedFromComparator.map((s) => (
@@ -4668,18 +4668,18 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     route.recommended === "Modular"
                       ? [
                           "No empieces pagando una integrada completa.",
-                          "Empieza por cerrar Class 1, presupuesto real y escuelas con contrato claro.",
+                          "Empieza por cerrar Clase 1, presupuesto real y escuelas con contrato claro.",
                           "Prioriza una ruta modular o integrada solo si la financiación y condiciones están cerradas.",
                         ]
                       : route.recommended === "Integrada"
                         ? [
                             "No transfieras matrícula sin contrato firmado y reembolso claro.",
-                            "Cierra antes la financiación, el presupuesto realista y el Class 1.",
+                            "Cierra antes la financiación, el presupuesto realista y la Clase 1.",
                             "Confirma calendario de pagos por fases y qué tasas o extras quedan dentro del precio.",
                           ]
                         : [
                             "Aún no decidas escuela ni firmes ningún depósito.",
-                            "Cierra primero Class 1, inglés operativo y presupuesto realista.",
+                            "Cierra primero Clase 1, inglés operativo y presupuesto realista.",
                             "Vuelve a comparar escuelas cuando tengas datos personales más sólidos.",
                           ];
 

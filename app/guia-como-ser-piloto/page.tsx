@@ -103,7 +103,7 @@ const PLATFORM_MODULES = [
   { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
   { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
   { id: "shop", label: "Shop", status: "available" as const, href: "/shop" },
-  { id: "blog", label: "Blog", status: "soon" as const },
+  { id: "blog", label: "Blog", status: "available" as const, href: "/blog" },
 ];
 
 const CURRENT_ITEM_ID = "guia";
@@ -329,7 +329,7 @@ export default function GuiaComoSerPilotoPage() {
                   Cómo ser piloto sin pagar a ciegas
                 </p>
                 <p className="mt-3 max-w-xl text-base leading-relaxed text-slate-600">
-                  Entiende rutas, licencias, costes reales, Class 1, escuelas de vuelo y decisiones clave antes de comprometer tu dinero.
+                  Entiende rutas, licencias, costes reales, Clase 1, escuelas de vuelo y decisiones clave antes de comprometer tu dinero.
                 </p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                   <button

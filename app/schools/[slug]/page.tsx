@@ -581,7 +581,7 @@ export default async function SchoolDetailPage({
               <p>Coste académico: <span className="font-semibold">{euro(school.universityTrack.academicCostEUR)}</span></p>
               <p>Coste vuelo: <span className="font-semibold">{euro(school.universityTrack.flightCostEUR)}</span></p>
               <p>Coste total estimado: <span className="font-semibold">{euro(school.universityTrack.totalEstimatedCostEUR)}</span></p>
-              <p>Policy Class 1: <span className="font-semibold">{school.universityTrack.class1FailurePolicy}</span></p>
+              <p>Política Clase 1: <span className="font-semibold">{school.universityTrack.class1FailurePolicy}</span></p>
             </div>
           </section>
         ) : null}
@@ -946,7 +946,7 @@ export default async function SchoolDetailPage({
                 ? "Airpull Aviation Academy destaca por operar desde una base propia en Requena y por ofrecer tres opciones de ATPL integrado en 15 meses: Basic, Advanced y Premium. La información pública permite identificar parte de la estructura y algunas horas, pero no permite calcular costes ni comparar con otras escuelas. Debe quedar pendiente de email para confirmar precios, horas detalladas, flota, simuladores, extras incluidos, pagos, contrato y reembolso."
               : isFby
                 ? "FlyBy destaca por publicar precios cerrados y una gran cantidad de extras incluidos: alojamiento, manutención, transporte, material, tasas, skill tests, PBN, UPRT y APS MCC. Esto facilita la planificación económica frente a escuelas con precios menos claros. Aun así, antes de pagar conviene pedir contrato completo, reembolso, condiciones de repeticiones, financiación y, en el caso del Cadet, detalles laborales del puesto de instructor."
-              : "Cruza esta escuela con tu perfil, presupuesto, Class 1, disponibilidad e inglés para saber si es una opción sólida antes de pagar matrícula o depósito."}
+              : "Cruza esta escuela con tu perfil, presupuesto, Clase 1, disponibilidad e inglés para saber si es una opción sólida antes de pagar matrícula o depósito."}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href={`/schools?add=${school.slug}`} className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33]">

@@ -138,7 +138,7 @@ export const schoolsDataset: SchoolEntry[] = [
       dataConfidenceScore: 52,
     },
     redFlags: ["Costes académicos y de vuelo se comunican en canales distintos."],
-    pendingData: ["Licencia exacta garantizada por itinerario.", "Escenarios si no se obtiene Class 1."],
+    pendingData: ["Licencia exacta garantizada por itinerario.", "Escenarios si no se obtiene Clase 1."],
     keyQuestions: ["¿Qué parte de vuelo está garantizada por plaza?", "¿Qué ocurre si se abandona la parte práctica?"],
     universityTrack: {
       universityName: "Universidad Aeronáutica Barcelona",
@@ -289,7 +289,7 @@ export const schoolsDataset: SchoolEntry[] = [
       dataConfidenceScore: 28,
     },
     redFlags: ["Información pública incompleta sobre costes de vuelo."],
-    pendingData: ["Qué licencia se obtiene exactamente.", "Política en caso de no obtener Class 1."],
+    pendingData: ["Qué licencia se obtiene exactamente.", "Política en caso de no obtener Clase 1."],
     keyQuestions: ["¿Qué parte del itinerario es obligatoria para licencia?", "¿Qué costes no académicos faltan?"],
     universityTrack: {
       universityName: "Universidad Vuelo Valencia",

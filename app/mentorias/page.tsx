@@ -28,7 +28,7 @@ const HERO_HIGHLIGHTS = [
   "Integrado vs modular",
   "Coste real de la ruta",
   "Escuela y contrato",
-  "Class 1 y requisitos",
+  "Clase 1 y requisitos",
   "Próximo paso lógico",
 ] as const;
 
@@ -116,7 +116,7 @@ const PLATFORM_MODULES = [
   { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
   { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
   { id: "shop", label: "Shop", status: "available" as const, href: "/shop" },
-  { id: "blog", label: "Blog", status: "soon" as const },
+  { id: "blog", label: "Blog", status: "available" as const, href: "/blog" },
 ];
 
 const CURRENT_ITEM_ID = "mentorias";
