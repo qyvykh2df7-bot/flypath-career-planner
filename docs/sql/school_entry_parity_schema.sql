@@ -1,0 +1,6 @@
+-- Referencia: la migración canónica está en
+-- supabase/migrations/20260517120000_school_entry_parity_schema.sql
+--
+-- Revisar y ejecutar ese archivo (no este stub) en Supabase SQL Editor o con:
+--   supabase db push
+--   psql ... -f supabase/migrations/20260517120000_school_entry_parity_schema.sql

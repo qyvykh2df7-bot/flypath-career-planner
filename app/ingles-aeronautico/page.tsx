@@ -3,64 +3,106 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
   GraduationCap,
-  Headphones,
   Menu,
   Mic2,
   Plane,
   Radio,
+  Sparkles,
 } from "lucide-react";
 
 const TOAST_MS = 2800;
 const MAIN_TOAST = "Clases de inglés aeronáutico próximamente";
 
+/** Sustituir por URLs reales de Cal.com cuando estén disponibles */
+const CALCOM_INDIVIDUAL_URL = "#";
+const CALCOM_PACK_URL = "#";
+const CALCOM_PREP_URL = "#";
+
+const HERO_HIGHLIGHTS = [
+  "Clases 1:1 online",
+  "Comunicaciones ATC",
+  "Fraseología",
+  "ICAO English",
+  "Entrevistas y confianza oral",
+] as const;
+
 const AUDIENCE = [
+  { icon: BookOpen, title: "Quiero ser piloto, pero el inglés me frena." },
+  { icon: GraduationCap, title: "Estoy en PPL/ATPL y me cuesta hablar con fluidez." },
+  { icon: Radio, title: "Quiero preparar comunicaciones ATC reales." },
+  { icon: Mic2, title: "Necesito mejorar para entrevistas o pruebas de selección." },
+] as const;
+
+const CLASS_WORK = [
   {
-    icon: BookOpen,
-    title: "Quiero empezar aviación y mi inglés me preocupa.",
+    title: "Diagnóstico",
+    items: ["Nivel real de speaking", "Comprensión y listening", "Bloqueos al hablar"],
   },
   {
-    icon: GraduationCap,
-    title: "Estoy haciendo PPL/ATPL y necesito mejorar.",
+    title: "Práctica aeronáutica",
+    items: [
+      "Comunicaciones ATC",
+      "Fraseología y readbacks",
+      "Situaciones normales y no normales",
+    ],
   },
   {
-    icon: Radio,
-    title: "Quiero preparar comunicaciones y fraseología.",
-  },
-  {
-    icon: Mic2,
-    title: "Quiero ganar confianza hablando en contexto aeronáutico.",
+    title: "Preparación específica",
+    items: ["ICAO English", "Entrevistas y pruebas orales", "Plan de mejora personalizado"],
   },
 ] as const;
 
-const WORK_TOPICS = [
-  "Fraseología aeronáutica básica.",
-  "Comunicaciones ATC.",
-  "Escucha y comprensión.",
-  "Respuestas orales.",
-  "Situaciones normales y no normales.",
-  "Preparación ICAO English.",
-  "Inglés para entrevistas.",
-  "Confianza y fluidez hablando.",
-];
+const WHY_BULLETS = [
+  "Enfoque aeronáutico real",
+  "Práctica oral y corrección",
+  "Adaptado a tu fase",
+] as const;
 
-const HOW_STEPS = [
+const MODALITIES = [
   {
-    title: "Cuéntanos tu nivel y objetivo.",
-    text: "Definimos prioridades según tu formación, fechas y el uso que necesitas del inglés.",
+    title: "Clase individual",
+    price: "49 €",
+    text: "Para detectar tu nivel, trabajar tus bloqueos y practicar speaking real a tu ritmo.",
+    cta: "Agendar clase",
+    href: CALCOM_INDIVIDUAL_URL,
+    featured: false,
   },
   {
-    title: "Trabajamos situaciones reales.",
-    text: "Practicamos comunicaciones, escucha activa y respuestas con material aplicado a aviación.",
+    title: "Pack de clases",
+    price: "Pack 4 clases · 179 €",
+    text: "Para mejorar de forma progresiva con seguimiento, práctica oral y objetivos semanales.",
+    cta: "Reservar pack",
+    href: CALCOM_PACK_URL,
+    featured: true,
   },
   {
-    title: "Sales con más seguridad y próximos pasos.",
-    text: "Te llevas ideas claras para seguir practicando y encajar el inglés en tu ruta.",
+    title: "Preparación específica",
+    price: "Desde 69 €",
+    text: "Para ICAO English, entrevistas, pruebas orales o situaciones concretas de formación.",
+    cta: "Agendar preparación",
+    href: CALCOM_PREP_URL,
+    featured: false,
+  },
+] as const;
+
+const TESTIMONIALS = [
+  {
+    quote: "Me ayudó a ganar confianza hablando y a entender qué tenía que mejorar.",
+    author: "Alumno PPL",
+  },
+  {
+    quote: "Las clases son prácticas y van directas a situaciones reales.",
+    author: "Alumna ATPL",
+  },
+  {
+    quote: "Por fin practiqué inglés aplicado a aviación, no inglés genérico.",
+    author: "Aspirante a piloto",
   },
 ] as const;
 
@@ -94,12 +136,29 @@ export default function InglesAeronauticoPage() {
 
   const showMainToast = useCallback(() => setToast(MAIN_TOAST), []);
 
+  const scrollToModalities = useCallback(() => {
+    document.getElementById("modalidades-ingles")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, []);
+
   const scrollToWork = useCallback(() => {
     document.getElementById("que-trabajamos-ingles")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
   }, []);
+
+  const handleCalLinkClick = useCallback(
+    (e: MouseEvent<HTMLAnchorElement>, href: string) => {
+      if (href === "#") {
+        e.preventDefault();
+        showMainToast();
+      }
+    },
+    [showMainToast],
+  );
 
   useEffect(() => {
     if (!toast) return;
@@ -236,106 +295,102 @@ export default function InglesAeronauticoPage() {
       </header>
 
       <main>
-        <section className="relative overflow-hidden border-b border-slate-200/70 bg-gradient-to-b from-white via-[#f7f9fc] to-[#eef2f8]">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.55]"
+        {/* 1. Hero con imagen de fondo */}
+        <section className="relative isolate min-h-[440px] border-b border-[#0f1a33]/20 sm:min-h-[480px] lg:min-h-0">
+          <img
+            src="/ingles-aeronautico.jpg"
+            alt=""
             aria-hidden
-            style={{
-              backgroundImage:
-                "radial-gradient(ellipse 80% 55% at 95% 10%, rgba(201,164,84,0.16), transparent 55%), radial-gradient(ellipse 60% 50% at 5% 95%, rgba(15,26,51,0.07), transparent 55%)",
-            }}
+            className="absolute inset-0 h-full w-full scale-x-[-1] object-cover object-[center_30%] sm:object-center"
           />
-          <div className="relative z-[1] mx-auto max-w-7xl px-6 pb-12 pt-10 sm:pb-14 sm:pt-12 lg:px-10 lg:pb-16 lg:pt-12">
-            <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-black/10 sm:from-black/70 sm:via-black/30 sm:to-transparent"
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-[#0f1a33]/45 via-transparent to-transparent sm:max-w-[58%]"
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent sm:hidden"
+            aria-hidden
+          />
+
+          <div className="relative mx-auto max-w-7xl px-6 pb-8 pt-10 sm:pb-10 sm:pt-12 lg:px-10 lg:pb-14 lg:pt-12">
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-center lg:gap-10 xl:gap-12">
+              <div className="min-w-0 lg:max-w-2xl">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]">
                   INGLÉS AERONÁUTICO
                 </p>
-                <h1 className="mt-3 text-[2rem] font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-[2.35rem] lg:text-[2.55rem] lg:leading-[1.08]">
-                  Habla con más seguridad en inglés aeronáutico
+                <h1 className="mt-3 text-[2rem] font-semibold leading-[1.12] tracking-tight text-white sm:text-[2.35rem] lg:text-[2.55rem] lg:leading-[1.08]">
+                  Entrena el inglés que usarás como piloto
                 </h1>
-                <p className="mt-4 max-w-xl text-lg leading-relaxed text-slate-600">
-                  Clases para futuros pilotos y alumnos en formación que quieren mejorar comunicaciones, fraseología, confianza oral e inglés aplicado a la aviación.
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-100 sm:text-lg">
+                  Clases prácticas para futuros pilotos y alumnos en formación que quieren mejorar
+                  comunicaciones ATC, fraseología, entrevistas, listening y speaking aplicado a la
+                  aviación.
                 </p>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                  <button
-                    type="button"
-                    onClick={showMainToast}
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
-                  >
-                    Solicitar clases
-                  </button>
-                  <button
-                    type="button"
-                    onClick={scrollToWork}
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-300/90 bg-white px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/45 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
-                  >
-                    Ver qué trabajamos
-                    <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-                  </button>
-                </div>
+                <p className="mt-4 max-w-xl border-l-2 border-[#c9a454] pl-4 text-[15px] font-medium leading-relaxed text-[#f2ddaa] sm:text-base">
+                  No necesitas sonar perfecto. Necesitas comunicar con claridad, seguridad y criterio.
+                </p>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <button
+                  type="button"
+                  onClick={scrollToModalities}
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.4)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                >
+                  Agendar clase
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollToWork}
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-7 py-3 text-[15px] font-semibold text-white backdrop-blur-sm transition hover:border-white/40 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                >
+                  Ver qué trabajamos
+                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+                </button>
               </div>
-              <div className="lg:justify-self-end">
-                <div className="relative mx-auto w-full max-w-[440px] rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04] sm:p-7">
-                  <div
-                    className="pointer-events-none absolute -inset-4 -z-10 rounded-[2.5rem] bg-gradient-to-br from-[#c9a454]/14 via-transparent to-[#0f1a33]/10 blur-3xl"
-                    aria-hidden
-                  />
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-                      FlyPath
-                    </p>
-                    <span className="rounded-full border border-[#c9a454]/40 bg-[#fffdf6] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5a16]">
-                      Próximamente
-                    </span>
-                  </div>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#0f1a33]">
-                    Inglés aeronáutico
-                  </h2>
-                  <ul className="mt-5 space-y-2 text-[15px] leading-snug text-slate-700">
-                    <li className="flex gap-2">
+
+              </div>
+
+              <div className="w-full rounded-2xl border border-white/20 bg-black/45 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.3)] backdrop-blur-md sm:p-5 lg:mt-0 lg:translate-y-12 lg:justify-self-end xl:translate-y-14">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]">
+                  LO QUE TRABAJAMOS
+                </p>
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                  {HERO_HIGHLIGHTS.map((item) => (
+                    <li key={item} className="flex gap-2 text-[14px] leading-snug text-white/95">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      Comunicaciones ATC
+                      {item}
                     </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      Fraseología
-                    </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      ICAO English
-                    </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      Entrevistas y confianza oral
-                    </li>
-                  </ul>
-                </div>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-b border-slate-200/70 bg-white py-14 lg:py-16">
+        {/* 2. Para quién es */}
+        <section className="border-b border-slate-200/70 bg-white py-10 sm:py-12">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
               PARA QUIÉN ES
             </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
+            <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl">
               Para quién son estas clases
             </h2>
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {AUDIENCE.map((b) => {
                 const Icon = b.icon;
                 return (
                   <div
                     key={b.title}
-                    className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_14px_38px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]"
+                    className="flex gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_rgba(15,26,51,0.05)] ring-1 ring-black/[0.03] sm:p-5"
                   >
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#c9a454]/35 bg-[#fffdf6] text-[#7a5a16]">
-                      <Icon className="h-5 w-5" aria-hidden />
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#c9a454]/35 bg-[#fffdf6] text-[#7a5a16]">
+                      <Icon className="h-[18px] w-[18px]" aria-hidden />
                     </span>
-                    <h3 className="mt-5 text-[17px] font-semibold leading-snug text-[#0f1a33] sm:text-lg">
+                    <h3 className="text-[15px] font-semibold leading-snug text-[#0f1a33] sm:text-base">
                       {b.title}
                     </h3>
                   </div>
@@ -345,136 +400,179 @@ export default function InglesAeronauticoPage() {
           </div>
         </section>
 
+        {/* 3. Modalidades */}
+        <section
+          id="modalidades-ingles"
+          className="relative border-b border-slate-200/70 bg-[#f4f7fb] py-12 sm:py-14"
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-40"
+            aria-hidden
+            style={{
+              backgroundImage:
+                "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,164,84,0.12), transparent 60%)",
+            }}
+          />
+          <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
+              MODALIDADES
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl lg:text-[2rem]">
+              Elige cómo quieres trabajar tu inglés
+            </h2>
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              Elige una opción, agenda fecha y hora, y completa la reserva de forma sencilla.
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 items-stretch gap-5 md:grid-cols-3 md:gap-6">
+              {MODALITIES.map((mod) => (
+                <div
+                  key={mod.title}
+                  className={`relative flex flex-col rounded-2xl p-5 sm:p-6 ${
+                    mod.featured
+                      ? "order-first border-2 border-[#c9a454] bg-gradient-to-br from-[#fffdf6] via-white to-[#f7f4ea] shadow-[0_24px_56px_rgba(201,164,84,0.22),0_12px_32px_rgba(15,26,51,0.08)] ring-1 ring-[#c9a454]/30 md:order-none md:-translate-y-1 md:p-7"
+                      : "border border-slate-200/80 bg-white shadow-[0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]"
+                  }`}
+                >
+                  {mod.featured ? (
+                    <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-[#c9a454] bg-[#c9a454] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33] shadow-md">
+                      <Sparkles className="h-3 w-3" aria-hidden />
+                      Recomendado
+                    </span>
+                  ) : null}
+                  <h3 className="text-xl font-semibold text-[#0f1a33]">{mod.title}</h3>
+                  <p
+                    className={`mt-3 text-2xl font-semibold tracking-tight ${
+                      mod.featured ? "text-[#7a5a16]" : "text-[#0f1a33]"
+                    }`}
+                  >
+                    {mod.price}
+                  </p>
+                  <p className="mt-2 flex-1 text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                  <a
+                    href={mod.href}
+                    onClick={(e) => handleCalLinkClick(e, mod.href)}
+                    className={`mt-5 inline-flex min-h-[44px] items-center justify-center rounded-2xl px-6 py-2.5 text-[15px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 ${
+                      mod.featured
+                        ? "border border-[#c9a454] bg-[#c9a454] text-[#0f1a33] shadow-[0_12px_32px_rgba(201,164,84,0.35)] hover:bg-[#ddb75c] focus-visible:ring-[#c9a454]/55"
+                        : "border border-[#0f1a33]/15 bg-[#0f1a33] text-white shadow-sm hover:bg-[#16264a] focus-visible:ring-[#0f1a33]/40"
+                    }`}
+                  >
+                    {mod.cta}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 4. Qué trabajamos en clase */}
         <section
           id="que-trabajamos-ingles"
-          className="border-b border-slate-200/70 bg-[#f4f7fb] py-14 lg:py-16"
+          className="border-b border-slate-200/70 bg-white py-10 sm:py-12"
         >
-          <div className="mx-auto max-w-7xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              CONTENIDOS
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
-              Qué podemos trabajar
+          <div className="mx-auto max-w-6xl px-6 lg:px-10">
+            <h2 className="text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl">
+              Qué trabajamos en clase
             </h2>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-              {WORK_TOPICS.map((topic) => (
-                <li
-                  key={topic}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-[0_10px_28px_rgba(15,26,51,0.05)]"
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              Cada clase combina diagnóstico, práctica oral y situaciones reales de aviación para que
+              sepas qué mejorar y cómo practicar.
+            </p>
+            <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {CLASS_WORK.map((block) => (
+                <div
+                  key={block.title}
+                  className="rounded-2xl border border-slate-200/80 bg-[#f4f7fb] p-5 shadow-[0_10px_28px_rgba(15,26,51,0.05)] ring-1 ring-black/[0.03] sm:p-6"
                 >
-                  <Headphones className="mt-0.5 h-5 w-5 shrink-0 text-[#c9a454]" aria-hidden />
-                  <span className="text-base font-medium leading-snug text-slate-700 lg:text-[17px]">
-                    {topic}
-                  </span>
+                  <h3 className="text-lg font-semibold text-[#0f1a33]">{block.title}</h3>
+                  <ul className="mt-3 space-y-2">
+                    {block.items.map((item) => (
+                      <li key={item} className="flex gap-2 text-[15px] leading-snug text-slate-600">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 5. Reseñas */}
+        <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-10 sm:py-11">
+          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+            <h2 className="text-center text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
+              Lo que más valoran los alumnos
+            </h2>
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {TESTIMONIALS.map((t) => (
+                <figure
+                  key={t.author}
+                  className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_22px_rgba(15,26,51,0.05)] sm:p-5"
+                >
+                  <blockquote className="text-[15px] leading-relaxed text-slate-600">
+                    &ldquo;{t.quote}&rdquo;
+                  </blockquote>
+                  <figcaption className="mt-3 text-[13px] font-semibold text-[#7a5a16]">
+                    {t.author}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 6. Por qué FlyPath (compacto) */}
+        <section className="relative overflow-hidden border-b border-slate-200/70 bg-gradient-to-b from-[#0f1a33] to-[#16264a] py-10 text-white sm:py-12">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-60"
+            aria-hidden
+            style={{
+              backgroundImage:
+                "radial-gradient(ellipse 80% 55% at 100% 0%, rgba(201,164,84,0.2), transparent 55%)",
+            }}
+          />
+          <div className="relative mx-auto max-w-3xl px-6 text-center lg:px-10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/90">
+              POR QUÉ FLYPATH
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-white sm:text-3xl">
+              No es inglés general. Es inglés aplicado a tu ruta como piloto.
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-300 sm:text-base">
+              Practicamos situaciones reales de formación, comunicaciones, entrevistas y speaking con
+              un enfoque claro: que puedas comunicar con seguridad, no sonar perfecto.
+            </p>
+            <ul className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-8 sm:gap-y-3">
+              {WHY_BULLETS.map((item) => (
+                <li key={item} className="flex items-center gap-2 text-[15px] text-slate-200">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                  {item}
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <section className="border-b border-slate-200/70 bg-white py-14 lg:py-16">
-          <div className="mx-auto max-w-7xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              FORMATOS
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
-              Modalidades
-            </h2>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              <div className="flex flex-col rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white to-[#fffdf8] p-6 shadow-[0_16px_44px_rgba(15,26,51,0.07)] ring-1 ring-black/[0.03] sm:p-7">
-                <h3 className="text-xl font-semibold text-[#0f1a33]">Clase individual</h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-                  Para trabajar tus puntos concretos y avanzar a tu ritmo.
-                </p>
-                <p className="mt-6 text-lg font-semibold text-[#7a5a16]">Próximamente</p>
-                <button
-                  type="button"
-                  onClick={showMainToast}
-                  className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_32px_rgba(201,164,84,0.28)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-                >
-                  Solicitar información
-                </button>
-              </div>
-              <div className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_16px_44px_rgba(15,26,51,0.07)] ring-1 ring-black/[0.03] sm:p-7">
-                <h3 className="text-xl font-semibold text-[#0f1a33]">Pack de clases</h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-                  Para mejorar de forma progresiva con seguimiento.
-                </p>
-                <p className="mt-6 text-[13px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Bajo solicitud
-                </p>
-                <button
-                  type="button"
-                  onClick={showMainToast}
-                  className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/55 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
-                >
-                  Consultar pack
-                </button>
-              </div>
-              <div className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_16px_44px_rgba(15,26,51,0.07)] ring-1 ring-black/[0.03] sm:p-7">
-                <h3 className="text-xl font-semibold text-[#0f1a33]">Preparación específica</h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-                  Para entrevistas, pruebas orales o comunicaciones concretas.
-                </p>
-                <p className="mt-6 text-[13px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Bajo solicitud
-                </p>
-                <button
-                  type="button"
-                  onClick={showMainToast}
-                  className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/55 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
-                >
-                  Consultar preparación
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-14 lg:py-16">
-          <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              PROCESO
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
-              Cómo funciona
-            </h2>
-            <ol className="mt-10 grid gap-5 md:grid-cols-3">
-              {HOW_STEPS.map((step, i) => (
-                <li
-                  key={step.title}
-                  className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_14px_38px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.04] sm:p-7"
-                >
-                  <span className="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-md border border-[#c9a454]/35 bg-[#fffdf6] px-2 text-sm font-semibold text-[#7a5a16]">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <h3 className="mt-4 text-xl font-semibold tracking-tight text-[#0f1a33]">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-slate-600 lg:text-base">
-                    {step.text}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        <section className="bg-gradient-to-b from-[#f8fafc] to-white py-14 lg:py-20">
+        {/* 7. CTA final */}
+        <section className="bg-gradient-to-b from-[#f8fafc] to-white py-10 sm:py-12">
           <div className="mx-auto max-w-3xl px-6 text-center lg:px-10">
             <h2 className="text-2xl font-semibold tracking-tight text-[#0f1a33] sm:text-3xl">
               Mejora tu inglés antes de que se convierta en un bloqueo
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-[17px]">
-              El inglés puede marcar la diferencia en la formación, las comunicaciones y los procesos de selección.
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              Si el inglés te frena ahora, te va a frenar más cuando lleguen las comunicaciones,
+              entrevistas o fases avanzadas de la formación.
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
               <button
                 type="button"
-                onClick={showMainToast}
+                onClick={scrollToModalities}
                 className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-8 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_14px_40px_rgba(201,164,84,0.35)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
               >
-                Solicitar clases
+                Agendar clase
               </button>
               <button
                 type="button"
