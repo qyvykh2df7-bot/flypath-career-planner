@@ -541,7 +541,7 @@ export default function GuiaComoSerPilotoPage() {
           className="border-b border-slate-200/70 bg-[#f4f7fb] py-14 lg:py-20"
         >
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
-            <div className="grid items-stretch gap-8 lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-14">
+            <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-2 lg:items-center lg:gap-14">
               <div className="order-1 min-w-0 w-full lg:order-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
                   TABLA DE CONTENIDOS
@@ -605,14 +605,13 @@ export default function GuiaComoSerPilotoPage() {
                 </button>
               </div>
               <div className="order-2 w-full lg:order-1">
-                <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04]">
-                  <Image
-                    src="/avgas.jpg"
+                <div className="rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04]">
+                  <img
+                    src="/avgas.JPG"
                     alt="Avión de aviación general como vista previa de la guía Cómo ser piloto"
-                    width={800}
-                    height={1000}
-                    sizes="(max-width: 1024px) 100vw, 45vw"
-                    className="block h-auto w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    className="block w-full max-w-full h-auto object-contain"
                   />
                 </div>
               </div>
@@ -623,7 +622,7 @@ export default function GuiaComoSerPilotoPage() {
         {/* NOTA EDITORIAL — texto grande + imagen vertical */}
         <section className="border-b border-slate-200/70 bg-gradient-to-b from-white to-[#f7f9fc] py-16 lg:py-24">
           <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <div className="grid items-stretch gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16">
+            <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-2 lg:items-center lg:gap-16">
               <div className="order-1 min-w-0 w-full">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
                   Por qué esta guía
@@ -641,13 +640,13 @@ export default function GuiaComoSerPilotoPage() {
                 </div>
               </div>
               <div className="order-2 w-full">
-                <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04] lg:mx-0 lg:max-w-none">
+                <div className="w-full rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04]">
                   <img
-                    src="/atardecer.heic"
+                    src="/atardecer.jpg"
                     alt="Atardecer aeronáutico como apoyo visual de la guía Cómo ser piloto"
                     loading="lazy"
                     decoding="async"
-                    className="block h-auto w-full object-cover"
+                    className="block w-full max-w-full h-auto object-contain"
                   />
                 </div>
               </div>
