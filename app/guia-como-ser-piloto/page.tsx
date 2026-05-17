@@ -541,21 +541,8 @@ export default function GuiaComoSerPilotoPage() {
           className="border-b border-slate-200/70 bg-[#f4f7fb] py-14 lg:py-20"
         >
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
-            <div className="grid items-center gap-10 lg:grid-cols-[1fr_1fr] lg:gap-14">
-              <div className="order-2 lg:order-1">
-                <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04]">
-                  <div className="relative aspect-[4/5] w-full">
-                    <Image
-                      src="/avgas.jpg"
-                      alt="Avión de aviación general como vista previa de la guía Cómo ser piloto"
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 45vw"
-                      className="object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="order-1 min-w-0 lg:order-2">
+            <div className="grid items-stretch gap-8 lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-14">
+              <div className="order-1 min-w-0 w-full lg:order-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
                   TABLA DE CONTENIDOS
                 </p>
@@ -617,6 +604,18 @@ export default function GuiaComoSerPilotoPage() {
                   <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                 </button>
               </div>
+              <div className="order-2 w-full lg:order-1">
+                <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04]">
+                  <Image
+                    src="/avgas.jpg"
+                    alt="Avión de aviación general como vista previa de la guía Cómo ser piloto"
+                    width={800}
+                    height={1000}
+                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    className="block h-auto w-full object-cover"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -624,8 +623,8 @@ export default function GuiaComoSerPilotoPage() {
         {/* NOTA EDITORIAL — texto grande + imagen vertical */}
         <section className="border-b border-slate-200/70 bg-gradient-to-b from-white to-[#f7f9fc] py-16 lg:py-24">
           <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-              <div className="min-w-0">
+            <div className="grid items-stretch gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16">
+              <div className="order-1 min-w-0 w-full">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
                   Por qué esta guía
                 </p>
@@ -641,17 +640,15 @@ export default function GuiaComoSerPilotoPage() {
                   </p>
                 </div>
               </div>
-              <div>
-                <div className="relative mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04]">
-                  <div className="relative aspect-[4/5] w-full">
-                    <img
-                      src="/atardecer.heic"
-                      alt="Atardecer aeronáutico como apoyo visual de la guía Cómo ser piloto"
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                  </div>
+              <div className="order-2 w-full">
+                <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04] lg:mx-0 lg:max-w-none">
+                  <img
+                    src="/atardecer.heic"
+                    alt="Atardecer aeronáutico como apoyo visual de la guía Cómo ser piloto"
+                    loading="lazy"
+                    decoding="async"
+                    className="block h-auto w-full object-cover"
+                  />
                 </div>
               </div>
             </div>
