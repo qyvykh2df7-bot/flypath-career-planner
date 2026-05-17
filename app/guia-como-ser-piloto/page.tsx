@@ -605,13 +605,13 @@ export default function GuiaComoSerPilotoPage() {
                 </button>
               </div>
               <div className="order-2 w-full lg:order-1">
-                <div className="rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04]">
+                <div className="overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04]">
                   <img
                     src="/avgas.JPG"
                     alt="Avión de aviación general como vista previa de la guía Cómo ser piloto"
                     loading="lazy"
                     decoding="async"
-                    className="block w-full max-w-full h-auto object-contain"
+                    className="block h-auto w-full max-w-full rounded-2xl object-contain"
                   />
                 </div>
               </div>
@@ -640,13 +640,13 @@ export default function GuiaComoSerPilotoPage() {
                 </div>
               </div>
               <div className="order-2 w-full">
-                <div className="w-full rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04]">
+                <div className="w-full overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04]">
                   <img
                     src="/atardecer.jpg"
                     alt="Atardecer aeronáutico como apoyo visual de la guía Cómo ser piloto"
                     loading="lazy"
                     decoding="async"
-                    className="block w-full max-w-full h-auto object-contain"
+                    className="block h-auto w-full max-w-full rounded-2xl object-contain"
                   />
                 </div>
               </div>
