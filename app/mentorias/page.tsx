@@ -3,129 +3,102 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import {
   ArrowRight,
   CheckCircle2,
-  ChevronDown,
-  ClipboardList,
-  Compass,
-  GraduationCap,
+  GitBranch,
+  ListChecks,
   Menu,
   Plane,
-  Users,
+  Scale,
+  ShieldAlert,
 } from "lucide-react";
 
 const TOAST_MS = 2800;
-const RESERVATION_TOAST = "Reserva de mentoría próximamente";
-const PACK_TOAST = "Pack de mentoría próximamente";
+const MAIN_TOAST = "Reserva de mentoría próximamente";
+const ACOMPANAMIENTO_TOAST = "Solicitud de acompañamiento próximamente";
 
-const AUDIENCE_BLOCKS = [
+/** Sustituir por URLs reales de Cal.com cuando estén disponibles */
+const CALCOM_MENTORIA_URL = "#";
+const CALCOM_ACOMPANAMIENTO_URL = "#";
+
+const HERO_HIGHLIGHTS = [
+  "Integrado vs modular",
+  "Coste real de la ruta",
+  "Escuela y contrato",
+  "Class 1 y requisitos",
+  "Próximo paso lógico",
+] as const;
+
+const MENTORIA_IDEAL_FOR = [
+  "Dudas concretas",
+  "Revisar tu ruta actual",
+  "Definir próximos pasos",
+] as const;
+
+const ACOMPANIMENT_INCLUDES = [
+  "Comparación de rutas y escuelas",
+  "Revisión de presupuestos y condiciones",
+  "Preparación de preguntas para escuelas",
+  "Seguimiento durante el proceso de decisión",
+  "Próximos pasos claros tras cada avance",
+] as const;
+
+const AUDIENCE = [
+  { icon: GitBranch, title: "No sé qué ruta encaja mejor conmigo." },
+  { icon: Scale, title: "Estoy comparando escuelas y no sé cuál tiene más sentido." },
+  { icon: ShieldAlert, title: "Quiero evitar errores antes de pagar matrícula o depósito." },
+  { icon: ListChecks, title: "Necesito ordenar mi plan, costes y próximos pasos." },
+] as const;
+
+const TEAM = [
   {
-    icon: Compass,
-    title: "Quiero ser piloto, pero no sé por dónde empezar",
-    text: "Te ayudamos a entender rutas, licencias, Class 1, costes y primeros pasos antes de hablar con escuelas.",
+    id: "jorge-feliu",
+    name: "Jorge Feliu",
+    role: "First Officer B737",
+    text: "Experiencia real en aerolínea y formación de pilotos.",
+    image: "/jorge.jpg",
   },
   {
-    icon: ClipboardList,
-    title: "Estoy comparando escuelas",
-    text: "Revisamos precios, contratos, pagos, extras, ruta integrada o modular y puntos que deberías confirmar por escrito.",
-  },
-  {
-    icon: GraduationCap,
-    title: "Ya he empezado la formación",
-    text: "Ordenamos tu situación actual, fases pendientes, costes, tiempos, ATPL, inglés y próximos pasos.",
-  },
-  {
-    icon: Users,
-    title: "Soy padre, madre o familiar",
-    text: "Te ayudamos a entender el camino, los costes reales y las decisiones críticas antes de apoyar económicamente.",
+    id: "socio-flypath",
+    name: "Socio FlyPath",
+    role: "Formación aeronáutica",
+    text: "Apoyo en metodología, planificación y seguimiento.",
+    image: "/team/socio-flypath.jpg",
   },
 ] as const;
 
-const REVIEW_TOPICS = [
-  "Ruta integrada vs modular",
-  "Class 1 y requisitos médicos",
-  "Presupuesto real y costes ocultos",
-  "Comparación de escuelas",
-  "Contrato, pagos y reembolsos",
-  "Organización si ya estás estudiando",
-  "ATPL, PPL, CPL, IR, MCC o UPRT",
-  "Inglés aeronáutico",
-  "CV y primeros pasos hacia aerolínea",
-  "Decisiones antes de pagar matrícula",
-];
-
-const MENTORSHIP_INCLUDES = [
-  "Revisión de tu situación actual.",
-  "Análisis de ruta y próximos pasos.",
-  "Revisión de dudas sobre escuelas, costes o formación.",
-  "Recomendaciones prácticas para tu caso.",
-  "Resumen de puntos clave a revisar después de la sesión.",
-];
-
-const PACK_PLANS = [
+const MENTORSHIP_WORK = [
   {
-    title: "Pack 3 sesiones",
-    subtitle: "Para ordenar ruta, comparar opciones y revisar avances.",
-    bullets: [
-      "Seguimiento en fase de decisión.",
-      "Comparación progresiva de escuelas.",
-      "Revisión de presupuesto y próximos pasos.",
-      "Ideal si estás cerca de pagar o elegir escuela.",
-    ],
+    title: "Ruta y timing",
+    items: ["Integrado vs modular", "Edad, disponibilidad y trabajo", "Orden lógico de pasos"],
   },
   {
-    title: "Pack 6 sesiones",
-    subtitle: "Para acompañamiento más completo durante una fase de decisión o formación.",
-    bullets: [
-      "Seguimiento más continuo.",
-      "Revisión de avances y bloqueos.",
-      "Apoyo durante fases de formación.",
-      "Ideal si ya has empezado o necesitas estructura.",
-    ],
+    title: "Costes y riesgos",
+    items: ["Presupuesto realista", "Pagos, depósitos y extras", "Riesgos antes de firmar"],
+  },
+  {
+    title: "Escuelas y condiciones",
+    items: ["Comparación de opciones", "Preguntas clave a escuelas", "Plan de acción concreto"],
   },
 ] as const;
 
-const HOW_IT_WORKS = [
+const TESTIMONIALS = [
   {
-    title: "Cuéntanos tu situación",
-    text: "Edad, ruta, presupuesto, Class 1, inglés, escuelas que estás mirando o fase de formación actual.",
+    quote: "Me ayudó a entender qué ruta tenía más sentido para mi situación.",
+    author: "Aspirante a piloto",
   },
   {
-    title: "Revisamos tu caso en sesión",
-    text: "Analizamos tus opciones, riesgos, dudas y próximos pasos con un enfoque práctico.",
+    quote: "Salí con una lista clara de preguntas para hacer a las escuelas.",
+    author: "Alumno modular",
   },
   {
-    title: "Sales con un plan más claro",
-    text: "Te llevas una lista de decisiones, preguntas y puntos que conviene validar antes de avanzar.",
-  },
-] as const;
-
-const FAQS = [
-  {
-    q: "¿La mentoría sirve si todavía no he empezado?",
-    a: "Sí. De hecho, es uno de los mejores momentos para revisar ruta, costes, Class 1 y escuelas antes de pagar.",
-  },
-  {
-    q: "¿También sirve si ya estoy en una escuela?",
-    a: "Sí. Podemos revisar tu situación actual, fases pendientes, costes, organización, ATPL, inglés o próximos pasos.",
-  },
-  {
-    q: "¿Me vais a decir qué escuela elegir?",
-    a: "No prometemos una escuela perfecta. Te ayudamos a comparar con criterio, detectar riesgos y saber qué deberías confirmar antes de decidir.",
-  },
-  {
-    q: "¿Es asesoramiento financiero o legal?",
-    a: "No. Es orientación educativa basada en experiencia real del sector. Para decisiones legales, médicas o financieras debes consultar profesionales acreditados.",
-  },
-  {
-    q: "¿Puedo hacer una mentoría con mis padres?",
-    a: "Sí. Puede ser útil si la familia va a participar en la decisión económica y necesita entender costes, rutas y riesgos.",
+    quote: "Me hizo ver costes y riesgos que no estaba teniendo en cuenta.",
+    author: "Futuro piloto",
   },
 ] as const;
 
-/** Mismo orden que `/`, `/schools`, `/opiniones-escuelas` y `/guia-como-ser-piloto`. */
 const PLATFORM_MODULES = [
   { id: "inicio", label: "Inicio", status: "available" as const, href: "/" },
   { id: "guia", label: "Guía Cómo ser piloto", status: "available" as const, href: "/guia-como-ser-piloto" },
@@ -147,34 +120,71 @@ const PLATFORM_MODULES = [
 
 const CURRENT_ITEM_ID = "mentorias";
 
+function TeamMemberAvatar({ src, name }: { src: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  const initials = name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  if (failed) {
+    return (
+      <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-2 border-[#c9a454]/40 bg-gradient-to-br from-[#0f1a33] to-[#16264a] text-2xl font-semibold text-[#f2ddaa] sm:h-32 sm:w-32">
+        {initials || <Plane className="h-8 w-8" aria-hidden />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-2 border-[#c9a454]/35 bg-slate-100 ring-2 ring-white sm:h-32 sm:w-32">
+      <Image
+        src={src}
+        alt={name}
+        fill
+        className="h-full w-full rounded-full object-cover"
+        sizes="128px"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
 export default function MentoriasPage() {
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
   const [logoFallback, setLogoFallback] = useState(false);
   const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const moduleMenuRef = useRef<HTMLDivElement>(null);
 
-  const showReservationToast = useCallback(() => {
-    setToast(RESERVATION_TOAST);
-  }, []);
-
-  const showPackToast = useCallback(() => {
-    setToast(PACK_TOAST);
-  }, []);
-
-  const scrollToRevision = useCallback(() => {
-    document.getElementById("que-revisamos")?.scrollIntoView({
+  const scrollToModalities = useCallback(() => {
+    document.getElementById("modalidades-mentorias")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
   }, []);
 
+  const scrollToAcompanamiento = useCallback(() => {
+    document.getElementById("acompanamiento-flypath")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, []);
+
+  const handleCalLinkClick = useCallback(
+    (e: MouseEvent<HTMLAnchorElement>, href: string, toastMessage?: string) => {
+      if (href === "#") {
+        e.preventDefault();
+        setToast(toastMessage ?? MAIN_TOAST);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!toast) return;
-    const id = window.setTimeout(() => {
-      setToast((t) => (t === toast ? null : t));
-    }, TOAST_MS);
+    const id = window.setTimeout(() => setToast((t) => (t === toast ? null : t)), TOAST_MS);
     return () => window.clearTimeout(id);
   }, [toast]);
 
@@ -234,7 +244,7 @@ export default function MentoriasPage() {
             className="pointer-events-none hidden min-w-0 select-none truncate text-center text-sm font-medium tracking-[0.14em] text-[#f2ddaa]/90 md:flex md:flex-1 md:items-center md:justify-center"
             aria-hidden
           >
-            Mentorías FlyPath
+            Mentorías
           </p>
           <div ref={moduleMenuRef} className="relative shrink-0 md:flex md:min-w-0 md:flex-1 md:justify-end">
             <button
@@ -270,9 +280,7 @@ export default function MentoriasPage() {
                             router.push(m.href);
                             return;
                           }
-                          if (isSoon) {
-                            setToast("Próximamente");
-                          }
+                          if (isSoon) setToast("Próximamente");
                         }}
                         className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-2.5 text-left transition-colors ${
                           isClickable ? "cursor-pointer" : "cursor-not-allowed"
@@ -309,125 +317,106 @@ export default function MentoriasPage() {
       </header>
 
       <main>
-        {/* HERO */}
-        <section className="relative overflow-hidden border-b border-slate-200/70 bg-gradient-to-b from-white via-[#f7f9fc] to-[#eef2f8]">
+        {/* 1. Hero con imagen de fondo */}
+        <section className="relative isolate min-h-[440px] border-b border-[#0f1a33]/20 bg-[#0f1a33] sm:min-h-[480px] lg:min-h-0">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+            <img
+              src="/mentoria.jpg"
+              alt=""
+              className="absolute inset-0 h-[108%] w-full object-cover object-[center_80%] blur-[2px] sm:object-[center_70%]"
+            />
+          </div>
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.55]"
+            className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-black/15 sm:from-black/80 sm:via-black/35 sm:to-black/5"
             aria-hidden
-            style={{
-              backgroundImage:
-                "radial-gradient(ellipse 80% 55% at 95% 10%, rgba(201,164,84,0.16), transparent 55%), radial-gradient(ellipse 60% 50% at 5% 95%, rgba(15,26,51,0.07), transparent 55%)",
-            }}
           />
-          <div className="relative z-[1] mx-auto max-w-7xl px-6 pb-12 pt-10 sm:pb-14 sm:pt-12 lg:px-10 lg:pb-16 lg:pt-12">
-            <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-[#0f1a33]/70 via-[#0f1a33]/25 to-transparent sm:max-w-[62%]"
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent sm:hidden"
+            aria-hidden
+          />
+
+          <div className="relative mx-auto max-w-7xl px-6 pb-8 pt-10 sm:pb-10 sm:pt-12 lg:px-10 lg:pb-14 lg:pt-12">
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-center lg:gap-10 xl:gap-12">
+              <div className="min-w-0 lg:max-w-2xl">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]">
                   MENTORÍAS FLYPATH
                 </p>
-                <h1 className="mt-3 text-[2rem] font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-[2.4rem] lg:text-[2.65rem] lg:leading-[1.08]">
-                  Toma mejores decisiones en tu camino como piloto
+                <h1 className="mt-3 text-[2rem] font-semibold leading-[1.12] tracking-tight text-white sm:text-[2.35rem] lg:text-[2.55rem] lg:leading-[1.08]">
+                  Decide tu ruta como piloto con criterio
                 </h1>
-                <p className="mt-4 max-w-xl text-lg leading-relaxed text-slate-600">
-                  Una sesión individual para ordenar tu situación, revisar tus opciones y saber cuál es el siguiente paso correcto, tanto si estás empezando desde cero como si ya has iniciado la formación.
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-100 sm:text-lg">
+                  Mentorías y acompañamiento para futuros pilotos y alumnos en formación que necesitan
+                  claridad antes de elegir escuela, pagar matrícula, cambiar de ruta o tomar una
+                  decisión importante.
                 </p>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                  <button
-                    type="button"
-                    onClick={showReservationToast}
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
-                  >
-                    Reservar mentoría
-                  </button>
-                  <button
-                    type="button"
-                    onClick={scrollToRevision}
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-300/90 bg-white px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/45 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
-                  >
-                    Ver qué revisamos
-                    <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-                  </button>
-                </div>
-                <p className="mt-5 text-[13px] font-medium tracking-[0.02em] text-slate-500">
-                  Sesión 1:1 · Online · Orientación práctica
+                <p className="mt-4 max-w-xl border-l-2 border-[#c9a454] pl-4 text-[15px] font-medium leading-relaxed text-[#f2ddaa] sm:text-base">
+                  No se trata de venderte una escuela. Se trata de ayudarte a no equivocarte con tu
+                  tiempo, tu dinero y tu futuro.
                 </p>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <button
+                  type="button"
+                  onClick={scrollToModalities}
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.4)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                >
+                  Reservar mentoría
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollToAcompanamiento}
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-7 py-3 text-[15px] font-semibold text-white backdrop-blur-sm transition hover:border-white/40 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                >
+                  Ver acompañamiento
+                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+                </button>
               </div>
-              {/* Card de mentoría individual del hero */}
-              <div className="lg:justify-self-end">
-                <div className="relative mx-auto w-full max-w-[440px] rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04] sm:p-7">
-                  <div
-                    className="pointer-events-none absolute -inset-4 -z-10 rounded-[2.5rem] bg-gradient-to-br from-[#c9a454]/14 via-transparent to-[#0f1a33]/10 blur-3xl"
-                    aria-hidden
-                  />
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-                    Mentoría 1:1
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#0f1a33]">
-                    Mentoría individual
-                  </h2>
-                  <p className="mt-4 flex items-baseline gap-2">
-                    <span className="text-[2.5rem] font-semibold leading-none tracking-tight text-[#0f1a33]">
-                      44,95&nbsp;€
-                    </span>
-                    <span className="text-[13px] font-medium text-slate-500">Sesión 1:1</span>
-                  </p>
-                  <ul className="mt-5 space-y-2 text-[15px] leading-snug text-slate-700">
-                    <li className="flex gap-2">
+
+              </div>
+
+              <div className="w-full rounded-2xl border border-white/20 bg-[#0f1a33]/80 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.35)] ring-1 ring-[#c9a454]/25 backdrop-blur-md sm:p-5 lg:mt-0 lg:translate-y-12 lg:justify-self-end xl:translate-y-14">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]">
+                  DECISIONES QUE REVISAMOS
+                </p>
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                  {HERO_HIGHLIGHTS.map((item) => (
+                    <li key={item} className="flex gap-2 text-[14px] leading-snug text-white/95">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      Ruta y próximos pasos
+                      {item}
                     </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      Escuelas y costes
-                    </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      Formación ya iniciada
-                    </li>
-                    <li className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      Decisiones antes de pagar
-                    </li>
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={showReservationToast}
-                    className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_32px_rgba(201,164,84,0.3)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-                  >
-                    Reservar
-                  </button>
-                </div>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        {/* PARA QUIÉN ES */}
-        <section className="border-b border-slate-200/70 bg-white py-14 lg:py-20">
+        {/* 2. Para quién es */}
+        <section className="border-b border-slate-200/70 bg-white py-10 sm:py-12">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
               PARA QUIÉN ES
             </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
+            <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl">
               Para quién es esta mentoría
             </h2>
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {AUDIENCE_BLOCKS.map((b) => {
+            <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {AUDIENCE.map((b) => {
                 const Icon = b.icon;
                 return (
                   <div
                     key={b.title}
-                    className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_14px_38px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]"
+                    className="flex gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_rgba(15,26,51,0.05)] ring-1 ring-black/[0.03] sm:p-5"
                   >
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#c9a454]/35 bg-[#fffdf6] text-[#7a5a16]">
-                      <Icon className="h-5 w-5" aria-hidden />
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#c9a454]/35 bg-[#fffdf6] text-[#7a5a16]">
+                      <Icon className="h-[18px] w-[18px]" aria-hidden />
                     </span>
-                    <h3 className="mt-5 text-[17px] font-semibold leading-snug text-[#0f1a33] sm:text-lg">
+                    <h3 className="text-[15px] font-semibold leading-snug text-[#0f1a33] sm:text-base">
                       {b.title}
                     </h3>
-                    <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
-                      {b.text}
-                    </p>
                   </div>
                 );
               })}
@@ -435,254 +424,214 @@ export default function MentoriasPage() {
           </div>
         </section>
 
-        {/* QUÉ PODEMOS REVISAR */}
+
+        {/* 3. Qué revisamos en tu caso */}
         <section
-          id="que-revisamos"
-          className="border-b border-slate-200/70 bg-[#f4f7fb] py-14 lg:py-20"
+          id="que-revisamos-mentorias"
+          className="border-b border-slate-200/70 bg-[#eef2f8] py-10 sm:py-12"
         >
-          <div className="mx-auto max-w-7xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              QUÉ REVISAMOS
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
-              Qué podemos revisar en una sesión
-            </h2>
-            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-slate-600">
-              La mentoría no es una charla genérica. Trabajamos sobre tu caso real, tu presupuesto, tu disponibilidad, tu nivel de inglés, tu situación de formación y tus dudas concretas.
-            </p>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-              {REVIEW_TOPICS.map((topic) => (
-                <li
-                  key={topic}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-[0_10px_28px_rgba(15,26,51,0.05)]"
-                >
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#c9a454]" aria-hidden />
-                  <span className="text-base font-medium leading-snug text-slate-700 lg:text-[17px]">
-                    {topic}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* MENTORÍA INDIVIDUAL */}
-        <section className="border-b border-slate-200/70 bg-white py-14 lg:py-20">
-          <div className="mx-auto max-w-5xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              MENTORÍA INDIVIDUAL
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
-              Mentoría individual FlyPath
-            </h2>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Una sesión 1:1 para analizar tu situación y salir con una idea mucho más clara de qué hacer a continuación.
-            </p>
-            <div className="mt-8 grid gap-8 rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white to-[#fffdf8] p-7 shadow-[0_24px_60px_rgba(15,26,51,0.08)] ring-1 ring-black/[0.04] sm:p-9 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-                  Sesión 1:1
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[#0f1a33] sm:text-3xl">
-                  Mentoría individual
-                </h3>
-                <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-[17px]">
-                  Ideal si tienes dudas concretas, estás comparando opciones o necesitas ordenar tu ruta antes de comprometer dinero o seguir avanzando.
-                </p>
-                <p className="mt-6 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#0f1a33]/70">
-                  Incluye:
-                </p>
-                <ul className="mt-3 space-y-2 text-[15px] leading-snug text-slate-700 lg:text-base">
-                  {MENTORSHIP_INCLUDES.map((item) => (
-                    <li key={item} className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="flex flex-col items-center rounded-2xl border border-slate-200/90 bg-white p-6 text-center shadow-[0_16px_44px_rgba(15,26,51,0.07)] sm:p-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-                  Precio
-                </p>
-                <p className="mt-4 flex items-baseline justify-center gap-2">
-                  <span className="text-[2.75rem] font-semibold leading-none tracking-tight text-[#0f1a33]">
-                    44,95&nbsp;€
-                  </span>
-                </p>
-                <p className="mt-1 text-[15px] font-medium text-slate-500">Sesión 1:1 · Online</p>
-                <button
-                  type="button"
-                  onClick={showReservationToast}
-                  className="mt-5 inline-flex min-h-[48px] min-w-[14rem] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-                >
-                  Reservar mentoría
-                </button>
-                <p className="mt-3 text-[12px] leading-snug text-slate-500">
-                  Reserva próximamente · Plazas limitadas
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* PACKS DE SEGUIMIENTO */}
-        <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-14 lg:py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-10">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              SEGUIMIENTO
+              TU CASO
             </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-[2rem]">
-              ¿Necesitas seguimiento?
+            <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl">
+              Qué revisamos en tu caso
             </h2>
-            <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-[17px]">
-              Si tu caso requiere más acompañamiento, puedes plantear un seguimiento en varias sesiones. La mentoría individual es la entrada recomendada; los packs son para casos que necesitan continuidad.
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              No damos respuestas genéricas. Revisamos tu situación real: ruta, presupuesto, tiempo
+              disponible, escuelas candidatas y próximos pasos.
             </p>
-            <div className="mt-8 grid gap-5 md:grid-cols-2">
-              {PACK_PLANS.map((p) => (
+            <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {MENTORSHIP_WORK.map((block) => (
                 <div
-                  key={p.title}
-                  className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_16px_44px_rgba(15,26,51,0.07)] ring-1 ring-black/[0.03] sm:p-7"
+                  key={block.title}
+                  className="rounded-2xl border border-[#0f1a33]/10 bg-white p-5 shadow-[0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-[#c9a454]/10 sm:p-6"
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a5a16]">
-                    Seguimiento
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[#0f1a33]">
-                    {p.title}
-                  </h3>
-                  <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-                    {p.subtitle}
-                  </p>
-                  <ul className="mt-5 space-y-2 text-[15px] leading-snug text-slate-700">
-                    {p.bullets.map((b) => (
-                      <li key={b} className="flex gap-2">
+                  <h3 className="text-lg font-semibold text-[#0f1a33]">{block.title}</h3>
+                  <ul className="mt-3 space-y-2">
+                    {block.items.map((item) => (
+                      <li key={item} className="flex gap-2 text-[15px] leading-snug text-slate-600">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                        <span>{b}</span>
+                        {item}
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-6 text-[13px] font-medium uppercase tracking-[0.16em] text-slate-500">
-                    Bajo solicitud
-                  </p>
-                  <button
-                    type="button"
-                    onClick={showPackToast}
-                    className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-slate-300/90 bg-white px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/55 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
-                  >
-                    Consultar pack
-                    <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-                  </button>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CÓMO FUNCIONA */}
-        <section className="border-b border-slate-200/70 bg-white py-14 lg:py-20">
-          <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              CÓMO FUNCIONA
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
-              Cómo funciona
-            </h2>
-            <ol className="mt-10 grid gap-5 md:grid-cols-3">
-              {HOW_IT_WORKS.map((step, i) => (
-                <li
-                  key={step.title}
-                  className="flex flex-col rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white to-[#fffdf8] p-6 shadow-[0_14px_38px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.04] sm:p-7"
-                >
-                  <span className="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-md border border-[#c9a454]/35 bg-[#fffdf6] px-2 text-sm font-semibold text-[#7a5a16]">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <h3 className="mt-4 text-xl font-semibold tracking-tight text-[#0f1a33]">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-slate-600 lg:text-base">
-                    {step.text}
+        {/* 4. Modalidades */}
+        <section
+          id="modalidades-mentorias"
+          className="border-b border-slate-200/70 bg-gradient-to-b from-[#f6f8fc] to-white py-12 sm:py-14"
+        >
+          <div className="mx-auto max-w-4xl px-6 lg:px-10">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#c9a454]">
+                MODALIDADES
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl">
+                Elige cómo quieres revisar tu decisión
+              </h2>
+              <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
+                Una sesión puntual para resolver dudas concretas, o acompañamiento si necesitas
+                seguimiento antes de decidir.
+              </p>
+            </div>
+
+            <div className="mt-10 flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_10px_32px_rgba(15,26,51,0.07)] ring-1 ring-[#0f1a33]/5 sm:p-6">
+              <div>
+                <h3 className="text-xl font-semibold text-[#0f1a33]">Mentoría individual</h3>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-[#0f1a33]">44,95 €</p>
+                <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
+                  Una sesión para revisar tu caso, resolver dudas concretas y salir con próximos pasos
+                  claros.
+                </p>
+                <p className="mt-4 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
+                  Ideal para:
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {MENTORIA_IDEAL_FOR.map((item) => (
+                    <li key={item} className="flex gap-2 text-[15px] leading-snug text-slate-600">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <a
+                href={CALCOM_MENTORIA_URL}
+                onClick={(e) => handleCalLinkClick(e, CALCOM_MENTORIA_URL, MAIN_TOAST)}
+                className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#0f1a33]/20 bg-[#0f1a33] px-6 py-2.5 text-[15px] font-semibold text-white transition hover:bg-[#16264a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1a33]/40 sm:w-auto sm:min-w-[200px]"
+              >
+                Reservar mentoría
+              </a>
+            </div>
+
+            <div
+              id="acompanamiento-flypath"
+              className="relative mt-6 scroll-mt-24 overflow-hidden rounded-2xl border-2 border-[#c9a454]/45 bg-gradient-to-br from-[#fffdf8] via-white to-[#f6f8fc] p-5 shadow-[0_16px_48px_rgba(201,164,84,0.12)] ring-1 ring-[#c9a454]/20 sm:mt-8 sm:p-6 md:p-7"
+            >
+              <span className="absolute right-4 top-4 inline-flex rounded-full border border-[#c9a454] bg-[#c9a454] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33]">
+                RECOMENDADO
+              </span>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 md:pt-2">
+                <div className="min-w-0 pr-0 md:pr-4">
+                  <h3 className="text-xl font-semibold text-[#0f1a33]">Acompañamiento FlyPath</h3>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight text-[#7a5a16]">A consultar</p>
+                  <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                    Pensado para alumnos que están comparando escuelas, revisando condiciones o
+                    avanzando paso a paso antes de pagar.
                   </p>
-                </li>
-              ))}
-            </ol>
+                </div>
+                <div className="flex flex-col border-t border-[#c9a454]/20 pt-5 md:border-l md:border-t-0 md:pl-8 md:pt-0">
+                  <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
+                    Podemos ayudarte con:
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {ACOMPANIMENT_INCLUDES.map((item) => (
+                      <li key={item} className="flex gap-2 text-[15px] leading-snug text-slate-600">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={CALCOM_ACOMPANAMIENTO_URL}
+                    onClick={(e) =>
+                      handleCalLinkClick(e, CALCOM_ACOMPANAMIENTO_URL, ACOMPANAMIENTO_TOAST)
+                    }
+                    className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-[0_10px_28px_rgba(201,164,84,0.25)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
+                  >
+                    Solicitar acompañamiento
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* FAQs */}
-        <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-14 lg:py-20">
-          <div className="mx-auto max-w-3xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              FAQ
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
-              Preguntas frecuentes
+        {/* 5. Equipo */}
+        <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-10 sm:py-11">
+          <div className="mx-auto max-w-6xl px-6 lg:px-10">
+            <h2 className="text-center text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
+              El equipo detrás de FlyPath
             </h2>
-            <ul className="mt-8">
-              {FAQS.map((faq, i) => {
-                const isOpen = openFaqIndex === i;
-                const panelId = `mentorias-faq-panel-${i}`;
-                return (
-                  <li key={faq.q} className="border-b border-slate-200/80 last:border-b-0">
-                    <button
-                      type="button"
-                      aria-expanded={isOpen}
-                      aria-controls={panelId}
-                      onClick={() =>
-                        setOpenFaqIndex((current) => (current === i ? null : i))
-                      }
-                      className="group flex w-full items-start justify-between gap-4 rounded-md py-4 text-left transition-colors hover:bg-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4f7fb]"
-                    >
-                      <span className="flex-1 text-base font-semibold leading-snug text-[#0f1a33] sm:text-[17px]">
-                        {faq.q}
-                      </span>
-                      <ChevronDown
-                        strokeWidth={2.25}
-                        className={`mt-1 h-5 w-5 shrink-0 transition-all duration-300 ${
-                          isOpen ? "rotate-180 text-[#c9a454]" : "text-[#7a5a16]"
-                        }`}
-                        aria-hidden
-                      />
-                    </button>
-                    {isOpen ? (
-                      <div id={panelId} role="region">
-                        <p className="pb-4 pr-9 text-[15px] leading-relaxed text-slate-600">
-                          {faq.a}
-                        </p>
-                      </div>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              Te ayudamos desde experiencia real en aviación, formación y toma de decisiones, con un
+              enfoque claro: evitar humo y ayudarte a decidir con criterio.
+            </p>
+            <div className="mx-auto mt-7 grid max-w-3xl grid-cols-1 gap-5 sm:max-w-4xl md:grid-cols-2">
+              {TEAM.map((member) => (
+                <article
+                  key={member.id}
+                  className="flex flex-col items-center rounded-xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_8px_22px_rgba(15,26,51,0.05)] sm:p-6"
+                >
+                  <TeamMemberAvatar src={member.image} name={member.name} />
+                  <h3 className="mt-4 text-base font-semibold text-[#0f1a33]">{member.name}</h3>
+                  <p className="mt-1 text-[13px] font-medium uppercase tracking-[0.12em] text-[#7a5a16]">
+                    {member.role}
+                  </p>
+                  <p className="mt-2 text-[14px] leading-relaxed text-slate-600">{member.text}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* CTA FINAL */}
-        <section className="bg-gradient-to-b from-[#f8fafc] to-white py-14 lg:py-20">
+        {/* 6. Reviews */}
+        <section className="border-b border-slate-200/70 bg-white py-10 sm:py-11">
+          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+            <h2 className="text-center text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
+              Lo que más valoran quienes ya han pedido orientación
+            </h2>
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {TESTIMONIALS.map((t) => (
+                <figure
+                  key={t.author}
+                  className="rounded-xl border border-slate-200/80 bg-[#f8fafc] p-4 shadow-sm sm:p-5"
+                >
+                  <p className="text-sm tracking-wide text-[#c9a454]" aria-label="5 estrellas">
+                    ★★★★★
+                  </p>
+                  <blockquote className="mt-2 text-[15px] leading-relaxed text-slate-600">
+                    &ldquo;{t.quote}&rdquo;
+                  </blockquote>
+                  <figcaption className="mt-3 text-[13px] font-semibold text-[#7a5a16]">
+                    {t.author}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 7. CTA final */}
+        <section className="bg-gradient-to-b from-[#f8fafc] to-white py-10 sm:py-12">
           <div className="mx-auto max-w-3xl px-6 text-center lg:px-10">
             <h2 className="text-2xl font-semibold tracking-tight text-[#0f1a33] sm:text-3xl">
-              Ordena tu ruta antes de tomar una decisión cara
+              Antes de pagar una escuela, entiende tu ruta
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-[17px]">
-              Una sesión puede ayudarte a evitar errores, hacer mejores preguntas y avanzar con más claridad.
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              Una decisión mal tomada puede costarte meses y miles de euros. Reserva una mentoría o
+              solicita acompañamiento para revisar tu caso con calma antes de avanzar.
             </p>
-            <p className="mt-2 text-[12px] font-medium uppercase tracking-[0.22em] text-slate-500">
-              Reserva · Sesión · Plan claro
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
               <button
                 type="button"
-                onClick={showReservationToast}
+                onClick={scrollToModalities}
                 className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-8 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_14px_40px_rgba(201,164,84,0.35)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
               >
                 Reservar mentoría
               </button>
               <button
                 type="button"
-                onClick={() => router.push("/")}
+                onClick={scrollToAcompanamiento}
                 className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-8 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/45 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35 sm:w-auto"
               >
-                Planificar mi ruta
+                Solicitar acompañamiento
                 <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
               </button>
             </div>

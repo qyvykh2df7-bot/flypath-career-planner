@@ -44,7 +44,7 @@ const TEAM = [
     name: "Jorge Feliu",
     role: "First Officer B737",
     text: "Experiencia real en aerolínea y formación de pilotos.",
-    image: "/team/jorge-flypath.jpg",
+    image: "/jorge.jpg",
   },
   {
     id: "socio-formacion",
@@ -153,20 +153,20 @@ function TeamMemberAvatar({ src, name }: { src: string; name: string }) {
 
   if (failed) {
     return (
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#c9a454]/40 bg-gradient-to-br from-[#0f1a33] to-[#16264a] text-lg font-semibold text-[#f2ddaa] sm:h-24 sm:w-24">
-        {initials || <Plane className="h-7 w-7" aria-hidden />}
+      <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-2 border-[#c9a454]/40 bg-gradient-to-br from-[#0f1a33] to-[#16264a] text-2xl font-semibold text-[#f2ddaa] sm:h-32 sm:w-32">
+        {initials || <Plane className="h-8 w-8" aria-hidden />}
       </div>
     );
   }
 
   return (
-    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-[#c9a454]/35 bg-slate-100 ring-2 ring-white sm:h-24 sm:w-24">
+    <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-2 border-[#c9a454]/35 bg-slate-100 ring-2 ring-white sm:h-32 sm:w-32">
       <Image
         src={src}
         alt={name}
         fill
-        className="object-cover"
-        sizes="96px"
+        className="h-full w-full rounded-full object-cover"
+        sizes="128px"
         onError={() => setFailed(true)}
       />
     </div>
