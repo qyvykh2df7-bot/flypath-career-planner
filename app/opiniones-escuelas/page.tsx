@@ -110,7 +110,7 @@ const PLATFORM_MODULES = [
   { id: "ingles", label: "Inglés aeronáutico", status: "available" as const, href: "/ingles-aeronautico" },
   { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
   { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
-  { id: "shop", label: "Shop", status: "soon" as const },
+  { id: "shop", label: "Shop", status: "available" as const, href: "/shop" },
   { id: "blog", label: "Blog", status: "soon" as const },
 ];
 

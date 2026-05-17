@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { FlyPathTeamSection } from "@/components/FlyPathTeamSection";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import {
@@ -136,42 +137,11 @@ const PLATFORM_MODULES = [
   { id: "ingles", label: "Inglés aeronáutico", status: "available" as const, href: "/ingles-aeronautico" },
   { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
   { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
-  { id: "shop", label: "Shop", status: "soon" as const },
+  { id: "shop", label: "Shop", status: "available" as const, href: "/shop" },
   { id: "blog", label: "Blog", status: "soon" as const },
 ];
 
 const CURRENT_ITEM_ID = "ingles";
-
-function TeamMemberAvatar({ src, name }: { src: string; name: string }) {
-  const [failed, setFailed] = useState(false);
-  const initials = name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  if (failed) {
-    return (
-      <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-2 border-[#c9a454]/40 bg-gradient-to-br from-[#0f1a33] to-[#16264a] text-2xl font-semibold text-[#f2ddaa] sm:h-32 sm:w-32">
-        {initials || <Plane className="h-8 w-8" aria-hidden />}
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-2 border-[#c9a454]/35 bg-slate-100 ring-2 ring-white sm:h-32 sm:w-32">
-      <Image
-        src={src}
-        alt={name}
-        fill
-        className="h-full w-full rounded-full object-cover"
-        sizes="128px"
-        onError={() => setFailed(true)}
-      />
-    </div>
-  );
-}
 
 export default function InglesAeronauticoPage() {
   const router = useRouter();
@@ -559,32 +529,11 @@ export default function InglesAeronauticoPage() {
         </section>
 
         {/* 5. Equipo */}
-        <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-10 sm:py-11">
-          <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <h2 className="text-center text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
-              El equipo detrás de FlyPath
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-center text-[15px] leading-relaxed text-slate-600 sm:text-base">
-              Un enfoque creado desde la experiencia real de pilotos y formación aeronáutica, para
-              ayudarte a practicar inglés con contexto y criterio.
-            </p>
-            <div className="mt-7 grid grid-cols-1 gap-5 md:grid-cols-3">
-              {TEAM.map((member) => (
-                <article
-                  key={member.id}
-                  className="flex flex-col items-center rounded-xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_8px_22px_rgba(15,26,51,0.05)] sm:p-6"
-                >
-                  <TeamMemberAvatar src={member.image} name={member.name} />
-                  <h3 className="mt-4 text-base font-semibold text-[#0f1a33]">{member.name}</h3>
-                  <p className="mt-1 text-[13px] font-medium uppercase tracking-[0.12em] text-[#7a5a16]">
-                    {member.role}
-                  </p>
-                  <p className="mt-2 text-[14px] leading-relaxed text-slate-600">{member.text}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        <FlyPathTeamSection
+          description="Un enfoque creado desde la experiencia real de pilotos y formación aeronáutica, para ayudarte a practicar inglés con contexto y criterio."
+          members={TEAM}
+          layout="three"
+        />
 
         {/* 6. Reseñas */}
 
