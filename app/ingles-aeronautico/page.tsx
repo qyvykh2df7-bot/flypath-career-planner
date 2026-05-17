@@ -22,7 +22,6 @@ const MAIN_TOAST = "Clases de inglés aeronáutico próximamente";
 /** Sustituir por URLs reales de Cal.com cuando estén disponibles */
 const CALCOM_INDIVIDUAL_URL = "#";
 const CALCOM_PACK_URL = "#";
-const CALCOM_PREP_URL = "#";
 
 const HERO_HIGHLIGHTS = [
   "Clases 1:1 online",
@@ -33,10 +32,34 @@ const HERO_HIGHLIGHTS = [
 ] as const;
 
 const AUDIENCE = [
-  { icon: BookOpen, title: "Quiero ser piloto, pero el inglés me frena." },
-  { icon: GraduationCap, title: "Estoy en PPL/ATPL y me cuesta hablar con fluidez." },
-  { icon: Radio, title: "Quiero preparar comunicaciones ATC reales." },
-  { icon: Mic2, title: "Necesito mejorar para entrevistas o pruebas de selección." },
+  { icon: BookOpen, title: "No sé si mi inglés es suficiente para empezar." },
+  { icon: GraduationCap, title: "Estoy en formación y me falta soltura hablando." },
+  { icon: Radio, title: "Quiero practicar comunicaciones ATC reales." },
+  { icon: Mic2, title: "Tengo entrevistas o pruebas orales próximamente." },
+] as const;
+
+const TEAM = [
+  {
+    id: "jorge-feliu",
+    name: "Jorge Feliu",
+    role: "First Officer B737",
+    text: "Experiencia real en aerolínea y formación de pilotos.",
+    image: "/team/jorge-flypath.jpg",
+  },
+  {
+    id: "socio-formacion",
+    name: "Socio FlyPath",
+    role: "Formación aeronáutica",
+    text: "Apoyo en metodología, planificación y seguimiento.",
+    image: "/team/socio-2-flypath.jpg",
+  },
+  {
+    id: "socio-ingles",
+    name: "Socio FlyPath",
+    role: "Comunicación e inglés",
+    text: "Enfoque práctico para hablar con más seguridad.",
+    image: "/team/socio-3-flypath.jpg",
+  },
 ] as const;
 
 const CLASS_WORK = [
@@ -81,14 +104,6 @@ const MODALITIES = [
     href: CALCOM_PACK_URL,
     featured: true,
   },
-  {
-    title: "Preparación específica",
-    price: "Desde 69 €",
-    text: "Para ICAO English, entrevistas, pruebas orales o situaciones concretas de formación.",
-    cta: "Agendar preparación",
-    href: CALCOM_PREP_URL,
-    featured: false,
-  },
 ] as const;
 
 const TESTIMONIALS = [
@@ -126,6 +141,37 @@ const PLATFORM_MODULES = [
 ];
 
 const CURRENT_ITEM_ID = "ingles";
+
+function TeamMemberAvatar({ src, name }: { src: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  const initials = name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  if (failed) {
+    return (
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#c9a454]/40 bg-gradient-to-br from-[#0f1a33] to-[#16264a] text-lg font-semibold text-[#f2ddaa] sm:h-24 sm:w-24">
+        {initials || <Plane className="h-7 w-7" aria-hidden />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-[#c9a454]/35 bg-slate-100 ring-2 ring-white sm:h-24 sm:w-24">
+      <Image
+        src={src}
+        alt={name}
+        fill
+        className="object-cover"
+        sizes="96px"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
 
 export default function InglesAeronauticoPage() {
   const router = useRouter();
@@ -403,65 +449,77 @@ export default function InglesAeronauticoPage() {
         {/* 3. Modalidades */}
         <section
           id="modalidades-ingles"
-          className="relative border-b border-slate-200/70 bg-[#f4f7fb] py-12 sm:py-14"
+          className="border-b border-slate-200/70 bg-white py-12 sm:py-14"
         >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40"
-            aria-hidden
-            style={{
-              backgroundImage:
-                "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,164,84,0.12), transparent 60%)",
-            }}
-          />
-          <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-              MODALIDADES
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl lg:text-[2rem]">
-              Elige cómo quieres trabajar tu inglés
-            </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
-              Elige una opción, agenda fecha y hora, y completa la reserva de forma sencilla.
-            </p>
-
-            <div className="mt-8 grid grid-cols-1 items-stretch gap-5 md:grid-cols-3 md:gap-6">
-              {MODALITIES.map((mod) => (
-                <div
-                  key={mod.title}
-                  className={`relative flex flex-col rounded-2xl p-5 sm:p-6 ${
-                    mod.featured
-                      ? "order-first border-2 border-[#c9a454] bg-gradient-to-br from-[#fffdf6] via-white to-[#f7f4ea] shadow-[0_24px_56px_rgba(201,164,84,0.22),0_12px_32px_rgba(15,26,51,0.08)] ring-1 ring-[#c9a454]/30 md:order-none md:-translate-y-1 md:p-7"
-                      : "border border-slate-200/80 bg-white shadow-[0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]"
-                  }`}
-                >
-                  {mod.featured ? (
-                    <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-[#c9a454] bg-[#c9a454] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33] shadow-md">
-                      <Sparkles className="h-3 w-3" aria-hidden />
-                      Recomendado
-                    </span>
-                  ) : null}
-                  <h3 className="text-xl font-semibold text-[#0f1a33]">{mod.title}</h3>
-                  <p
-                    className={`mt-3 text-2xl font-semibold tracking-tight ${
-                      mod.featured ? "text-[#7a5a16]" : "text-[#0f1a33]"
-                    }`}
-                  >
-                    {mod.price}
-                  </p>
-                  <p className="mt-2 flex-1 text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
-                  <a
-                    href={mod.href}
-                    onClick={(e) => handleCalLinkClick(e, mod.href)}
-                    className={`mt-5 inline-flex min-h-[44px] items-center justify-center rounded-2xl px-6 py-2.5 text-[15px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 ${
-                      mod.featured
-                        ? "border border-[#c9a454] bg-[#c9a454] text-[#0f1a33] shadow-[0_12px_32px_rgba(201,164,84,0.35)] hover:bg-[#ddb75c] focus-visible:ring-[#c9a454]/55"
-                        : "border border-[#0f1a33]/15 bg-[#0f1a33] text-white shadow-sm hover:bg-[#16264a] focus-visible:ring-[#0f1a33]/40"
-                    }`}
-                  >
-                    {mod.cta}
-                  </a>
+          <div className="mx-auto max-w-5xl px-6 lg:px-10">
+            <div className="relative overflow-hidden rounded-3xl border border-[#c9a454]/25 bg-gradient-to-b from-[#fffdf8] via-white to-[#f7f9fc] p-6 shadow-[0_20px_52px_rgba(15,26,51,0.08)] ring-1 ring-[#c9a454]/20 sm:p-8 lg:p-10">
+              <div
+                className="pointer-events-none absolute inset-0 opacity-50"
+                aria-hidden
+                style={{
+                  backgroundImage:
+                    "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,164,84,0.14), transparent 55%)",
+                }}
+              />
+              <div className="relative">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
+                  MODALIDADES
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl lg:text-[2rem]">
+                  Elige cómo quieres trabajar tu inglés
+                </h2>
+                <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
+                  Elige entre una clase individual para empezar o un pack de clases para trabajar con
+                  seguimiento.
+                </p>
+                <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 items-stretch gap-5 md:max-w-none md:grid-cols-2 md:gap-6">
+                  {MODALITIES.map((mod) => (
+                    <div
+                      key={mod.title}
+                      className={`relative h-full ${mod.featured ? "order-first md:order-none" : ""}`}
+                    >
+                      {mod.featured ? (
+                        <span className="pointer-events-none absolute -top-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-[#c9a454] bg-[#c9a454] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33] shadow-md">
+                          <Sparkles className="h-3 w-3" aria-hidden />
+                          Recomendado
+                        </span>
+                      ) : null}
+                      <div
+                        className={`flex h-full min-h-[260px] flex-col rounded-2xl p-6 ${
+                          mod.featured
+                            ? "border-2 border-[#c9a454] bg-gradient-to-br from-[#fffdf6] via-white to-[#f7f4ea] shadow-[0_24px_56px_rgba(201,164,84,0.22),0_12px_32px_rgba(15,26,51,0.08)] ring-1 ring-[#c9a454]/30"
+                            : "border border-slate-200/80 bg-white shadow-[0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]"
+                        }`}
+                      >
+                        <div>
+                          <h3 className="text-xl font-semibold text-[#0f1a33]">{mod.title}</h3>
+                          <p
+                            className={`mt-3 text-2xl font-semibold tracking-tight ${
+                              mod.featured ? "text-[#7a5a16]" : "text-[#0f1a33]"
+                            }`}
+                          >
+                            {mod.price}
+                          </p>
+                          <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                        </div>
+                        <div className="mt-auto pt-6">
+                          <a
+                            href={mod.href}
+                            onClick={(e) => handleCalLinkClick(e, mod.href)}
+                            className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl px-6 py-2.5 text-[15px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 ${
+                              mod.featured
+                                ? "border border-[#c9a454] bg-[#c9a454] text-[#0f1a33] shadow-[0_12px_32px_rgba(201,164,84,0.35)] hover:bg-[#ddb75c] focus-visible:ring-[#c9a454]/55"
+                                : "border border-[#0f1a33]/15 bg-[#0f1a33] text-white shadow-sm hover:bg-[#16264a] focus-visible:ring-[#0f1a33]/40"
+                            }`}
+                          >
+                            {mod.cta}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </section>
@@ -500,7 +558,36 @@ export default function InglesAeronauticoPage() {
           </div>
         </section>
 
-        {/* 5. Reseñas */}
+        {/* 5. Equipo */}
+        <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-10 sm:py-11">
+          <div className="mx-auto max-w-6xl px-6 lg:px-10">
+            <h2 className="text-center text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
+              El equipo detrás de FlyPath
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-[15px] leading-relaxed text-slate-600 sm:text-base">
+              Un enfoque creado desde la experiencia real de pilotos y formación aeronáutica, para
+              ayudarte a practicar inglés con contexto y criterio.
+            </p>
+            <div className="mt-7 grid grid-cols-1 gap-5 md:grid-cols-3">
+              {TEAM.map((member) => (
+                <article
+                  key={member.id}
+                  className="flex flex-col items-center rounded-xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_8px_22px_rgba(15,26,51,0.05)] sm:p-6"
+                >
+                  <TeamMemberAvatar src={member.image} name={member.name} />
+                  <h3 className="mt-4 text-base font-semibold text-[#0f1a33]">{member.name}</h3>
+                  <p className="mt-1 text-[13px] font-medium uppercase tracking-[0.12em] text-[#7a5a16]">
+                    {member.role}
+                  </p>
+                  <p className="mt-2 text-[14px] leading-relaxed text-slate-600">{member.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 6. Reseñas */}
+
         <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-10 sm:py-11">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <h2 className="text-center text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
@@ -512,7 +599,13 @@ export default function InglesAeronauticoPage() {
                   key={t.author}
                   className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-[0_8px_22px_rgba(15,26,51,0.05)] sm:p-5"
                 >
-                  <blockquote className="text-[15px] leading-relaxed text-slate-600">
+                  <p
+                    className="text-sm tracking-wide text-[#c9a454]"
+                    aria-label="5 estrellas"
+                  >
+                    ★★★★★
+                  </p>
+                  <blockquote className="mt-2 text-[15px] leading-relaxed text-slate-600">
                     &ldquo;{t.quote}&rdquo;
                   </blockquote>
                   <figcaption className="mt-3 text-[13px] font-semibold text-[#7a5a16]">
@@ -524,7 +617,7 @@ export default function InglesAeronauticoPage() {
           </div>
         </section>
 
-        {/* 6. Por qué FlyPath (compacto) */}
+        {/* 7. Por qué FlyPath (compacto) */}
         <section className="relative overflow-hidden border-b border-slate-200/70 bg-gradient-to-b from-[#0f1a33] to-[#16264a] py-10 text-white sm:py-12">
           <div
             className="pointer-events-none absolute inset-0 opacity-60"
@@ -556,7 +649,7 @@ export default function InglesAeronauticoPage() {
           </div>
         </section>
 
-        {/* 7. CTA final */}
+        {/* 8. CTA final */}
         <section className="bg-gradient-to-b from-[#f8fafc] to-white py-10 sm:py-12">
           <div className="mx-auto max-w-3xl px-6 text-center lg:px-10">
             <h2 className="text-2xl font-semibold tracking-tight text-[#0f1a33] sm:text-3xl">
