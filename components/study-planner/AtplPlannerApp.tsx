@@ -1,18 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, LayoutDashboard, BookOpen, PenLine, Calendar, ClipboardList, RotateCcw, TrendingUp } from "lucide-react";
+import {
+  ArrowRight,
+  LayoutDashboard,
+  BookOpen,
+  PenLine,
+  Calendar,
+  ClipboardList,
+  RotateCcw,
+  TrendingUp,
+  AlertTriangle,
+  Compass,
+} from "lucide-react";
 import {
   DEFAULT_ATPL_PLANNER_STATE,
   type AtplPlannerState,
+  type MockResult,
   type PlannedStudySession,
+  type ErrorLogItem,
+  type ErrorLogStatus,
+  type ReviewItem,
   type StudyMode,
   type StudySession,
 } from "@/lib/study-planner/types";
-import { createPlannerId } from "@/lib/study-planner/calculations";
+import { addDaysToDate, createPlannerId, getTodayDateString } from "@/lib/study-planner/calculations";
 import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
 import {
+  filterErrorLogItemsByMode,
+  filterMockResultsByMode,
   filterPlannedSessionsByMode,
+  filterReviewItemsByMode,
   filterSessionsByMode,
   getSubjectsByMode,
 } from "@/lib/study-planner/subjects";
@@ -24,6 +42,16 @@ import { StudyLogTable } from "./StudyLogTable";
 import { StudyProgressCharts } from "./StudyProgressCharts";
 import { PlannedSessionForm } from "./PlannedSessionForm";
 import { StudyWeeklyCalendar } from "./StudyWeeklyCalendar";
+import { MockResultForm } from "./MockResultForm";
+import { MockSubjectSummary } from "./MockSubjectSummary";
+import { MockResultsTable } from "./MockResultsTable";
+import { SubjectReadinessOverview } from "./SubjectReadinessOverview";
+import { ReviewItemForm } from "./ReviewItemForm";
+import { ReviewItemsList } from "./ReviewItemsList";
+import { ErrorLogForm } from "./ErrorLogForm";
+import { ErrorLogSummary } from "./ErrorLogSummary";
+import { ErrorLogList } from "./ErrorLogList";
+import { RecoveryMode } from "./RecoveryMode";
 
 type PlannerTab =
   | "dashboard"
@@ -32,6 +60,8 @@ type PlannerTab =
   | "calendar"
   | "mocks"
   | "reviews"
+  | "errors"
+  | "recovery"
   | "progress";
 
 const TABS: { id: PlannerTab; label: string; icon: typeof LayoutDashboard }[] = [
@@ -41,6 +71,8 @@ const TABS: { id: PlannerTab; label: string; icon: typeof LayoutDashboard }[] = 
   { id: "calendar", label: "Calendario", icon: Calendar },
   { id: "mocks", label: "Mocks", icon: ClipboardList },
   { id: "reviews", label: "Repasos", icon: RotateCcw },
+  { id: "errors", label: "Errores", icon: AlertTriangle },
+  { id: "recovery", label: "Estoy perdido", icon: Compass },
   { id: "progress", label: "Progreso", icon: TrendingUp },
 ];
 
@@ -62,12 +94,25 @@ export function AtplPlannerApp() {
     saveStudyPlannerState(state);
   }, [state, hydrated]);
 
-  const { mode, weeklyGoalMinutes, sessions, plannedSessions } = state;
+  const { mode, weeklyGoalMinutes, sessions, plannedSessions, mockResults, reviewItems, errorLogItems } =
+    state;
   const subjects = useMemo(() => getSubjectsByMode(mode), [mode]);
   const modeSessions = useMemo(() => filterSessionsByMode(sessions, mode), [sessions, mode]);
   const modePlannedSessions = useMemo(
     () => filterPlannedSessionsByMode(plannedSessions, mode),
     [plannedSessions, mode],
+  );
+  const modeMockResults = useMemo(
+    () => filterMockResultsByMode(mockResults, mode),
+    [mockResults, mode],
+  );
+  const modeReviewItems = useMemo(
+    () => filterReviewItemsByMode(reviewItems, mode),
+    [reviewItems, mode],
+  );
+  const modeErrorLogItems = useMemo(
+    () => filterErrorLogItemsByMode(errorLogItems, mode),
+    [errorLogItems, mode],
   );
 
   const setMode = useCallback((next: StudyMode) => {
@@ -136,6 +181,87 @@ export function AtplPlannerApp() {
     setState((prev) => ({
       ...prev,
       plannedSessions: prev.plannedSessions.filter((p) => p.id !== plannedId),
+    }));
+  }, []);
+
+  const addMockResult = useCallback((mock: MockResult) => {
+    setState((prev) => ({
+      ...prev,
+      mockResults: [...prev.mockResults, mock],
+    }));
+  }, []);
+
+  const deleteMockResult = useCallback((mockId: string) => {
+    setState((prev) => ({
+      ...prev,
+      mockResults: prev.mockResults.filter((m) => m.id !== mockId),
+    }));
+  }, []);
+
+  const addReviewItem = useCallback((item: ReviewItem) => {
+    setState((prev) => ({
+      ...prev,
+      reviewItems: [...prev.reviewItems, item],
+    }));
+  }, []);
+
+  const completeReviewItem = useCallback((reviewId: string) => {
+    const today = getTodayDateString();
+    setState((prev) => ({
+      ...prev,
+      reviewItems: prev.reviewItems.map((r) =>
+        r.id === reviewId
+          ? { ...r, status: "completed" as const, completedAt: today }
+          : r,
+      ),
+    }));
+  }, []);
+
+  const rescheduleReviewItem = useCallback((reviewId: string, days: number) => {
+    const today = getTodayDateString();
+    const dueDate = addDaysToDate(today, days);
+    setState((prev) => ({
+      ...prev,
+      reviewItems: prev.reviewItems.map((r) => {
+        if (r.id !== reviewId) return r;
+        const { completedAt: _removed, ...rest } = r;
+        return {
+          ...rest,
+          dueDate,
+          intervalDays: days,
+          status: "pending" as const,
+        };
+      }),
+    }));
+  }, []);
+
+  const deleteReviewItem = useCallback((reviewId: string) => {
+    setState((prev) => ({
+      ...prev,
+      reviewItems: prev.reviewItems.filter((r) => r.id !== reviewId),
+    }));
+  }, []);
+
+  const addErrorLogItem = useCallback((item: ErrorLogItem) => {
+    setState((prev) => ({
+      ...prev,
+      errorLogItems: [...prev.errorLogItems, item],
+    }));
+  }, []);
+
+  const setErrorLogStatus = useCallback((errorId: string, status: ErrorLogStatus) => {
+    setState((prev) => ({
+      ...prev,
+      errorLogItems: prev.errorLogItems.map((e) =>
+        e.id === errorId ? { ...e, status } : e,
+      ),
+    }));
+  }, []);
+
+  const deleteErrorLogItem = useCallback((errorId: string) => {
+    setState((prev) => ({
+      ...prev,
+      errorLogItems: prev.errorLogItems.filter((e) => e.id !== errorId),
     }));
   }, []);
 
@@ -233,19 +359,35 @@ export function AtplPlannerApp() {
                   <StudyDashboard
                     sessions={modeSessions}
                     plannedSessions={modePlannedSessions}
+                    mockResults={modeMockResults}
+                    reviewItems={modeReviewItems}
+                    errorLogItems={modeErrorLogItems}
                     weeklyGoalMinutes={weeklyGoalMinutes}
                     subjects={subjects}
                     onWeeklyGoalHoursChange={setWeeklyGoalHours}
+                    onGoToRecovery={() => {
+                      setActiveTab("recovery");
+                      requestAnimationFrame(() => scrollToWorkspace());
+                    }}
                   />
                 </div>
               ) : null}
 
               {activeTab === "subjects" ? (
-                <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">
-                    Asignaturas ({mode.toUpperCase()})
-                  </h3>
-                  <SubjectOverview subjects={subjects} sessions={modeSessions} />
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">
+                      Asignaturas ({mode.toUpperCase()})
+                    </h3>
+                    <SubjectOverview subjects={subjects} sessions={modeSessions} />
+                  </div>
+                  <SubjectReadinessOverview
+                    mode={mode}
+                    subjects={subjects}
+                    sessions={modeSessions}
+                    mockResults={modeMockResults}
+                    errorLogItems={modeErrorLogItems}
+                  />
                 </div>
               ) : null}
 
@@ -261,6 +403,26 @@ export function AtplPlannerApp() {
                   <div>
                     <h4 className="mb-3 text-[15px] font-semibold text-[#0f1a33]">Sesiones registradas</h4>
                     <StudyLogTable sessions={modeSessions} onDelete={deleteSession} />
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTab === "mocks" ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Mocks</h3>
+                    <p className="mt-1 text-[14px] text-slate-600">
+                      Registra tus mocks por asignatura para controlar tu evolución antes del examen.
+                    </p>
+                  </div>
+                  <MockResultForm subjects={subjects} onAddMockResult={addMockResult} />
+                  <div>
+                    <h4 className="mb-3 text-[15px] font-semibold text-[#0f1a33]">Resumen por asignatura</h4>
+                    <MockSubjectSummary mockResults={modeMockResults} />
+                  </div>
+                  <div>
+                    <h4 className="mb-3 text-[15px] font-semibold text-[#0f1a33]">Historial de mocks</h4>
+                    <MockResultsTable mockResults={modeMockResults} onDelete={deleteMockResult} />
                   </div>
                 </div>
               ) : null}
@@ -283,6 +445,59 @@ export function AtplPlannerApp() {
                 </div>
               ) : null}
 
+              {activeTab === "reviews" ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Repasos</h3>
+                    <p className="mt-1 text-[14px] text-slate-600">
+                      Programa temas para revisar y evita que se te acumulen antes del examen.
+                    </p>
+                  </div>
+                  <ReviewItemForm subjects={subjects} onAddReviewItem={addReviewItem} />
+                  <ReviewItemsList
+                    reviewItems={modeReviewItems}
+                    onComplete={completeReviewItem}
+                    onReschedule={rescheduleReviewItem}
+                    onDelete={deleteReviewItem}
+                  />
+                </div>
+              ) : null}
+
+              {activeTab === "errors" ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Error log</h3>
+                    <p className="mt-1 text-[14px] text-slate-600">
+                      Registra los errores que repites para detectar patrones y corregirlos antes del examen.
+                    </p>
+                  </div>
+                  <ErrorLogForm subjects={subjects} onAddErrorLogItem={addErrorLogItem} />
+                  <ErrorLogSummary
+                    errorLogItems={modeErrorLogItems}
+                    subjects={subjects}
+                    mode={mode}
+                  />
+                  <ErrorLogList
+                    errorLogItems={modeErrorLogItems}
+                    onSetStatus={setErrorLogStatus}
+                    onDelete={deleteErrorLogItem}
+                  />
+                </div>
+              ) : null}
+
+              {activeTab === "recovery" ? (
+                <RecoveryMode
+                  mode={mode}
+                  subjects={subjects}
+                  sessions={modeSessions}
+                  plannedSessions={modePlannedSessions}
+                  mockResults={modeMockResults}
+                  reviewItems={modeReviewItems}
+                  errorLogItems={modeErrorLogItems}
+                  weeklyGoalMinutes={weeklyGoalMinutes}
+                />
+              ) : null}
+
               {activeTab === "progress" ? (
                 <div className="space-y-4">
                   <div>
@@ -294,6 +509,7 @@ export function AtplPlannerApp() {
                   <StudyProgressCharts
                     mode={mode}
                     sessions={modeSessions}
+                    mockResults={modeMockResults}
                     subjects={subjects}
                     weeklyGoalMinutes={weeklyGoalMinutes}
                   />
@@ -304,6 +520,10 @@ export function AtplPlannerApp() {
               activeTab !== "subjects" &&
               activeTab !== "log" &&
               activeTab !== "calendar" &&
+              activeTab !== "mocks" &&
+              activeTab !== "reviews" &&
+              activeTab !== "errors" &&
+              activeTab !== "recovery" &&
               activeTab !== "progress" ? (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
                   <p className="text-[15px] font-medium text-slate-700">{PLACEHOLDER_MSG}</p>

@@ -1,33 +1,60 @@
 "use client";
 
-import type { PlannedStudySession, StudySession, StudySubject } from "@/lib/study-planner/types";
+import type {
+  MockResult,
+  PlannedStudySession,
+  ErrorLogItem,
+  ReviewItem,
+  StudySession,
+  StudySubject,
+} from "@/lib/study-planner/types";
 import {
   calculateActiveSubjectIds,
   calculateCompletedPlannedMinutes,
   calculatePlannedMinutes,
+  calculateOverdueReviewCount,
+  calculatePendingErrorCount,
+  calculatePendingReviewCount,
+  calculateReadinessForSubjects,
   calculateStudyHealth,
   calculateTotalStudyMinutes,
+  getErrorDashboardHint,
+  getReviewDashboardHint,
+  formatMockScore,
+  getLatestMock,
+  getMocksForCurrentWeek,
   getPlannedSessionsForCurrentWeek,
+  getReadinessDashboardHint,
+  getReadinessSummary,
   getSessionsForCurrentWeek,
   getWeeklyGoalStatusMessage,
   minutesToHoursLabel,
   studyHealthLabel,
 } from "@/lib/study-planner/calculations";
+import { getSubjectById } from "@/lib/study-planner/subjects";
 
 type StudyDashboardProps = {
   sessions: StudySession[];
   plannedSessions: PlannedStudySession[];
+  mockResults: MockResult[];
+  reviewItems: ReviewItem[];
+  errorLogItems: ErrorLogItem[];
   weeklyGoalMinutes: number;
   subjects: StudySubject[];
   onWeeklyGoalHoursChange: (hours: number) => void;
+  onGoToRecovery?: () => void;
 };
 
 export function StudyDashboard({
   sessions,
   plannedSessions,
+  mockResults,
+  reviewItems,
+  errorLogItems,
   weeklyGoalMinutes,
   subjects,
   onWeeklyGoalHoursChange,
+  onGoToRecovery,
 }: StudyDashboardProps) {
   const weekSessions = getSessionsForCurrentWeek(sessions);
   const weekMinutes = calculateTotalStudyMinutes(weekSessions);
@@ -47,6 +74,19 @@ export function StudyDashboard({
   const hasPlannedData = weekPlanned.length > 0;
   const plannedFulfillmentPct =
     plannedMinutes > 0 ? Math.round((completedPlannedMinutes / plannedMinutes) * 100) : 0;
+  const weekMocks = getMocksForCurrentWeek(mockResults);
+  const latestMock = getLatestMock(mockResults);
+  const readinessList = calculateReadinessForSubjects({
+    subjectIds: subjects.map((s) => s.id),
+    sessions,
+    mockResults,
+  });
+  const readinessSummary = getReadinessSummary(readinessList);
+  const readinessHint = getReadinessDashboardHint(readinessSummary);
+  const pendingReviews = calculatePendingReviewCount(reviewItems);
+  const overdueReviews = calculateOverdueReviewCount(reviewItems);
+  const reviewDashboard = getReviewDashboardHint(pendingReviews, overdueReviews);
+  const errorDashboard = getErrorDashboardHint(errorLogItems);
 
   const handleGoalInput = (value: string) => {
     const parsed = parseInt(value, 10);
@@ -112,7 +152,47 @@ export function StudyDashboard({
           hint="Con sesión en los últimos 14 días (modo actual)"
         />
         <DashboardCard label="Próximo examen" value="Sin configurar" hint="Podrás añadir fechas más adelante" />
-        <DashboardCard label="Repasos pendientes" value="0" hint="Los repasos aparecerán aquí" />
+        <DashboardCard
+          label="Repasos pendientes"
+          value={reviewDashboard.value}
+          hint={reviewDashboard.hint}
+          highlight={overdueReviews > 0}
+        />
+        <DashboardCard
+          label="Errores"
+          value={errorDashboard.value}
+          hint={errorDashboard.hint}
+          highlight={errorLogItems.length > 0 && calculatePendingErrorCount(errorLogItems) > 0}
+        />
+        <DashboardCard
+          label="Readiness"
+          value={
+            readinessSummary.averageScore !== null
+              ? `${readinessSummary.averageScore}/100`
+              : "Sin datos"
+          }
+          hint={readinessHint}
+          highlight={
+            readinessSummary.withDataCount > 0 &&
+            readinessSummary.lowCount === 0 &&
+            readinessSummary.solidCount + readinessSummary.highCount > 0
+          }
+        />
+        <DashboardCard
+          label="Mocks"
+          value={
+            latestMock
+              ? formatMockScore(latestMock.score)
+              : "Sin mocks todavía"
+          }
+          hint={
+            weekMocks.length > 0
+              ? `${weekMocks.length} mock${weekMocks.length === 1 ? "" : "s"} esta semana · último: ${getSubjectById(latestMock!.subjectId)?.name ?? latestMock!.subjectId}`
+              : mockResults.length > 0
+                ? `Último: ${getSubjectById(latestMock!.subjectId)?.name ?? latestMock!.subjectId} (${latestMock!.date})`
+                : "Registra mocks en la pestaña Mocks"
+          }
+        />
         <DashboardCard
           label="Study Health"
           value={studyHealthLabel(health.level)}
@@ -120,6 +200,24 @@ export function StudyDashboard({
           highlight={health.level === "good"}
         />
       </div>
+
+      {onGoToRecovery ? (
+        <div className="rounded-xl border border-[#0f1a33]/15 bg-gradient-to-br from-[#0f1a33] to-[#1a2d52] p-4 text-white shadow-sm sm:p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]">
+            ¿Estás perdido?
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-slate-100">
+            Genera un plan de recuperación para los próximos 7 días.
+          </p>
+          <button
+            type="button"
+            onClick={onGoToRecovery}
+            className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[14px] font-semibold text-[#0f1a33] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+          >
+            Ir a Estoy perdido
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,12 @@
 import {
   DEFAULT_ATPL_PLANNER_STATE,
   type AtplPlannerState,
+  type MockResult,
+  type ErrorLogItem,
+  type ErrorLogStatus,
+  type ErrorLogType,
+  type ReviewItem,
+  type ReviewStatus,
   type PlannedStudySession,
   type PlannedStudySessionStatus,
   type StudyMode,
@@ -24,6 +30,22 @@ const QUALITIES: StudySessionQuality[] = ["good", "medium", "bad"];
 
 const PLANNED_STATUSES: PlannedStudySessionStatus[] = ["planned", "completed", "skipped"];
 
+const REVIEW_STATUSES: ReviewStatus[] = ["pending", "completed", "overdue"];
+
+const ERROR_LOG_STATUSES: ErrorLogStatus[] = ["pending", "reviewed", "resolved"];
+
+const ERROR_LOG_TYPES: ErrorLogType[] = [
+  "concept",
+  "formula",
+  "unit_conversion",
+  "fast_reading",
+  "procedure",
+  "english_comprehension",
+  "memory",
+  "distraction",
+  "other",
+];
+
 function isStudyMode(v: unknown): v is StudyMode {
   return v === "atpl" || v === "ppl";
 }
@@ -38,6 +60,18 @@ function isQuality(v: unknown): v is StudySessionQuality {
 
 function isPlannedStatus(v: unknown): v is PlannedStudySessionStatus {
   return typeof v === "string" && PLANNED_STATUSES.includes(v as PlannedStudySessionStatus);
+}
+
+function isReviewStatus(v: unknown): v is ReviewStatus {
+  return typeof v === "string" && REVIEW_STATUSES.includes(v as ReviewStatus);
+}
+
+function isErrorLogStatus(v: unknown): v is ErrorLogStatus {
+  return typeof v === "string" && ERROR_LOG_STATUSES.includes(v as ErrorLogStatus);
+}
+
+function isErrorLogType(v: unknown): v is ErrorLogType {
+  return typeof v === "string" && ERROR_LOG_TYPES.includes(v as ErrorLogType);
 }
 
 function parseSession(raw: unknown): StudySession | null {
@@ -95,6 +129,102 @@ function parsePlannedSession(raw: unknown): PlannedStudySession | null {
   return planned;
 }
 
+function parseMockResult(raw: unknown): MockResult | null {
+  if (!raw || typeof raw !== "object") return null;
+  const m = raw as Record<string, unknown>;
+  if (typeof m.id !== "string" || typeof m.date !== "string" || typeof m.subjectId !== "string") {
+    return null;
+  }
+  const score = Number(m.score);
+  if (!Number.isFinite(score) || score < 0 || score > 100) return null;
+
+  const mock: MockResult = {
+    id: m.id,
+    date: m.date,
+    subjectId: m.subjectId,
+    score,
+  };
+  if (typeof m.bank === "string" && m.bank.length > 0) mock.bank = m.bank;
+  const durationMinutes = Number(m.durationMinutes);
+  if (Number.isFinite(durationMinutes) && durationMinutes > 0) {
+    mock.durationMinutes = Math.round(durationMinutes);
+  }
+  if (typeof m.notes === "string" && m.notes.length > 0) mock.notes = m.notes;
+  return mock;
+}
+
+function parseReviewItem(raw: unknown): ReviewItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (
+    typeof r.id !== "string" ||
+    typeof r.subjectId !== "string" ||
+    typeof r.topic !== "string" ||
+    typeof r.createdAt !== "string" ||
+    typeof r.dueDate !== "string"
+  ) {
+    return null;
+  }
+  if (!r.topic.trim()) return null;
+  const intervalDays = Number(r.intervalDays);
+  if (!Number.isFinite(intervalDays) || intervalDays < 1) return null;
+  if (!isReviewStatus(r.status)) return null;
+
+  const item: ReviewItem = {
+    id: r.id,
+    subjectId: r.subjectId,
+    topic: r.topic.trim(),
+    createdAt: r.createdAt,
+    dueDate: r.dueDate,
+    intervalDays: Math.round(intervalDays),
+    status: r.status,
+  };
+  if (typeof r.completedAt === "string" && r.completedAt.length > 0) {
+    item.completedAt = r.completedAt;
+  }
+  if (typeof r.notes === "string" && r.notes.length > 0) {
+    item.notes = r.notes;
+  }
+  return item;
+}
+
+function parseErrorLogItem(raw: unknown): ErrorLogItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const e = raw as Record<string, unknown>;
+  if (
+    typeof e.id !== "string" ||
+    typeof e.date !== "string" ||
+    typeof e.subjectId !== "string" ||
+    typeof e.topic !== "string" ||
+    typeof e.description !== "string"
+  ) {
+    return null;
+  }
+  if (!e.topic.trim() || !e.description.trim()) return null;
+  if (!isErrorLogType(e.type)) return null;
+  if (!isErrorLogStatus(e.status)) return null;
+
+  const item: ErrorLogItem = {
+    id: e.id,
+    date: e.date,
+    subjectId: e.subjectId,
+    topic: e.topic.trim(),
+    type: e.type,
+    description: e.description.trim(),
+    status: e.status,
+  };
+  if (typeof e.correctiveAction === "string" && e.correctiveAction.length > 0) {
+    item.correctiveAction = e.correctiveAction;
+  }
+  if (typeof e.linkedMockId === "string" && e.linkedMockId.length > 0) {
+    item.linkedMockId = e.linkedMockId;
+  }
+  if (typeof e.notes === "string" && e.notes.length > 0) {
+    item.notes = e.notes;
+  }
+  return item;
+}
+
 export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
   const fallback = DEFAULT_ATPL_PLANNER_STATE;
   if (!raw || typeof raw !== "object") return fallback;
@@ -117,7 +247,30 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
     .map(parsePlannedSession)
     .filter((p): p is PlannedStudySession => p !== null);
 
-  return { mode, weeklyGoalMinutes: goal, sessions, plannedSessions };
+  const mocksRaw = Array.isArray(o.mockResults) ? o.mockResults : [];
+  const mockResults = mocksRaw
+    .map(parseMockResult)
+    .filter((m): m is MockResult => m !== null);
+
+  const reviewsRaw = Array.isArray(o.reviewItems) ? o.reviewItems : [];
+  const reviewItems = reviewsRaw
+    .map(parseReviewItem)
+    .filter((r): r is ReviewItem => r !== null);
+
+  const errorsRaw = Array.isArray(o.errorLogItems) ? o.errorLogItems : [];
+  const errorLogItems = errorsRaw
+    .map(parseErrorLogItem)
+    .filter((e): e is ErrorLogItem => e !== null);
+
+  return {
+    mode,
+    weeklyGoalMinutes: goal,
+    sessions,
+    plannedSessions,
+    mockResults,
+    reviewItems,
+    errorLogItems,
+  };
 }
 
 export function loadStudyPlannerState<T>(fallback: T): T {

@@ -1,4 +1,12 @@
-import type { StudyMode, StudySession, StudySubject, PlannedStudySession } from "./types";
+import type {
+  StudyMode,
+  StudySession,
+  StudySubject,
+  PlannedStudySession,
+  MockResult,
+  ReviewItem,
+  ErrorLogItem,
+} from "./types";
 
 const pplNames = [
   "Air Law",
@@ -70,4 +78,22 @@ export function filterPlannedSessionsByMode(
 ): PlannedStudySession[] {
   const ids = getSubjectIdsForMode(mode);
   return plannedSessions.filter((p) => ids.has(p.subjectId));
+}
+
+export function filterMockResultsByMode(mockResults: MockResult[], mode: StudyMode): MockResult[] {
+  const ids = getSubjectIdsForMode(mode);
+  return mockResults.filter((m) => ids.has(m.subjectId));
+}
+
+export function filterReviewItemsByMode(reviewItems: ReviewItem[], mode: StudyMode): ReviewItem[] {
+  const ids = getSubjectIdsForMode(mode);
+  return reviewItems.filter((r) => ids.has(r.subjectId));
+}
+
+export function filterErrorLogItemsByMode(
+  errorLogItems: ErrorLogItem[],
+  mode: StudyMode,
+): ErrorLogItem[] {
+  const ids = getSubjectIdsForMode(mode);
+  return errorLogItems.filter((e) => ids.has(e.subjectId));
 }

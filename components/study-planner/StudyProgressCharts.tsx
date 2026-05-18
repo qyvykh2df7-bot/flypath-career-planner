@@ -1,12 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { StudyMode, StudySession, StudySubject } from "@/lib/study-planner/types";
+import type { MockResult, StudyMode, StudySession, StudySubject } from "@/lib/study-planner/types";
 import {
+  READINESS_LEVEL_LABELS,
   calculateMinutesByDate,
   calculateMinutesBySubject,
+  calculateReadinessForSubjects,
   calculateTotalStudyMinutes,
   calculateWeeklyCompletionPercentage,
+  formatMockScore,
   formatShortDate,
   getDayShortLabel,
   getLastNDays,
@@ -15,12 +18,15 @@ import {
   getSessionsForCurrentWeek,
   getWeeklyGoalStatusMessage,
   minutesToHoursLabel,
+  sortMocksByDateDesc,
+  sortReadinessForDisplay,
 } from "@/lib/study-planner/calculations";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 
 type StudyProgressChartsProps = {
   mode: StudyMode;
   sessions: StudySession[];
+  mockResults: MockResult[];
   subjects: StudySubject[];
   weeklyGoalMinutes: number;
 };
@@ -69,6 +75,7 @@ function EmptyState({ message }: { message: string }) {
 export function StudyProgressCharts({
   mode,
   sessions,
+  mockResults,
   subjects,
   weeklyGoalMinutes,
 }: StudyProgressChartsProps) {
@@ -109,6 +116,16 @@ export function StudyProgressCharts({
   const mostId = getMostStudiedSubjectId(sessions);
   const leastId = getLeastStudiedSubjectId(sessions, subjects.map((s) => s.id));
   const leastMinutes = leastId ? (minutesBySubject[leastId] ?? 0) : 0;
+
+  const recentMocks = sortMocksByDateDesc(mockResults).slice(0, 5);
+
+  const readinessRows = sortReadinessForDisplay(
+    calculateReadinessForSubjects({
+      subjectIds: subjects.map((s) => s.id),
+      sessions,
+      mockResults,
+    }),
+  ).filter((r) => r.level !== "no_data");
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -209,6 +226,59 @@ export function StudyProgressCharts({
               className="sm:col-span-2"
             />
           </dl>
+        )}
+      </ChartCard>
+
+      <ChartCard title="Evolución de mocks">
+        {recentMocks.length === 0 ? (
+          <EmptyState message="Registra mocks para ver tu evolución de notas." />
+        ) : (
+          <ul className="space-y-3">
+            {recentMocks.map((mock) => (
+              <li key={mock.id}>
+                <div className="flex items-center justify-between gap-2 text-[14px]">
+                  <span className="min-w-0 truncate font-medium text-[#0f1a33]">
+                    {getSubjectById(mock.subjectId)?.name ?? mock.subjectId}
+                  </span>
+                  <span className="shrink-0 tabular-nums font-semibold text-slate-700">
+                    {formatMockScore(mock.score)}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[12px] text-slate-500">{mock.date}</p>
+                <div className="mt-1.5">
+                  <ProgressBar value={mock.score} max={100} variant="gold" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </ChartCard>
+
+      <ChartCard title="Readiness por asignatura">
+        {readinessRows.length === 0 ? (
+          <EmptyState message="Registra horas o mocks para ver readiness orientativo por asignatura." />
+        ) : (
+          <ul className="space-y-3">
+            {readinessRows.map((row) => (
+              <li key={row.subjectId}>
+                <div className="flex items-center justify-between gap-2 text-[14px]">
+                  <span className="min-w-0 truncate font-medium text-[#0f1a33]">
+                    {getSubjectById(row.subjectId)?.name ?? row.subjectId}
+                  </span>
+                  <span className="shrink-0 text-[12px] font-semibold text-slate-600">
+                    {READINESS_LEVEL_LABELS[row.level]}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-2 text-[13px]">
+                  <span className="tabular-nums text-slate-600">{row.score}/100</span>
+                  <span className="text-[11px] text-slate-400">orientativo</span>
+                </div>
+                <div className="mt-1.5">
+                  <ProgressBar value={row.score} max={100} variant="navy" />
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </ChartCard>
     </div>
