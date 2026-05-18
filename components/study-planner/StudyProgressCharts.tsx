@@ -46,9 +46,9 @@ function ProgressBar({
       ? "bg-gradient-to-r from-[#c9a454] to-[#ddb75c]"
       : "bg-gradient-to-r from-[#0f1a33] to-[#1a2d52]";
   return (
-    <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100" role="presentation">
+    <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200/50" role="presentation">
       <div
-        className={`h-full rounded-full transition-all ${fill}`}
+        className={`h-full rounded-full transition-all duration-300 ${fill}`}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -57,16 +57,16 @@ function ProgressBar({
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80 sm:p-5">
-      <h4 className="text-[15px] font-semibold text-[#0f1a33]">{title}</h4>
-      <div className="mt-4">{children}</div>
+    <section className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm ring-1 ring-slate-100/80 sm:p-4">
+      <h4 className="text-[14px] font-semibold text-[#0f1a33]">{title}</h4>
+      <div className="mt-3">{children}</div>
     </section>
   );
 }
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-[14px] text-slate-600">
+    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-center text-[14px] text-slate-600">
       {message}
     </p>
   );
@@ -128,7 +128,7 @@ export function StudyProgressCharts({
   ).filter((r) => r.level !== "no_data");
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="grid gap-3 lg:grid-cols-2">
       <ChartCard title="Horas por día (últimos 7 días)">
         {!hasAnySession ? (
           <EmptyState message="Registra sesiones para ver tus horas por día." />
@@ -297,7 +297,7 @@ function ConsistencyItem({
   return (
     <div className={`rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5 ${className}`}>
       <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">{label}</dt>
-      <dd className="mt-1 text-[15px] font-semibold text-[#0f1a33]">{value}</dd>
+      <dd className="mt-1 text-[14px] font-semibold text-[#0f1a33]">{value}</dd>
     </div>
   );
 }

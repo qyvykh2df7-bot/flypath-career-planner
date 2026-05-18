@@ -20,8 +20,8 @@ export function MockResultsTable({ mockResults, onDelete }: MockResultsTableProp
 
   if (sorted.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
-        <p className="text-[15px] font-medium text-slate-700">Todavía no has registrado ningún mock.</p>
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600">
+        <p>Todavía no has registrado ningún mock.</p>
       </div>
     );
   }
@@ -32,13 +32,13 @@ export function MockResultsTable({ mockResults, onDelete }: MockResultsTableProp
         <table className="min-w-full border-collapse text-left text-[14px]">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/90">
-              <th className="px-4 py-3 font-semibold text-[#0f1a33]">Fecha</th>
-              <th className="px-4 py-3 font-semibold text-[#0f1a33]">Asignatura</th>
-              <th className="px-4 py-3 font-semibold text-[#0f1a33]">Nota</th>
-              <th className="px-4 py-3 font-semibold text-[#0f1a33]">Banco</th>
-              <th className="px-4 py-3 font-semibold text-[#0f1a33]">Duración</th>
-              <th className="px-4 py-3 font-semibold text-[#0f1a33]">Notas</th>
-              <th className="px-4 py-3 font-semibold text-[#0f1a33]">
+              <th className="px-3 py-2.5 font-semibold text-[#0f1a33]">Fecha</th>
+              <th className="px-3 py-2.5 font-semibold text-[#0f1a33]">Asignatura</th>
+              <th className="px-3 py-2.5 font-semibold text-[#0f1a33]">Nota</th>
+              <th className="px-3 py-2.5 font-semibold text-[#0f1a33]">Banco</th>
+              <th className="px-3 py-2.5 font-semibold text-[#0f1a33]">Duración</th>
+              <th className="px-3 py-2.5 font-semibold text-[#0f1a33]">Notas</th>
+              <th className="px-3 py-2.5 font-semibold text-[#0f1a33]">
                 <span className="sr-only">Eliminar</span>
               </th>
             </tr>
@@ -46,25 +46,25 @@ export function MockResultsTable({ mockResults, onDelete }: MockResultsTableProp
           <tbody>
             {sorted.map((mock) => (
               <tr key={mock.id} className="border-b border-slate-100 last:border-0">
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">{mock.date}</td>
-                <td className="px-4 py-3 font-medium text-[#0f1a33]">
+                <td className="whitespace-nowrap px-3 py-2.5 text-slate-700">{mock.date}</td>
+                <td className="px-3 py-2.5 font-medium text-[#0f1a33]">
                   {getSubjectById(mock.subjectId)?.name ?? mock.subjectId}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2.5">
                   <span
                     className={`inline-flex rounded-full px-2 py-0.5 text-[13px] font-semibold tabular-nums ring-1 ${scoreBadgeClass(mock.score)}`}
                   >
                     {formatMockScore(mock.score)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{mock.bank || "—"}</td>
-                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-700">
+                <td className="px-3 py-2.5 text-slate-600">{mock.bank || "—"}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 tabular-nums text-slate-700">
                   {mock.durationMinutes ? minutesToHoursLabel(mock.durationMinutes) : "—"}
                 </td>
-                <td className="max-w-[12rem] truncate px-4 py-3 text-slate-500" title={mock.notes}>
+                <td className="max-w-[12rem] truncate px-3 py-2.5 text-slate-500" title={mock.notes}>
                   {mock.notes || "—"}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2.5">
                   <button
                     type="button"
                     onClick={() => onDelete(mock.id)}

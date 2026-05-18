@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight,
   LayoutDashboard,
   BookOpen,
   PenLine,
@@ -16,6 +15,7 @@ import {
 import {
   DEFAULT_ATPL_PLANNER_STATE,
   type AtplPlannerState,
+  type ExamDate,
   type MockResult,
   type PlannedStudySession,
   type ErrorLogItem,
@@ -28,14 +28,18 @@ import { addDaysToDate, createPlannerId, getTodayDateString } from "@/lib/study-
 import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
 import {
   filterErrorLogItemsByMode,
+  filterExamDatesByMode,
   filterMockResultsByMode,
   filterPlannedSessionsByMode,
   filterReviewItemsByMode,
   filterSessionsByMode,
   getSubjectsByMode,
 } from "@/lib/study-planner/subjects";
+import { PlannerAppBar } from "./PlannerAppBar";
+import { PlannerHero } from "./PlannerHero";
 import { StudyModeSelector } from "./StudyModeSelector";
 import { StudyDashboard } from "./StudyDashboard";
+import { ExamDateSettings } from "./ExamDateSettings";
 import { SubjectOverview } from "./SubjectOverview";
 import { StudyLogForm } from "./StudyLogForm";
 import { StudyLogTable } from "./StudyLogTable";
@@ -94,8 +98,16 @@ export function AtplPlannerApp() {
     saveStudyPlannerState(state);
   }, [state, hydrated]);
 
-  const { mode, weeklyGoalMinutes, sessions, plannedSessions, mockResults, reviewItems, errorLogItems } =
-    state;
+  const {
+    mode,
+    weeklyGoalMinutes,
+    sessions,
+    plannedSessions,
+    mockResults,
+    reviewItems,
+    errorLogItems,
+    examDates,
+  } = state;
   const subjects = useMemo(() => getSubjectsByMode(mode), [mode]);
   const modeSessions = useMemo(() => filterSessionsByMode(sessions, mode), [sessions, mode]);
   const modePlannedSessions = useMemo(
@@ -113,6 +125,10 @@ export function AtplPlannerApp() {
   const modeErrorLogItems = useMemo(
     () => filterErrorLogItemsByMode(errorLogItems, mode),
     [errorLogItems, mode],
+  );
+  const modeExamDates = useMemo(
+    () => filterExamDatesByMode(examDates, mode),
+    [examDates, mode],
   );
 
   const setMode = useCallback((next: StudyMode) => {
@@ -265,66 +281,61 @@ export function AtplPlannerApp() {
     }));
   }, []);
 
+  const addExamDate = useCallback((exam: ExamDate) => {
+    setState((prev) => ({
+      ...prev,
+      examDates: [...prev.examDates, exam],
+    }));
+  }, []);
+
+  const deleteExamDate = useCallback((examId: string) => {
+    setState((prev) => ({
+      ...prev,
+      examDates: prev.examDates.filter((e) => e.id !== examId),
+    }));
+  }, []);
+
   const scrollToWorkspace = useCallback(() => {
     workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  const goToRecovery = useCallback(() => {
+    setActiveTab("recovery");
+    requestAnimationFrame(() => scrollToWorkspace());
+  }, [scrollToWorkspace]);
+
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
-      <section className="border-b border-[#0f1a33]/10 bg-gradient-to-br from-[#0f1a33] via-[#152440] to-[#1a2d52] px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-5xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]">ATPL PLANNER</p>
-          <h1 className="mt-2 text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
-            Organiza tu estudio ATPL sin estudiar a ciegas
-          </h1>
-          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-100 sm:text-base">
-            Registra horas, sigue tu progreso por asignatura y prepara tus exámenes con una visión clara de tu carga
-            semanal. También puedes usarlo para organizar teoría PPL.
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("dashboard");
-                requestAnimationFrame(() => scrollToWorkspace());
-              }}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_10px_32px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
-            >
-              Empezar a planificar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("subjects");
-                requestAnimationFrame(() => scrollToWorkspace());
-              }}
-              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-6 py-3 text-[15px] font-semibold text-white transition hover:border-white/40 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-            >
-              Ver asignaturas
-              <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-            </button>
-          </div>
-        </div>
-      </section>
+      <PlannerAppBar onGoToRecovery={goToRecovery} />
+      <PlannerHero
+        onGoToDashboard={() => {
+          setActiveTab("dashboard");
+          requestAnimationFrame(() => scrollToWorkspace());
+        }}
+        onGoToRecovery={goToRecovery}
+      />
 
-      <div ref={workspaceRef} id="planner-workspace" className="scroll-mt-4 px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
-        <div className="mx-auto max-w-6xl space-y-8">
-          <section aria-labelledby="mode-heading">
-            <h2 id="mode-heading" className="text-lg font-semibold text-[#0f1a33] sm:text-xl">
-              Modo de estudio
-            </h2>
-            <p className="mt-1 text-[14px] text-slate-600">
-              ATPL Planner incluye modo PPL para la misma rutina de organización.
-            </p>
-            <div className="mt-4">
+      <div ref={workspaceRef} id="planner-workspace" className="scroll-mt-3 px-4 pb-10 pt-4 sm:px-6">
+        <div className="mx-auto max-w-6xl space-y-4">
+          <section
+            id="mode-heading"
+            className="grid gap-4 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80 sm:grid-cols-5 sm:items-center sm:gap-6"
+          >
+            <div className="min-w-0 sm:col-span-2">
+              <h2 className="text-[15px] font-semibold text-[#0f1a33]">Modo de estudio</h2>
+              <p className="mt-1.5 text-[13px] leading-snug text-slate-600">
+                Elige el programa para adaptar asignaturas, métricas y planificación.
+              </p>
+            </div>
+            <div className="w-full min-w-0 sm:col-span-3">
               <StudyModeSelector mode={mode} onModeChange={setMode} />
             </div>
           </section>
 
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-1 shadow-[0_8px_40px_rgba(15,26,51,0.06)] ring-1 ring-slate-100/80">
+          <div className="rounded-xl border border-slate-200/90 bg-white shadow-[0_4px_24px_rgba(15,26,51,0.05)] ring-1 ring-slate-100/80">
             <div className="-mx-1 overflow-x-auto overscroll-x-contain px-1 pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <nav
-                className="flex min-w-0 gap-1 px-1 pt-1"
+                className="flex min-w-max gap-0.5 px-0.5 pt-0.5"
                 role="tablist"
                 aria-label="Secciones del ATPL Planner"
               >
@@ -338,49 +349,57 @@ export function AtplPlannerApp() {
                       role="tab"
                       aria-selected={isActive}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45 sm:px-4 ${
+                      className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45 sm:px-3 ${
                         isActive
                           ? "bg-[#0f1a33] text-white shadow-sm"
-                          : "bg-slate-50 text-slate-600 hover:bg-[#fffdf8] hover:text-[#0f1a33]"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-[#0f1a33]"
                       }`}
                     >
-                      <Icon className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-                      {tab.label}
+                      <Icon className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                      <span className="whitespace-nowrap">{tab.label}</span>
                     </button>
                   );
                 })}
               </nav>
             </div>
 
-            <div className="border-t border-slate-100 p-4 sm:p-6" role="tabpanel">
+            <div className="border-t border-slate-100 p-3 sm:p-4" role="tabpanel">
               {activeTab === "dashboard" ? (
-                <div className="space-y-4">
-                  <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Resumen</h3>
-                  <StudyDashboard
-                    sessions={modeSessions}
-                    plannedSessions={modePlannedSessions}
-                    mockResults={modeMockResults}
-                    reviewItems={modeReviewItems}
-                    errorLogItems={modeErrorLogItems}
-                    weeklyGoalMinutes={weeklyGoalMinutes}
-                    subjects={subjects}
-                    onWeeklyGoalHoursChange={setWeeklyGoalHours}
-                    onGoToRecovery={() => {
-                      setActiveTab("recovery");
-                      requestAnimationFrame(() => scrollToWorkspace());
-                    }}
-                  />
-                </div>
+                <StudyDashboard
+                  sessions={modeSessions}
+                  plannedSessions={modePlannedSessions}
+                  mockResults={modeMockResults}
+                  reviewItems={modeReviewItems}
+                  errorLogItems={modeErrorLogItems}
+                  examDates={modeExamDates}
+                  weeklyGoalMinutes={weeklyGoalMinutes}
+                  subjects={subjects}
+                  onWeeklyGoalHoursChange={setWeeklyGoalHours}
+                  onGoToRecovery={() => {
+                    setActiveTab("recovery");
+                    requestAnimationFrame(() => scrollToWorkspace());
+                  }}
+                  onGoToCalendar={() => {
+                    setActiveTab("calendar");
+                    requestAnimationFrame(() => scrollToWorkspace());
+                  }}
+                />
               ) : null}
 
               {activeTab === "subjects" ? (
-                <div className="space-y-8">
+                <div className="space-y-4">
                   <div className="space-y-4">
-                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">
+                    <h3 className="text-[14px] font-semibold text-[#0f1a33]">
                       Asignaturas ({mode.toUpperCase()})
                     </h3>
                     <SubjectOverview subjects={subjects} sessions={modeSessions} />
                   </div>
+                  <ExamDateSettings
+                    subjects={subjects}
+                    examDates={modeExamDates}
+                    onAddExamDate={addExamDate}
+                    onDeleteExamDate={deleteExamDate}
+                  />
                   <SubjectReadinessOverview
                     mode={mode}
                     subjects={subjects}
@@ -392,46 +411,46 @@ export function AtplPlannerApp() {
               ) : null}
 
               {activeTab === "log" ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Registro de estudio</h3>
-                    <p className="mt-1 text-[14px] text-slate-600">
+                    <h3 className="text-[14px] font-semibold text-[#0f1a33]">Registro de estudio</h3>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
                       Anota qué has estudiado, cuánto tiempo le has dedicado y cómo ha ido la sesión.
                     </p>
                   </div>
                   <StudyLogForm subjects={subjects} onAddSession={addSession} />
                   <div>
-                    <h4 className="mb-3 text-[15px] font-semibold text-[#0f1a33]">Sesiones registradas</h4>
+                    <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Sesiones registradas</h4>
                     <StudyLogTable sessions={modeSessions} onDelete={deleteSession} />
                   </div>
                 </div>
               ) : null}
 
               {activeTab === "mocks" ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Mocks</h3>
-                    <p className="mt-1 text-[14px] text-slate-600">
+                    <h3 className="text-[14px] font-semibold text-[#0f1a33]">Mocks</h3>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
                       Registra tus mocks por asignatura para controlar tu evolución antes del examen.
                     </p>
                   </div>
                   <MockResultForm subjects={subjects} onAddMockResult={addMockResult} />
                   <div>
-                    <h4 className="mb-3 text-[15px] font-semibold text-[#0f1a33]">Resumen por asignatura</h4>
+                    <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Resumen por asignatura</h4>
                     <MockSubjectSummary mockResults={modeMockResults} />
                   </div>
                   <div>
-                    <h4 className="mb-3 text-[15px] font-semibold text-[#0f1a33]">Historial de mocks</h4>
+                    <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Historial de mocks</h4>
                     <MockResultsTable mockResults={modeMockResults} onDelete={deleteMockResult} />
                   </div>
                 </div>
               ) : null}
 
               {activeTab === "calendar" ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Calendario semanal</h3>
-                    <p className="mt-1 text-[14px] text-slate-600">
+                    <h3 className="text-[14px] font-semibold text-[#0f1a33]">Calendario semanal</h3>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
                       Planifica tus sesiones de estudio y compáralas con lo que realmente completas.
                     </p>
                   </div>
@@ -446,10 +465,10 @@ export function AtplPlannerApp() {
               ) : null}
 
               {activeTab === "reviews" ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Repasos</h3>
-                    <p className="mt-1 text-[14px] text-slate-600">
+                    <h3 className="text-[14px] font-semibold text-[#0f1a33]">Repasos</h3>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
                       Programa temas para revisar y evita que se te acumulen antes del examen.
                     </p>
                   </div>
@@ -464,10 +483,10 @@ export function AtplPlannerApp() {
               ) : null}
 
               {activeTab === "errors" ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Error log</h3>
-                    <p className="mt-1 text-[14px] text-slate-600">
+                    <h3 className="text-[14px] font-semibold text-[#0f1a33]">Error log</h3>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
                       Registra los errores que repites para detectar patrones y corregirlos antes del examen.
                     </p>
                   </div>
@@ -501,8 +520,8 @@ export function AtplPlannerApp() {
               {activeTab === "progress" ? (
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Progreso visual</h3>
-                    <p className="mt-1 text-[14px] text-slate-600">
+                    <h3 className="text-[14px] font-semibold text-[#0f1a33]">Progreso visual</h3>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
                       Revisa tus horas, consistencia y distribución por asignatura.
                     </p>
                   </div>
@@ -525,8 +544,8 @@ export function AtplPlannerApp() {
               activeTab !== "errors" &&
               activeTab !== "recovery" &&
               activeTab !== "progress" ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
-                  <p className="text-[15px] font-medium text-slate-700">{PLACEHOLDER_MSG}</p>
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600">
+                  <p>{PLACEHOLDER_MSG}</p>
                   <p className="mt-2 text-[13px] text-slate-500">
                     Pronto podrás usar esta pestaña desde el mismo centro de control.
                   </p>

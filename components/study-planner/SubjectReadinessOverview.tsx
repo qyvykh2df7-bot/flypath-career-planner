@@ -44,8 +44,8 @@ export function SubjectReadinessOverview({
             criterio ni el de tu instructor.
           </p>
         </div>
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
-          <p className="text-[15px] font-medium text-slate-700">
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600">
+          <p>
             Registra horas de estudio o mocks para empezar a calcular tu readiness.
           </p>
         </div>

@@ -1,48 +1,50 @@
 "use client";
 
 import type { StudyMode } from "@/lib/study-planner/types";
+import { ATPL_SUBJECTS, PPL_SUBJECTS } from "@/lib/study-planner/subjects";
 
 type StudyModeSelectorProps = {
   mode: StudyMode;
   onModeChange: (mode: StudyMode) => void;
 };
 
+const MODES: { id: StudyMode; label: string; subjectCount: number }[] = [
+  { id: "atpl", label: "ATPL", subjectCount: ATPL_SUBJECTS.length },
+  { id: "ppl", label: "PPL", subjectCount: PPL_SUBJECTS.length },
+];
+
 export function StudyModeSelector({ mode, onModeChange }: StudyModeSelectorProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <button
-        type="button"
-        onClick={() => onModeChange("atpl")}
-        className={`rounded-2xl border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:px-5 sm:py-5 ${
-          mode === "atpl"
-            ? "border-[#c9a454] bg-[#fff8e8] shadow-[0_4px_20px_rgba(201,164,84,0.2)] ring-1 ring-[#c9a454]/30"
-            : "border-slate-200/90 bg-white hover:border-[#c9a454]/35 hover:bg-[#fffdf8]"
-        }`}
-      >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7a5a16]">ATPL</p>
-        <p className="mt-1.5 text-lg font-semibold text-[#0f1a33]">Modo ATPL</p>
-        <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-          Para alumnos ATPL que necesitan controlar asignaturas, bancos, mocks y carga semanal.
-        </p>
-      </button>
-      <button
-        type="button"
-        onClick={() => onModeChange("ppl")}
-        className={`rounded-2xl border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:px-5 sm:py-5 ${
-          mode === "ppl"
-            ? "border-[#c9a454] bg-[#fff8e8] shadow-[0_4px_20px_rgba(201,164,84,0.2)] ring-1 ring-[#c9a454]/30"
-            : "border-slate-200/90 bg-white hover:border-[#c9a454]/35 hover:bg-[#fffdf8]"
-        }`}
-      >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7a5a16]">PPL</p>
-        <p className="mt-1.5 text-lg font-semibold text-[#0f1a33]">Modo PPL</p>
-        <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
-          Para alumnos que están preparando teoría PPL y quieren organizar asignaturas, horas y repasos.
-        </p>
-        <p className="mt-2 text-[12px] leading-snug text-slate-500">
-          Opción compatible dentro de <span className="font-semibold text-[#0f1a33]">ATPL Planner</span>.
-        </p>
-      </button>
+    <div
+      className="grid w-full grid-cols-2 gap-2"
+      role="group"
+      aria-label="Modo de estudio"
+    >
+        {MODES.map((m) => {
+          const active = mode === m.id;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onModeChange(m.id)}
+              className={`min-h-[56px] rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 ${
+                active
+                  ? "border-2 border-[#c9a454] bg-[#fffdf8] text-[#0f1a33] shadow-[0_4px_16px_rgba(201,164,84,0.18)] ring-1 ring-[#c9a454]/25"
+                  : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+              aria-pressed={active}
+            >
+              <span className="block text-[15px] font-semibold">{m.label}</span>
+              <span
+                className={`mt-0.5 block text-[12px] leading-snug ${
+                  active ? "text-slate-600" : "text-slate-500"
+                }`}
+              >
+                {m.subjectCount} asignaturas
+              </span>
+            </button>
+          );
+        })}
     </div>
   );
 }

@@ -51,8 +51,8 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
-        <p className="text-[15px] font-medium text-slate-700">
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600">
+        <p>
           Registra tus primeros mocks para ver evolución por asignatura.
         </p>
       </div>

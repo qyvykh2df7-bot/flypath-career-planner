@@ -69,7 +69,7 @@ export function SubjectReadinessCard({
       className={`flex flex-col rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ${styles.ring}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="text-[15px] font-semibold leading-snug text-[#0f1a33]">{subject.name}</h4>
+        <h4 className="text-[14px] font-semibold leading-snug text-[#0f1a33]">{subject.name}</h4>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${styles.badge}`}
         >

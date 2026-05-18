@@ -3,6 +3,7 @@ import {
   type AtplPlannerState,
   type MockResult,
   type ErrorLogItem,
+  type ExamDate,
   type ErrorLogStatus,
   type ErrorLogType,
   type ReviewItem,
@@ -225,6 +226,21 @@ function parseErrorLogItem(raw: unknown): ErrorLogItem | null {
   return item;
 }
 
+function parseExamDate(raw: unknown): ExamDate | null {
+  if (!raw || typeof raw !== "object") return null;
+  const e = raw as Record<string, unknown>;
+  if (typeof e.id !== "string" || typeof e.subjectId !== "string" || typeof e.date !== "string") {
+    return null;
+  }
+  const exam: ExamDate = {
+    id: e.id,
+    subjectId: e.subjectId,
+    date: e.date,
+  };
+  if (typeof e.notes === "string" && e.notes.length > 0) exam.notes = e.notes;
+  return exam;
+}
+
 export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
   const fallback = DEFAULT_ATPL_PLANNER_STATE;
   if (!raw || typeof raw !== "object") return fallback;
@@ -262,6 +278,9 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
     .map(parseErrorLogItem)
     .filter((e): e is ErrorLogItem => e !== null);
 
+  const examsRaw = Array.isArray(o.examDates) ? o.examDates : [];
+  const examDates = examsRaw.map(parseExamDate).filter((e): e is ExamDate => e !== null);
+
   return {
     mode,
     weeklyGoalMinutes: goal,
@@ -270,6 +289,7 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
     mockResults,
     reviewItems,
     errorLogItems,
+    examDates,
   };
 }
 

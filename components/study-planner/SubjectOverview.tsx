@@ -27,7 +27,7 @@ export function SubjectOverview({ subjects, sessions }: SubjectOverviewProps) {
             key={subject.id}
             className="flex flex-col rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80"
           >
-            <p className="text-[15px] font-semibold leading-snug text-[#0f1a33]">{subject.name}</p>
+            <p className="text-[14px] font-semibold leading-snug text-[#0f1a33]">{subject.name}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
               <span
                 className={`rounded-full border px-2.5 py-0.5 font-medium ${

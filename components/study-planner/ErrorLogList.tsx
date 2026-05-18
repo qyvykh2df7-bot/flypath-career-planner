@@ -35,7 +35,7 @@ function ErrorCard({
 
   return (
     <li
-      className={`rounded-xl border p-4 shadow-sm ring-1 ${
+      className={`rounded-lg border p-3 shadow-sm ring-1 ${
         item.status === "pending"
           ? "border-amber-200/70 bg-amber-50/30 ring-amber-100/60"
           : item.status === "resolved"
@@ -145,7 +145,7 @@ function ErrorSection({
   return (
     <section className="space-y-3">
       <h4
-        className={`text-[15px] font-semibold ${tone === "pending" ? "text-amber-900" : "text-[#0f1a33]"}`}
+        className={`text-[14px] font-semibold ${tone === "pending" ? "text-amber-900" : "text-[#0f1a33]"}`}
       >
         {title}
         <span className="ml-2 text-[13px] font-medium text-slate-500">({items.length})</span>
@@ -172,8 +172,8 @@ export function ErrorLogList({ errorLogItems, onSetStatus, onDelete }: ErrorLogL
 
   if (errorLogItems.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
-        <p className="text-[15px] font-medium text-slate-700">
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600">
+        <p>
           Todavía no has registrado errores. Cuando falles una pregunta o detectes un patrón, anótalo aquí.
         </p>
       </div>

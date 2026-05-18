@@ -53,7 +53,7 @@ function ReviewCard({
 
   return (
     <li
-      className={`rounded-xl border p-4 shadow-sm ring-1 ${
+      className={`rounded-lg border p-3 shadow-sm ring-1 ${
         status === "overdue"
           ? "border-amber-200/80 bg-amber-50/40 ring-amber-100/80"
           : isCompleted
@@ -186,7 +186,7 @@ function ReviewSection({
 
   return (
     <section className="space-y-3">
-      <h4 className={`text-[15px] font-semibold ${titleClass}`}>
+      <h4 className={`text-[14px] font-semibold ${titleClass}`}>
         {title}
         <span className="ml-2 text-[13px] font-medium text-slate-500">({items.length})</span>
       </h4>
@@ -229,8 +229,8 @@ export function ReviewItemsList({
 
   if (!hasAny) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
-        <p className="text-[15px] font-medium text-slate-700">
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600">
+        <p>
           Todavía no tienes repasos programados. Crea el primero arriba.
         </p>
       </div>
@@ -268,7 +268,7 @@ export function ReviewItemsList({
 
       {groups.completed.length > 0 ? (
         <details className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
-          <summary className="cursor-pointer text-[15px] font-semibold text-slate-700">
+          <summary className="cursor-pointer text-[14px] font-semibold text-slate-700">
             Completados ({groups.completed.length})
           </summary>
           <ul className="mt-4 space-y-3">

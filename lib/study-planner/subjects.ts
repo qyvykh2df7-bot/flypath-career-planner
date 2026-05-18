@@ -1,4 +1,5 @@
 import type {
+  ExamDate,
   StudyMode,
   StudySession,
   StudySubject,
@@ -96,4 +97,9 @@ export function filterErrorLogItemsByMode(
 ): ErrorLogItem[] {
   const ids = getSubjectIdsForMode(mode);
   return errorLogItems.filter((e) => ids.has(e.subjectId));
+}
+
+export function filterExamDatesByMode(examDates: ExamDate[], mode: StudyMode): ExamDate[] {
+  const ids = getSubjectIdsForMode(mode);
+  return examDates.filter((e) => ids.has(e.subjectId));
 }

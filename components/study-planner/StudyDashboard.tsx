@@ -1,6 +1,22 @@
 "use client";
 
+import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  BookOpen,
+  Calendar,
+  CalendarClock,
+  ClipboardCheck,
+  Compass,
+  GraduationCap,
+  RotateCcw,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 import type {
+  ExamDate,
   MockResult,
   PlannedStudySession,
   ErrorLogItem,
@@ -18,19 +34,26 @@ import {
   calculateReadinessForSubjects,
   calculateStudyHealth,
   calculateTotalStudyMinutes,
-  getErrorDashboardHint,
-  getReviewDashboardHint,
+  formatDaysRemaining,
+  formatExamDisplayDate,
   formatMockScore,
+  getDaysUntilDate,
+  getErrorDashboardHint,
+  getExamUrgencyBadge,
+  getExamUrgencyTone,
   getLatestMock,
   getMocksForCurrentWeek,
+  getNextUpcomingExam,
   getPlannedSessionsForCurrentWeek,
-  getReadinessDashboardHint,
   getReadinessSummary,
+  getReviewDashboardHint,
   getSessionsForCurrentWeek,
+  getTodayDateString,
   getWeeklyGoalStatusMessage,
   minutesToHoursLabel,
   studyHealthLabel,
 } from "@/lib/study-planner/calculations";
+import { plannerMetricCard } from "@/lib/study-planner/planner-ui";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 
 type StudyDashboardProps = {
@@ -39,11 +62,150 @@ type StudyDashboardProps = {
   mockResults: MockResult[];
   reviewItems: ReviewItem[];
   errorLogItems: ErrorLogItem[];
+  examDates: ExamDate[];
   weeklyGoalMinutes: number;
   subjects: StudySubject[];
   onWeeklyGoalHoursChange: (hours: number) => void;
   onGoToRecovery?: () => void;
+  onGoToCalendar?: () => void;
 };
+
+type BadgeTone = "neutral" | "good" | "warn" | "risk" | "gold";
+
+function StatusBadge({ label, tone }: { label: string; tone: BadgeTone }) {
+  const tones: Record<BadgeTone, string> = {
+    neutral: "bg-slate-100 text-slate-700 ring-slate-200/80",
+    good: "bg-emerald-50 text-emerald-800 ring-emerald-200/80",
+    warn: "bg-amber-50 text-amber-900 ring-amber-200/80",
+    risk: "bg-red-50 text-red-800 ring-red-200/80",
+    gold: "bg-[#fff8e8] text-[#7a5a16] ring-[#c9a454]/35",
+  };
+  return (
+    <span
+      className={`inline-flex max-w-full shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold leading-tight ring-1 ${tones[tone]}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function MiniBar({ value, max, variant = "gold" }: { value: number; max: number; variant?: "gold" | "navy" }) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  const fill =
+    variant === "gold"
+      ? "bg-gradient-to-r from-[#c9a454] to-[#ddb75c]"
+      : "bg-gradient-to-r from-[#0f1a33] to-[#1a2d52]";
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100" aria-hidden>
+      <div className={`h-full rounded-full ${fill}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function StatusCard({
+  icon: Icon,
+  label,
+  value,
+  badge,
+  badgeTone,
+  hint,
+  bar,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  badge: string;
+  badgeTone: BadgeTone;
+  hint: string;
+  bar?: { value: number; max: number; variant?: "gold" | "navy" };
+}) {
+  return (
+    <article className={`${plannerMetricCard} flex flex-col`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0f1a33]/5 text-[#0f1a33]">
+          <Icon className="h-4 w-4" aria-hidden />
+        </div>
+        <StatusBadge label={badge} tone={badgeTone} />
+      </div>
+      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</p>
+      <p className="mt-0.5 text-xl font-semibold leading-tight text-[#0f1a33]">{value}</p>
+      {bar ? (
+        <div className="mt-2">
+          <MiniBar value={bar.value} max={bar.max} variant={bar.variant} />
+        </div>
+      ) : null}
+      <p className="mt-2 text-[13px] leading-snug text-slate-600">{hint}</p>
+    </article>
+  );
+}
+
+function getHoursWeekBadge(pct: number, hasSessions: boolean): { label: string; tone: BadgeTone } {
+  if (!hasSessions) return { label: "Pendiente", tone: "neutral" };
+  if (pct >= 100) return { label: "Objetivo cumplido", tone: "good" };
+  if (pct >= 80) return { label: "Buen ritmo", tone: "good" };
+  if (pct >= 40) return { label: "En progreso", tone: "warn" };
+  return { label: "Ajustado", tone: "warn" };
+}
+
+function getReadinessBadge(summary: ReturnType<typeof getReadinessSummary>): {
+  label: string;
+  tone: BadgeTone;
+  shortHint: string;
+} {
+  if (summary.averageScore === null) {
+    return { label: "Sin datos", tone: "neutral", shortHint: "Registra horas y mocks." };
+  }
+  if (summary.lowCount > 0 || summary.averageScore < 55) {
+    return {
+      label: "Riesgo",
+      tone: "risk",
+      shortHint: "Conviene reforzar antes de presentarte.",
+    };
+  }
+  if (summary.averageScore >= 75 || summary.solidCount + summary.highCount >= summary.withDataCount / 2) {
+    return { label: "Sólido", tone: "good", shortHint: "Buen progreso orientativo." };
+  }
+  return {
+    label: "Ajustado",
+    tone: "warn",
+    shortHint: "Conviene reforzar antes de presentarte.",
+  };
+}
+
+function getMockBadge(score: number | null): { label: string; tone: BadgeTone } {
+  if (score === null) return { label: "Sin datos", tone: "neutral" };
+  if (score >= 80) return { label: "Buen resultado", tone: "good" };
+  if (score >= 70) return { label: "Ajustado", tone: "warn" };
+  return { label: "Revisar", tone: "risk" };
+}
+
+function getReviewBadge(pending: number, overdue: number): { label: string; tone: BadgeTone } {
+  if (pending === 0) return { label: "Todo al día", tone: "good" };
+  if (overdue > 0) return { label: "Atrasado", tone: "risk" };
+  return { label: "Pendiente", tone: "warn" };
+}
+
+function getErrorBadge(pending: number, total: number): { label: string; tone: BadgeTone } {
+  if (total === 0) return { label: "Sin datos", tone: "neutral" };
+  if (pending === 0) return { label: "Todo limpio", tone: "good" };
+  return { label: "Revisar", tone: "warn" };
+}
+
+function getStudyHealthBadge(level: ReturnType<typeof calculateStudyHealth>["level"]): {
+  label: string;
+  tone: BadgeTone;
+} {
+  switch (level) {
+    case "good":
+      return { label: "Buen ritmo", tone: "good" };
+    case "progress":
+      return { label: "En progreso", tone: "warn" };
+    case "low":
+      return { label: "Bajo", tone: "risk" };
+    default:
+      return { label: "Sin datos", tone: "neutral" };
+  }
+}
 
 export function StudyDashboard({
   sessions,
@@ -51,217 +213,268 @@ export function StudyDashboard({
   mockResults,
   reviewItems,
   errorLogItems,
+  examDates,
   weeklyGoalMinutes,
   subjects,
   onWeeklyGoalHoursChange,
   onGoToRecovery,
+  onGoToCalendar,
 }: StudyDashboardProps) {
+  const today = getTodayDateString();
   const weekSessions = getSessionsForCurrentWeek(sessions);
   const weekMinutes = calculateTotalStudyMinutes(weekSessions);
   const goalHours = Math.round(weeklyGoalMinutes / 60);
   const weekPctRaw =
     weeklyGoalMinutes > 0 ? Math.round((weekMinutes / weeklyGoalMinutes) * 100) : 0;
   const weekGoalMessage = getWeeklyGoalStatusMessage(weekPctRaw);
-  const activeIds = calculateActiveSubjectIds(sessions, 14);
-  const activeInMode = activeIds.filter((id) => subjects.some((s) => s.id === id)).length;
+  const hoursBadge = getHoursWeekBadge(weekPctRaw, weekSessions.length > 0);
+
+  const activeInMode = calculateActiveSubjectIds(sessions, 14).filter((id) =>
+    subjects.some((s) => s.id === id),
+  ).length;
   const health = calculateStudyHealth(weekMinutes, weeklyGoalMinutes);
+  const healthBadge = getStudyHealthBadge(health.level);
+
   const weekPlanned = getPlannedSessionsForCurrentWeek(plannedSessions);
   const plannedMinutes = calculatePlannedMinutes(weekPlanned);
   const completedPlannedMinutes = calculateCompletedPlannedMinutes(weekPlanned);
-  const plannedCount = weekPlanned.filter((p) => p.status === "planned").length;
-  const completedPlannedCount = weekPlanned.filter((p) => p.status === "completed").length;
-  const skippedPlannedCount = weekPlanned.filter((p) => p.status === "skipped").length;
-  const hasPlannedData = weekPlanned.length > 0;
-  const plannedFulfillmentPct =
-    plannedMinutes > 0 ? Math.round((completedPlannedMinutes / plannedMinutes) * 100) : 0;
+
   const weekMocks = getMocksForCurrentWeek(mockResults);
   const latestMock = getLatestMock(mockResults);
+  const latestMockSubject = latestMock
+    ? (getSubjectById(latestMock.subjectId)?.name ?? latestMock.subjectId)
+    : null;
+  const mockBadge = getMockBadge(latestMock?.score ?? null);
+
   const readinessList = calculateReadinessForSubjects({
     subjectIds: subjects.map((s) => s.id),
     sessions,
     mockResults,
   });
   const readinessSummary = getReadinessSummary(readinessList);
-  const readinessHint = getReadinessDashboardHint(readinessSummary);
+  const readinessBadge = getReadinessBadge(readinessSummary);
+
   const pendingReviews = calculatePendingReviewCount(reviewItems);
   const overdueReviews = calculateOverdueReviewCount(reviewItems);
   const reviewDashboard = getReviewDashboardHint(pendingReviews, overdueReviews);
+  const reviewBadge = getReviewBadge(pendingReviews, overdueReviews);
+
+  const pendingErrors = calculatePendingErrorCount(errorLogItems);
   const errorDashboard = getErrorDashboardHint(errorLogItems);
+  const errorBadge = getErrorBadge(pendingErrors, errorLogItems.length);
+
+  const nextExam = getNextUpcomingExam(examDates, today);
+  const nextExamSubject = nextExam
+    ? (getSubjectById(nextExam.subjectId)?.name ?? nextExam.subjectId)
+    : null;
+  const nextExamDays = nextExam ? getDaysUntilDate(nextExam.date, today) : null;
+  const nextExamBadge = nextExam && nextExamDays !== null ? getExamUrgencyBadge(nextExamDays) : null;
+  const nextExamTone: BadgeTone =
+    nextExam && nextExamDays !== null ? getExamUrgencyTone(nextExamDays) : "neutral";
 
   const handleGoalInput = (value: string) => {
     const parsed = parseInt(value, 10);
     if (!Number.isFinite(parsed)) return;
-    const clamped = Math.min(80, Math.max(1, parsed));
-    onWeeklyGoalHoursChange(clamped);
+    onWeeklyGoalHoursChange(Math.min(80, Math.max(1, parsed)));
   };
 
-  return (
-    <div className="space-y-5">
-      <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80 sm:p-5">
-        <label htmlFor="weekly-goal-hours" className="text-[13px] font-semibold text-slate-600">
-          Objetivo semanal de estudio
-        </label>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <input
-            id="weekly-goal-hours"
-            type="number"
-            min={1}
-            max={80}
-            value={goalHours}
-            onChange={(e) => handleGoalInput(e.target.value)}
-            className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[15px] font-semibold tabular-nums text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25"
-          />
-          <span className="text-[15px] font-medium text-slate-600">h / semana</span>
-          <span className="text-[13px] text-slate-500">({minutesToHoursLabel(weeklyGoalMinutes)} objetivo)</span>
-        </div>
-        {hasPlannedData ? (
-          <p className="mt-3 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-slate-600">
-            <span className="font-semibold text-[#0f1a33]">Planificación:</span>{" "}
-            Planificado: {minutesToHoursLabel(plannedMinutes)} · Completado:{" "}
-            {minutesToHoursLabel(completedPlannedMinutes)}
-            {skippedPlannedCount > 0 ? ` · Saltadas: ${skippedPlannedCount}` : ""}
-            <span className="mt-1 block text-slate-500">
-              {completedPlannedCount} de {weekPlanned.length} sesiones planificadas completadas
-              {plannedMinutes > 0 ? ` (${plannedFulfillmentPct}% del tiempo planificado)` : ""}
-              {plannedCount > 0 ? ` · ${plannedCount} pendiente${plannedCount === 1 ? "" : "s"}` : ""}
-            </span>
-          </p>
-        ) : null}
-      </div>
+  const mockHint =
+    latestMock && weekMocks.length > 0
+      ? `${weekMocks.length} mock${weekMocks.length === 1 ? "" : "s"} esta semana · ${latestMockSubject}`
+      : latestMock
+        ? `Último: ${latestMockSubject}`
+        : "Registra tu primer mock";
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <DashboardCard
-          label="Horas esta semana"
+  const reviewHint =
+    pendingReviews === 0
+      ? "Sin repasos pendientes"
+      : overdueReviews > 0
+        ? "Tienes repasos atrasados"
+        : "Repasos programados";
+
+  const errorHint =
+    errorLogItems.length === 0
+      ? "Añade errores para detectar patrones"
+      : errorDashboard.hint;
+
+  const examValue = nextExamSubject ?? "Sin configurar";
+  const examHint =
+    nextExam && nextExamDays !== null
+      ? `${formatExamDisplayDate(nextExam.date)} · ${formatDaysRemaining(nextExamDays)}`
+      : "Añade una fecha en Asignaturas.";
+
+  return (
+    <div className="space-y-4">
+      <section className={`${plannerMetricCard} border-[#0f1a33]/10 bg-gradient-to-br from-white to-slate-50/80`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0f1a33] text-[#f2ddaa]">
+                <CalendarClock className="h-4 w-4" aria-hidden />
+              </div>
+              <h3 className="text-[16px] font-semibold text-[#0f1a33]">Esta semana</h3>
+            </div>
+            <p className="mt-2 text-2xl font-semibold tabular-nums leading-tight text-[#0f1a33]">
+              {minutesToHoursLabel(weekMinutes)}{" "}
+              <span className="text-lg font-medium text-slate-500">
+                / {minutesToHoursLabel(weeklyGoalMinutes)}
+              </span>
+            </p>
+            <p className="mt-1 text-[14px] font-medium text-slate-600">{weekPctRaw}% completado</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <label htmlFor="weekly-goal-hours" className="text-[13px] font-semibold text-slate-600">
+              Objetivo semanal
+            </label>
+            <input
+              id="weekly-goal-hours"
+              type="number"
+              min={1}
+              max={80}
+              value={goalHours}
+              onChange={(e) => handleGoalInput(e.target.value)}
+              aria-label="Objetivo semanal en horas"
+              className="w-12 rounded-md border border-slate-200 bg-slate-50/80 px-2 py-1 text-center text-[15px] font-semibold tabular-nums text-[#0f1a33] focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25"
+            />
+            <span className="text-[13px] text-slate-500">h / semana</span>
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <MiniBar value={weekMinutes} max={weeklyGoalMinutes || 1} variant="gold" />
+        </div>
+        <p className="mt-2 text-[13px] text-slate-600">{weekGoalMessage}</p>
+        <p className="mt-1 text-[13px] text-slate-500">
+          Planificado: {minutesToHoursLabel(plannedMinutes)} · Hecho:{" "}
+          {minutesToHoursLabel(completedPlannedMinutes)}
+        </p>
+      </section>
+
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <StatusCard
+          icon={Target}
+          label="Horas semana"
           value={minutesToHoursLabel(weekMinutes)}
-          hint={
-            weekMinutes > 0
-              ? `${weekSessions.length} sesión${weekSessions.length === 1 ? "" : "es"} esta semana`
-              : "Empieza registrando tu primera sesión"
+          badge={hoursBadge.label}
+          badgeTone={hoursBadge.tone}
+          hint={weekSessions.length > 0 ? `${weekSessions.length} sesiones registradas` : "Registra tu primera sesión"}
+          bar={{ value: weekMinutes, max: weeklyGoalMinutes || 1, variant: "gold" }}
+        />
+        <StatusCard
+          icon={TrendingUp}
+          label="Readiness"
+          value={readinessSummary.averageScore !== null ? `${readinessSummary.averageScore}/100` : "—"}
+          badge={readinessBadge.label}
+          badgeTone={readinessBadge.tone}
+          hint={readinessBadge.shortHint}
+          bar={
+            readinessSummary.averageScore !== null
+              ? { value: readinessSummary.averageScore, max: 100, variant: "navy" }
+              : undefined
           }
         />
-        <DashboardCard
-          label="Objetivo semanal"
-          value={`${minutesToHoursLabel(weekMinutes)} / ${minutesToHoursLabel(weeklyGoalMinutes)}`}
-          hint={`${weekPctRaw}% completado · ${weekGoalMessage}`}
-          progressValue={weekMinutes}
-          progressMax={weeklyGoalMinutes}
+        <StatusCard
+          icon={ClipboardCheck}
+          label="Mocks"
+          value={latestMock ? formatMockScore(latestMock.score) : "—"}
+          badge={mockBadge.label}
+          badgeTone={mockBadge.tone}
+          hint={mockHint}
+          bar={latestMock ? { value: latestMock.score, max: 100, variant: "gold" } : undefined}
         />
-        <DashboardCard
-          label="Asignaturas activas"
-          value={String(activeInMode)}
-          hint="Con sesión en los últimos 14 días (modo actual)"
-        />
-        <DashboardCard label="Próximo examen" value="Sin configurar" hint="Podrás añadir fechas más adelante" />
-        <DashboardCard
-          label="Repasos pendientes"
+        <StatusCard
+          icon={RotateCcw}
+          label="Repasos"
           value={reviewDashboard.value}
-          hint={reviewDashboard.hint}
-          highlight={overdueReviews > 0}
+          badge={reviewBadge.label}
+          badgeTone={reviewBadge.tone}
+          hint={reviewHint}
         />
-        <DashboardCard
+        <StatusCard
+          icon={AlertTriangle}
           label="Errores"
           value={errorDashboard.value}
-          hint={errorDashboard.hint}
-          highlight={errorLogItems.length > 0 && calculatePendingErrorCount(errorLogItems) > 0}
+          badge={errorBadge.label}
+          badgeTone={errorBadge.tone}
+          hint={errorHint}
         />
-        <DashboardCard
-          label="Readiness"
-          value={
-            readinessSummary.averageScore !== null
-              ? `${readinessSummary.averageScore}/100`
-              : "Sin datos"
-          }
-          hint={readinessHint}
-          highlight={
-            readinessSummary.withDataCount > 0 &&
-            readinessSummary.lowCount === 0 &&
-            readinessSummary.solidCount + readinessSummary.highCount > 0
-          }
+        <StatusCard
+          icon={BookOpen}
+          label="Asignaturas activas"
+          value={String(activeInMode)}
+          badge={activeInMode > 0 ? "En curso" : "Sin actividad"}
+          badgeTone={activeInMode > 0 ? "good" : "neutral"}
+          hint="Con sesiones en los últimos 14 días"
         />
-        <DashboardCard
-          label="Mocks"
-          value={
-            latestMock
-              ? formatMockScore(latestMock.score)
-              : "Sin mocks todavía"
-          }
-          hint={
-            weekMocks.length > 0
-              ? `${weekMocks.length} mock${weekMocks.length === 1 ? "" : "s"} esta semana · último: ${getSubjectById(latestMock!.subjectId)?.name ?? latestMock!.subjectId}`
-              : mockResults.length > 0
-                ? `Último: ${getSubjectById(latestMock!.subjectId)?.name ?? latestMock!.subjectId} (${latestMock!.date})`
-                : "Registra mocks en la pestaña Mocks"
-          }
-        />
-        <DashboardCard
+        <StatusCard
+          icon={Activity}
           label="Study Health"
           value={studyHealthLabel(health.level)}
+          badge={healthBadge.label}
+          badgeTone={healthBadge.tone}
           hint={health.message}
-          highlight={health.level === "good"}
+          bar={
+            weekMinutes > 0
+              ? { value: weekMinutes, max: weeklyGoalMinutes || 1, variant: "navy" }
+              : undefined
+          }
+        />
+        <StatusCard
+          icon={GraduationCap}
+          label="Próximo examen"
+          value={examValue}
+          badge={nextExamBadge ?? "Sin configurar"}
+          badgeTone={nextExamTone}
+          hint={examHint}
         />
       </div>
 
       {onGoToRecovery ? (
-        <div className="rounded-xl border border-[#0f1a33]/15 bg-gradient-to-br from-[#0f1a33] to-[#1a2d52] p-4 text-white shadow-sm sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]">
-            ¿Estás perdido?
-          </p>
-          <p className="mt-2 text-[14px] leading-relaxed text-slate-100">
-            Genera un plan de recuperación para los próximos 7 días.
-          </p>
+        <div className="flex flex-col gap-2.5 rounded-xl border border-[#0f1a33]/15 bg-gradient-to-r from-[#0f1a33] to-[#1a2d52] px-4 py-3.5 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-white">¿Estás perdido?</p>
+            <p className="mt-1 text-[13px] leading-snug text-slate-200">
+              Genera un plan de recuperación para los próximos 7 días.
+            </p>
+          </div>
           <button
             type="button"
             onClick={onGoToRecovery}
-            className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[14px] font-semibold text-[#0f1a33] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+            className="inline-flex min-h-[42px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#c9a454] bg-[#c9a454] px-4 py-2.5 text-[14px] font-semibold text-[#0f1a33] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
           >
+            <Compass className="h-4 w-4" aria-hidden />
             Ir a Estoy perdido
           </button>
         </div>
       ) : null}
-    </div>
-  );
-}
 
-function DashboardCard({
-  label,
-  value,
-  hint,
-  highlight,
-  progressValue,
-  progressMax,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  highlight?: boolean;
-  progressValue?: number;
-  progressMax?: number;
-}) {
-  const showBar =
-    progressValue !== undefined && progressMax !== undefined && progressMax > 0;
-  const barPct = showBar
-    ? Math.min(100, Math.round((progressValue / progressMax) * 100))
-    : 0;
-
-  return (
-    <div
-      className={`rounded-xl border p-4 shadow-sm ring-1 ${
-        highlight
-          ? "border-[#c9a454]/40 bg-[#fffdf8] ring-[#c9a454]/20"
-          : "border-slate-200/90 bg-white ring-slate-100/80"
-      }`}
-    >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-2 text-xl font-semibold tabular-nums text-[#0f1a33]">{value}</p>
-      {showBar ? (
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-[#c9a454] to-[#ddb75c]"
-            style={{ width: `${barPct}%` }}
-          />
+      <section className="rounded-xl border border-[#c9a454]/25 bg-white p-4 shadow-sm ring-1 ring-[#c9a454]/15">
+        <h4 className="text-[15px] font-semibold text-[#0f1a33]">
+          ¿Hay una asignatura que se te está atragantando?
+        </h4>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-slate-600">
+          Si los mocks no suben, acumulas errores o no sabes cómo avanzar, puedes reservar una clase
+          PPL/ATPL para resolver dudas concretas.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Link
+            href="/clases-ppl-atpl"
+            className="inline-flex min-h-[42px] items-center justify-center rounded-lg border border-[#c9a454] bg-[#c9a454] px-4 py-2.5 text-[14px] font-semibold text-[#0f1a33] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+          >
+            Ver clases PPL/ATPL
+          </Link>
+          {onGoToCalendar ? (
+            <button
+              type="button"
+              onClick={onGoToCalendar}
+              className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-[14px] font-semibold text-slate-700 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              <Calendar className="h-4 w-4 shrink-0" aria-hidden />
+              Ir al calendario
+            </button>
+          ) : null}
         </div>
-      ) : null}
-      <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">{hint}</p>
+      </section>
     </div>
   );
 }

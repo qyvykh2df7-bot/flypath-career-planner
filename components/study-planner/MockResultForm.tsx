@@ -71,20 +71,21 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
   };
 
   const fieldClass =
-    "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[15px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25";
+    "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25";
+  const labelClass = "text-[12px] font-semibold text-slate-600";
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80 sm:p-5"
+      className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm ring-1 ring-slate-100/80 sm:p-4"
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[13px] font-semibold text-slate-600">Fecha</span>
+          <span className={labelClass}>Fecha</span>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fieldClass} required />
         </label>
         <label className="block">
-          <span className="text-[13px] font-semibold text-slate-600">Nota %</span>
+          <span className={labelClass}>Nota %</span>
           <input
             type="number"
             min={0}
@@ -98,7 +99,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
           />
         </label>
         <label className="block sm:col-span-2">
-          <span className="text-[13px] font-semibold text-slate-600">Asignatura</span>
+          <span className={labelClass}>Asignatura</span>
           <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} className={fieldClass} required>
             <option value="">Seleccionar…</option>
             {subjects.map((s) => (
@@ -109,7 +110,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
           </select>
         </label>
         <label className="block sm:col-span-2">
-          <span className="text-[13px] font-semibold text-slate-600">Banco usado (opcional)</span>
+          <span className={labelClass}>Banco usado (opcional)</span>
           <input
             type="text"
             value={bank}
@@ -119,7 +120,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
           />
         </label>
         <fieldset className="sm:col-span-2">
-          <legend className="text-[13px] font-semibold text-slate-600">Duración (opcional)</legend>
+          <legend className={labelClass}>Duración (opcional)</legend>
           <div className="mt-1.5 grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-[12px] text-slate-500">Horas</span>
@@ -146,12 +147,12 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
           </div>
         </fieldset>
         <label className="block sm:col-span-2">
-          <span className="text-[13px] font-semibold text-slate-600">Notas (opcional)</span>
+          <span className={labelClass}>Notas (opcional)</span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className={`${fieldClass} min-h-[72px] resize-y`}
+            className={`${fieldClass} min-h-[64px] resize-y`}
             placeholder="Observaciones del mock…"
           />
         </label>
@@ -170,7 +171,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
 
       <button
         type="submit"
-        className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_8px_24px_rgba(201,164,84,0.3)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
+        className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[14px] font-semibold text-[#0f1a33] shadow-[0_6px_20px_rgba(201,164,84,0.28)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
       >
         Registrar mock
       </button>

@@ -109,6 +109,13 @@ export type ErrorLogItem = {
   notes?: string;
 };
 
+export type ExamDate = {
+  id: string;
+  subjectId: string;
+  date: string;
+  notes?: string;
+};
+
 export type RecoveryProblem =
   | "too_many_subjects"
   | "low_mock_scores"
@@ -152,6 +159,7 @@ export type AtplPlannerState = {
   mockResults: MockResult[];
   reviewItems: ReviewItem[];
   errorLogItems: ErrorLogItem[];
+  examDates: ExamDate[];
 };
 
 export const DEFAULT_ATPL_PLANNER_STATE: AtplPlannerState = {
@@ -162,4 +170,5 @@ export const DEFAULT_ATPL_PLANNER_STATE: AtplPlannerState = {
   mockResults: [],
   reviewItems: [],
   errorLogItems: [],
+  examDates: [],
 };

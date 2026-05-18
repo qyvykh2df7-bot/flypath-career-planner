@@ -49,8 +49,8 @@ export function StudyWeeklyCalendar({
     weekPlanned.filter((p) => p.date === date).sort(comparePlannedByStartTime);
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-xl border border-slate-200/90 bg-[#fffdf8] px-4 py-3 text-[14px] text-slate-700 ring-1 ring-[#c9a454]/15 sm:px-5">
+    <div className="space-y-4">
+      <div className="rounded-lg border border-slate-200/90 bg-[#fffdf8] px-3 py-2.5 text-[13px] text-slate-700 ring-1 ring-[#c9a454]/15">
         <span className="font-semibold text-[#0f1a33]">Esta semana:</span>{" "}
         Planificado: {minutesToHoursLabel(plannedMinutes)} · Completado:{" "}
         {minutesToHoursLabel(completedMinutes)} · Saltadas: {skippedCount}
@@ -107,9 +107,9 @@ function DayColumn({
 
   return (
     <div
-      className={`flex min-h-[120px] flex-col rounded-xl border p-3 ${
-        isToday ? "border-[#c9a454]/45 bg-white ring-1 ring-[#c9a454]/20" : "border-slate-200/90 bg-white"
-      } ${layout === "list" ? "min-h-0" : ""}`}
+      className={`flex flex-col rounded-lg border p-2.5 ${
+        isToday ? "border-[#c9a454]/45 bg-[#fffdf8] ring-1 ring-[#c9a454]/20" : "border-slate-200/90 bg-white"
+      } ${layout === "list" ? "" : "min-h-[88px]"}`}
     >
       <div className="mb-2 border-b border-slate-100 pb-2">
         <p className="text-[13px] font-semibold text-[#0f1a33]">
@@ -121,7 +121,7 @@ function DayColumn({
       </div>
 
       {sessions.length === 0 ? (
-        <p className="flex-1 text-[12px] text-slate-400">Sin sesiones</p>
+        <p className="py-2 text-[11px] text-slate-400">—</p>
       ) : (
         <ul className="space-y-2">
           {sessions.map((session) => (

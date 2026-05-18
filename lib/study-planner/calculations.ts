@@ -204,6 +204,73 @@ export function formatShortDate(dateStr: string): string {
   return `${d}/${m}`;
 }
 
+const MONTH_SHORT_ES = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+] as const;
+
+export function formatExamDisplayDate(dateStr: string): string {
+  const [, m, d] = dateStr.split("-").map(Number);
+  const month = MONTH_SHORT_ES[m - 1] ?? String(m);
+  return `${d} ${month}`;
+}
+
+export function getDaysUntilDate(
+  targetDate: string,
+  today: string = getTodayDateString(),
+): number {
+  const [y1, m1, d1] = today.split("-").map(Number);
+  const [y2, m2, d2] = targetDate.split("-").map(Number);
+  const t1 = new Date(y1, m1 - 1, d1).getTime();
+  const t2 = new Date(y2, m2 - 1, d2).getTime();
+  return Math.round((t2 - t1) / (1000 * 60 * 60 * 24));
+}
+
+export function formatDaysRemaining(days: number): string {
+  if (days === 0) return "hoy";
+  if (days === 1) return "falta 1 día";
+  if (days < 0) return `hace ${Math.abs(days)} día${Math.abs(days) === 1 ? "" : "s"}`;
+  return `faltan ${days} días`;
+}
+
+export type ExamUrgencyBadge = "Esta semana" | "Próximo" | "Planificado";
+
+export function getExamUrgencyBadge(daysLeft: number): ExamUrgencyBadge {
+  if (daysLeft <= 7) return "Esta semana";
+  if (daysLeft <= 21) return "Próximo";
+  return "Planificado";
+}
+
+export function getExamUrgencyTone(daysLeft: number): "risk" | "warn" | "good" {
+  if (daysLeft <= 7) return "risk";
+  if (daysLeft <= 21) return "warn";
+  return "good";
+}
+
+export function getNextUpcomingExam<T extends { subjectId: string; date: string }>(
+  examDates: T[],
+  today: string = getTodayDateString(),
+): T | null {
+  const upcoming = examDates
+    .filter((e) => e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return upcoming[0] ?? null;
+}
+
+export function sortExamDatesByDateAsc<T extends { date: string }>(examDates: T[]): T[] {
+  return [...examDates].sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export function createPlannerId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
