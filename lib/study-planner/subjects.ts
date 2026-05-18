@@ -1,4 +1,4 @@
-import type { StudyMode, StudySession, StudySubject } from "./types";
+import type { StudyMode, StudySession, StudySubject, PlannedStudySession } from "./types";
 
 const pplNames = [
   "Air Law",
@@ -62,4 +62,12 @@ export function getSubjectIdsForMode(mode: StudyMode): Set<string> {
 export function filterSessionsByMode(sessions: StudySession[], mode: StudyMode): StudySession[] {
   const ids = getSubjectIdsForMode(mode);
   return sessions.filter((s) => ids.has(s.subjectId));
+}
+
+export function filterPlannedSessionsByMode(
+  plannedSessions: PlannedStudySession[],
+  mode: StudyMode,
+): PlannedStudySession[] {
+  const ids = getSubjectIdsForMode(mode);
+  return plannedSessions.filter((p) => ids.has(p.subjectId));
 }

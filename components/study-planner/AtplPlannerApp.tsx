@@ -5,16 +5,25 @@ import { ArrowRight, LayoutDashboard, BookOpen, PenLine, Calendar, ClipboardList
 import {
   DEFAULT_ATPL_PLANNER_STATE,
   type AtplPlannerState,
+  type PlannedStudySession,
   type StudyMode,
   type StudySession,
 } from "@/lib/study-planner/types";
+import { createPlannerId } from "@/lib/study-planner/calculations";
 import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
-import { filterSessionsByMode, getSubjectsByMode } from "@/lib/study-planner/subjects";
+import {
+  filterPlannedSessionsByMode,
+  filterSessionsByMode,
+  getSubjectsByMode,
+} from "@/lib/study-planner/subjects";
 import { StudyModeSelector } from "./StudyModeSelector";
 import { StudyDashboard } from "./StudyDashboard";
 import { SubjectOverview } from "./SubjectOverview";
 import { StudyLogForm } from "./StudyLogForm";
 import { StudyLogTable } from "./StudyLogTable";
+import { StudyProgressCharts } from "./StudyProgressCharts";
+import { PlannedSessionForm } from "./PlannedSessionForm";
+import { StudyWeeklyCalendar } from "./StudyWeeklyCalendar";
 
 type PlannerTab =
   | "dashboard"
@@ -53,9 +62,13 @@ export function AtplPlannerApp() {
     saveStudyPlannerState(state);
   }, [state, hydrated]);
 
-  const { mode, weeklyGoalMinutes, sessions } = state;
+  const { mode, weeklyGoalMinutes, sessions, plannedSessions } = state;
   const subjects = useMemo(() => getSubjectsByMode(mode), [mode]);
   const modeSessions = useMemo(() => filterSessionsByMode(sessions, mode), [sessions, mode]);
+  const modePlannedSessions = useMemo(
+    () => filterPlannedSessionsByMode(plannedSessions, mode),
+    [plannedSessions, mode],
+  );
 
   const setMode = useCallback((next: StudyMode) => {
     setState((prev) => ({ ...prev, mode: next }));
@@ -75,6 +88,55 @@ export function AtplPlannerApp() {
   const setWeeklyGoalHours = useCallback((hours: number) => {
     const clamped = Math.min(80, Math.max(1, hours));
     setState((prev) => ({ ...prev, weeklyGoalMinutes: clamped * 60 }));
+  }, []);
+
+  const addPlannedSession = useCallback((planned: PlannedStudySession) => {
+    setState((prev) => ({
+      ...prev,
+      plannedSessions: [...prev.plannedSessions, planned],
+    }));
+  }, []);
+
+  const completePlannedSession = useCallback((plannedId: string) => {
+    setState((prev) => {
+      const planned = prev.plannedSessions.find((p) => p.id === plannedId);
+      if (!planned || planned.status !== "planned") return prev;
+
+      const realSession: StudySession = {
+        id: createPlannerId(),
+        date: planned.date,
+        subjectId: planned.subjectId,
+        type: planned.type,
+        durationMinutes: planned.plannedDurationMinutes,
+        notes: planned.goal,
+      };
+
+      return {
+        ...prev,
+        sessions: [...prev.sessions, realSession],
+        plannedSessions: prev.plannedSessions.map((p) =>
+          p.id === plannedId
+            ? { ...p, status: "completed" as const, completedSessionId: realSession.id }
+            : p,
+        ),
+      };
+    });
+  }, []);
+
+  const skipPlannedSession = useCallback((plannedId: string) => {
+    setState((prev) => ({
+      ...prev,
+      plannedSessions: prev.plannedSessions.map((p) =>
+        p.id === plannedId && p.status === "planned" ? { ...p, status: "skipped" as const } : p,
+      ),
+    }));
+  }, []);
+
+  const deletePlannedSession = useCallback((plannedId: string) => {
+    setState((prev) => ({
+      ...prev,
+      plannedSessions: prev.plannedSessions.filter((p) => p.id !== plannedId),
+    }));
   }, []);
 
   const scrollToWorkspace = useCallback(() => {
@@ -170,6 +232,7 @@ export function AtplPlannerApp() {
                   <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Resumen</h3>
                   <StudyDashboard
                     sessions={modeSessions}
+                    plannedSessions={modePlannedSessions}
                     weeklyGoalMinutes={weeklyGoalMinutes}
                     subjects={subjects}
                     onWeeklyGoalHoursChange={setWeeklyGoalHours}
@@ -202,7 +265,46 @@ export function AtplPlannerApp() {
                 </div>
               ) : null}
 
-              {activeTab !== "dashboard" && activeTab !== "subjects" && activeTab !== "log" ? (
+              {activeTab === "calendar" ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Calendario semanal</h3>
+                    <p className="mt-1 text-[14px] text-slate-600">
+                      Planifica tus sesiones de estudio y compáralas con lo que realmente completas.
+                    </p>
+                  </div>
+                  <PlannedSessionForm subjects={subjects} onAddPlannedSession={addPlannedSession} />
+                  <StudyWeeklyCalendar
+                    plannedSessions={modePlannedSessions}
+                    onCompletePlannedSession={completePlannedSession}
+                    onSkipPlannedSession={skipPlannedSession}
+                    onDeletePlannedSession={deletePlannedSession}
+                  />
+                </div>
+              ) : null}
+
+              {activeTab === "progress" ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#0f1a33] sm:text-lg">Progreso visual</h3>
+                    <p className="mt-1 text-[14px] text-slate-600">
+                      Revisa tus horas, consistencia y distribución por asignatura.
+                    </p>
+                  </div>
+                  <StudyProgressCharts
+                    mode={mode}
+                    sessions={modeSessions}
+                    subjects={subjects}
+                    weeklyGoalMinutes={weeklyGoalMinutes}
+                  />
+                </div>
+              ) : null}
+
+              {activeTab !== "dashboard" &&
+              activeTab !== "subjects" &&
+              activeTab !== "log" &&
+              activeTab !== "calendar" &&
+              activeTab !== "progress" ? (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
                   <p className="text-[15px] font-medium text-slate-700">{PLACEHOLDER_MSG}</p>
                   <p className="mt-2 text-[13px] text-slate-500">

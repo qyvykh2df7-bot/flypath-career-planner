@@ -1,17 +1,22 @@
 "use client";
 
-import type { StudySession, StudySubject } from "@/lib/study-planner/types";
+import type { PlannedStudySession, StudySession, StudySubject } from "@/lib/study-planner/types";
 import {
   calculateActiveSubjectIds,
+  calculateCompletedPlannedMinutes,
+  calculatePlannedMinutes,
   calculateStudyHealth,
   calculateTotalStudyMinutes,
+  getPlannedSessionsForCurrentWeek,
   getSessionsForCurrentWeek,
+  getWeeklyGoalStatusMessage,
   minutesToHoursLabel,
   studyHealthLabel,
 } from "@/lib/study-planner/calculations";
 
 type StudyDashboardProps = {
   sessions: StudySession[];
+  plannedSessions: PlannedStudySession[];
   weeklyGoalMinutes: number;
   subjects: StudySubject[];
   onWeeklyGoalHoursChange: (hours: number) => void;
@@ -19,6 +24,7 @@ type StudyDashboardProps = {
 
 export function StudyDashboard({
   sessions,
+  plannedSessions,
   weeklyGoalMinutes,
   subjects,
   onWeeklyGoalHoursChange,
@@ -26,11 +32,21 @@ export function StudyDashboard({
   const weekSessions = getSessionsForCurrentWeek(sessions);
   const weekMinutes = calculateTotalStudyMinutes(weekSessions);
   const goalHours = Math.round(weeklyGoalMinutes / 60);
-  const weekPct =
-    weeklyGoalMinutes > 0 ? Math.min(100, Math.round((weekMinutes / weeklyGoalMinutes) * 100)) : 0;
+  const weekPctRaw =
+    weeklyGoalMinutes > 0 ? Math.round((weekMinutes / weeklyGoalMinutes) * 100) : 0;
+  const weekGoalMessage = getWeeklyGoalStatusMessage(weekPctRaw);
   const activeIds = calculateActiveSubjectIds(sessions, 14);
   const activeInMode = activeIds.filter((id) => subjects.some((s) => s.id === id)).length;
   const health = calculateStudyHealth(weekMinutes, weeklyGoalMinutes);
+  const weekPlanned = getPlannedSessionsForCurrentWeek(plannedSessions);
+  const plannedMinutes = calculatePlannedMinutes(weekPlanned);
+  const completedPlannedMinutes = calculateCompletedPlannedMinutes(weekPlanned);
+  const plannedCount = weekPlanned.filter((p) => p.status === "planned").length;
+  const completedPlannedCount = weekPlanned.filter((p) => p.status === "completed").length;
+  const skippedPlannedCount = weekPlanned.filter((p) => p.status === "skipped").length;
+  const hasPlannedData = weekPlanned.length > 0;
+  const plannedFulfillmentPct =
+    plannedMinutes > 0 ? Math.round((completedPlannedMinutes / plannedMinutes) * 100) : 0;
 
   const handleGoalInput = (value: string) => {
     const parsed = parseInt(value, 10);
@@ -58,6 +74,19 @@ export function StudyDashboard({
           <span className="text-[15px] font-medium text-slate-600">h / semana</span>
           <span className="text-[13px] text-slate-500">({minutesToHoursLabel(weeklyGoalMinutes)} objetivo)</span>
         </div>
+        {hasPlannedData ? (
+          <p className="mt-3 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-slate-600">
+            <span className="font-semibold text-[#0f1a33]">Planificación:</span>{" "}
+            Planificado: {minutesToHoursLabel(plannedMinutes)} · Completado:{" "}
+            {minutesToHoursLabel(completedPlannedMinutes)}
+            {skippedPlannedCount > 0 ? ` · Saltadas: ${skippedPlannedCount}` : ""}
+            <span className="mt-1 block text-slate-500">
+              {completedPlannedCount} de {weekPlanned.length} sesiones planificadas completadas
+              {plannedMinutes > 0 ? ` (${plannedFulfillmentPct}% del tiempo planificado)` : ""}
+              {plannedCount > 0 ? ` · ${plannedCount} pendiente${plannedCount === 1 ? "" : "s"}` : ""}
+            </span>
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -73,7 +102,9 @@ export function StudyDashboard({
         <DashboardCard
           label="Objetivo semanal"
           value={`${minutesToHoursLabel(weekMinutes)} / ${minutesToHoursLabel(weeklyGoalMinutes)}`}
-          hint={`${weekPct}% completado`}
+          hint={`${weekPctRaw}% completado · ${weekGoalMessage}`}
+          progressValue={weekMinutes}
+          progressMax={weeklyGoalMinutes}
         />
         <DashboardCard
           label="Asignaturas activas"
@@ -98,12 +129,22 @@ function DashboardCard({
   value,
   hint,
   highlight,
+  progressValue,
+  progressMax,
 }: {
   label: string;
   value: string;
   hint: string;
   highlight?: boolean;
+  progressValue?: number;
+  progressMax?: number;
 }) {
+  const showBar =
+    progressValue !== undefined && progressMax !== undefined && progressMax > 0;
+  const barPct = showBar
+    ? Math.min(100, Math.round((progressValue / progressMax) * 100))
+    : 0;
+
   return (
     <div
       className={`rounded-xl border p-4 shadow-sm ring-1 ${
@@ -114,6 +155,14 @@ function DashboardCard({
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
       <p className="mt-2 text-xl font-semibold tabular-nums text-[#0f1a33]">{value}</p>
+      {showBar ? (
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#c9a454] to-[#ddb75c]"
+            style={{ width: `${barPct}%` }}
+          />
+        </div>
+      ) : null}
       <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">{hint}</p>
     </div>
   );

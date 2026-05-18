@@ -1,6 +1,8 @@
 import {
   DEFAULT_ATPL_PLANNER_STATE,
   type AtplPlannerState,
+  type PlannedStudySession,
+  type PlannedStudySessionStatus,
   type StudyMode,
   type StudySession,
   type StudySessionQuality,
@@ -20,6 +22,8 @@ const SESSION_TYPES: StudySessionType[] = [
 
 const QUALITIES: StudySessionQuality[] = ["good", "medium", "bad"];
 
+const PLANNED_STATUSES: PlannedStudySessionStatus[] = ["planned", "completed", "skipped"];
+
 function isStudyMode(v: unknown): v is StudyMode {
   return v === "atpl" || v === "ppl";
 }
@@ -30,6 +34,10 @@ function isSessionType(v: unknown): v is StudySessionType {
 
 function isQuality(v: unknown): v is StudySessionQuality {
   return typeof v === "string" && QUALITIES.includes(v as StudySessionQuality);
+}
+
+function isPlannedStatus(v: unknown): v is PlannedStudySessionStatus {
+  return typeof v === "string" && PLANNED_STATUSES.includes(v as PlannedStudySessionStatus);
 }
 
 function parseSession(raw: unknown): StudySession | null {
@@ -56,6 +64,37 @@ function parseSession(raw: unknown): StudySession | null {
   return session;
 }
 
+function parsePlannedSession(raw: unknown): PlannedStudySession | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Record<string, unknown>;
+  if (typeof p.id !== "string" || typeof p.date !== "string" || typeof p.subjectId !== "string") {
+    return null;
+  }
+  if (!isSessionType(p.type)) return null;
+  if (!isPlannedStatus(p.status)) return null;
+  const plannedDurationMinutes = Number(p.plannedDurationMinutes);
+  if (!Number.isFinite(plannedDurationMinutes) || plannedDurationMinutes <= 0) return null;
+
+  const planned: PlannedStudySession = {
+    id: p.id,
+    date: p.date,
+    subjectId: p.subjectId,
+    type: p.type,
+    plannedDurationMinutes,
+    status: p.status,
+  };
+  if (typeof p.startTime === "string" && p.startTime.length > 0) {
+    planned.startTime = p.startTime;
+  }
+  if (typeof p.goal === "string" && p.goal.length > 0) {
+    planned.goal = p.goal;
+  }
+  if (typeof p.completedSessionId === "string" && p.completedSessionId.length > 0) {
+    planned.completedSessionId = p.completedSessionId;
+  }
+  return planned;
+}
+
 export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
   const fallback = DEFAULT_ATPL_PLANNER_STATE;
   if (!raw || typeof raw !== "object") return fallback;
@@ -73,7 +112,12 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
     .map(parseSession)
     .filter((s): s is StudySession => s !== null);
 
-  return { mode, weeklyGoalMinutes: goal, sessions };
+  const plannedRaw = Array.isArray(o.plannedSessions) ? o.plannedSessions : [];
+  const plannedSessions = plannedRaw
+    .map(parsePlannedSession)
+    .filter((p): p is PlannedStudySession => p !== null);
+
+  return { mode, weeklyGoalMinutes: goal, sessions, plannedSessions };
 }
 
 export function loadStudyPlannerState<T>(fallback: T): T {

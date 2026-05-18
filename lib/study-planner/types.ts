@@ -27,14 +27,30 @@ export type StudySession = {
   notes?: string;
 };
 
+export type PlannedStudySessionStatus = "planned" | "completed" | "skipped";
+
+export type PlannedStudySession = {
+  id: string;
+  date: string;
+  startTime?: string;
+  subjectId: string;
+  type: StudySessionType;
+  plannedDurationMinutes: number;
+  goal?: string;
+  status: PlannedStudySessionStatus;
+  completedSessionId?: string;
+};
+
 export type AtplPlannerState = {
   mode: StudyMode;
   weeklyGoalMinutes: number;
   sessions: StudySession[];
+  plannedSessions: PlannedStudySession[];
 };
 
 export const DEFAULT_ATPL_PLANNER_STATE: AtplPlannerState = {
   mode: "atpl",
   weeklyGoalMinutes: 600,
   sessions: [],
+  plannedSessions: [],
 };
