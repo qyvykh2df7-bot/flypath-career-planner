@@ -111,7 +111,7 @@ const PLATFORM_MODULES = [
     status: "available" as const,
     href: "/opiniones-escuelas",
   },
-  { id: "atpl", label: "ATPL Planner", status: "soon" as const },
+  { id: "atpl", label: "ATPL Planner", status: "available" as const, href: "/atpl-planner" },
   { id: "ingles", label: "Inglés aeronáutico", status: "available" as const, href: "/ingles-aeronautico" },
   { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
   { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
@@ -233,7 +233,7 @@ export default function MentoriasPage() {
                 className="absolute right-0 z-20 mt-2 max-h-[calc(100vh-120px)] w-[min(22rem,calc(100vw-2rem))] max-w-[min(96vw,26rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
               >
                 {PLATFORM_MODULES.map((m) => {
-                  const isSoon = m.status === "soon";
+                  const isSoon = (m as { status: "available" | "soon" }).status === "soon";
                   const isCurrent = m.id === CURRENT_ITEM_ID;
                   const hasHref = "href" in m && typeof m.href === "string" && m.href.length > 0;
                   const isClickable = hasHref || isSoon;

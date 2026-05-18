@@ -2452,7 +2452,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       { id: "planifica", label: "Planifica tu ruta", status: "available" as const, href: "/" },
       { id: "compara", label: "Compara escuelas", status: "available" as const, href: "/schools" },
       { id: "opiniones", label: "Opiniones de escuelas", status: "available" as const, href: "/opiniones-escuelas" },
-      { id: "atpl", label: "ATPL Planner", status: "soon" as const },
+      { id: "atpl", label: "ATPL Planner", status: "available" as const, href: "/atpl-planner" },
       { id: "ingles", label: "Inglés aeronáutico", status: "available" as const, href: "/ingles-aeronautico" },
       { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
       { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
@@ -2526,7 +2526,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   className="absolute right-0 z-20 mt-2 max-h-[calc(100vh-120px)] w-[min(22rem,calc(100vw-2rem))] max-w-[min(96vw,26rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
                 >
                   {flypathPlatformModules.map((m) => {
-                    const isSoon = m.status === "soon";
+                    const isSoon = (m as { status: "available" | "soon" }).status === "soon";
                     // En la landing actual, el módulo "vivo" es Planifica tu ruta
                     // (Inicio y Planifica apuntan ambos a `/`, pero la home muestra
                     // el flujo del Planner, no un dashboard de Inicio). Marcamos
