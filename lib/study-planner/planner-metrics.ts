@@ -4,6 +4,7 @@ import { getCurrentWeekStart, getPlannedSessionsForWeek, getWeekRange } from "./
 import {
   isCountableAsCompleted,
   isPendingLikeStatus,
+  normalizePlannedSessionStatus,
   sessionMinutes,
 } from "./planner-session-status";
 
@@ -75,8 +76,9 @@ export function getPlannerMetrics(
   for (const s of weekSessions) {
     const mins = sessionMinutes(s);
     totalPlannedMinutes += mins;
+    const status = normalizePlannedSessionStatus(s.status) ?? "pending";
 
-    switch (s.status) {
+    switch (status) {
       case "completed":
         completedSessions += 1;
         completedMinutes += mins;
@@ -106,11 +108,19 @@ export function getPlannerMetrics(
     .filter((s) => s.date === today)
     .sort(comparePlannedByStartTime);
 
-  const todayPendingSessions = todaySessions.filter((s) => isPendingLikeStatus(s.status)).length;
-  const todayCompletedSessions = todaySessions.filter((s) => s.status === "completed").length;
-  const todaySkippedSessions = todaySessions.filter((s) => s.status === "skipped").length;
+  const todayPendingSessions = todaySessions.filter((s) =>
+    isPendingLikeStatus(normalizePlannedSessionStatus(s.status) ?? "pending"),
+  ).length;
+  const todayCompletedSessions = todaySessions.filter(
+    (s) => normalizePlannedSessionStatus(s.status) === "completed",
+  ).length;
+  const todaySkippedSessions = todaySessions.filter(
+    (s) => normalizePlannedSessionStatus(s.status) === "skipped",
+  ).length;
 
-  const actionable = weekSessions.filter((s) => isPendingLikeStatus(s.status)).sort(sortUpcoming);
+  const actionable = weekSessions
+    .filter((s) => isPendingLikeStatus(normalizePlannedSessionStatus(s.status) ?? "pending"))
+    .sort(sortUpcoming);
   const nextSession = actionable[0] ?? null;
 
   const upcomingFromToday = actionable.filter((s) => s.date >= today);
@@ -120,7 +130,9 @@ export function getPlannerMetrics(
 
   const touched = new Set<string>();
   for (const s of weekSessions) {
-    if (isCountableAsCompleted(s.status)) touched.add(s.subjectId);
+    if (isCountableAsCompleted(normalizePlannedSessionStatus(s.status) ?? "pending")) {
+      touched.add(s.subjectId);
+    }
   }
   if (options.studySessions) {
     const { start, end } = getWeekRange(weekStartDate);
