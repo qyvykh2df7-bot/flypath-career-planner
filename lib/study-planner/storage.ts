@@ -9,12 +9,15 @@ import {
   type ReviewItem,
   type ReviewStatus,
   type PlannedStudySession,
-  type PlannedStudySessionStatus,
   type StudyMode,
   type StudySession,
   type StudySessionQuality,
   type StudySessionType,
 } from "./types";
+import {
+  normalizePlannedSessionStatus,
+  type PlannedStudySessionStatus,
+} from "./planner-session-status";
 import { getSubjectsByMode } from "./subjects";
 
 export const STUDY_PLANNER_STORAGE_KEY = "flypath_atpl_planner_state";
@@ -30,7 +33,12 @@ const SESSION_TYPES: StudySessionType[] = [
 
 const QUALITIES: StudySessionQuality[] = ["good", "medium", "bad"];
 
-const PLANNED_STATUSES: PlannedStudySessionStatus[] = ["planned", "completed", "skipped"];
+const PLANNED_STATUSES: PlannedStudySessionStatus[] = [
+  "pending",
+  "in_progress",
+  "completed",
+  "skipped",
+];
 
 const REVIEW_STATUSES: ReviewStatus[] = ["pending", "completed", "overdue"];
 
@@ -60,8 +68,10 @@ function isQuality(v: unknown): v is StudySessionQuality {
   return typeof v === "string" && QUALITIES.includes(v as StudySessionQuality);
 }
 
-function isPlannedStatus(v: unknown): v is PlannedStudySessionStatus {
-  return typeof v === "string" && PLANNED_STATUSES.includes(v as PlannedStudySessionStatus);
+function isPlannedStatus(v: unknown): v is PlannedStudySessionStatus | "planned" {
+  if (typeof v !== "string") return false;
+  if (v === "planned") return true;
+  return PLANNED_STATUSES.includes(v as PlannedStudySessionStatus);
 }
 
 function isReviewStatus(v: unknown): v is ReviewStatus {
@@ -111,13 +121,17 @@ function parsePlannedSession(raw: unknown): PlannedStudySession | null {
   const plannedDurationMinutes = Number(p.plannedDurationMinutes);
   if (!Number.isFinite(plannedDurationMinutes) || plannedDurationMinutes <= 0) return null;
 
+  const normalizedStatus = normalizePlannedSessionStatus(p.status);
+  if (!normalizedStatus) return null;
+
   const planned: PlannedStudySession = {
     id: p.id,
     date: p.date,
     subjectId: p.subjectId,
     type: p.type,
     plannedDurationMinutes,
-    status: p.status,
+    status: normalizedStatus,
+    source: p.source === "manual" || p.source === "auto" ? p.source : "auto",
   };
   if (typeof p.startTime === "string" && p.startTime.length > 0) {
     planned.startTime = p.startTime;

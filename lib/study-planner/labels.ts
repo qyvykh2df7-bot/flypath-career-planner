@@ -2,7 +2,7 @@ import type { ErrorLogStatus, ErrorLogType, StudySessionQuality, StudySessionTyp
 
 export const SESSION_TYPE_OPTIONS: { value: StudySessionType; label: string }[] = [
   { value: "theory", label: "Teoría" },
-  { value: "question_bank", label: "Banco de preguntas" },
+  { value: "question_bank", label: "Banco" },
   { value: "mock", label: "Mock" },
   { value: "review", label: "Repaso" },
   { value: "error_correction", label: "Corrección de errores" },
@@ -17,6 +17,26 @@ export const SESSION_QUALITY_OPTIONS: { value: StudySessionQuality; label: strin
 
 export function getSessionTypeLabel(type: StudySessionType): string {
   return SESSION_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
+}
+
+/** Etiqueta corta para badges y titulares (Hoy, calendario). */
+export function getSessionTypeShortLabel(type: StudySessionType): string {
+  switch (type) {
+    case "theory":
+      return "Teoría";
+    case "question_bank":
+      return "Banco";
+    case "review":
+      return "Repaso";
+    case "mock":
+      return "Mock";
+    case "error_correction":
+      return "Errores";
+    case "class":
+      return "Clase";
+    default:
+      return getSessionTypeLabel(type);
+  }
 }
 
 export function getSessionQualityLabel(quality?: StudySessionQuality): string {

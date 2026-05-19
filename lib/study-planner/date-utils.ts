@@ -101,6 +101,90 @@ export function getPlannedSessionsForWeek(
   return plannedSessions.filter((p) => p.date >= start && p.date <= end);
 }
 
+export function addDays(dateStr: string, amount: number): string {
+  const date = parseDateLocal(dateStr);
+  date.setDate(date.getDate() + amount);
+  return formatDateLocal(date);
+}
+
+/** Primer día del mes (YYYY-MM-01) que contiene `dateStr`. */
+export function getMonthStart(dateStr: string): string {
+  const [y, m] = dateStr.split("-").map(Number);
+  return `${y}-${String(m).padStart(2, "0")}-01`;
+}
+
+export function addMonths(monthStart: string, amount: number): string {
+  const [y, m] = monthStart.split("-").map(Number);
+  const date = new Date(y, m - 1 + amount, 1);
+  return formatDateLocal(date);
+}
+
+export function getMonthEnd(monthStart: string): string {
+  const [y, m] = monthStart.split("-").map(Number);
+  const last = new Date(y, m, 0);
+  return formatDateLocal(last);
+}
+
+export function getMonthRange(monthStart: string): { start: string; end: string } {
+  return { start: monthStart, end: getMonthEnd(monthStart) };
+}
+
+const MONTH_NAMES_ES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+] as const;
+
+export function formatMonthYear(monthStart: string): string {
+  const [y, m] = monthStart.split("-").map(Number);
+  const name = MONTH_NAMES_ES[m - 1] ?? String(m);
+  return `${name} ${y}`;
+}
+
+/** Celdas del grid mensual (lun–dom), incluyendo días fuera del mes como `inMonth: false`. */
+export function getMonthGridDates(monthStart: string): { date: string; inMonth: boolean }[] {
+  const start = parseDateLocal(monthStart);
+  const end = parseDateLocal(getMonthEnd(monthStart));
+  const gridStart = parseDateLocal(getWeekStart(monthStart));
+  const gridEnd = parseDateLocal(getWeekEnd(formatDateLocal(end)));
+
+  const cells: { date: string; inMonth: boolean }[] = [];
+  const cursor = new Date(gridStart);
+  while (cursor <= gridEnd) {
+    const date = formatDateLocal(cursor);
+    cells.push({
+      date,
+      inMonth: cursor >= start && cursor <= end,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return cells;
+}
+
+export function getPlannedSessionsForMonth(
+  plannedSessions: PlannedStudySession[],
+  monthStart: string,
+): PlannedStudySession[] {
+  const { start, end } = getMonthRange(monthStart);
+  return plannedSessions.filter((p) => p.date >= start && p.date <= end);
+}
+
+export function getPlannedSessionsForDate(
+  plannedSessions: PlannedStudySession[],
+  date: string,
+): PlannedStudySession[] {
+  return plannedSessions.filter((p) => p.date === date);
+}
+
 /** Progreso esperado acumulado (0–100) según el día de la semana (lun–dom). */
 const EXPECTED_PROGRESS_BY_WEEKDAY = [15, 30, 45, 60, 75, 90, 100] as const;
 

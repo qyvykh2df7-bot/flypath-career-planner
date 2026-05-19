@@ -8,6 +8,8 @@ type PlannerOnboardingStepProps = {
   onNext: () => void;
   nextLabel?: string;
   nextDisabled?: boolean;
+  /** Shown above the primary button when next is disabled */
+  nextDisabledHint?: string;
 };
 
 export function PlannerOnboardingStep({
@@ -20,6 +22,7 @@ export function PlannerOnboardingStep({
   onNext,
   nextLabel = "Siguiente",
   nextDisabled = false,
+  nextDisabledHint,
 }: PlannerOnboardingStepProps) {
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -41,14 +44,20 @@ export function PlannerOnboardingStep({
         ) : (
           <span />
         )}
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={nextDisabled}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[14px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto"
-        >
-          {nextLabel}
-        </button>
+        <div className="flex flex-col items-stretch gap-1.5 sm:ml-auto sm:items-end">
+          {nextDisabled && nextDisabledHint ? (
+            <p className="text-center text-[12px] text-slate-500 sm:text-right">{nextDisabledHint}</p>
+          ) : null}
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={nextDisabled}
+            title={nextDisabled && nextDisabledHint ? nextDisabledHint : undefined}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[14px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] disabled:cursor-not-allowed disabled:opacity-[0.72] sm:min-w-[140px]"
+          >
+            {nextLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { getSubjectsByMode } from "@/lib/study-planner/subjects";
 import { plannerFieldClass, plannerFieldLabel } from "@/lib/study-planner/planner-ui";
 import { StudyModeSelector } from "@/components/study-planner/StudyModeSelector";
 import { PlannerOnboardingStep } from "./PlannerOnboardingStep";
+import { OnboardingTargetDateFields } from "./OnboardingTargetDateFields";
 import { SubjectSelector } from "./SubjectSelector";
 
 const TOTAL_STEPS = 5;
@@ -106,22 +107,14 @@ export function PlannerOnboarding({ onComplete }: PlannerOnboardingProps) {
           <PlannerOnboardingStep
             step={4}
             totalSteps={TOTAL_STEPS}
-            title="Fecha objetivo global"
-            description="Fecha orientativa para terminar tu fase teórica o bloque principal."
+            title="Fecha objetivo de estudio"
+            description="Elige una fecha aproximada para terminar este bloque de estudio. No tiene que ser tu fecha oficial de examen."
             onBack={() => setStep(3)}
             onNext={() => setStep(5)}
             nextDisabled={!targetExamDate}
+            nextDisabledHint="Selecciona una fecha para continuar."
           >
-            <label className={plannerFieldLabel}>
-              Fecha objetivo
-              <input
-                type="date"
-                required
-                value={targetExamDate}
-                onChange={(e) => setTargetExamDate(e.target.value)}
-                className={plannerFieldClass}
-              />
-            </label>
+            <OnboardingTargetDateFields value={targetExamDate} onChange={setTargetExamDate} />
           </PlannerOnboardingStep>
         ) : null}
 

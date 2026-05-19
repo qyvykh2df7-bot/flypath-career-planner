@@ -51,7 +51,7 @@ const PROBLEM_STEP_TEMPLATES: Record<
   no_weekly_plan: {
     title: "Planifica 3 sesiones realistas esta semana",
     description:
-      "Crea tres sesiones de estudio en el calendario: una de teoría, una de banco/preguntas y una de repaso o mock.",
+      "Crea tres sesiones de estudio en el calendario: una de teoría, una de banco y una de repaso o mock.",
     actionType: "plan_session",
   },
   overdue_reviews: {
@@ -197,7 +197,7 @@ export function generateRecoveryPlan(params: {
   const avgMock = calculateAverageMockScore(mockResults);
   const activeCount = calculateActiveSubjectIds(sessions, 14).length;
   const weekPlanned = getPlannedSessionsForCurrentWeek(
-    plannedSessions.filter((p) => p.status === "planned"),
+    plannedSessions.filter((p) => p.status === "pending" || p.status === "in_progress"),
   );
 
   if (overdueReviews > 0 && !selectedProblems.includes("overdue_reviews")) {

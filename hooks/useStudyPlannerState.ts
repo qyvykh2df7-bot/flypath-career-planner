@@ -21,7 +21,9 @@ import {
   getTodayDateString,
 } from "@/lib/study-planner/calculations";
 import { getWeekRange } from "@/lib/study-planner/date-utils";
+import { isPendingLikeStatus } from "@/lib/study-planner/planner-session-status";
 import type { ApplyPlanMode, WeeklyStudyPlan } from "@/lib/study-planner/planning/planning-types";
+import { markPlanActivated } from "@/lib/study-planner/plan-activation";
 import { weeklyPlanToPlannedSessions } from "@/lib/study-planner/planning/plan-to-sessions";
 import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
 import {
@@ -185,7 +187,7 @@ export function useStudyPlannerState() {
   const completePlannedSession = useCallback((plannedId: string) => {
     setState((prev) => {
       const planned = prev.plannedSessions.find((p) => p.id === plannedId);
-      if (!planned || planned.status !== "planned") return prev;
+      if (!planned || !isPendingLikeStatus(planned.status)) return prev;
 
       const realSession: StudySession = {
         id: createPlannerId(),
@@ -212,7 +214,9 @@ export function useStudyPlannerState() {
     setState((prev) => ({
       ...prev,
       plannedSessions: prev.plannedSessions.map((p) =>
-        p.id === plannedId && p.status === "planned" ? { ...p, status: "skipped" as const } : p,
+        p.id === plannedId && isPendingLikeStatus(p.status)
+          ? { ...p, status: "skipped" as const }
+          : p,
       ),
     }));
   }, []);
@@ -223,6 +227,18 @@ export function useStudyPlannerState() {
       plannedSessions: prev.plannedSessions.filter((p) => p.id !== plannedId),
     }));
   }, []);
+
+  const updatePlannedSession = useCallback(
+    (plannedId: string, patch: Partial<Omit<PlannedStudySession, "id">>) => {
+      setState((prev) => ({
+        ...prev,
+        plannedSessions: prev.plannedSessions.map((p) =>
+          p.id === plannedId ? { ...p, ...patch } : p,
+        ),
+      }));
+    },
+    [],
+  );
 
   const addMockResult = useCallback((mock: MockResult) => {
     setState((prev) => ({
@@ -315,6 +331,16 @@ export function useStudyPlannerState() {
     }));
   }, []);
 
+  const clearVisibleWeekPendingPlanned = useCallback((weekStartDate: string) => {
+    const { start, end } = getWeekRange(weekStartDate);
+    setState((prev) => ({
+      ...prev,
+      plannedSessions: prev.plannedSessions.filter(
+        (p) => !(p.date >= start && p.date <= end && isPendingLikeStatus(p.status)),
+      ),
+    }));
+  }, []);
+
   const applyGeneratedWeeklyPlan = useCallback((plan: WeeklyStudyPlan, applyMode: ApplyPlanMode) => {
     const { start, end } = getWeekRange(plan.weekStartDate);
     const modeSubjectSet = new Set(getSubjectsByMode(plan.mode).map((s) => s.id));
@@ -322,22 +348,30 @@ export function useStudyPlannerState() {
 
     setState((prev) => {
       let plannedSessions = prev.plannedSessions;
-      if (applyMode === "replace_visible_week") {
-        plannedSessions = plannedSessions.filter(
-          (p) =>
+      if (applyMode === "replace_visible_week" || applyMode === "replace_auto_only") {
+        plannedSessions = plannedSessions.filter((p) => {
+          if (
             !(
               p.date >= start &&
               p.date <= end &&
-              p.status === "planned" &&
+              isPendingLikeStatus(p.status) &&
               modeSubjectSet.has(p.subjectId)
-            ),
-        );
+            )
+          ) {
+            return true;
+          }
+          if (applyMode === "replace_auto_only" && p.source === "manual") {
+            return true;
+          }
+          return false;
+        });
       }
       return {
         ...prev,
         plannedSessions: [...plannedSessions, ...newSessions],
       };
     });
+    markPlanActivated(plan.mode);
   }, []);
 
   return {
@@ -367,6 +401,7 @@ export function useStudyPlannerState() {
     completePlannedSession,
     skipPlannedSession,
     deletePlannedSession,
+    updatePlannedSession,
     addMockResult,
     deleteMockResult,
     addReviewItem,
@@ -379,5 +414,6 @@ export function useStudyPlannerState() {
     addExamDate,
     deleteExamDate,
     applyGeneratedWeeklyPlan,
+    clearVisibleWeekPendingPlanned,
   };
 }

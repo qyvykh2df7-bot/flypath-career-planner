@@ -11,6 +11,7 @@ import type {
   SubjectReadinessLevel,
 } from "./types";
 import { ERROR_LOG_TYPE_OPTIONS, getErrorLogTypeLabel } from "./labels";
+import { getSubjectById } from "./subjects";
 import {
   formatDateLocal,
   getCurrentWeekStart,
@@ -18,6 +19,12 @@ import {
   getWeekDates,
   getWeekRange,
 } from "./date-utils";
+import { getPlannerMetrics } from "./planner-metrics";
+import { isCountableAsCompleted, isPendingLikeStatus } from "./planner-session-status";
+
+export { PLANNED_STATUS_LABELS, isPendingLikeStatus, isCountableAsCompleted } from "./planner-session-status";
+export { getPlannerMetrics } from "./planner-metrics";
+export type { PlannerMetrics } from "./planner-metrics";
 
 export { formatDateLocal } from "./date-utils";
 
@@ -429,6 +436,331 @@ function buildGoalBasedCompletion(params: {
   };
 }
 
+export type WeeklyCoachMessage = {
+  headline: string;
+  subline: string;
+};
+
+export type HeroCoachTone = {
+  emotionalLine: string;
+  focusHint?: string;
+};
+
+export type DashboardHeroEmptyState = {
+  variant: "fresh" | "study_no_plan";
+  /** Etiqueta superior en el hero; vacío en estado fresh inicial */
+  sectionLabel?: string;
+  title?: string;
+  metaLine: string;
+  ctaLabel: string;
+};
+
+/** Copy del hero cuando aún no hay plan semanal generado. */
+export function resolveDashboardHeroEmptyState(
+  plannedSessions: PlannedStudySession[],
+  studySessions: StudySession[],
+): DashboardHeroEmptyState | null {
+  if (plannedSessions.length > 0) return null;
+
+  if (studySessions.length === 0) {
+    return {
+      variant: "fresh",
+      metaLine:
+        "Genera una semana de estudio adaptada a tus horas, asignaturas activas y fecha objetivo. El planner repartirá tus bloques entre teoría, banco, repasos y mocks según la madurez de cada asignatura.",
+      ctaLabel: "Generar plan semanal",
+    };
+  }
+
+  return {
+    variant: "study_no_plan",
+    sectionLabel: "Tu siguiente paso",
+    title: "Define tu foco de hoy",
+    metaLine: "Genera un plan semanal para repartir mejor tus horas.",
+    ctaLabel: "Generar plan semanal",
+  };
+}
+
+/** Línea emocional breve para el focus card (sin IA). */
+export function buildHeroCoachTone(params: {
+  completion: WeeklyPlanCompletion;
+  focusSubjectName?: string;
+  nextSessionDate?: string;
+  studiedToday: boolean;
+  totalStudySessions?: number;
+  plannedSessions?: PlannedStudySession[];
+  today?: string;
+}): HeroCoachTone {
+  const { completion, focusSubjectName, nextSessionDate, studiedToday } = params;
+  const totalStudySessions = params.totalStudySessions ?? 0;
+  const today = params.today ?? getTodayDateString();
+
+  if (!completion.hasPlan) {
+    const emotionalLine =
+      totalStudySessions === 0 ? "Tu planner está listo" : "Define tu foco de hoy";
+    return { emotionalLine };
+  }
+
+  const planned = params.plannedSessions ?? [];
+  const weekPlanned = getCurrentWeekPlannedSessions(planned);
+  const todayPending = weekPlanned.filter(
+    (p) => p.date === today && isPendingLikeStatus(p.status),
+  );
+  const nextPending = weekPlanned.find((p) => isPendingLikeStatus(p.status));
+
+  if (todayPending.length > 0) {
+    const first = todayPending[0]!;
+    const name = getSubjectById(first.subjectId)?.name ?? first.subjectId;
+    const blockWord = todayPending.length === 1 ? "bloque" : "bloques";
+    return {
+      emotionalLine: "Semana en marcha",
+      focusHint: `Hoy tienes ${todayPending.length} ${blockWord}. Empieza por ${name} · ${first.plannedDurationMinutes} min.`,
+    };
+  }
+
+  if (nextPending) {
+    const name = getSubjectById(nextPending.subjectId)?.name ?? nextPending.subjectId;
+    const day = getDayShortLabel(nextPending.date);
+    return {
+      emotionalLine: "Semana en marcha",
+      focusHint: `Próxima sesión: ${name} · ${day}`,
+    };
+  }
+
+  let emotionalLine: string;
+  switch (completion.weeklyStatus) {
+    case "ahead":
+      emotionalLine = studiedToday ? "Sigues con buen ritmo" : "Hoy vas bien";
+      break;
+    case "on_track":
+      emotionalLine = studiedToday ? "Buen trabajo hoy" : "Tu foco hoy";
+      break;
+    case "slightly_behind":
+      emotionalLine = studiedToday ? "Buen trabajo hoy" : "Tu foco hoy";
+      break;
+    case "behind":
+      emotionalLine = "Recupera ritmo hoy";
+      break;
+    case "critical":
+      emotionalLine = "Prioriza hoy";
+      break;
+  }
+
+  let focusHint: string | undefined;
+  if (focusSubjectName && nextSessionDate) {
+    const day = getDayShortLabel(nextSessionDate);
+    focusHint = `Cierra ${focusSubjectName} antes del ${day.toLowerCase()}`;
+  } else if (focusSubjectName) {
+    focusHint = `Tu prioridad ahora: ${focusSubjectName}`;
+  }
+
+  return { emotionalLine, focusHint };
+}
+
+export function hasStudiedOnDate(sessions: StudySession[], date: string): boolean {
+  return sessions.some((s) => s.date === date);
+}
+
+export function buildWeeklyCoachMessage(
+  completion: WeeklyPlanCompletion,
+  totalStudySessions = 0,
+): WeeklyCoachMessage {
+  const target = completion.hasPlan ? completion.plannedMinutes : completion.targetMinutes;
+  const remainingMinutes = Math.max(0, target - completion.totalCreditedMinutes);
+  const aheadOfExpected = Math.max(
+    0,
+    completion.totalCreditedMinutes - completion.expectedMinutesByToday,
+  );
+  const behindExpected = Math.max(
+    0,
+    completion.expectedMinutesByToday - completion.totalCreditedMinutes,
+  );
+
+  if (!completion.hasPlan) {
+    if (totalStudySessions === 0) {
+      return {
+        headline: "Tu planner está listo",
+        subline: "Genera tu primera semana de estudio para empezar con foco.",
+      };
+    }
+    return {
+      headline: "Define tu foco de hoy",
+      subline: "Genera un plan semanal para repartir mejor tus horas.",
+    };
+  }
+
+  if (completion.status === "goal_without_plan") {
+    const base = completion.weeklyStatus;
+    if (base === "ahead") {
+      return {
+        headline: "Vas adelantado respecto a tu objetivo",
+        subline: `${completion.completionPercent}% del objetivo semanal · sin plan generado aún`,
+      };
+    }
+    if (base === "critical" || base === "behind") {
+      return {
+        headline: "Riesgo de no cerrar tu objetivo semanal",
+        subline: `Te faltan ${minutesToHoursLabel(remainingMinutes)} · un plan te ayudaría a repartirlos`,
+      };
+    }
+    return {
+      headline: "Sigues tu objetivo sin plan formal",
+      subline: `${completion.completionPercent}% del objetivo · ${minutesToHoursLabel(completion.totalCreditedMinutes)} registradas`,
+    };
+  }
+
+  switch (completion.weeklyStatus) {
+    case "ahead":
+      return {
+        headline: "Vas adelantado esta semana",
+        subline:
+          aheadOfExpected > 30
+            ? `${minutesToHoursLabel(aheadOfExpected)} por encima del ritmo esperado · ${completion.completionPercent}% del plan`
+            : `Por encima del ritmo esperado · ${completion.completionPercent}% del plan`,
+      };
+    case "on_track":
+      return {
+        headline: "Vas en ritmo",
+        subline: `${completion.completionPercent}% del plan · objetivo acumulado hoy ${completion.expectedProgressPercent}%`,
+      };
+    case "slightly_behind":
+      return {
+        headline: "Empiezas a quedarte atrás",
+        subline:
+          behindExpected > 0
+            ? `Te faltan ${minutesToHoursLabel(behindExpected)} para el ritmo de hoy`
+            : `${completion.progressDelta} pts por debajo del ritmo esperado`,
+      };
+    case "behind":
+      return {
+        headline: "Semana cargada por delante",
+        subline: `Quedan ${minutesToHoursLabel(remainingMinutes)} del plan · prioriza la sesión de hoy`,
+      };
+    case "critical":
+      return {
+        headline: "Riesgo de no cerrar la semana",
+        subline: `Necesitas ${minutesToHoursLabel(remainingMinutes)} en los días que quedan`,
+      };
+  }
+}
+
+/** Días consecutivos con al menos una sesión registrada, contando desde hoy hacia atrás. */
+export function calculateStudyStreak(
+  sessions: StudySession[],
+  today: string = getTodayDateString(),
+): number {
+  if (sessions.length === 0) return 0;
+  const studyDates = new Set(sessions.map((s) => s.date));
+  let streak = 0;
+  const cursor = new Date(`${today}T12:00:00`);
+  for (let i = 0; i < 366; i++) {
+    const dateStr = formatDateLocal(cursor);
+    if (studyDates.has(dateStr)) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+export type AttentionPriority = "high" | "medium";
+
+export type AttentionItem = {
+  subjectId: string;
+  subjectName: string;
+  priority: AttentionPriority;
+  reason: string;
+};
+
+export function buildAttentionItems(params: {
+  subjectIds: string[];
+  sessions: StudySession[];
+  mockResults: MockResult[];
+  errorLogItems: ErrorLogItem[];
+  readinessList: SubjectReadiness[];
+  getSubjectName: (id: string) => string;
+  today?: string;
+}): AttentionItem[] {
+  const today = params.today ?? getTodayDateString();
+  const candidates: Array<AttentionItem & { sortKey: number }> = [];
+
+  for (const subjectId of params.subjectIds) {
+    const name = params.getSubjectName(subjectId);
+    const pendingErrors = calculatePendingErrorsForSubject(params.errorLogItems, subjectId);
+    if (pendingErrors > 0) {
+      candidates.push({
+        subjectId,
+        subjectName: name,
+        priority: "high",
+        reason:
+          pendingErrors === 1
+            ? "1 error pendiente de revisar"
+            : `${pendingErrors} errores repetidos`,
+        sortKey: 300 + pendingErrors,
+      });
+      continue;
+    }
+
+    const readiness = params.readinessList.find((r) => r.subjectId === subjectId);
+    if (readiness?.level === "low") {
+      const mock = getLatestMockForSubject(params.mockResults, subjectId);
+      candidates.push({
+        subjectId,
+        subjectName: name,
+        priority: "high",
+        reason: mock ? `Readiness bajo · mock ${mock.score}%` : "Readiness bajo",
+        sortKey: 200,
+      });
+      continue;
+    }
+
+    const lastStudy = getLatestSessionDateForSubject(params.sessions, subjectId);
+    if (lastStudy) {
+      const daysSince = lastStudy <= today ? getDaysUntilDate(today, lastStudy) : 0;
+      if (daysSince >= 4) {
+        candidates.push({
+          subjectId,
+          subjectName: name,
+          priority: daysSince >= 7 ? "high" : "medium",
+          reason: `Sin estudio desde hace ${daysSince} días`,
+          sortKey: 100 + daysSince,
+        });
+        continue;
+      }
+    } else if (params.sessions.length > 0) {
+      candidates.push({
+        subjectId,
+        subjectName: name,
+        priority: "medium",
+        reason: "Sin sesiones registradas",
+        sortKey: 50,
+      });
+    }
+
+    if (readiness?.level === "medium") {
+      candidates.push({
+        subjectId,
+        subjectName: name,
+        priority: "medium",
+        reason: "Readiness ajustado",
+        sortKey: 40,
+      });
+    }
+  }
+
+  const seen = new Set<string>();
+  return candidates
+    .sort((a, b) => b.sortKey - a.sortKey)
+    .filter((item) => {
+      if (seen.has(item.subjectId)) return false;
+      seen.add(item.subjectId);
+      return true;
+    })
+    .slice(0, 3)
+    .map(({ sortKey: _sortKey, ...item }) => item);
+}
+
 export function calculateWeeklyPlanCompletion(
   plannedSessions: PlannedStudySession[],
   studySessions: StudySession[] = [],
@@ -460,33 +792,22 @@ export function calculateWeeklyPlanCompletion(
   }
 
   const weekStart = getCurrentWeekStart(today);
-  const plannedMinutes = calculatePlannedMinutes(weekSessions);
-  const completedPlannedMinutes = calculateCompletedPlannedMinutes(weekSessions);
-  const totalCreditedMinutes = Math.max(completedPlannedMinutes, actualLoggedMinutes);
-  const pending = weekSessions.filter((p) => p.status === "planned");
-  const completed = weekSessions.filter((p) => p.status === "completed");
-  const skipped = weekSessions.filter((p) => p.status === "skipped");
+  const metrics = getPlannerMetrics(plannedSessions, {
+    today,
+    weekStartDate: weekStart,
+    studySessions,
+  });
 
-  const completionPercent =
-    plannedMinutes > 0 ? Math.round((totalCreditedMinutes / plannedMinutes) * 100) : 0;
+  const plannedMinutes = metrics.totalPlannedMinutes;
+  const completedPlannedMinutes = metrics.completedMinutes;
+  const totalCreditedMinutes = metrics.completedMinutes;
+  const completionPercent = metrics.weeklyProgressPercent;
 
   const expectedProgressPercent = getExpectedProgressPercentForDate(today, weekStart);
   const expectedMinutesByToday = Math.round((plannedMinutes * expectedProgressPercent) / 100);
   const progressDelta = completionPercent - expectedProgressPercent;
   const weeklyStatus = resolveWeeklyStatus(progressDelta);
   const statusMessage = weeklyStatusMessage(weeklyStatus, false);
-
-  const sortUpcoming = (a: PlannedStudySession, b: PlannedStudySession) => {
-    const byDate = a.date.localeCompare(b.date);
-    if (byDate !== 0) return byDate;
-    return comparePlannedByStartTime(a, b);
-  };
-
-  const upcomingFromToday = pending.filter((p) => p.date >= today).sort(sortUpcoming);
-  const upcomingSessions = (upcomingFromToday.length > 0 ? upcomingFromToday : [...pending].sort(sortUpcoming)).slice(
-    0,
-    3,
-  );
 
   return {
     weekSessions,
@@ -500,16 +821,16 @@ export function calculateWeeklyPlanCompletion(
     expectedMinutesByToday,
     progressDelta,
     weeklyStatus,
-    pendingCount: pending.length,
-    completedCount: completed.length,
-    skippedCount: skipped.length,
+    pendingCount: metrics.pendingLikeCount,
+    completedCount: metrics.completedSessions,
+    skippedCount: metrics.skippedSessions,
     hasPlan: true,
     hasLoggedStudyThisWeek,
     weeklyGoalMinutes: goalMinutes,
     targetMinutes: plannedMinutes,
     usesWeeklyGoalAsTarget: false,
     statusMessage,
-    upcomingSessions,
+    upcomingSessions: metrics.upcomingSessions,
   };
 }
 
@@ -522,7 +843,7 @@ export function calculatePlannedMinutes(plannedSessions: PlannedStudySession[]):
 
 export function calculateCompletedPlannedMinutes(plannedSessions: PlannedStudySession[]): number {
   return plannedSessions
-    .filter((p) => p.status === "completed")
+    .filter((p) => isCountableAsCompleted(p.status))
     .reduce(
       (sum, p) => sum + (Number.isFinite(p.plannedDurationMinutes) ? p.plannedDurationMinutes : 0),
       0,
@@ -535,15 +856,6 @@ export function comparePlannedByStartTime(a: PlannedStudySession, b: PlannedStud
   if (b.startTime) return 1;
   return 0;
 }
-
-export const PLANNED_STATUS_LABELS: Record<
-  PlannedStudySession["status"],
-  string
-> = {
-  planned: "Planificada",
-  completed: "Completada",
-  skipped: "Saltada",
-};
 
 export function sortMocksByDateDesc(mockResults: MockResult[]): MockResult[] {
   return [...mockResults].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));

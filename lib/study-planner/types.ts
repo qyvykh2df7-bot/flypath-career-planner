@@ -27,7 +27,11 @@ export type StudySession = {
   notes?: string;
 };
 
-export type PlannedStudySessionStatus = "planned" | "completed" | "skipped";
+import type { PlannedStudySessionStatus } from "./planner-session-status";
+export type { PlannedStudySessionStatus } from "./planner-session-status";
+
+/** Origen de la sesión planificada (generador vs usuario). */
+export type PlannedSessionSource = "auto" | "manual";
 
 export type PlannedStudySession = {
   id: string;
@@ -39,6 +43,8 @@ export type PlannedStudySession = {
   goal?: string;
   status: PlannedStudySessionStatus;
   completedSessionId?: string;
+  /** Por defecto en datos antiguos: auto. */
+  source: PlannedSessionSource;
 };
 
 export type SubjectReadinessLevel = "no_data" | "low" | "medium" | "high" | "solid";

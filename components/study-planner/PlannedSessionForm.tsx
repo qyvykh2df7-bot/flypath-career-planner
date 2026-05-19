@@ -8,9 +8,10 @@ import { SESSION_TYPE_OPTIONS } from "@/lib/study-planner/labels";
 type PlannedSessionFormProps = {
   subjects: StudySubject[];
   onAddPlannedSession: (planned: PlannedStudySession) => void;
+  onAdded?: () => void;
 };
 
-export function PlannedSessionForm({ subjects, onAddPlannedSession }: PlannedSessionFormProps) {
+export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: PlannedSessionFormProps) {
   const [date, setDate] = useState(() => formatDateLocal(new Date()));
   const [startTime, setStartTime] = useState("");
   const [subjectId, setSubjectId] = useState("");
@@ -54,7 +55,8 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession }: PlannedSes
       type,
       plannedDurationMinutes,
       goal: goal.trim() || undefined,
-      status: "planned",
+      status: "pending",
+      source: "manual",
     });
 
     setGoal("");
@@ -62,6 +64,7 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession }: PlannedSes
     setHours("1");
     setMinutes("0");
     setFeedback("Sesión planificada");
+    onAdded?.();
     window.setTimeout(() => setFeedback(null), 2500);
   };
 

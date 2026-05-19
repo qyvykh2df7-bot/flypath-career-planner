@@ -12,6 +12,7 @@ export function weeklyPlanToPlannedSessions(plan: WeeklyStudyPlan): PlannedStudy
     type: block.sessionType,
     plannedDurationMinutes: block.plannedMinutes,
     goal: block.reasonLabel,
-    status: "planned" as const,
+    status: "pending" as const,
+    source: "auto" as const,
   }));
 }

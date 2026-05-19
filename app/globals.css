@@ -24,3 +24,32 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes planner-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes planner-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.planner-fade-up {
+  animation: planner-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.planner-bar-grow {
+  transform-origin: left center;
+  animation: planner-bar-grow 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}

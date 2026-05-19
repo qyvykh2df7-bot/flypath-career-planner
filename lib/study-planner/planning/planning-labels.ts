@@ -6,7 +6,7 @@ const REASON_LABELS: Record<PlanningPriorityReason, string> = {
   low_progress: "Progreso bajo",
   low_mock_score: "Mock reciente bajo",
   no_recent_study: "Sin estudio reciente",
-  question_bank_focus: "Refuerzo de preguntas",
+  question_bank_focus: "Refuerzo de banco",
   review_recommended: "Repaso recomendado",
   mock_recommended: "Mock recomendado",
   maintain_rhythm: "Mantener ritmo",
@@ -22,11 +22,13 @@ export function getSessionTypeReasonLabel(
 ): string {
   switch (sessionType) {
     case "question_bank":
-      return "Refuerzo de preguntas";
+      return "Refuerzo de banco";
     case "review":
       return "Repaso recomendado";
     case "mock":
       return "Mock recomendado";
+    case "error_correction":
+      return "Revisión de errores pendientes";
     case "theory":
       return getPlanningReasonLabel(fallback);
     default:

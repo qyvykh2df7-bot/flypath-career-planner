@@ -4,6 +4,7 @@ import {
   getTodayDateString,
   minutesToHoursLabel,
 } from "./calculations";
+import { isPendingLikeStatus } from "./planner-session-status";
 import { getCurrentWeekStart, getWeekDates } from "./date-utils";
 import type { WeeklyPlanCompletion } from "./calculations";
 
@@ -17,7 +18,7 @@ export type WeeklyPlanAlert = {
 
 function pendingMinutes(sessions: PlannedStudySession[]): number {
   return sessions
-    .filter((p) => p.status === "planned")
+    .filter((p) => isPendingLikeStatus(p.status))
     .reduce((sum, p) => sum + (Number.isFinite(p.plannedDurationMinutes) ? p.plannedDurationMinutes : 0), 0);
 }
 
@@ -106,14 +107,20 @@ export function buildWeeklyPlanAlerts(params: {
   const remainingDates = weekDates.filter((d) => d >= today);
   const remainingDayCount = Math.max(1, remainingDates.length);
 
-  const pending = completion.weekSessions.filter((p) => p.status === "planned");
+  const pending = completion.weekSessions.filter((p) => isPendingLikeStatus(p.status));
   const pendingOnRemaining = pending.filter((p) => p.date >= today);
   const pendingBlockMinutes = pendingMinutes(pendingOnRemaining);
 
   const remainingRealMinutes = Math.max(
     0,
-    completion.plannedMinutes - completion.totalCreditedMinutes,
+    completion.plannedMinutes - completion.completedPlannedMinutes,
   );
+
+  const allStillPending =
+    completion.hasPlan &&
+    completion.completedCount === 0 &&
+    completion.skippedCount === 0 &&
+    pending.length === completion.weekSessions.length;
 
   if (
     completion.actualLoggedMinutes > completion.completedPlannedMinutes + 15 &&
@@ -127,16 +134,23 @@ export function buildWeeklyPlanAlerts(params: {
     });
   }
 
-  if (pendingOnRemaining.length >= 3 && remainingDayCount <= 2) {
+  const isBehindSchedule =
+    completion.weeklyStatus === "slightly_behind" ||
+    completion.weeklyStatus === "behind" ||
+    completion.weeklyStatus === "critical";
+
+  const overduePending = pending.filter((p) => p.date < today).length;
+
+  if (
+    !allStillPending &&
+    isBehindSchedule &&
+    (overduePending > 0 ||
+      (pendingOnRemaining.length >= 3 && remainingDayCount <= 2) ||
+      (pendingOnRemaining.length >= 4 && pendingOnRemaining.length / remainingDayCount > 1.5))
+  ) {
     alerts.push({
       id: "many-pending-soon",
-      severity: "warn",
-      message: "Tienes muchos bloques pendientes para los días restantes.",
-    });
-  } else if (pendingOnRemaining.length >= 4 && pendingOnRemaining.length / remainingDayCount > 1.5) {
-    alerts.push({
-      id: "many-pending-density",
-      severity: "warn",
+      severity: completion.weeklyStatus === "critical" ? "risk" : "warn",
       message: "Tienes muchos bloques pendientes para los días restantes.",
     });
   }
@@ -160,13 +174,43 @@ export function buildWeeklyPlanAlerts(params: {
     });
   }
 
-  if (remainingRealMinutes > 180) {
+  if (overduePending > 0) {
+    alerts.push({
+      id: "overdue-sessions",
+      severity: overduePending >= 2 ? "risk" : "warn",
+      message:
+        overduePending === 1
+          ? "Tienes 1 bloque pendiente de días anteriores."
+          : `Tienes ${overduePending} bloques pendientes de días anteriores.`,
+    });
+  }
+
+  if (completion.skippedCount >= 2) {
+    alerts.push({
+      id: "skipped-sessions",
+      severity: "warn",
+      message: `Has saltado ${completion.skippedCount} sesiones esta semana.`,
+    });
+  }
+
+  if (
+    !allStillPending &&
+    isBehindSchedule &&
+    remainingRealMinutes > 180 &&
+    completion.weeklyStatus !== "on_track" &&
+    completion.weeklyStatus !== "ahead"
+  ) {
     alerts.push({
       id: "hours-remaining-real",
       severity: completion.weeklyStatus === "critical" ? "risk" : "warn",
       message: `Te quedan ${minutesToHoursLabel(remainingRealMinutes)} reales para cumplir el plan semanal.`,
     });
-  } else if (pendingBlockMinutes > 180 && remainingRealMinutes > 60) {
+  } else if (
+    !allStillPending &&
+    isBehindSchedule &&
+    pendingBlockMinutes > 180 &&
+    remainingRealMinutes > 60
+  ) {
     alerts.push({
       id: "hours-remaining-blocks",
       severity: "warn",
@@ -175,7 +219,7 @@ export function buildWeeklyPlanAlerts(params: {
   }
 
   const avgPerRemainingDay = pendingBlockMinutes / remainingDayCount;
-  if (pendingBlockMinutes > 0 && avgPerRemainingDay > 120) {
+  if (!allStillPending && isBehindSchedule && pendingBlockMinutes > 0 && avgPerRemainingDay > 120) {
     alerts.push({
       id: "heavy-remaining-load",
       severity: "risk",
@@ -183,7 +227,11 @@ export function buildWeeklyPlanAlerts(params: {
     });
   }
 
-  if (completion.weeklyStatus === "critical" && !alerts.some((a) => a.id === "hours-remaining-real")) {
+  if (
+    !allStillPending &&
+    completion.weeklyStatus === "critical" &&
+    !alerts.some((a) => a.id === "hours-remaining-real")
+  ) {
     alerts.push({
       id: "critical-status",
       severity: "risk",

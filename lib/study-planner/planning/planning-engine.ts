@@ -12,6 +12,11 @@ import {
   getWeekRange,
 } from "../date-utils";
 import { getSessionTypeReasonLabel } from "./planning-labels";
+import {
+  buildSubjectPlanningMetaMap,
+  pickSessionTypeForBlock,
+} from "./session-type-picker";
+import type { SubjectMaturityPhase } from "./subject-maturity";
 import type {
   PlannedStudyBlock,
   PlanningEngineInput,
@@ -58,17 +63,22 @@ function decomposeMinutes(total: number): number[] {
   return blocks;
 }
 
-function pickSessionType(
-  subjectId: string,
-  blockIndex: number,
-  progressPercent: number,
-  latestMockScore: number | null,
-): StudySessionType {
-  if (progressPercent >= 55 && (latestMockScore === null || latestMockScore < 78)) {
-    if (blockIndex % 4 === 3) return "mock";
+function reasonForSessionType(
+  sessionType: StudySessionType,
+  fallback: PlanningPriorityReason,
+): PlanningPriorityReason {
+  switch (sessionType) {
+    case "mock":
+      return "mock_recommended";
+    case "question_bank":
+      return "question_bank_focus";
+    case "review":
+      return "review_recommended";
+    case "error_correction":
+      return "review_recommended";
+    default:
+      return fallback;
   }
-  const cycle: StudySessionType[] = ["theory", "question_bank", "review"];
-  return cycle[blockIndex % cycle.length]!;
 }
 
 function dominantReasonForSubject(params: {
@@ -204,6 +214,8 @@ type BlockDraft = {
 function assignBlocksToDays(
   drafts: BlockDraft[],
   eligibleDates: string[],
+  input: PlanningEngineInput,
+  subjectMetaBase: ReturnType<typeof buildSubjectPlanningMetaMap>,
 ): PlannedStudyBlock[] {
   if (eligibleDates.length === 0) return [];
 
@@ -217,6 +229,9 @@ function assignBlocksToDays(
 
   const blocks: PlannedStudyBlock[] = [];
   let dayCursor = 0;
+  const errorSlotUsed = new Set<string>();
+  const reviewSlotUsed = new Set<string>();
+  const mockSlotUsed = new Set<string>();
 
   for (const draft of sortedDrafts) {
     let assignedDate: string | null = null;
@@ -240,21 +255,43 @@ function assignBlocksToDays(
     const timeIndex = (dayCounts.get(assignedDate) ?? 1) - 1;
     const suggestedStartTime = SUGGESTED_TIMES[timeIndex % SUGGESTED_TIMES.length]!;
 
-    const sessionType = pickSessionType(
-      draft.subjectId,
-      draft.blockIndex,
-      draft.progressPercent,
-      draft.latestMockScore,
-    );
+    const baseMeta = subjectMetaBase.get(draft.subjectId);
+    const stats = baseMeta ?? {
+      subjectId: draft.subjectId,
+      sessionCount: 0,
+      totalMinutes: 0,
+      theoryCount: 0,
+      bankCount: 0,
+      reviewCount: 0,
+      mockCount: 0,
+      errorCorrectionCount: 0,
+      pendingReviewCount: 0,
+      pendingErrorCount: 0,
+      latestMockScore: draft.latestMockScore,
+      progressPercent: draft.progressPercent,
+      examDaysLeft: null,
+      phase: "initial" as const,
+      hasRecordedSessions: false,
+    };
+    const picked = pickSessionTypeForBlock({
+      subjectId: draft.subjectId,
+      progressPercent: draft.progressPercent,
+      latestMockScore: draft.latestMockScore,
+      pendingReviewCount: stats.pendingReviewCount,
+      pendingErrorCount: stats.pendingErrorCount,
+      subjectBlockIndex: draft.blockIndex,
+      phase: "phase" in stats ? stats.phase : "initial",
+      stats,
+      errorSlotUsedForSubject: errorSlotUsed.has(draft.subjectId),
+      reviewSlotUsedForSubject: reviewSlotUsed.has(draft.subjectId),
+      mockSlotUsedForSubject: mockSlotUsed.has(draft.subjectId),
+    });
+    const sessionType = picked.type;
+    if (picked.usedErrorSlot) errorSlotUsed.add(draft.subjectId);
+    if (picked.usedReviewSlot) reviewSlotUsed.add(draft.subjectId);
+    if (picked.usedMockSlot) mockSlotUsed.add(draft.subjectId);
 
-    const reason =
-      sessionType === "mock"
-        ? "mock_recommended"
-        : sessionType === "question_bank"
-          ? "question_bank_focus"
-          : sessionType === "review"
-            ? "review_recommended"
-            : draft.dominantReason;
+    const reason = reasonForSessionType(sessionType, draft.dominantReason);
 
     blocks.push({
       id: createPlannerId(),
@@ -359,9 +396,38 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
     }
   }
 
-  const blocks = assignBlocksToDays(drafts, eligibleDates);
+  const examDaysLeft = input.targetExamDate
+    ? getDaysUntilDate(input.targetExamDate, input.referenceDate)
+    : null;
+
+  const progressBySubject: Record<string, number> = {};
+  const mockScoreBySubject: Record<string, number | null> = {};
+  for (const r of ranked) {
+    progressBySubject[r.subjectId] = r.progressPercent;
+    mockScoreBySubject[r.subjectId] = r.latestMockScore;
+  }
+
+  const subjectMetaBase = buildSubjectPlanningMetaMap(
+    {
+      sessions: input.sessions,
+      reviewItems: input.reviewItems,
+      errorLogItems: input.errorLogItems,
+      referenceDate: input.referenceDate,
+      examDaysLeft: examDaysLeft !== null && examDaysLeft >= 0 ? examDaysLeft : null,
+      progressBySubject,
+      mockScoreBySubject,
+    },
+    input.activeSubjectIds,
+  );
+
+  const blocks = assignBlocksToDays(drafts, eligibleDates, input, subjectMetaBase);
   const totalPlannedMinutes = blocks.reduce((s, b) => s + b.plannedMinutes, 0);
   const focusSubjectIds = ranked.slice(0, 3).map((r) => r.subjectId);
+
+  const subjectPhases: Record<string, SubjectMaturityPhase> = {};
+  for (const [id, meta] of subjectMetaBase) {
+    subjectPhases[id] = meta.phase;
+  }
 
   const summaryHints: string[] = [];
   if (input.targetExamDate) {
@@ -386,6 +452,7 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
       blocks,
       focusSubjectIds,
       summaryHints,
+      subjectPhases,
     },
     warnings,
   };

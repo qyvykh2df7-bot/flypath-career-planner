@@ -1,4 +1,12 @@
-import type { MockResult, PlannedStudySession, StudyMode, StudySession, StudySessionType } from "../types";
+import type {
+  ErrorLogItem,
+  MockResult,
+  ReviewItem,
+  StudyMode,
+  StudySession,
+  StudySessionType,
+} from "../types";
+import type { SubjectMaturityPhase } from "./subject-maturity";
 
 /** Prioridad de una tarea o bloque en el plan semanal. */
 export type WeeklyPlanPriority = "critical" | "high" | "medium" | "low";
@@ -15,7 +23,7 @@ export type PlanningPriorityReason =
   | "maintain_rhythm";
 
 /** Cómo aplicar el plan generado al calendario. */
-export type ApplyPlanMode = "append" | "replace_visible_week";
+export type ApplyPlanMode = "append" | "replace_auto_only" | "replace_visible_week";
 
 export type PlanningGenerationWarningCode =
   | "existing_planned_sessions"
@@ -52,6 +60,8 @@ export type WeeklyStudyPlan = {
   blocks: PlannedStudyBlock[];
   focusSubjectIds: string[];
   summaryHints: string[];
+  /** Fase pedagógica por asignatura al generar (para narrativa). */
+  subjectPhases?: Record<string, SubjectMaturityPhase>;
 };
 
 /** Entrada del motor de planificación. */
@@ -67,6 +77,8 @@ export type PlanningEngineInput = {
   referenceDate: string;
   sessions: StudySession[];
   mockResults: MockResult[];
+  reviewItems?: ReviewItem[];
+  errorLogItems?: ErrorLogItem[];
 };
 
 export type PlanningEngineResult = {
