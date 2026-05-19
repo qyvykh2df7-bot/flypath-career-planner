@@ -28,6 +28,6 @@ export const PLANNER_NAV_ITEMS: {
   { id: "subjects", label: "Asignaturas", icon: BookOpen },
   { id: "log", label: "Registro", icon: PenLine },
   { id: "evaluation", label: "Evaluación", icon: ClipboardList },
-  { id: "recovery", label: "Recovery", icon: LifeBuoy },
+  { id: "recovery", label: "Recuperación", icon: LifeBuoy },
   { id: "settings", label: "Ajustes", icon: Settings2 },
 ];

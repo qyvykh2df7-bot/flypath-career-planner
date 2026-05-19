@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { PlannedStudySession, StudySessionType, StudySubject } from "@/lib/study-planner/types";
-import { createPlannerId, formatDateLocal } from "@/lib/study-planner/calculations";
+import { createPlannerId, formatDateLocal, getTodayDateString } from "@/lib/study-planner/calculations";
+import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
 import { SESSION_TYPE_OPTIONS } from "@/lib/study-planner/labels";
 
 type PlannedSessionFormProps = {
@@ -12,6 +13,7 @@ type PlannedSessionFormProps = {
 };
 
 export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: PlannedSessionFormProps) {
+  const today = getTodayDateString();
   const [date, setDate] = useState(() => formatDateLocal(new Date()));
   const [startTime, setStartTime] = useState("");
   const [subjectId, setSubjectId] = useState("");
@@ -44,6 +46,12 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
 
     if (plannedDurationMinutes <= 0) {
       setError("La duración debe ser mayor que cero.");
+      return;
+    }
+
+    const scheduleCheck = validatePlannedSessionScheduleDate(date, today);
+    if (!scheduleCheck.ok) {
+      setError(scheduleCheck.error);
       return;
     }
 
@@ -80,7 +88,14 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className={labelClass}>Fecha</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fieldClass} required />
+          <input
+            type="date"
+            value={date}
+            min={today}
+            onChange={(e) => setDate(e.target.value)}
+            className={fieldClass}
+            required
+          />
         </label>
         <label className="block">
           <span className={labelClass}>Hora de inicio (opcional)</span>

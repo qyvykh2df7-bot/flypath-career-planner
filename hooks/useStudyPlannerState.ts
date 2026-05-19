@@ -14,6 +14,7 @@ import {
   type ReviewItem,
   type StudyMode,
   type StudySession,
+  type RecoveryPlan,
   type StudySessionQuality,
 } from "@/lib/study-planner/types";
 
@@ -36,6 +37,12 @@ import { isPendingLikeStatus } from "@/lib/study-planner/planner-session-status"
 import type { ApplyPlanMode, WeeklyStudyPlan } from "@/lib/study-planner/planning/planning-types";
 import { markPlanActivated } from "@/lib/study-planner/plan-activation";
 import { weeklyPlanToPlannedSessions } from "@/lib/study-planner/planning/plan-to-sessions";
+import {
+  buildRecoveryApplyResult,
+  recoveryPlanToPlannedSessions,
+} from "@/lib/study-planner/recovery-apply";
+import { sumPendingPlannedMinutesForWeek } from "@/lib/study-planner/recovery-load";
+import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
 import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
 import {
   filterErrorLogItemsByMode,
@@ -223,6 +230,13 @@ export function useStudyPlannerState() {
   }, []);
 
   const addPlannedSession = useCallback((planned: PlannedStudySession) => {
+    const today = getTodayDateString();
+    if (
+      planned.source === "manual" &&
+      !validatePlannedSessionScheduleDate(planned.date, today).ok
+    ) {
+      return;
+    }
     setState((prev) => ({
       ...prev,
       plannedSessions: [...prev.plannedSessions, planned],
@@ -265,6 +279,10 @@ export function useStudyPlannerState() {
 
   const updatePlannedSession = useCallback(
     (plannedId: string, patch: Partial<Omit<PlannedStudySession, "id">>) => {
+      const today = getTodayDateString();
+      if (patch.date && !validatePlannedSessionScheduleDate(patch.date, today).ok) {
+        return;
+      }
       setState((prev) => ({
         ...prev,
         plannedSessions: prev.plannedSessions.map((p) =>
@@ -409,6 +427,69 @@ export function useStudyPlannerState() {
     markPlanActivated(plan.mode);
   }, []);
 
+  const applyRecoveryPlanToCalendar = useCallback(
+    (plan: RecoveryPlan, weekStartDate: string) => {
+      const today = getTodayDateString();
+      let result = buildRecoveryApplyResult([], 0, 0);
+
+      setState((prev) => {
+        const previousPlannedMinutes = sumPendingPlannedMinutesForWeek(
+          prev.plannedSessions,
+          weekStartDate,
+        );
+        const sessions = recoveryPlanToPlannedSessions({
+          plan,
+          activeSubjectIds: prev.activeSubjectIds,
+          reviewItems: filterReviewItemsByMode(prev.reviewItems, prev.mode),
+          errorLogItems: filterErrorLogItemsByMode(prev.errorLogItems, prev.mode),
+          weekStartDate,
+          today,
+          weeklyGoalMinutes: prev.weeklyGoalMinutes,
+          currentPlannedMinutes: previousPlannedMinutes,
+        });
+        if (sessions.length === 0) {
+          result = buildRecoveryApplyResult([], previousPlannedMinutes, previousPlannedMinutes);
+          return prev;
+        }
+
+        const { start, end } = getWeekRange(weekStartDate);
+        const activeSet = new Set(prev.activeSubjectIds);
+        markPlanActivated(prev.mode);
+
+        const mergedPlanned = [
+          ...prev.plannedSessions.filter(
+            (p) =>
+              !(
+                p.date >= start &&
+                p.date <= end &&
+                isPendingLikeStatus(p.status) &&
+                p.source === "auto" &&
+                activeSet.has(p.subjectId)
+              ),
+          ),
+          ...sessions,
+        ];
+        const newPlannedMinutes = sumPendingPlannedMinutesForWeek(
+          mergedPlanned,
+          weekStartDate,
+        );
+        result = buildRecoveryApplyResult(
+          sessions,
+          previousPlannedMinutes,
+          newPlannedMinutes,
+        );
+
+        return {
+          ...prev,
+          plannedSessions: mergedPlanned,
+        };
+      });
+
+      return result;
+    },
+    [],
+  );
+
   return {
     hydrated,
     onboardingCompleted: onboardingCompleted === true,
@@ -452,5 +533,6 @@ export function useStudyPlannerState() {
     deleteExamDate,
     applyGeneratedWeeklyPlan,
     clearVisibleWeekPendingPlanned,
+    applyRecoveryPlanToCalendar,
   };
 }

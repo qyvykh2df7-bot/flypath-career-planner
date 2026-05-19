@@ -469,7 +469,7 @@ export function StudyLogForm({
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 className={`${fieldClass} mt-2 resize-y min-h-[64px]`}
-                placeholder="Temas vistos, dudas, mock parcial…"
+                placeholder="Temas vistos, dudas, simulacro parcial…"
               />
             ) : null}
           </div>

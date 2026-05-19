@@ -3,7 +3,7 @@ import type { ErrorLogStatus, ErrorLogType, StudySessionQuality, StudySessionTyp
 export const SESSION_TYPE_OPTIONS: { value: StudySessionType; label: string }[] = [
   { value: "theory", label: "Teoría" },
   { value: "question_bank", label: "Banco" },
-  { value: "mock", label: "Mock" },
+  { value: "mock", label: "Simulacro" },
   { value: "review", label: "Repaso" },
   { value: "error_correction", label: "Corrección de errores" },
   { value: "class", label: "Clase" },
@@ -29,7 +29,7 @@ export function getSessionTypeShortLabel(type: StudySessionType): string {
     case "review":
       return "Repaso";
     case "mock":
-      return "Mock";
+      return "Simulacro";
     case "error_correction":
       return "Errores";
     case "class":

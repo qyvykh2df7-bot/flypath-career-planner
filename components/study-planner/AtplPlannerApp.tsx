@@ -14,7 +14,12 @@ import { PlannerOnboarding } from "./onboarding/PlannerOnboarding";
 import { WeeklyPlanGenerator } from "./planning/WeeklyPlanGenerator";
 import { PlannerSettingsPanel } from "./settings/PlannerSettingsPanel";
 import { EvaluationSection, type EvaluationView } from "./EvaluationSection";
-import type { PlannerPlanSettingsPayload } from "@/lib/study-planner/types";
+import type { PlannerPlanSettingsPayload, RecoveryPlan } from "@/lib/study-planner/types";
+import type { RecoveryApplyResult } from "@/lib/study-planner/recovery-apply";
+import type {
+  GoToEvaluationOptions,
+  GoToSubjectsOptions,
+} from "@/lib/study-planner/dashboard-navigation";
 import { getCurrentWeekStart, getPlannedSessionsForWeek } from "@/lib/study-planner/date-utils";
 import {
   getTodayDateString,
@@ -62,11 +67,14 @@ export function AtplPlannerApp() {
     deleteExamDate,
     applyGeneratedWeeklyPlan,
     clearVisibleWeekPendingPlanned,
+    applyRecoveryPlanToCalendar,
   } = useStudyPlannerState();
 
   const [activeTab, setActiveTab] = useState<PlannerNavId>("dashboard");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [evaluationView, setEvaluationView] = useState<EvaluationView>("mocks");
+  const [mockFormFocusKey, setMockFormFocusKey] = useState(0);
+  const [examDatesFormKey, setExamDatesFormKey] = useState(0);
   const [visibleWeekStartDate, setVisibleWeekStartDate] = useState(() =>
     getCurrentWeekStart(getTodayDateString()),
   );
@@ -139,7 +147,15 @@ export function AtplPlannerApp() {
       goToLog({ mode: "free_study" });
     }
   }, [goToLog, modePlannedSessions, today]);
-  const goToSubjects = useCallback(() => navigate("subjects"), [navigate]);
+  const goToSubjects = useCallback(
+    (options?: GoToSubjectsOptions) => {
+      if (options?.openExamDatesForm) {
+        setExamDatesFormKey((k) => k + 1);
+      }
+      navigate("subjects");
+    },
+    [navigate],
+  );
   const goToRecovery = useCallback(() => navigate("recovery"), [navigate]);
 
   const scrollToWeeklyCalendar = useCallback(() => {
@@ -148,14 +164,34 @@ export function AtplPlannerApp() {
     });
   }, []);
 
+  const recoveryApplyPlan = useCallback(
+    (plan: RecoveryPlan): RecoveryApplyResult => {
+      const weekStart = getCurrentWeekStart(today);
+      setVisibleWeekStartDate(weekStart);
+      const result = applyRecoveryPlanToCalendar(plan, weekStart);
+      if (result.applied) {
+        setRegenerateOpen(false);
+        goToCalendar();
+        scrollToWeeklyCalendar();
+      }
+      return result;
+    },
+    [applyRecoveryPlanToCalendar, today, goToCalendar, scrollToWeeklyCalendar],
+  );
+
   const openManualSessionDrawer = useCallback(() => {
     setExternalCreateNonce((n) => n + 1);
     scrollToWeeklyCalendar();
   }, [scrollToWeeklyCalendar]);
 
   const goToEvaluation = useCallback(
-    (section?: EvaluationView) => {
+    (options?: GoToEvaluationOptions) => {
+      const section = options?.section;
       if (section) setEvaluationView(section);
+      else setEvaluationView("mocks");
+      if (options?.focusMockForm) {
+        setMockFormFocusKey((k) => k + 1);
+      }
       navigate("evaluation");
     },
     [navigate],
@@ -282,11 +318,13 @@ export function AtplPlannerApp() {
             sessions={modeSessions}
             mockResults={modeMockResults}
             errorLogItems={modeErrorLogItems}
+            reviewItems={modeReviewItems}
             examDates={modeExamDates}
             plannedSessions={modePlannedSessions}
             initialSubjectStates={initialSubjectStates}
             onAddExamDate={addExamDate}
             onDeleteExamDate={deleteExamDate}
+            examDatesFormRequestKey={examDatesFormKey}
           />
         ) : null}
 
@@ -311,8 +349,9 @@ export function AtplPlannerApp() {
             mockResults={modeMockResults}
             reviewItems={modeReviewItems}
             errorLogItems={modeErrorLogItems}
-            weeklyGoalMinutes={weeklyGoalMinutes}
+            examDates={modeExamDates}
             initialView={evaluationView}
+            focusMockFormRequestKey={mockFormFocusKey}
             onAddMockResult={addMockResult}
             onDeleteMockResult={deleteMockResult}
             onAddReviewItem={addReviewItem}
@@ -322,6 +361,8 @@ export function AtplPlannerApp() {
             onAddErrorLogItem={addErrorLogItem}
             onSetErrorLogStatus={setErrorLogStatus}
             onDeleteErrorLogItem={deleteErrorLogItem}
+            onGoToCalendar={goToCalendar}
+            onGoToSubjects={goToSubjects}
           />
         ) : null}
 
@@ -335,6 +376,8 @@ export function AtplPlannerApp() {
             reviewItems={modeReviewItems}
             errorLogItems={modeErrorLogItems}
             weeklyGoalMinutes={weeklyGoalMinutes}
+            onApplyPlan={recoveryApplyPlan}
+            onGoToCalendar={goToCalendar}
           />
         ) : null}
       </PlannerShell>

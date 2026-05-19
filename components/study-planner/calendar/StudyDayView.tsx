@@ -27,6 +27,7 @@ type StudyDayViewProps = {
   onFocusDateChange: (date: string) => void;
   onSelectSession: (session: PlannedStudySession) => void;
   onAddSession: () => void;
+  canAddSession?: boolean;
 };
 
 export function StudyDayView({
@@ -36,6 +37,7 @@ export function StudyDayView({
   onFocusDateChange,
   onSelectSession,
   onAddSession,
+  canAddSession = true,
 }: StudyDayViewProps) {
   const today = getTodayDateString();
   const isToday = focusDate === today;
@@ -107,14 +109,16 @@ export function StudyDayView({
 
       <div className="flex items-center justify-between gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">Timeline</p>
-        <button
-          type="button"
-          onClick={onAddSession}
-          className={`${plannerBtnPrimary} inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px]`}
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          Nueva sesión
-        </button>
+        {canAddSession ? (
+          <button
+            type="button"
+            onClick={onAddSession}
+            className={`${plannerBtnPrimary} inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px]`}
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            Nueva sesión
+          </button>
+        ) : null}
       </div>
 
       {daySessions.length === 0 ? (
@@ -123,9 +127,13 @@ export function StudyDayView({
           <p className="mt-1 text-[13px] text-slate-500">
             Añade un bloque manual o genera tu semana automáticamente.
           </p>
-          <button type="button" onClick={onAddSession} className={`${plannerBtnGhost} mt-4`}>
-            + Nueva sesión
-          </button>
+          {canAddSession ? (
+            <button type="button" onClick={onAddSession} className={`${plannerBtnGhost} mt-4`}>
+              + Nueva sesión
+            </button>
+          ) : (
+            <p className="mt-4 text-[12px] text-slate-400">No puedes planificar en días pasados.</p>
+          )}
         </div>
       ) : (
         <ol className="relative ml-1 border-l-2 border-slate-200/70 pl-5">

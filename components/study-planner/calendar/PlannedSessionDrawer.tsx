@@ -8,6 +8,7 @@ import type {
   StudySubject,
 } from "@/lib/study-planner/types";
 import { createPlannerId } from "@/lib/study-planner/calculations";
+import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
 import { getSessionTypeShortLabel } from "@/lib/study-planner/labels";
 import { plannerBtnGhost, plannerBtnPrimary } from "@/lib/study-planner/planner-ui";
 
@@ -27,6 +28,7 @@ type PlannedSessionDrawerProps = {
   open: boolean;
   mode: PlannedSessionDrawerMode;
   initialDate: string;
+  today: string;
   subjects: StudySubject[];
   session?: PlannedStudySession | null;
   onClose: () => void;
@@ -37,6 +39,7 @@ export function PlannedSessionDrawer({
   open,
   mode,
   initialDate,
+  today,
   subjects,
   session,
   onClose,
@@ -89,6 +92,12 @@ export function PlannedSessionDrawer({
     }
     if (duration <= 0) {
       setError("La duración debe ser mayor que cero.");
+      return;
+    }
+
+    const scheduleCheck = validatePlannedSessionScheduleDate(date, today);
+    if (!scheduleCheck.ok) {
+      setError(scheduleCheck.error);
       return;
     }
 
@@ -149,7 +158,14 @@ export function PlannedSessionDrawer({
         <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4">
           <label className="block">
             <span className={labelClass}>Fecha</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fieldClass} required />
+            <input
+              type="date"
+              value={date}
+              min={today}
+              onChange={(e) => setDate(e.target.value)}
+              className={fieldClass}
+              required
+            />
           </label>
 
           <label className="block">

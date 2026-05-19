@@ -67,7 +67,7 @@ export function SubjectReadinessCard({
   examDates = [],
 }: SubjectReadinessCardProps) {
   const styles = levelStyles(readiness.level);
-  const { factors } = readiness;
+  const { factors, breakdown } = readiness;
   const barPct = readiness.level === "no_data" ? 0 : readiness.score;
   const displayStatus = resolveSubjectDisplayStatus(readiness, examDates, pendingErrorsCount);
   const statusLabel = getSubjectDisplayLabel(displayStatus, readiness);
@@ -78,11 +78,18 @@ export function SubjectReadinessCard({
     >
       <div className="flex items-start justify-between gap-2">
         <h4 className="text-[14px] font-semibold leading-snug text-[#0f1a33]">{subject.name}</h4>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${styles.badge}`}
-        >
-          {statusLabel}
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${styles.badge}`}
+          >
+            {statusLabel}
+          </span>
+          {readiness.isProvisional ? (
+            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200/80">
+              Dato provisional
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
@@ -105,39 +112,35 @@ export function SubjectReadinessCard({
 
       <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-3 text-[12px]">
         <div>
-          <dt className="text-slate-500">Horas totales</dt>
-          <dd className="font-medium text-slate-700">{minutesToHoursLabel(factors.totalStudyMinutes)}</dd>
+          <dt className="text-slate-500">Base teórica</dt>
+          <dd className="font-medium text-slate-700">{minutesToHoursLabel(breakdown.theoryMinutes)}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Horas recientes (14 d)</dt>
-          <dd className="font-medium text-slate-700">{minutesToHoursLabel(factors.recentStudyMinutes)}</dd>
+          <dt className="text-slate-500">Banco</dt>
+          <dd className="font-medium text-slate-700">{minutesToHoursLabel(breakdown.bankMinutes)}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Último mock</dt>
-          <dd className="font-medium tabular-nums text-slate-700">
-            {factors.latestMockScore !== null ? formatMockScore(factors.latestMockScore) : "—"}
+          <dt className="text-slate-500">Simulacros</dt>
+          <dd className="font-medium text-slate-700">
+            {breakdown.mockCount > 0
+              ? `${breakdown.mockCount}${factors.averageMockScore !== null ? ` · media ${formatMockScore(factors.averageMockScore)}` : ""}`
+              : "—"}
           </dd>
         </div>
         <div>
-          <dt className="text-slate-500">Media últimos 3</dt>
-          <dd className="font-medium tabular-nums text-slate-700">
-            {factors.averageMockScore !== null ? formatMockScore(factors.averageMockScore) : "—"}
+          <dt className="text-slate-500">Errores / repasos</dt>
+          <dd className="font-medium text-slate-700">
+            {breakdown.pendingErrors} / {breakdown.pendingReviews}
           </dd>
         </div>
         <div>
-          <dt className="text-slate-500">Mocks registrados</dt>
-          <dd className="font-medium text-slate-700">{factors.mockCount}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Última sesión</dt>
+          <dt className="text-slate-500">Recencia</dt>
           <dd className="font-medium text-slate-700">{formatLastSession(factors.daysSinceLastSession)}</dd>
         </div>
-        {pendingErrorsCount > 0 ? (
-          <div className="col-span-2">
-            <dt className="text-slate-500">Errores pendientes</dt>
-            <dd className="font-medium text-amber-800">{pendingErrorsCount}</dd>
-          </div>
-        ) : null}
+        <div>
+          <dt className="text-slate-500">Confianza del cálculo</dt>
+          <dd className="font-medium text-slate-700">{readiness.confidenceLabel}</dd>
+        </div>
       </dl>
     </article>
   );

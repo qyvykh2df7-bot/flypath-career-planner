@@ -18,6 +18,7 @@ import {
   getPlannedSessionsForDate,
   getWeekStart,
 } from "@/lib/study-planner/date-utils";
+import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-session-scheduling";
 import { StudySessionFocusSheet } from "../StudySessionFocusSheet";
 import { CalendarInsightStrip } from "./CalendarInsightStrip";
 import { CalendarViewSwitcher } from "./CalendarViewSwitcher";
@@ -124,12 +125,16 @@ export function StudyPlannerCalendar({
     });
   }, [selectedSession, plannedSessions, studySessions, mockResults, today]);
 
-  const openCreateDrawer = useCallback((date: string) => {
-    setDrawerMode("create");
-    setDrawerDate(date);
-    setEditingSession(null);
-    setDrawerOpen(true);
-  }, []);
+  const openCreateDrawer = useCallback(
+    (date: string) => {
+      if (!canSchedulePlannedSessionOnDate(date, today)) return;
+      setDrawerMode("create");
+      setDrawerDate(date);
+      setEditingSession(null);
+      setDrawerOpen(true);
+    },
+    [today],
+  );
 
   useEffect(() => {
     if (externalCreateNonce > 0) {
@@ -190,7 +195,7 @@ export function StudyPlannerCalendar({
       onVisibleWeekStartChange(getWeekStart(session.date));
       setVisibleMonthStart(getMonthStart(session.date));
     },
-    [drawerMode, editingSession, onAddPlannedSession, onUpdatePlannedSession, onVisibleWeekStartChange],
+    [drawerMode, editingSession, onAddPlannedSession, onUpdatePlannedSession, onVisibleWeekStartChange, today],
   );
 
   const handleDeleteFromFocus = useCallback(
@@ -226,6 +231,7 @@ export function StudyPlannerCalendar({
           onFocusDateChange={handleFocusDateChange}
           onSelectSession={setSelectedSession}
           onAddSession={() => openCreateDrawer(focusDate)}
+          canAddSession={canSchedulePlannedSessionOnDate(focusDate, today)}
         />
       ) : null}
 
@@ -269,6 +275,7 @@ export function StudyPlannerCalendar({
         open={drawerOpen}
         mode={drawerMode}
         initialDate={drawerDate}
+        today={today}
         subjects={subjects}
         session={editingSession}
         onClose={() => setDrawerOpen(false)}

@@ -4,6 +4,7 @@ import type {
   PlannedStudySession,
   RecoveryPlan,
   RecoveryPlanStep,
+  RecoveryPlanVariant,
   RecoveryProblem,
   ReviewItem,
   StudyMode,
@@ -23,7 +24,7 @@ import {
 
 export const RECOVERY_PROBLEM_OPTIONS: { value: RecoveryProblem; label: string }[] = [
   { value: "too_many_subjects", label: "Tengo demasiadas asignaturas abiertas" },
-  { value: "low_mock_scores", label: "Hago mocks pero no subo nota" },
+  { value: "low_mock_scores", label: "Hago simulacros pero no subo nota" },
   { value: "no_weekly_plan", label: "No sé qué estudiar esta semana" },
   { value: "overdue_reviews", label: "Tengo repasos atrasados" },
   { value: "pending_errors", label: "Tengo errores pendientes sin revisar" },
@@ -43,15 +44,15 @@ const PROBLEM_STEP_TEMPLATES: Record<
     actionType: "reduce_subjects",
   },
   low_mock_scores: {
-    title: "Haz un mock diagnóstico y corrige errores",
+    title: "Haz un simulacro diagnóstico y corrige errores",
     description:
-      "No hagas bancos en automático. Haz un mock, registra los errores en el Error log y repasa los temas que más fallas.",
+      "No hagas bancos en automático. Haz un simulacro, registra los errores y repasa los temas que más fallas.",
     actionType: "mock",
   },
   no_weekly_plan: {
     title: "Planifica 3 sesiones realistas esta semana",
     description:
-      "Crea tres sesiones de estudio en el calendario: una de teoría, una de banco y una de repaso o mock.",
+      "Crea tres sesiones de estudio en el calendario: una de teoría, una de banco y una de repaso o simulacro.",
     actionType: "plan_session",
   },
   overdue_reviews: {
@@ -92,18 +93,22 @@ export const RECOVERY_ACTION_LABELS: Record<
 > = {
   plan_session: "Planificar",
   review: "Repasos",
-  mock: "Mocks",
+  mock: "Simulacros",
   error_log: "Errores",
   reduce_subjects: "Enfoque",
   rest: "Descanso",
   class_cta: "Clases",
 };
 
-export const RECOVERY_RISK_LABELS: Record<RecoveryPlan["riskLevel"], string> = {
-  low: "Bajo",
-  medium: "Medio",
-  high: "Alto",
+/** Etiqueta visible de carga semanal (sin “riesgo” ni tono punitivo). */
+export const RECOVERY_WEEK_LOAD_LABELS: Record<RecoveryPlan["riskLevel"], string> = {
+  low: "Carga baja",
+  medium: "Carga moderada",
+  high: "Carga alta",
 };
+
+/** @deprecated Usar RECOVERY_WEEK_LOAD_LABELS */
+export const RECOVERY_RISK_LABELS = RECOVERY_WEEK_LOAD_LABELS;
 
 function makeStep(template: Omit<RecoveryPlanStep, "id">): RecoveryPlanStep {
   return { ...template, id: createPlannerId() };
@@ -119,7 +124,19 @@ function addStepUnique(steps: RecoveryPlanStep[], step: RecoveryPlanStep): void 
   steps.push(step);
 }
 
-function buildSummary(selected: RecoveryProblem[]): string {
+const LIGHTER_STEP_PRIORITY: NonNullable<RecoveryPlanStep["actionType"]>[] = [
+  "rest",
+  "review",
+  "error_log",
+  "reduce_subjects",
+  "plan_session",
+  "mock",
+];
+
+function buildSummary(selected: RecoveryProblem[], variant: RecoveryPlanVariant = "standard"): string {
+  if (variant === "lighter") {
+    return "Propuesta con menos carga: primero repasos y errores, bloques cortos en calendario y menos asignaturas abiertas hasta recuperar ritmo.";
+  }
   if (selected.includes("burnout")) {
     return "Ahora mismo conviene bajar el ritmo: menos asignaturas abiertas, pendientes al día y sesiones que sí puedas cumplir.";
   }
@@ -163,6 +180,34 @@ function calculateRiskLevel(params: {
   return "low";
 }
 
+function downgradeRiskLevel(level: RecoveryPlan["riskLevel"]): RecoveryPlan["riskLevel"] {
+  if (level === "high") return "medium";
+  if (level === "medium") return "low";
+  return "low";
+}
+
+function applyLighterVariant(
+  steps: RecoveryPlanStep[],
+  selected: RecoveryProblem[],
+): RecoveryPlanStep[] {
+  const sorted = [...steps].sort((a, b) => {
+    const pa = LIGHTER_STEP_PRIORITY.indexOf(a.actionType ?? "plan_session");
+    const pb = LIGHTER_STEP_PRIORITY.indexOf(b.actionType ?? "plan_session");
+    return pa - pb;
+  });
+
+  const trimmed = sorted.slice(0, 4);
+  const anchor = makeStep({
+    title: "Esta semana: máximo 2-3 bloques en calendario",
+    description:
+      "Al regenerar en calendario, prioriza repaso y errores. Deja teoría nueva o bancos largos para cuando tengas los pendientes al día.",
+    actionType: "plan_session",
+  });
+
+  const withoutDup = trimmed.filter((s) => stepFingerprint(s) !== stepFingerprint(anchor));
+  return [anchor, ...withoutDup].slice(0, 5);
+}
+
 export function generateRecoveryPlan(params: {
   selectedProblems: RecoveryProblem[];
   mode: StudyMode;
@@ -173,6 +218,7 @@ export function generateRecoveryPlan(params: {
   reviewItems: ReviewItem[];
   errorLogItems: ErrorLogItem[];
   weeklyGoalMinutes: number;
+  variant?: RecoveryPlanVariant;
 }): RecoveryPlan {
   const {
     selectedProblems,
@@ -182,6 +228,7 @@ export function generateRecoveryPlan(params: {
     reviewItems,
     errorLogItems,
     weeklyGoalMinutes,
+    variant = "standard",
   } = params;
 
   const steps: RecoveryPlanStep[] = [];
@@ -216,7 +263,7 @@ export function generateRecoveryPlan(params: {
       steps,
       makeStep({
         title: "Tienes errores pendientes: revisa los más repetidos",
-        description: `Hay ${pendingErrors} error${pendingErrors === 1 ? "" : "es"} pendiente${pendingErrors === 1 ? "" : "s"}. Revisa los patrones en Error log antes de seguir haciendo mocks.`,
+        description: `Hay ${pendingErrors} error${pendingErrors === 1 ? "" : "es"} pendiente${pendingErrors === 1 ? "" : "s"}. Revisa los patrones antes de seguir haciendo simulacros.`,
         actionType: "error_log",
       }),
     );
@@ -249,8 +296,8 @@ export function generateRecoveryPlan(params: {
     addStepUnique(
       steps,
       makeStep({
-        title: "Tu media de mocks está ajustada; prioriza corrección de errores",
-        description: `Media orientativa: ${Math.round(avgMock)}%. Haz mocks más cortos, registra fallos y repasa antes de repetir bancos completos.`,
+        title: "Tu media de simulacros está ajustada; prioriza corrección de errores",
+        description: `Media orientativa: ${Math.round(avgMock)}%. Haz simulacros más cortos, registra fallos y repasa antes de repetir bancos completos.`,
         actionType: "mock",
       }),
     );
@@ -272,7 +319,7 @@ export function generateRecoveryPlan(params: {
     );
   }
 
-  const riskLevel = calculateRiskLevel({
+  let riskLevel = calculateRiskLevel({
     selected: selectedProblems,
     overdueReviews,
     pendingErrors,
@@ -281,11 +328,18 @@ export function generateRecoveryPlan(params: {
     weeklyGoalMinutes,
   });
 
+  let finalSteps = steps;
+  if (variant === "lighter") {
+    riskLevel = downgradeRiskLevel(riskLevel);
+    finalSteps = applyLighterVariant(steps, selectedProblems);
+  }
+
   return {
     problems: selectedProblems,
-    summary: buildSummary(selectedProblems),
+    summary: buildSummary(selectedProblems, variant),
     riskLevel,
-    steps,
+    steps: finalSteps,
+    variant,
     cta: {
       label: "Necesito ayuda con una asignatura",
       href: "/clases-ppl-atpl",

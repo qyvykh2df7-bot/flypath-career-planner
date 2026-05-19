@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExamDate, SubjectReadiness } from "./types";
+import { computeSubjectReadinessMetrics } from "./subject-readiness";
 import {
   buildSubjectsPageSummary,
   filterReadinessByChip,
@@ -16,15 +17,32 @@ const TODAY = "2026-05-19";
 function readiness(
   level: SubjectReadiness["level"],
   subjectId = "atpl-air-law",
-  overrides: Partial<SubjectReadiness["factors"]> & { score?: number } = {},
+  overrides: Partial<SubjectReadiness["factors"]> & {
+    score?: number;
+    pedagogicalLabel?: string;
+    confidence?: SubjectReadiness["confidence"];
+    isProvisional?: boolean;
+    breakdown?: Partial<SubjectReadiness["breakdown"]>;
+  } = {},
 ): SubjectReadiness {
-  const { score: scoreOverride, ...factorOverrides } = overrides;
+  const { score: scoreOverride, pedagogicalLabel, confidence, isProvisional, breakdown, ...factorOverrides } =
+    overrides;
+  const base = computeSubjectReadinessMetrics({
+    subjectId,
+    sessions: [],
+    mockResults: [],
+  });
   return {
     subjectId,
     score: scoreOverride ?? (level === "no_data" ? 0 : 26),
     level,
-    label: level,
+    label: pedagogicalLabel ?? base.pedagogicalLabel,
+    pedagogicalLabel: pedagogicalLabel ?? base.pedagogicalLabel,
     message: "",
+    confidence: confidence ?? base.confidence,
+    confidenceLabel: base.confidenceLabel,
+    isProvisional: isProvisional ?? base.isProvisional,
+    breakdown: { ...base.breakdown, ...breakdown },
     factors: {
       totalStudyMinutes: 0,
       recentStudyMinutes: 0,
@@ -50,16 +68,18 @@ describe("subjects-page-logic", () => {
   it("early progress maps to in_progress, not at_risk", () => {
     const r = readiness("low", "atpl-agk", {
       score: 26,
+      pedagogicalLabel: "Construyendo base",
       totalStudyMinutes: 90,
       daysSinceLastSession: 1,
     });
     expect(resolveSubjectDisplayStatus(r, [], 0, TODAY)).toBe("in_progress");
-    expect(getSubjectDisplayLabel("in_progress", r)).toBe("Base inicial");
+    expect(getSubjectDisplayLabel("in_progress", r)).toBe("Construyendo base");
   });
 
   it("at_risk when exam is near and progress is low", () => {
     const r = readiness("low", "atpl-air-law", {
       score: 30,
+      pedagogicalLabel: "Construyendo base",
       totalStudyMinutes: 120,
       daysSinceLastSession: 3,
     });
@@ -71,6 +91,7 @@ describe("subjects-page-logic", () => {
   it("at_risk with pending errors", () => {
     const r = readiness("medium", "x", {
       score: 50,
+      pedagogicalLabel: "Primeras señales positivas",
       totalStudyMinutes: 200,
       daysSinceLastSession: 2,
     });
@@ -80,7 +101,15 @@ describe("subjects-page-logic", () => {
   it("filterReadinessByChip uses display status", () => {
     const list = [
       readiness("low", "a", { totalStudyMinutes: 60, daysSinceLastSession: 1 }),
-      readiness("solid", "b", { totalStudyMinutes: 500, daysSinceLastSession: 1 }),
+      readiness("solid", "b", {
+        score: 85,
+        pedagogicalLabel: "Preparación sólida",
+        confidence: "high",
+        totalStudyMinutes: 500,
+        mockCount: 3,
+        daysSinceLastSession: 1,
+        breakdown: { bankSessions: 3, bankMinutes: 300, mockCount: 3 },
+      }),
       readiness("no_data", "c"),
     ];
     const exams: ExamDate[] = [{ id: "e1", subjectId: "b", date: "2026-06-01" }];

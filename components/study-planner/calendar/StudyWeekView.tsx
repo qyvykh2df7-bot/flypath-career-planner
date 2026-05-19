@@ -20,6 +20,7 @@ import {
   getWeekKind,
   type WeekKind,
 } from "@/lib/study-planner/date-utils";
+import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-session-scheduling";
 import { plannerBtnGhost } from "@/lib/study-planner/planner-ui";
 import { getSessionTypeAccentClass } from "@/lib/study-planner/session-type-visual";
 import { getSubjectById } from "@/lib/study-planner/subjects";
@@ -179,6 +180,7 @@ function WeekDayColumn({
   layout?: "column" | "list";
 }) {
   const isToday = date === today;
+  const canAdd = canSchedulePlannedSessionOnDate(date, today);
 
   return (
     <div
@@ -202,25 +204,31 @@ function WeekDayColumn({
           ) : (
             <span className="text-[10px] tabular-nums text-slate-400">{formatShortDate(date)}</span>
           )}
-          <button
-            type="button"
-            onClick={() => onAdd(date)}
-            className="rounded-md p-0.5 text-slate-400 hover:bg-slate-100 hover:text-[#0f1a33]"
-            aria-label={`Añadir sesión el ${date}`}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+          {canAdd ? (
+            <button
+              type="button"
+              onClick={() => onAdd(date)}
+              className="rounded-md p-0.5 text-slate-400 hover:bg-slate-100 hover:text-[#0f1a33]"
+              aria-label={`Añadir sesión el ${date}`}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
         </div>
       </div>
 
       {sessions.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => onAdd(date)}
-          className="py-2 text-[10px] text-slate-400 hover:text-[#7a5a16]"
-        >
-          + Añadir
-        </button>
+        canAdd ? (
+          <button
+            type="button"
+            onClick={() => onAdd(date)}
+            className="py-2 text-[10px] text-slate-400 hover:text-[#7a5a16]"
+          >
+            + Añadir
+          </button>
+        ) : (
+          <p className="py-2 text-[10px] text-slate-300">Pasado</p>
+        )
       ) : (
         <ul className="space-y-1.5">
           {sessions.map((session) => (

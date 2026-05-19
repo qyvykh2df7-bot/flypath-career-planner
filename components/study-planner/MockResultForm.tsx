@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { MockResult, StudySubject } from "@/lib/study-planner/types";
 import { createPlannerId, formatDateLocal } from "@/lib/study-planner/calculations";
 
@@ -17,6 +18,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
   const [hours, setHours] = useState("0");
   const [minutes, setMinutes] = useState("0");
   const [notes, setNotes] = useState("");
+  const [showExtras, setShowExtras] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +39,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
     }
 
     if (score.trim() === "") {
-      setError("Introduce la nota del mock.");
+      setError("Introduce el resultado del simulacro.");
       return;
     }
 
@@ -66,26 +68,27 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
     setHours("0");
     setMinutes("0");
     setNotes("");
-    setFeedback("Mock registrado");
+    setShowExtras(false);
+    setFeedback("Simulacro guardado");
     window.setTimeout(() => setFeedback(null), 2500);
   };
 
   const fieldClass =
-    "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25";
-  const labelClass = "text-[12px] font-semibold text-slate-600";
+    "mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25";
+  const labelClass = "text-[11px] font-semibold text-slate-600";
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm ring-1 ring-slate-100/80 sm:p-4"
+      className="rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-sm ring-1 ring-slate-100/80"
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         <label className="block">
           <span className={labelClass}>Fecha</span>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fieldClass} required />
         </label>
         <label className="block">
-          <span className={labelClass}>Nota %</span>
+          <span className={labelClass}>Resultado %</span>
           <input
             type="number"
             min={0}
@@ -110,70 +113,88 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
           </select>
         </label>
         <label className="block sm:col-span-2">
-          <span className={labelClass}>Banco usado (opcional)</span>
+          <span className={labelClass}>Banco/plataforma usada (opcional)</span>
           <input
             type="text"
             value={bank}
             onChange={(e) => setBank(e.target.value)}
             className={fieldClass}
-            placeholder="Ej. Bristol, ATPL Questions…"
-          />
-        </label>
-        <fieldset className="sm:col-span-2">
-          <legend className={labelClass}>Duración (opcional)</legend>
-          <div className="mt-1.5 grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-[12px] text-slate-500">Horas</span>
-              <input
-                type="number"
-                min={0}
-                max={24}
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                className={fieldClass}
-              />
-            </label>
-            <label className="block">
-              <span className="text-[12px] text-slate-500">Minutos</span>
-              <input
-                type="number"
-                min={0}
-                max={59}
-                value={minutes}
-                onChange={(e) => setMinutes(e.target.value)}
-                className={fieldClass}
-              />
-            </label>
-          </div>
-        </fieldset>
-        <label className="block sm:col-span-2">
-          <span className={labelClass}>Notas (opcional)</span>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            className={`${fieldClass} min-h-[64px] resize-y`}
-            placeholder="Observaciones del mock…"
+            placeholder="Ej. Bristol, ATPL Questions, AviationExam…"
           />
         </label>
       </div>
 
+      <button
+        type="button"
+        onClick={() => setShowExtras((v) => !v)}
+        className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-200/90 bg-slate-50/60 px-2.5 py-1.5 text-left text-[12px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+        aria-expanded={showExtras}
+      >
+        Duración y notas (opcional)
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-slate-400 transition ${showExtras ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+
+      {showExtras ? (
+        <div className="mt-2 space-y-2 border-t border-slate-100 pt-2">
+          <fieldset>
+            <legend className={labelClass}>Duración</legend>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="text-[11px] text-slate-500">Horas</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={24}
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                  className={fieldClass}
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-slate-500">Minutos</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={minutes}
+                  onChange={(e) => setMinutes(e.target.value)}
+                  className={fieldClass}
+                />
+              </label>
+            </div>
+          </fieldset>
+          <label className="block">
+            <span className={labelClass}>Notas</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className={`${fieldClass} min-h-[52px] resize-y`}
+              placeholder="Observaciones del simulacro…"
+            />
+          </label>
+        </div>
+      ) : null}
+
       {error ? (
-        <p className="mt-3 text-[14px] font-medium text-red-600" role="alert">
+        <p className="mt-2 text-[13px] font-medium text-red-600" role="alert">
           {error}
         </p>
       ) : null}
       {feedback ? (
-        <p className="mt-3 text-[14px] font-medium text-emerald-700" role="status">
+        <p className="mt-2 text-[13px] font-medium text-emerald-700" role="status">
           {feedback}
         </p>
       ) : null}
 
       <button
         type="submit"
-        className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[14px] font-semibold text-[#0f1a33] shadow-[0_6px_20px_rgba(201,164,84,0.28)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
+        className="mt-2.5 inline-flex min-h-[40px] w-full items-center justify-center rounded-lg border border-[#c9a454] bg-[#c9a454] px-4 py-2 text-[13px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
       >
-        Registrar mock
+        Guardar simulacro
       </button>
     </form>
   );

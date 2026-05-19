@@ -21,6 +21,7 @@ import {
 } from "./date-utils";
 import { getPlannerMetrics } from "./planner-metrics";
 import { isCountableAsCompleted, isPendingLikeStatus } from "./planner-session-status";
+import { computeSubjectReadinessMetrics } from "./subject-readiness";
 
 export { PLANNED_STATUS_LABELS, isPendingLikeStatus, isCountableAsCompleted } from "./planner-session-status";
 export { getPlannerMetrics } from "./planner-metrics";
@@ -466,7 +467,7 @@ export function resolveDashboardHeroEmptyState(
     return {
       variant: "fresh",
       metaLine:
-        "Genera una semana de estudio adaptada a tus horas, asignaturas activas y fecha objetivo. El planner repartirá tus bloques entre teoría, banco, repasos y mocks según la madurez de cada asignatura.",
+        "Genera una semana de estudio adaptada a tus horas, asignaturas activas y fecha objetivo. El planner repartirá tus bloques entre teoría, banco, repasos y simulacros según la madurez de cada asignatura.",
       ctaLabel: "Generar plan semanal",
     };
   }
@@ -710,7 +711,7 @@ export function buildAttentionItems(params: {
         subjectName: name,
         priority: "high",
         reason: mock
-          ? `Preparación baja · mock ${mock.score}%`
+          ? `Preparación baja · simulacro ${mock.score}%`
           : "Preparación baja",
         sortKey: 200,
       });
@@ -934,10 +935,10 @@ export const READINESS_LEVEL_LABELS: Record<SubjectReadinessLevel, string> = {
 };
 
 export const READINESS_LEVEL_MESSAGES: Record<SubjectReadinessLevel, string> = {
-  no_data: "Registra sesiones o mocks para calcular el nivel de preparación.",
+  no_data: "Registra sesiones o simulacros para calcular el nivel de preparación.",
   low: "Faltan datos, horas o resultados suficientes antes de presentarte.",
   medium: "Hay base, pero todavía conviene reforzar antes de examinarte.",
-  high: "La asignatura va bien, mantén repasos y mocks.",
+  high: "La asignatura va bien, mantén repasos y simulacros.",
   solid: "Buen nivel de preparación, mantén consistencia hasta el examen.",
 };
 
@@ -959,113 +960,16 @@ export function getDaysSinceDate(dateStr: string): number {
   return Math.floor((now.getTime() - then.getTime()) / (24 * 60 * 60 * 1000));
 }
 
-function scoreTotalHoursPoints(totalMinutes: number): number {
-  const hours = totalMinutes / 60;
-  if (hours <= 0) return 0;
-  if (hours <= 3) return 8;
-  if (hours <= 6) return 15;
-  if (hours <= 10) return 20;
-  return 25;
-}
-
-function scoreRecentStudyPoints(recentMinutes: number): number {
-  if (recentMinutes <= 0) return 0;
-  if (recentMinutes < 120) return 8;
-  if (recentMinutes <= 300) return 14;
-  return 20;
-}
-
-function scoreAverageMockPoints(avg: number | null): number {
-  if (avg === null) return 0;
-  if (avg < 60) return 8;
-  if (avg < 70) return 16;
-  if (avg < 80) return 25;
-  if (avg < 90) return 31;
-  return 35;
-}
-
-function scoreMockCountPoints(count: number): number {
-  if (count <= 0) return 0;
-  if (count === 1) return 4;
-  if (count === 2) return 7;
-  return 10;
-}
-
-function scoreRecencyPoints(daysSince: number | null): number {
-  if (daysSince === null) return 0;
-  if (daysSince === 0) return 10;
-  if (daysSince <= 7) return 8;
-  if (daysSince <= 21) return 5;
-  return 2;
-}
-
-function resolveReadinessLevel(
-  score: number,
-  hasSessions: boolean,
-  mockCount: number,
-): SubjectReadinessLevel {
-  if (!hasSessions && mockCount === 0) return "no_data";
-  if (score <= 39) return "low";
-  if (score <= 59) return "medium";
-  if (score <= 79) return "high";
-  return "solid";
-}
-
 export function calculateSubjectReadiness(params: {
   subjectId: string;
   sessions: StudySession[];
   mockResults: MockResult[];
+  errorLogItems?: ErrorLogItem[];
+  reviewItems?: ReviewItem[];
 }): SubjectReadiness {
-  const { subjectId, sessions, mockResults } = params;
-  const subjectSessions = sessions.filter((s) => s.subjectId === subjectId);
-  const subjectMocks = mockResults.filter((m) => m.subjectId === subjectId);
-
-  const totalStudyMinutes = subjectSessions.reduce(
-    (sum, s) => sum + (Number.isFinite(s.durationMinutes) ? s.durationMinutes : 0),
-    0,
-  );
-
-  const cutoff = new Date();
-  cutoff.setHours(0, 0, 0, 0);
-  cutoff.setDate(cutoff.getDate() - 14);
-  const cutoffStr = formatDateLocal(cutoff);
-  const recentStudyMinutes = subjectSessions
-    .filter((s) => s.date >= cutoffStr)
-    .reduce((sum, s) => sum + s.durationMinutes, 0);
-
-  const latestMock = getLatestMockForSubject(mockResults, subjectId);
-  const latestMockScore = latestMock?.score ?? null;
-  const averageMockScore = calculateAverageMockScore(subjectMocks, 3);
-  const mockCount = subjectMocks.length;
-
-  const lastDate = getLatestSessionDateForSubject(sessions, subjectId);
-  const daysSinceLastSession = lastDate !== null ? getDaysSinceDate(lastDate) : null;
-
-  const hasSessions = subjectSessions.length > 0;
-  const hoursPoints = scoreTotalHoursPoints(totalStudyMinutes);
-  const recentPoints = scoreRecentStudyPoints(recentStudyMinutes);
-  const mockAvgPoints = scoreAverageMockPoints(averageMockScore);
-  const mockCountPoints = scoreMockCountPoints(mockCount);
-  const recencyPoints = scoreRecencyPoints(daysSinceLastSession);
-
-  const rawScore = hoursPoints + recentPoints + mockAvgPoints + mockCountPoints + recencyPoints;
-  const score = Math.min(100, Math.max(0, rawScore));
-  const level = resolveReadinessLevel(score, hasSessions, mockCount);
-
   return {
-    subjectId,
-    score,
-    level,
-    label: READINESS_LEVEL_LABELS[level],
-    message: READINESS_LEVEL_MESSAGES[level],
-    factors: {
-      totalStudyMinutes,
-      recentStudyMinutes,
-      latestMockScore,
-      averageMockScore,
-      mockCount,
-      daysSinceLastSession,
-    },
+    subjectId: params.subjectId,
+    ...computeSubjectReadinessMetrics(params),
   };
 }
 
@@ -1073,12 +977,16 @@ export function calculateReadinessForSubjects(params: {
   subjectIds: string[];
   sessions: StudySession[];
   mockResults: MockResult[];
+  errorLogItems?: ErrorLogItem[];
+  reviewItems?: ReviewItem[];
 }): SubjectReadiness[] {
   return params.subjectIds.map((subjectId) =>
     calculateSubjectReadiness({
       subjectId,
       sessions: params.sessions,
       mockResults: params.mockResults,
+      errorLogItems: params.errorLogItems,
+      reviewItems: params.reviewItems,
     }),
   );
 }
@@ -1128,7 +1036,7 @@ export function getReadinessSummary(readinessList: SubjectReadiness[]): {
 
 export function getReadinessDashboardHint(summary: ReturnType<typeof getReadinessSummary>): string {
   if (summary.withDataCount === 0) {
-    return "Registra horas y mocks para calcular el nivel de preparación.";
+    return "Registra horas y simulacros para calcular el nivel de preparación.";
   }
   if (summary.lowCount > 0) {
     return "Hay asignaturas con preparación baja. Conviene reforzar antes de presentarte.";

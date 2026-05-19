@@ -1,4 +1,5 @@
 import type { ExamDate, InitialSubjectState, SubjectReadiness } from "./types";
+import { qualifiesAsPrepared } from "./subject-readiness";
 import {
   DECLARED_STAGE_OPTIONS,
   getInitialStateForSubject,
@@ -143,12 +144,12 @@ export function resolveSubjectDisplayStatus(
 
   if (!isSubjectInCourse(readiness)) return "no_data";
 
-  if (readiness.level === "high" || readiness.level === "solid") return "prepared";
-
   const exam = getExamForSubject(readiness.subjectId, examDates, today);
   if (hasRealRiskSignals(readiness, exam, pendingErrorsCount, today)) {
     return "at_risk";
   }
+
+  if (qualifiesAsPrepared(readiness)) return "prepared";
 
   return "in_progress";
 }
@@ -167,6 +168,12 @@ export function getSubjectDisplayLabel(
     initialState.declaredStage !== "not_started"
   ) {
     return getDeclaredStageLabel(initialState.declaredStage);
+  }
+
+  if (status === "at_risk") return SUBJECT_DISPLAY_STATUS_LABELS.at_risk;
+
+  if (hasRealStudyDataFromReadiness(readiness)) {
+    return readiness.pedagogicalLabel;
   }
 
   if (

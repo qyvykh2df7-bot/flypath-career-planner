@@ -27,6 +27,7 @@ import { MomentumStrip } from "./MomentumStrip";
 import { AttentionList } from "./AttentionList";
 import { PulseLine } from "./PulseLine";
 import { DashboardMissionControl } from "./DashboardMissionControl";
+import { DashboardStudyCenter } from "./DashboardStudyCenter";
 import { DashboardWeekInProgress } from "./DashboardWeekInProgress";
 import {
   buildAttentionItems,
@@ -36,9 +37,7 @@ import {
   calculatePendingReviewCount,
   calculateReadinessForSubjects,
   formatDaysRemaining,
-  formatMockScore,
   getDaysUntilDate,
-  getLatestMock,
   getNextUpcomingExam,
   getReviewStatus,
   getCurrentWeekPlannedSessions,
@@ -48,6 +47,15 @@ import {
 } from "@/lib/study-planner/calculations";
 import { resolveWeeklyAlertsDisplay } from "@/lib/study-planner/weekly-alerts-display";
 import { getSubjectById } from "@/lib/study-planner/subjects";
+import {
+  buildEvaluationSummary,
+  formatEvaluationDashboardLine,
+} from "@/lib/study-planner/evaluation-page-logic";
+import { EvaluationDashboardLine } from "../evaluation/EvaluationDashboardLine";
+import type {
+  GoToEvaluationOptions,
+  GoToSubjectsOptions,
+} from "@/lib/study-planner/dashboard-navigation";
 
 type StudyDashboardProps = {
   mode: StudyMode;
@@ -62,8 +70,8 @@ type StudyDashboardProps = {
   targetExamDate?: string;
   onGoToCalendar?: () => void;
   onGoToLog?: (intent?: StudyLogIntent) => void;
-  onGoToSubjects?: () => void;
-  onGoToEvaluation?: (section?: "mocks" | "reviews" | "errors" | "progress") => void;
+  onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
+  onGoToEvaluation?: (options?: GoToEvaluationOptions) => void;
   onCompletePlannedSession: (id: string) => void;
   onSkipPlannedSession: (id: string) => void;
   onAddStudySession: (session: StudySession) => void;
@@ -182,8 +190,21 @@ export function StudyDashboard({
     today,
   });
 
-  const latestMock = getLatestMock(mockResults);
   const pendingReviews = calculatePendingReviewCount(reviewItems);
+  const evaluationSummary = useMemo(
+    () =>
+      buildEvaluationSummary({
+        mockResults,
+        errorLogItems,
+        reviewItems,
+        subjectIds: subjects.map((s) => s.id),
+        examDates,
+        sessions,
+        today,
+      }),
+    [mockResults, errorLogItems, reviewItems, subjects, examDates, sessions, today],
+  );
+  const evaluationLine = formatEvaluationDashboardLine(evaluationSummary, reviewItems, today);
   const nextExam = getNextUpcomingExam(examDates, today);
   const nextExamDays = nextExam ? getDaysUntilDate(nextExam.date, today) : null;
 
@@ -204,16 +225,14 @@ export function StudyDashboard({
 
   const pulseParts = [
     {
-      label: latestMock ? `Mock ${formatMockScore(latestMock.score)}` : "",
-      onClick: onGoToEvaluation ? () => onGoToEvaluation("mocks") : undefined,
-    },
-    {
       label:
         pendingReviews > 0
           ? `${pendingReviews} repaso${pendingReviews === 1 ? "" : "s"}`
           : "",
       onClick:
-        pendingReviews > 0 && onGoToEvaluation ? () => onGoToEvaluation("reviews") : undefined,
+        pendingReviews > 0 && onGoToEvaluation
+          ? () => onGoToEvaluation({ section: "reviews" })
+          : undefined,
     },
     {
       label:
@@ -245,7 +264,14 @@ export function StudyDashboard({
 
   if (completion.hasPlan) {
     return (
-      <>
+      <div className="flex flex-col gap-3 pb-1">
+        <DashboardStudyCenter
+          mode={mode}
+          weeklyGoalMinutes={weeklyGoalMinutes}
+          subjectCount={subjects.length}
+          targetExamDate={targetExamDate}
+          completion={completion}
+        />
         <DashboardWeekInProgress
           mode={mode}
           completion={completion}
@@ -260,7 +286,9 @@ export function StudyDashboard({
           onGoToLog={onGoToLog}
           onViewPlan={onGoToCalendar}
           onGoToSubjects={onGoToSubjects}
-          onGoToEvaluation={onGoToEvaluation ? () => onGoToEvaluation() : undefined}
+          onGoToEvaluation={onGoToEvaluation}
+          evaluationLine={evaluationLine}
+          showEvaluationEmptyCta={evaluationSummary.mockCount === 0}
         />
         <StudySessionFocusSheet
           session={focusSession}
@@ -269,12 +297,18 @@ export function StudyDashboard({
           onSkip={onSkipPlannedSession}
           onLogStudy={onAddStudySession}
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2 pb-1">
+    <div className="flex flex-col gap-3 pb-1">
+      <DashboardStudyCenter
+        mode={mode}
+        weeklyGoalMinutes={weeklyGoalMinutes}
+        subjectCount={subjects.length}
+        targetExamDate={targetExamDate}
+      />
       <CoachStatusStrip
         completion={completion}
         totalStudySessions={sessions.length}
@@ -287,6 +321,16 @@ export function StudyDashboard({
         onPrimaryAction={() => onGoToCalendar?.()}
         onLogToday={onGoToLog}
         onViewPlan={onGoToCalendar}
+      />
+
+      <EvaluationDashboardLine
+        line={evaluationLine}
+        showEmptyCta={evaluationSummary.mockCount === 0}
+        onGoToEvaluation={
+          onGoToEvaluation
+            ? () => onGoToEvaluation({ section: "mocks", focusMockForm: true })
+            : undefined
+        }
       />
 
       <MomentumStrip

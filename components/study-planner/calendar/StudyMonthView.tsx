@@ -97,7 +97,7 @@ export function StudyMonthView({
           <span className="h-1.5 w-1.5 rounded-full bg-[#2d8a6b]" /> Banco
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#d4923a]" /> Mock
+          <span className="h-1.5 w-1.5 rounded-full bg-[#d4923a]" /> Simulacro
         </span>
         <span className="inline-flex items-center gap-1">
           <span className="h-1.5 w-1.5 rounded-full bg-[#8b6bb8]" /> Repaso

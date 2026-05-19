@@ -113,7 +113,7 @@ export function PlannerSettingsMenu({
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-slate-700 transition hover:bg-[#fff8e8]/80 hover:text-[#7a5a16]"
           >
             <LifeBuoy className="h-3.5 w-3.5" aria-hidden />
-            Recovery
+            Recuperación
           </button>
           <button
             type="button"

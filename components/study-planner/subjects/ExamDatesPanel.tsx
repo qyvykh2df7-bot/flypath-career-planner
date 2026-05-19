@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type { ExamDate, StudySubject } from "@/lib/study-planner/types";
 import {
@@ -20,6 +20,8 @@ type ExamDatesPanelProps = {
   examDates: ExamDate[];
   onAddExamDate: (exam: ExamDate) => void;
   onDeleteExamDate: (id: string) => void;
+  /** Incrementar desde navegación para abrir el formulario automáticamente. */
+  openFormRequestKey?: number;
 };
 
 export function ExamDatesPanel({
@@ -27,8 +29,11 @@ export function ExamDatesPanel({
   examDates,
   onAddExamDate,
   onDeleteExamDate,
+  openFormRequestKey = 0,
 }: ExamDatesPanelProps) {
   const today = getTodayDateString();
+  const panelRef = useRef<HTMLElement>(null);
+  const subjectSelectRef = useRef<HTMLSelectElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [subjectId, setSubjectId] = useState("");
   const [date, setDate] = useState(today);
@@ -40,6 +45,16 @@ export function ExamDatesPanel({
       setSubjectId("");
     }
   }, [subjects, subjectId]);
+
+  useEffect(() => {
+    if (openFormRequestKey <= 0) return;
+    setShowForm(true);
+    const timer = window.setTimeout(() => {
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      subjectSelectRef.current?.focus();
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [openFormRequestKey]);
 
   const sorted = sortExamDatesByDateAsc(examDates);
   const upcoming = sorted.filter((e) => e.date >= today);
@@ -71,7 +86,11 @@ export function ExamDatesPanel({
 
   if (!hasUpcoming && !showForm) {
     return (
-      <section className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/90 bg-slate-50/60 px-3 py-2.5">
+      <section
+        ref={panelRef}
+        id="exam-dates-panel"
+        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200/90 bg-slate-50/60 px-3 py-2.5"
+      >
         <p className="text-[13px] text-slate-600">Sin fechas de examen configuradas</p>
         <button
           type="button"
@@ -86,7 +105,11 @@ export function ExamDatesPanel({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80">
+    <section
+      ref={panelRef}
+      id="exam-dates-panel"
+      className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-[14px] font-semibold text-[#0f1a33]">Fechas de examen</h3>
@@ -158,7 +181,13 @@ export function ExamDatesPanel({
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="block text-[12px] font-semibold text-slate-600">
               Asignatura
-              <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} className={fieldClass} required>
+              <select
+                ref={subjectSelectRef}
+                value={subjectId}
+                onChange={(e) => setSubjectId(e.target.value)}
+                className={fieldClass}
+                required
+              >
                 <option value="">Seleccionar…</option>
                 {subjects.map((s) => (
                   <option key={s.id} value={s.id}>

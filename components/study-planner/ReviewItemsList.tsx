@@ -15,6 +15,7 @@ type ReviewItemsListProps = {
   onComplete: (reviewId: string) => void;
   onReschedule: (reviewId: string, days: number) => void;
   onDelete: (reviewId: string) => void;
+  emptyPendingMessage?: string;
 };
 
 const RESCHEDULE_OPTIONS = [
@@ -218,6 +219,7 @@ export function ReviewItemsList({
   onComplete,
   onReschedule,
   onDelete,
+  emptyPendingMessage,
 }: ReviewItemsListProps) {
   const groups = groupReviewItemsByStatus(reviewItems);
   const hasAny =
@@ -226,12 +228,14 @@ export function ReviewItemsList({
       groups.upcoming.length +
       groups.completed.length >
     0;
+  const pendingCount = groups.today.length + groups.overdue.length + groups.upcoming.length;
 
   if (!hasAny) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600">
         <p>
-          Todavía no tienes repasos programados. Crea el primero arriba.
+          {emptyPendingMessage ??
+            "Todavía no tienes repasos programados. Crea el primero arriba."}
         </p>
       </div>
     );
@@ -239,6 +243,11 @@ export function ReviewItemsList({
 
   return (
     <div className="space-y-6">
+      {pendingCount === 0 && emptyPendingMessage ? (
+        <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-4 text-[13px] text-slate-500">
+          {emptyPendingMessage}
+        </p>
+      ) : null}
       <ReviewSection
         title="Repasos de hoy"
         items={groups.today}

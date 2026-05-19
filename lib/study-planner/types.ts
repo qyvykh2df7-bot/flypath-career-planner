@@ -51,12 +51,36 @@ export type PlannedStudySession = {
 
 export type SubjectReadinessLevel = "no_data" | "low" | "medium" | "high" | "solid";
 
+export type ReadinessConfidence = "low" | "medium" | "high";
+
+export type SubjectReadinessBreakdown = {
+  theoryMinutes: number;
+  bankMinutes: number;
+  reviewMinutes: number;
+  otherSessionMinutes: number;
+  theorySessions: number;
+  bankSessions: number;
+  mockCount: number;
+  sessionCount: number;
+  pendingErrors: number;
+  pendingReviews: number;
+  daysSinceLastSession: number | null;
+  latestMockScore: number | null;
+  averageMockScore: number | null;
+};
+
 export type SubjectReadiness = {
   subjectId: string;
   score: number;
   level: SubjectReadinessLevel;
+  /** Etiqueta pedagógica visible (p. ej. «Primeras señales positivas»). */
   label: string;
+  pedagogicalLabel: string;
   message: string;
+  confidence: ReadinessConfidence;
+  confidenceLabel: string;
+  isProvisional: boolean;
+  breakdown: SubjectReadinessBreakdown;
   factors: {
     totalStudyMinutes: number;
     recentStudyMinutes: number;
@@ -148,11 +172,14 @@ export type RecoveryPlanStep = {
     | "class_cta";
 };
 
+export type RecoveryPlanVariant = "standard" | "lighter";
+
 export type RecoveryPlan = {
   problems: RecoveryProblem[];
   summary: string;
   riskLevel: "low" | "medium" | "high";
   steps: RecoveryPlanStep[];
+  variant?: RecoveryPlanVariant;
   cta?: {
     label: string;
     href: string;

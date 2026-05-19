@@ -7,9 +7,11 @@ import type {
   InitialSubjectState,
   MockResult,
   PlannedStudySession,
+  ReviewItem,
   StudySession,
   StudySubject,
 } from "@/lib/study-planner/types";
+import { formatMockScore } from "@/lib/study-planner/calculations";
 import { getInitialStateForSubject } from "@/lib/study-planner/initial-subject-state";
 import {
   calculatePendingErrorsForSubject,
@@ -41,11 +43,13 @@ type SubjectsPageProps = {
   sessions: StudySession[];
   mockResults: MockResult[];
   errorLogItems: ErrorLogItem[];
+  reviewItems?: ReviewItem[];
   examDates: ExamDate[];
   plannedSessions: PlannedStudySession[];
   initialSubjectStates?: InitialSubjectState[];
   onAddExamDate: (exam: ExamDate) => void;
   onDeleteExamDate: (id: string) => void;
+  examDatesFormRequestKey?: number;
 };
 
 function formatLastSessionLine(sessions: StudySession[], subjectId: string): string {
@@ -77,11 +81,13 @@ export function SubjectsPage({
   sessions,
   mockResults,
   errorLogItems,
+  reviewItems = [],
   examDates,
   plannedSessions,
   initialSubjectStates,
   onAddExamDate,
   onDeleteExamDate,
+  examDatesFormRequestKey = 0,
 }: SubjectsPageProps) {
   const today = getTodayDateString();
   const [filter, setFilter] = useState<SubjectFilterId>("all");
@@ -94,9 +100,11 @@ export function SubjectsPage({
           subjectIds: subjects.map((s) => s.id),
           sessions,
           mockResults,
+          errorLogItems,
+          reviewItems,
         }),
       ),
-    [subjects, sessions, mockResults],
+    [subjects, sessions, mockResults, errorLogItems, reviewItems],
   );
 
   const pendingErrorsBySubject = useMemo(() => {
@@ -157,6 +165,7 @@ export function SubjectsPage({
         examDates={examDates}
         onAddExamDate={onAddExamDate}
         onDeleteExamDate={onDeleteExamDate}
+        openFormRequestKey={examDatesFormRequestKey}
       />
 
       <div
@@ -237,12 +246,26 @@ export function SubjectsPage({
                 </div>
 
                 {displayStatus !== "no_data" && displayStatus !== "passed" ? (
-                  <p className="mt-2 text-[12px] text-slate-500">
-                    Nivel de preparación:{" "}
-                    <span className="font-semibold tabular-nums text-[#0f1a33]">
-                      {readiness.score}%
-                    </span>
-                  </p>
+                  <div className="mt-2 space-y-0.5">
+                    <p className="text-[12px] text-slate-500">
+                      Nivel de preparación:{" "}
+                      <span className="font-semibold tabular-nums text-[#0f1a33]">
+                        {readiness.score}%
+                      </span>
+                      <span className="text-slate-400"> · </span>
+                      <span className="font-medium text-slate-700">{displayLabel}</span>
+                    </p>
+                    {readiness.factors.latestMockScore !== null ? (
+                      <p className="text-[11px] text-slate-500">
+                        Último simulacro: {formatMockScore(readiness.factors.latestMockScore)}
+                      </p>
+                    ) : null}
+                    {readiness.isProvisional ? (
+                      <span className="inline-flex rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200/80">
+                        Dato provisional
+                      </span>
+                    ) : null}
+                  </div>
                 ) : displayStatus === "passed" ? (
                   <p className="mt-2 text-[12px] text-slate-500">
                     Marcada como aprobada. No se prioriza en el plan habitual.

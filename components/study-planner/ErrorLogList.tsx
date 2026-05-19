@@ -2,13 +2,15 @@
 
 import type { ErrorLogItem, ErrorLogStatus } from "@/lib/study-planner/types";
 import { groupErrorLogByStatus } from "@/lib/study-planner/calculations";
-import { ERROR_LOG_STATUS_LABELS, getErrorLogTypeLabel } from "@/lib/study-planner/labels";
+import { ERROR_LOG_STATUS_LABELS } from "@/lib/study-planner/labels";
+import { parseErrorMeta } from "./ErrorLogForm";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 
 type ErrorLogListProps = {
   errorLogItems: ErrorLogItem[];
   onSetStatus: (errorId: string, status: ErrorLogStatus) => void;
   onDelete: (errorId: string) => void;
+  onCreateReview?: (item: ErrorLogItem) => void;
 };
 
 function statusBadgeClass(status: ErrorLogStatus): string {
@@ -26,12 +28,15 @@ function ErrorCard({
   item,
   onSetStatus,
   onDelete,
+  onCreateReview,
 }: {
   item: ErrorLogItem;
   onSetStatus: (id: string, status: ErrorLogStatus) => void;
   onDelete: (id: string) => void;
+  onCreateReview?: (item: ErrorLogItem) => void;
 }) {
   const subjectName = getSubjectById(item.subjectId)?.name ?? item.subjectId;
+  const meta = parseErrorMeta(item.notes);
 
   return (
     <li
@@ -57,28 +62,34 @@ function ErrorCard({
         </span>
       </div>
 
-      <p className="mt-2 text-[12px] font-medium text-slate-500">{getErrorLogTypeLabel(item.type)}</p>
+      {meta.source || meta.severity ? (
+        <p className="mt-2 text-[12px] font-medium text-slate-500">
+          {[meta.source, meta.severity].filter(Boolean).join(" · ")}
+        </p>
+      ) : null}
       <p className="mt-1 text-[13px] leading-relaxed text-slate-700">{item.description}</p>
       {item.correctiveAction ? (
         <p className="mt-2 text-[13px] text-slate-600">
           <span className="font-semibold text-slate-500">Acción correctiva:</span> {item.correctiveAction}
         </p>
       ) : null}
-      {item.notes ? (
+      {meta.body ? (
         <p className="mt-2 text-[13px] text-slate-500">
-          <span className="font-semibold">Notas:</span> {item.notes}
+          <span className="font-semibold">Detalle:</span> {meta.body}
         </p>
       ) : null}
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {item.status === "pending" ? (
           <>
-            <ActionButton label="Marcar revisado" onClick={() => onSetStatus(item.id, "reviewed")} />
             <ActionButton
               label="Marcar resuelto"
               variant="primary"
               onClick={() => onSetStatus(item.id, "resolved")}
             />
+            {onCreateReview ? (
+              <ActionButton label="Crear repaso" onClick={() => onCreateReview(item)} />
+            ) : null}
           </>
         ) : null}
         {item.status === "reviewed" ? (
@@ -133,6 +144,7 @@ function ErrorSection({
   emptyMessage,
   onSetStatus,
   onDelete,
+  onCreateReview,
   tone = "default",
 }: {
   title: string;
@@ -140,6 +152,7 @@ function ErrorSection({
   emptyMessage?: string;
   onSetStatus: (id: string, status: ErrorLogStatus) => void;
   onDelete: (id: string) => void;
+  onCreateReview?: (item: ErrorLogItem) => void;
   tone?: "default" | "pending";
 }) {
   return (
@@ -159,7 +172,13 @@ function ErrorSection({
       ) : (
         <ul className="space-y-3">
           {items.map((item) => (
-            <ErrorCard key={item.id} item={item} onSetStatus={onSetStatus} onDelete={onDelete} />
+            <ErrorCard
+              key={item.id}
+              item={item}
+              onSetStatus={onSetStatus}
+              onDelete={onDelete}
+              onCreateReview={onCreateReview}
+            />
           ))}
         </ul>
       )}
@@ -167,7 +186,7 @@ function ErrorSection({
   );
 }
 
-export function ErrorLogList({ errorLogItems, onSetStatus, onDelete }: ErrorLogListProps) {
+export function ErrorLogList({ errorLogItems, onSetStatus, onDelete, onCreateReview }: ErrorLogListProps) {
   const groups = groupErrorLogByStatus(errorLogItems);
 
   if (errorLogItems.length === 0) {
@@ -188,14 +207,8 @@ export function ErrorLogList({ errorLogItems, onSetStatus, onDelete }: ErrorLogL
         emptyMessage="No tienes errores pendientes."
         onSetStatus={onSetStatus}
         onDelete={onDelete}
+        onCreateReview={onCreateReview}
         tone="pending"
-      />
-      <ErrorSection
-        title="Revisados"
-        items={groups.reviewed}
-        emptyMessage="No hay errores en revisión."
-        onSetStatus={onSetStatus}
-        onDelete={onDelete}
       />
       <ErrorSection
         title="Resueltos"
@@ -203,6 +216,7 @@ export function ErrorLogList({ errorLogItems, onSetStatus, onDelete }: ErrorLogL
         emptyMessage="Aún no has marcado errores como resueltos."
         onSetStatus={onSetStatus}
         onDelete={onDelete}
+        onCreateReview={onCreateReview}
       />
     </div>
   );
