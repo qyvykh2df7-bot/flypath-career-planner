@@ -35,7 +35,7 @@ import {
   filterSessionsByMode,
   getSubjectsByMode,
 } from "@/lib/study-planner/subjects";
-import { PlannerAppBar } from "./PlannerAppBar";
+import { FlyPathPlatformHeader } from "./FlyPathPlatformHeader";
 import { PlannerHero } from "./PlannerHero";
 import { StudyModeSelector } from "./StudyModeSelector";
 import { StudyDashboard } from "./StudyDashboard";
@@ -305,8 +305,8 @@ export function AtplPlannerApp() {
   }, [scrollToWorkspace]);
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
-      <PlannerAppBar onGoToRecovery={goToRecovery} />
+    <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-[#0f1a33]">
+      <FlyPathPlatformHeader pageTitle="ATPL Planner" currentModuleId="atpl" />
       <PlannerHero
         onGoToDashboard={() => {
           setActiveTab("dashboard");

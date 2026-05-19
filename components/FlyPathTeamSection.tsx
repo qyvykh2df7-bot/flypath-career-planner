@@ -2,6 +2,8 @@ import Image from "next/image";
 import { Plane } from "lucide-react";
 
 const JORGE_IMAGE = "/jorge.jpg";
+const CARLOS_IMAGE = "/pollo.jpg";
+const MEMBER_PHOTO_IMAGES = new Set([JORGE_IMAGE, CARLOS_IMAGE]);
 const AVATAR_SIZE_PX = 128;
 
 export type FlyPathTeamMember = {
@@ -35,9 +37,9 @@ function memberInitials(name: string) {
 
 function TeamMemberAvatar({ member }: { member: FlyPathTeamMember }) {
   const initials = memberInitials(member.name);
-  const isJorgePhoto = member.image === JORGE_IMAGE;
+  const showPhoto = MEMBER_PHOTO_IMAGES.has(member.image);
 
-  if (!isJorgePhoto) {
+  if (!showPhoto) {
     return (
       <div className={PLACEHOLDER_CLASS}>
         {initials || <Plane className="h-8 w-8" aria-hidden />}
@@ -48,12 +50,12 @@ function TeamMemberAvatar({ member }: { member: FlyPathTeamMember }) {
   return (
     <div className={AVATAR_SHELL_CLASS}>
       <Image
-        src={JORGE_IMAGE}
-        alt="Jorge Feliu"
+        src={member.image}
+        alt={member.name}
         width={AVATAR_SIZE_PX}
         height={AVATAR_SIZE_PX}
         sizes="(max-width: 640px) 112px, 128px"
-        loading="eager"
+        loading={member.image === JORGE_IMAGE ? "eager" : "lazy"}
         decoding="async"
         className="h-full w-full object-cover"
       />

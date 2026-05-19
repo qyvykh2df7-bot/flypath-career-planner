@@ -4,6 +4,12 @@ import { SITE_URL } from "@/lib/site";
 
 const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
+  { path: "/dashboard", changeFrequency: "weekly", priority: 0.82 },
+  { path: "/planifica-tu-ruta", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/escuelas", changeFrequency: "weekly", priority: 0.88 },
+  { path: "/atpl-estudio", changeFrequency: "weekly", priority: 0.88 },
+  { path: "/recursos", changeFrequency: "weekly", priority: 0.85 },
+  { path: "/assessment-prep", changeFrequency: "monthly", priority: 0.6 },
   { path: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { path: "/atpl-planner", changeFrequency: "weekly", priority: 0.85 },
   { path: "/shop", changeFrequency: "monthly", priority: 0.7 },

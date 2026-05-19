@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { Menu, Plane } from "lucide-react";
 import { ComparisonResults } from "@/components/schools/ComparisonResults";
 import { FlypathComparisonConclusion } from "@/components/schools/FlypathComparisonConclusion";
@@ -114,9 +115,6 @@ function SchoolsPageContent() {
   const lastHandledAddSlugRef = useRef<string | null>(null);
   const lastHandledReviewsSlugRef = useRef<string | null>(null);
   const pendingResultsScrollRef = useRef(false);
-  const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
-  const [headerLogoFallback, setHeaderLogoFallback] = useState(false);
-  const moduleMenuRef = useRef<HTMLDivElement>(null);
   const { qaPremiumMode, toggleQaPremium, hydrated: qaHydrated } = useQaPremiumMode();
 
   const premiumUnlocked = false; // pago real futuro (Stripe / backend)
@@ -193,15 +191,6 @@ function SchoolsPageContent() {
     }
   }, [selectedIds, selectionHydrated]);
 
-  useEffect(() => {
-    if (!moduleMenuOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const el = moduleMenuRef.current;
-      if (el && !el.contains(e.target as Node)) setModuleMenuOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown, true);
-    return () => document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [moduleMenuOpen]);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -363,19 +352,6 @@ function SchoolsPageContent() {
     setSearchSubmitted(true);
   };
 
-  const flypathPlatformModules = [
-    { id: "inicio", label: "Inicio", status: "available" as const, href: "/" },
-    { id: "guia", label: "Guía Cómo ser piloto", status: "available" as const, href: "/guia-como-ser-piloto" },
-    { id: "planifica", label: "Planifica tu ruta", status: "available" as const, href: "/" },
-    { id: "compara", label: "Compara escuelas", status: "available" as const, href: "/schools" },
-    { id: "opiniones", label: "Opiniones de escuelas", status: "available" as const, href: "/opiniones-escuelas" },
-    { id: "atpl", label: "ATPL Planner", status: "available" as const, href: "/atpl-planner" },
-    { id: "ingles", label: "Inglés aeronáutico", status: "available" as const, href: "/ingles-aeronautico" },
-    { id: "clases", label: "Clases PPL/ATPL", status: "available" as const, href: "/clases-ppl-atpl" },
-    { id: "mentorias", label: "Mentorías", status: "available" as const, href: "/mentorias" },
-    { id: "shop", label: "Shop", status: "available" as const, href: "/shop" },
-    { id: "blog", label: "Blog", status: "available" as const, href: "/blog" },
-  ];
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
@@ -386,108 +362,12 @@ function SchoolsPageContent() {
       )}
       {/* QA temporal: quitar al conectar pago real. */}
       <QaPremiumFloatingToggle mode={qaPremiumMode} onToggle={toggleQaPremium} hydrated={qaHydrated} />
-      <header className="border-b border-white/10 bg-[#0f1a33] text-white shadow-[0_12px_40px_rgba(15,26,51,0.35)]">
-        <div className="mx-auto flex max-h-[90px] max-w-7xl items-center justify-between gap-3 px-6 py-3 sm:gap-4 md:justify-normal md:gap-4 lg:px-10">
-          <div className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none md:min-w-0 md:flex-1 md:justify-start">
-            {!headerLogoFallback ? (
-              <div className="relative flex h-12 max-h-[60px] w-[180px] shrink-0 items-center sm:h-[54px] sm:max-h-[58px] sm:w-[220px] md:max-h-[60px] md:w-[252px] lg:w-[268px]">
-                <Image
-                  src="/flypath-logo-white.png"
-                  alt="FlyPath"
-                  width={540}
-                  height={162}
-                  className="h-auto max-h-12 w-auto max-w-full object-contain object-left sm:max-h-[54px] md:max-h-[58px] lg:max-h-[60px]"
-                  onError={() => setHeaderLogoFallback(true)}
-                />
-              </div>
-            ) : (
-              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#c9a454]/15 ring-1 ring-[#c9a454]/35">
-                  <Plane className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
-                </div>
-                <div className="min-w-0 leading-tight">
-                  <p className="truncate text-sm font-semibold tracking-tight text-white sm:text-base">FlyPath</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <p
-            className="pointer-events-none hidden min-w-0 select-none truncate text-center text-sm font-medium tracking-[0.14em] text-[#f2ddaa]/90 md:flex md:flex-1 md:items-center md:justify-center"
-            aria-hidden
-          >
-            Comparador de escuelas
-          </p>
-          <div ref={moduleMenuRef} className="relative shrink-0 md:flex md:min-w-0 md:flex-1 md:justify-end">
-            <button
-              type="button"
-              onClick={() => setModuleMenuOpen((open) => !open)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/[0.08] text-white transition-colors hover:border-white/24 hover:bg-white/[0.14] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a454]/55"
-              aria-expanded={moduleMenuOpen}
-              aria-haspopup="listbox"
-              aria-label="Menú de módulos FlyPath Platform"
-            >
-              <Menu className="h-[18px] w-[18px] shrink-0" strokeWidth={2} aria-hidden />
-            </button>
-            {moduleMenuOpen ? (
-              <ul
-                role="listbox"
-                className="absolute right-0 z-20 mt-2 max-h-[calc(100vh-120px)] w-[min(22rem,calc(100vw-2rem))] max-w-[min(96vw,26rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200/90 bg-white px-1.5 py-2 shadow-[0_24px_52px_rgba(15,26,51,0.11),0_12px_32px_rgba(15,26,51,0.06)] ring-1 ring-slate-200/45"
-              >
-                {flypathPlatformModules.map((m) => {
-                  const isSoon = (m as { status: "available" | "soon" }).status === "soon";
-                  const isCurrent = m.id === "compara";
-                  const hasHref = "href" in m && typeof m.href === "string" && m.href.length > 0;
-                  const isClickable = hasHref || isSoon;
-                  return (
-                    <li key={m.id} role="presentation">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={isCurrent}
-                        aria-disabled={false}
-                        onClick={() => {
-                          setModuleMenuOpen(false);
-                          if (hasHref && m.href) {
-                            router.push(m.href);
-                            return;
-                          }
-                          if (isSoon) {
-                            showToast("Próximamente");
-                          }
-                        }}
-                        className={`flex w-full items-center justify-between gap-8 rounded-lg px-3.5 py-2.5 text-left transition-colors ${
-                          isClickable ? "cursor-pointer" : "cursor-not-allowed"
-                        } ${isCurrent ? "bg-[#fff8e8]" : ""}`}
-                      >
-                        <span
-                          className={`min-w-0 flex-1 truncate text-[0.9375rem] font-medium leading-snug ${
-                            isSoon ? "text-slate-500" : isCurrent ? "text-[#7a5a16]" : "text-slate-700"
-                          }`}
-                        >
-                          {m.label}
-                        </span>
-                        {isSoon ? (
-                          <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                            Próximamente
-                          </span>
-                        ) : isCurrent ? (
-                          <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-[#a5802a]">
-                            Actual
-                          </span>
-                        ) : (
-                          <span className="shrink-0 pl-1 text-[9px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                            Disponible
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-          </div>
-        </div>
-      </header>
+      <FlyPathPlatformHeader
+        pageTitle="Comparador de escuelas"
+        currentModuleId="schools"
+        onSoonClick={(msg) => showToast(msg ?? "Próximamente")}
+      />
+
       <main className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto w-full max-w-[1200px] space-y-6">
         <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-b from-white via-[#f7f9fc] to-[#f4f7fb] p-5 shadow-sm sm:p-7">
