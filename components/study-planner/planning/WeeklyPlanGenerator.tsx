@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarPlus, Sparkles, X } from "lucide-react";
 import type {
   ErrorLogItem,
+  ExamDate,
   MockResult,
   PlannedStudySession,
   ReviewItem,
@@ -42,6 +43,7 @@ type WeeklyPlanGeneratorProps = {
   activeSubjectIds: string[];
   weeklyGoalMinutes: number;
   targetExamDate?: string;
+  examDates?: ExamDate[];
   studyStartDate?: string;
   visibleWeekStartDate: string;
   sessions: StudySession[];
@@ -73,6 +75,7 @@ export function WeeklyPlanGenerator({
   activeSubjectIds,
   weeklyGoalMinutes,
   targetExamDate,
+  examDates = [],
   studyStartDate,
   visibleWeekStartDate,
   sessions,
@@ -143,6 +146,7 @@ export function WeeklyPlanGenerator({
       activeSubjectIds,
       weeklyGoalMinutes,
       targetExamDate,
+      examDates,
       studyStartDate,
       weekStartDate: visibleWeekStartDate,
       referenceDate: today,

@@ -5,12 +5,10 @@ import { useStudyPlannerState } from "@/hooks/useStudyPlannerState";
 import { PlannerShell } from "./layout/PlannerShell";
 import type { PlannerNavId } from "./layout/planner-nav";
 import { StudyDashboard } from "./dashboard/StudyDashboard";
-import { ExamDateSettings } from "./ExamDateSettings";
-import { SubjectOverview } from "./SubjectOverview";
-import { StudyLogForm } from "./StudyLogForm";
-import { StudyLogTable } from "./StudyLogTable";
+import { SubjectsPage } from "./subjects/SubjectsPage";
+import { StudyLogSection } from "./study-log-section";
+import type { StudyLogIntent } from "@/lib/study-planner/study-log-intent";
 import { StudyPlannerCalendar } from "./calendar/StudyPlannerCalendar";
-import { SubjectReadinessOverview } from "./SubjectReadinessOverview";
 import { RecoveryMode } from "./RecoveryMode";
 import { PlannerOnboarding } from "./onboarding/PlannerOnboarding";
 import { WeeklyPlanGenerator } from "./planning/WeeklyPlanGenerator";
@@ -18,7 +16,10 @@ import { PlannerSettingsPanel } from "./settings/PlannerSettingsPanel";
 import { EvaluationSection, type EvaluationView } from "./EvaluationSection";
 import type { PlannerPlanSettingsPayload } from "@/lib/study-planner/types";
 import { getCurrentWeekStart, getPlannedSessionsForWeek } from "@/lib/study-planner/date-utils";
-import { getTodayDateString } from "@/lib/study-planner/calculations";
+import {
+  getTodayDateString,
+  getTodayPendingPlannedSessions,
+} from "@/lib/study-planner/calculations";
 import { ActivatedWeekPanel } from "./planning/ActivatedWeekPanel";
 
 export function AtplPlannerApp() {
@@ -69,6 +70,7 @@ export function AtplPlannerApp() {
   );
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [externalCreateNonce, setExternalCreateNonce] = useState(0);
+  const [logIntent, setLogIntent] = useState<StudyLogIntent | null>(null);
   const weeklyCalendarRef = useRef<HTMLDivElement>(null);
   const today = getTodayDateString();
 
@@ -106,7 +108,25 @@ export function AtplPlannerApp() {
   }, []);
 
   const goToCalendar = useCallback(() => navigate("calendar"), [navigate]);
-  const goToLog = useCallback(() => navigate("log"), [navigate]);
+  const goToLog = useCallback(
+    (intent?: StudyLogIntent) => {
+      setLogIntent(intent ?? null);
+      navigate("log");
+    },
+    [navigate],
+  );
+
+  const goToLogFromToday = useCallback(() => {
+    const pending = getTodayPendingPlannedSessions(modePlannedSessions, today);
+    if (pending.length > 0) {
+      goToLog({
+        mode: "plan_block",
+        plannedSessionId: pending[0]!.id,
+      });
+    } else {
+      goToLog({ mode: "free_study" });
+    }
+  }, [goToLog, modePlannedSessions, today]);
   const goToSubjects = useCallback(() => navigate("subjects"), [navigate]);
   const goToRecovery = useCallback(() => navigate("recovery"), [navigate]);
 
@@ -167,7 +187,7 @@ export function AtplPlannerApp() {
             weeklyGoalMinutes={weeklyGoalMinutes}
             subjects={activeSubjects}
             onGoToCalendar={goToCalendar}
-            onGoToLog={goToLog}
+            onGoToLog={goToLogFromToday}
             onGoToSubjects={goToSubjects}
             onGoToEvaluation={goToEvaluation}
             onCompletePlannedSession={completePlannedSession}
@@ -203,6 +223,7 @@ export function AtplPlannerApp() {
               activeSubjectIds={activeSubjectIds}
               weeklyGoalMinutes={weeklyGoalMinutes}
               targetExamDate={targetExamDate}
+              examDates={modeExamDates}
               studyStartDate={studyStartDate}
               visibleWeekStartDate={visibleWeekStartDate}
               sessions={modeSessions}
@@ -243,39 +264,29 @@ export function AtplPlannerApp() {
         ) : null}
 
         {activeTab === "subjects" ? (
-          <div className="space-y-4">
-            <h2 className="text-[16px] font-semibold text-[#0f1a33]">Asignaturas</h2>
-            <SubjectOverview
-              subjects={activeSubjects}
-              sessions={modeSessions}
-              mockResults={modeMockResults}
-              mode={mode}
-              weeklyGoalMinutes={weeklyGoalMinutes}
-              targetExamDate={targetExamDate}
-              studyStartDate={studyStartDate}
-            />
-            <ExamDateSettings
-              subjects={activeSubjects}
-              examDates={modeExamDates}
-              onAddExamDate={addExamDate}
-              onDeleteExamDate={deleteExamDate}
-            />
-            <SubjectReadinessOverview
-              mode={mode}
-              subjects={activeSubjects}
-              sessions={modeSessions}
-              mockResults={modeMockResults}
-              errorLogItems={modeErrorLogItems}
-            />
-          </div>
+          <SubjectsPage
+            subjects={activeSubjects}
+            sessions={modeSessions}
+            mockResults={modeMockResults}
+            errorLogItems={modeErrorLogItems}
+            examDates={modeExamDates}
+            plannedSessions={modePlannedSessions}
+            onAddExamDate={addExamDate}
+            onDeleteExamDate={deleteExamDate}
+          />
         ) : null}
 
         {activeTab === "log" ? (
-          <div className="space-y-4">
-            <h2 className="text-[16px] font-semibold text-[#0f1a33]">Registro</h2>
-            <StudyLogForm subjects={activeSubjects} onAddSession={addSession} />
-            <StudyLogTable sessions={modeSessions} onDelete={deleteSession} />
-          </div>
+          <StudyLogSection
+            subjects={activeSubjects}
+            plannedSessions={modePlannedSessions}
+            sessions={modeSessions}
+            intent={logIntent}
+            onIntentConsumed={() => setLogIntent(null)}
+            onAddSession={addSession}
+            onCompletePlannedSession={completePlannedSession}
+            onDeleteSession={deleteSession}
+          />
         ) : null}
 
         {activeTab === "evaluation" ? (

@@ -11,6 +11,7 @@ import type {
   StudySession,
   StudySubject,
 } from "@/lib/study-planner/types";
+import type { StudyLogIntent } from "@/lib/study-planner/study-log-intent";
 import {
   formatNextSessionLine,
   getNextPlannedSession,
@@ -60,7 +61,7 @@ type StudyDashboardProps = {
   subjects: StudySubject[];
   targetExamDate?: string;
   onGoToCalendar?: () => void;
-  onGoToLog?: () => void;
+  onGoToLog?: (intent?: StudyLogIntent) => void;
   onGoToSubjects?: () => void;
   onGoToEvaluation?: (section?: "mocks" | "reviews" | "errors" | "progress") => void;
   onCompletePlannedSession: (id: string) => void;
@@ -254,10 +255,12 @@ export function StudyDashboard({
           alerts={alertsDisplay.alerts}
           positiveMessage={alertsDisplay.positiveMessage}
           pulseParts={pulseParts}
-          onStartSession={() => openFocusSession(nextSession)}
+          examDates={examDates}
           onOpenSession={setFocusSession}
           onGoToLog={onGoToLog}
           onViewPlan={onGoToCalendar}
+          onGoToSubjects={onGoToSubjects}
+          onGoToEvaluation={onGoToEvaluation ? () => onGoToEvaluation() : undefined}
         />
         <StudySessionFocusSheet
           session={focusSession}

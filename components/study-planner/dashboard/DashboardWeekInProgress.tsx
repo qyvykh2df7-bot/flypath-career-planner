@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { PlannedStudySession, StudyMode, StudySubject } from "@/lib/study-planner/types";
+import type { ExamDate, PlannedStudySession, StudyMode, StudySubject } from "@/lib/study-planner/types";
+import { formatNextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
 import {
   comparePlannedByStartTime,
   getPlannerMetrics,
@@ -13,7 +14,7 @@ import { buildDashboardHeroFromMetrics } from "@/lib/study-planner/dashboard-her
 import type { WeeklyPlanAlert } from "@/lib/study-planner/weekly-alerts";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
-import { SessionHeroCard } from "./SessionHeroCard";
+import { SessionHeroCard, type SessionHeroPrimaryAction } from "./SessionHeroCard";
 import { PulseLine } from "./PulseLine";
 import { WeekAlertsCompact } from "../planning/WeeklyPlanDashboard";
 
@@ -26,10 +27,12 @@ type DashboardWeekInProgressProps = {
   alerts: WeeklyPlanAlert[];
   positiveMessage: string | null;
   pulseParts: { label: string; onClick?: () => void }[];
-  onStartSession: () => void;
   onOpenSession: (session: PlannedStudySession) => void;
+  examDates: ExamDate[];
   onGoToLog?: () => void;
   onViewPlan?: () => void;
+  onGoToSubjects?: () => void;
+  onGoToEvaluation?: () => void;
 };
 
 function ProgressRow({
@@ -115,12 +118,15 @@ export function DashboardWeekInProgress({
   alerts,
   positiveMessage,
   pulseParts,
-  onStartSession,
   onOpenSession,
+  examDates,
   onGoToLog,
   onViewPlan,
+  onGoToSubjects,
+  onGoToEvaluation,
 }: DashboardWeekInProgressProps) {
   const today = getTodayDateString();
+  const nextExam = formatNextExamHighlight(examDates, today);
 
   const todaySessions = useMemo(
     () =>
@@ -146,10 +152,31 @@ export function DashboardWeekInProgress({
   const blocksPercent =
     blockCount > 0 ? Math.round((metrics.completedSessions / blockCount) * 100) : 0;
 
-  const heroContext = useMemo(
-    () => buildDashboardHeroFromMetrics(metrics, { onReorganizeWeek: true }),
-    [metrics],
-  );
+  const heroContext = useMemo(() => buildDashboardHeroFromMetrics(metrics), [metrics]);
+
+  const handleHeroPrimaryAction = () => {
+    const action: SessionHeroPrimaryAction =
+      heroContext.primaryAction ?? "start_session";
+
+    if (action === "view_calendar" || action === "reorganize_week") {
+      onViewPlan?.();
+      return;
+    }
+    if (action === "view_evaluation") {
+      onGoToEvaluation?.();
+      return;
+    }
+
+    const targetId = heroContext.focusPlannedSessionId;
+    const session = targetId
+      ? metrics.weekSessions.find((s) => s.id === targetId) ?? nextSession
+      : nextSession;
+    if (session) {
+      onOpenSession(session);
+    } else {
+      onViewPlan?.();
+    }
+  };
 
   return (
     <div className="planner-fade-up space-y-3 pb-1">
@@ -187,10 +214,26 @@ export function DashboardWeekInProgress({
         context={heroContext}
         coachTone={{ emotionalLine: "" }}
         suppressCoachHeader
-        onPrimaryAction={onStartSession}
+        onPrimaryAction={handleHeroPrimaryAction}
         onLogToday={onGoToLog}
         onViewPlan={onViewPlan}
+        onViewEvaluation={onGoToEvaluation}
       />
+
+      {nextExam ? (
+        <p className="rounded-lg border border-[#c9a454]/25 bg-[#fffdf8] px-3 py-2 text-[13px] text-slate-700">
+          <span className="font-semibold text-[#7a5a16]">Próximo examen:</span>{" "}
+          {nextExam.subjectName} · {nextExam.daysLabel}
+        </p>
+      ) : onGoToSubjects ? (
+        <button
+          type="button"
+          onClick={onGoToSubjects}
+          className="text-left text-[13px] font-medium text-slate-500 underline-offset-2 hover:text-[#7a5a16] hover:underline"
+        >
+          Añadir fecha de examen
+        </button>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <section className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/70">

@@ -14,6 +14,7 @@ import {
   type StudySessionQuality,
   type StudySessionType,
 } from "./types";
+import { reconcilePlannedAndStudyLogs } from "./planned-log-sync";
 import {
   normalizePlannedSessionStatus,
   type PlannedStudySessionStatus,
@@ -107,6 +108,9 @@ function parseSession(raw: unknown): StudySession | null {
     session.quality = s.quality;
   }
   if (typeof s.notes === "string" && s.notes.length > 0) session.notes = s.notes;
+  if (typeof s.linkedPlannedSessionId === "string" && s.linkedPlannedSessionId.length > 0) {
+    session.linkedPlannedSessionId = s.linkedPlannedSessionId;
+  }
   return session;
 }
 
@@ -356,6 +360,8 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
     onboardingCompleted = hasLegacyData;
   }
 
+  const reconciled = reconcilePlannedAndStudyLogs(sessions, plannedSessions);
+
   return {
     mode,
     weeklyGoalMinutes: goal,
@@ -363,8 +369,8 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
     targetExamDate,
     studyStartDate,
     onboardingCompleted,
-    sessions,
-    plannedSessions,
+    sessions: reconciled.sessions,
+    plannedSessions: reconciled.plannedSessions,
     mockResults,
     reviewItems,
     errorLogItems,

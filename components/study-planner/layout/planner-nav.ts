@@ -24,7 +24,7 @@ export const PLANNER_NAV_ITEMS: {
   icon: LucideIcon;
 }[] = [
   { id: "dashboard", label: "Hoy", icon: LayoutDashboard },
-  { id: "calendar", label: "Plan", icon: Calendar },
+  { id: "calendar", label: "Calendario", icon: Calendar },
   { id: "subjects", label: "Asignaturas", icon: BookOpen },
   { id: "log", label: "Registro", icon: PenLine },
   { id: "evaluation", label: "Evaluación", icon: ClipboardList },

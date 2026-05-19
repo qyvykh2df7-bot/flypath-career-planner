@@ -12,6 +12,7 @@ import {
   getWeekRange,
 } from "../date-utils";
 import { getSessionTypeReasonLabel } from "./planning-labels";
+import { buildExamDaysLeftBySubject } from "./exam-date-pressure";
 import {
   buildSubjectPlanningMetaMap,
   pickSessionTypeForBlock,
@@ -97,8 +98,17 @@ function dominantReasonForSubject(params: {
 }
 
 export function rankSubjectsByPriority(input: PlanningEngineInput): SubjectPriorityScore[] {
-  const { activeSubjectIds, referenceDate, sessions, mockResults, mode, weeklyGoalMinutes, targetExamDate, studyStartDate } =
-    input;
+  const {
+    activeSubjectIds,
+    referenceDate,
+    sessions,
+    mockResults,
+    mode,
+    weeklyGoalMinutes,
+    targetExamDate,
+    studyStartDate,
+    examDates = [],
+  } = input;
 
   if (activeSubjectIds.length === 0) return [];
 
@@ -110,12 +120,16 @@ export function rankSubjectsByPriority(input: PlanningEngineInput): SubjectPrior
     studyStartDate,
   });
 
-  const examDaysLeft = targetExamDate
-    ? getDaysUntilDate(targetExamDate, referenceDate)
-    : null;
+  const examDaysBySubject = buildExamDaysLeftBySubject(
+    activeSubjectIds,
+    examDates,
+    targetExamDate,
+    referenceDate,
+  );
 
   return activeSubjectIds
     .map((subjectId) => {
+      const examDaysLeft = examDaysBySubject[subjectId] ?? null;
       const progressPercent = calculateSubjectProgressPercent({
         subjectId,
         sessions,
@@ -396,9 +410,12 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
     }
   }
 
-  const examDaysLeft = input.targetExamDate
-    ? getDaysUntilDate(input.targetExamDate, input.referenceDate)
-    : null;
+  const examDaysBySubject = buildExamDaysLeftBySubject(
+    input.activeSubjectIds,
+    input.examDates ?? [],
+    input.targetExamDate,
+    input.referenceDate,
+  );
 
   const progressBySubject: Record<string, number> = {};
   const mockScoreBySubject: Record<string, number | null> = {};
@@ -413,7 +430,7 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
       reviewItems: input.reviewItems,
       errorLogItems: input.errorLogItems,
       referenceDate: input.referenceDate,
-      examDaysLeft: examDaysLeft !== null && examDaysLeft >= 0 ? examDaysLeft : null,
+      examDaysLeftBySubject: examDaysBySubject,
       progressBySubject,
       mockScoreBySubject,
     },
@@ -430,10 +447,19 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
   }
 
   const summaryHints: string[] = [];
-  if (input.targetExamDate) {
+  const urgentExamSubjects = input.activeSubjectIds
+    .map((id) => ({ id, days: examDaysBySubject[id] }))
+    .filter((x): x is { id: string; days: number } => x.days !== null && x.days !== undefined && x.days <= 30)
+    .sort((a, b) => a.days - b.days);
+  if (urgentExamSubjects.length > 0) {
+    const nearest = urgentExamSubjects[0]!;
+    summaryHints.push(
+      `Examen más cercano en ${nearest.days} día${nearest.days === 1 ? "" : "s"} — priorizando asignaturas con menos avance.`,
+    );
+  } else if (input.targetExamDate) {
     const days = getDaysUntilDate(input.targetExamDate, input.referenceDate);
     if (days >= 0 && days <= 30) {
-      summaryHints.push(`Objetivo en ${days} días — priorizando asignaturas con menos avance.`);
+      summaryHints.push(`Objetivo global en ${days} días — priorizando asignaturas con menos avance.`);
     }
   }
   if (focusSubjectIds.length > 0) {

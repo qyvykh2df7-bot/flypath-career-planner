@@ -7,7 +7,17 @@ import type {
   DashboardHeroEmptyState,
   HeroCoachTone,
 } from "@/lib/study-planner/calculations";
+import { REGISTER_STUDY_LINK_LABEL } from "@/lib/study-planner/study-log-form-logic";
 import { plannerBtnHero } from "@/lib/study-planner/planner-ui";
+
+export type SessionHeroPrimaryAction =
+  | "start_session"
+  | "advance_session"
+  | "view_calendar"
+  | "reorganize_week"
+  | "view_evaluation";
+
+export type SessionHeroSecondaryLink = "calendar" | "evaluation" | "none";
 
 export type SessionHeroContext = {
   mode: "planned" | "suggested" | "empty";
@@ -18,6 +28,15 @@ export type SessionHeroContext = {
   reviewLine?: string;
   errorLine?: string;
   ctaLabel: string;
+  primaryAction?: SessionHeroPrimaryAction;
+  focusPlannedSessionId?: string;
+  secondaryLink?: SessionHeroSecondaryLink;
+  showLogTodayLink?: boolean;
+};
+
+const SECONDARY_LINK_LABELS: Record<Exclude<SessionHeroSecondaryLink, "none">, string> = {
+  calendar: "Ver calendario",
+  evaluation: "Revisar evaluación",
 };
 
 type SessionHeroCardProps = {
@@ -27,6 +46,7 @@ type SessionHeroCardProps = {
   onPrimaryAction: () => void;
   onLogToday?: () => void;
   onViewPlan?: () => void;
+  onViewEvaluation?: () => void;
 };
 
 export function buildSessionHeroContext(params: {
@@ -120,7 +140,15 @@ export function SessionHeroCard({
   onPrimaryAction,
   onLogToday,
   onViewPlan,
+  onViewEvaluation,
 }: SessionHeroCardProps) {
+  const secondaryLink = context.secondaryLink ?? "calendar";
+  const secondaryLabel =
+    secondaryLink !== "none" ? SECONDARY_LINK_LABELS[secondaryLink] : null;
+  const showLogToday = context.showLogTodayLink ?? Boolean(onLogToday);
+  const showSecondary =
+    secondaryLabel &&
+    (secondaryLink === "calendar" ? onViewPlan : onViewEvaluation);
   const detailLines = [context.reviewLine, context.errorLine].filter(Boolean);
   const showHeadline = Boolean(context.durationLine || context.title);
   const showSectionLabel = Boolean(context.sectionLabel);
@@ -188,29 +216,31 @@ export function SessionHeroCard({
             {context.ctaLabel}
             <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
           </button>
-          {(onLogToday || onViewPlan) && (
+          {(showLogToday || showSecondary) && (
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[12px] text-slate-400">
-              {onLogToday ? (
+              {showLogToday && onLogToday ? (
                 <button
                   type="button"
                   onClick={onLogToday}
                   className="font-medium underline-offset-2 transition hover:text-[#ddb75c] hover:underline"
                 >
-                  Ya estudié hoy
+                  {REGISTER_STUDY_LINK_LABEL}
                 </button>
               ) : null}
-              {onLogToday && onViewPlan ? (
+              {showLogToday && onLogToday && showSecondary ? (
                 <span className="text-slate-600" aria-hidden>
                   ·
                 </span>
               ) : null}
-              {onViewPlan ? (
+              {showSecondary ? (
                 <button
                   type="button"
-                  onClick={onViewPlan}
+                  onClick={
+                    secondaryLink === "evaluation" ? onViewEvaluation : onViewPlan
+                  }
                   className="font-medium underline-offset-2 transition hover:text-[#ddb75c] hover:underline"
                 >
-                  Ver plan
+                  {secondaryLabel}
                 </button>
               ) : null}
             </p>

@@ -25,6 +25,8 @@ export type StudySession = {
   durationMinutes: number;
   quality?: StudySessionQuality;
   notes?: string;
+  /** Bloque planificado del calendario que originó este registro (vínculo explícito). */
+  linkedPlannedSessionId?: string;
 };
 
 import type { PlannedStudySessionStatus } from "./planner-session-status";

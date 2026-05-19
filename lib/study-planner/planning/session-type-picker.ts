@@ -33,6 +33,7 @@ export function buildSubjectPlanningMetaMap(
     errorLogItems?: ErrorLogItem[];
     referenceDate: string;
     examDaysLeft?: number | null;
+    examDaysLeftBySubject?: Record<string, number | null>;
     progressBySubject?: Record<string, number>;
     mockScoreBySubject?: Record<string, number | null>;
   },
@@ -41,6 +42,10 @@ export function buildSubjectPlanningMetaMap(
   const map = new Map<string, SubjectPlanningMeta>();
 
   for (const subjectId of subjectIds) {
+    const perSubjectDays =
+      input.examDaysLeftBySubject?.[subjectId] ??
+      input.examDaysLeft ??
+      null;
     const stats = buildSubjectStudyStats({
       subjectId,
       sessions: input.sessions,
@@ -49,7 +54,7 @@ export function buildSubjectPlanningMetaMap(
       referenceDate: input.referenceDate,
       progressPercent: input.progressBySubject?.[subjectId] ?? 0,
       latestMockScore: input.mockScoreBySubject?.[subjectId] ?? null,
-      examDaysLeft: input.examDaysLeft ?? null,
+      examDaysLeft: perSubjectDays,
     });
     const phase = getSubjectMaturityPhase(stats);
 

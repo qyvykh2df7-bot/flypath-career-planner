@@ -254,9 +254,9 @@ export function StudyProgressCharts({
         )}
       </ChartCard>
 
-      <ChartCard title="Readiness por asignatura">
+      <ChartCard title="Nivel de preparación por asignatura">
         {readinessRows.length === 0 ? (
-          <EmptyState message="Registra horas o mocks para ver readiness orientativo por asignatura." />
+          <EmptyState message="Registra horas o mocks para ver la preparación orientativa por asignatura." />
         ) : (
           <ul className="space-y-3">
             {readinessRows.map((row) => (

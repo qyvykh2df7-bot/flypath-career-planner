@@ -709,7 +709,9 @@ export function buildAttentionItems(params: {
         subjectId,
         subjectName: name,
         priority: "high",
-        reason: mock ? `Readiness bajo · mock ${mock.score}%` : "Readiness bajo",
+        reason: mock
+          ? `Preparación baja · mock ${mock.score}%`
+          : "Preparación baja",
         sortKey: 200,
       });
       continue;
@@ -743,7 +745,7 @@ export function buildAttentionItems(params: {
         subjectId,
         subjectName: name,
         priority: "medium",
-        reason: "Readiness ajustado",
+        reason: "Preparación ajustada",
         sortKey: 40,
       });
     }
@@ -932,12 +934,21 @@ export const READINESS_LEVEL_LABELS: Record<SubjectReadinessLevel, string> = {
 };
 
 export const READINESS_LEVEL_MESSAGES: Record<SubjectReadinessLevel, string> = {
-  no_data: "Registra sesiones o mocks para calcular readiness.",
+  no_data: "Registra sesiones o mocks para calcular el nivel de preparación.",
   low: "Faltan datos, horas o resultados suficientes antes de presentarte.",
   medium: "Hay base, pero todavía conviene reforzar antes de examinarte.",
   high: "La asignatura va bien, mantén repasos y mocks.",
-  solid: "Buen nivel orientativo, mantén consistencia hasta el examen.",
+  solid: "Buen nivel de preparación, mantén consistencia hasta el examen.",
 };
+
+export function getTodayPendingPlannedSessions(
+  plannedSessions: PlannedStudySession[],
+  today: string = getTodayDateString(),
+): PlannedStudySession[] {
+  return plannedSessions
+    .filter((p) => p.date === today && isPendingLikeStatus(p.status))
+    .sort(comparePlannedByStartTime);
+}
 
 export function getDaysSinceDate(dateStr: string): number {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -1117,10 +1128,10 @@ export function getReadinessSummary(readinessList: SubjectReadiness[]): {
 
 export function getReadinessDashboardHint(summary: ReturnType<typeof getReadinessSummary>): string {
   if (summary.withDataCount === 0) {
-    return "Registra horas y mocks para calcular readiness.";
+    return "Registra horas y mocks para calcular el nivel de preparación.";
   }
   if (summary.lowCount > 0) {
-    return "Hay asignaturas con readiness bajo. Conviene reforzar antes de presentarte.";
+    return "Hay asignaturas con preparación baja. Conviene reforzar antes de presentarte.";
   }
   if (summary.solidCount + summary.highCount >= Math.max(1, Math.floor(summary.withDataCount / 2))) {
     return "Varias asignaturas muestran buen progreso orientativo.";

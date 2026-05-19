@@ -1,5 +1,6 @@
 import type {
   ErrorLogItem,
+  ExamDate,
   MockResult,
   ReviewItem,
   StudyMode,
@@ -70,6 +71,8 @@ export type PlanningEngineInput = {
   activeSubjectIds: string[];
   weeklyGoalMinutes: number;
   targetExamDate?: string;
+  /** Fechas de examen por asignatura (override de targetExamDate). */
+  examDates?: ExamDate[];
   studyStartDate?: string;
   /** Lunes de la semana objetivo (YYYY-MM-DD). */
   weekStartDate: string;

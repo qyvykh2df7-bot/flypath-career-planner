@@ -1,8 +1,9 @@
 import type { PlannedStudySession } from "./types";
 import { comparePlannedByStartTime, getTodayDateString } from "./calculations";
 import type { PlannerMetrics } from "./planner-metrics";
-import { isPendingLikeStatus } from "./planner-session-status";
+import { isPendingLikeStatus, normalizePlannedSessionStatus } from "./planner-session-status";
 import { formatSessionHeadline } from "./session-type-visual";
+import { getSessionTypeShortLabel } from "./labels";
 import { getSubjectById } from "./subjects";
 import type { SessionHeroContext } from "@/components/study-planner/dashboard/SessionHeroCard";
 
@@ -15,72 +16,114 @@ function formatNextBlockLine(session: PlannedStudySession): string {
   });
 }
 
+function formatFollowingSessionLine(session: PlannedStudySession): string {
+  const subjectName = getSubjectById(session.subjectId)?.name ?? session.subjectId;
+  return `${subjectName} · ${session.plannedDurationMinutes} min · ${getSessionTypeShortLabel(session.type)}`;
+}
+
+function pendingTodaySessions(metrics: PlannerMetrics): PlannedStudySession[] {
+  return metrics.todaySessions
+    .filter((s) => isPendingLikeStatus(normalizePlannedSessionStatus(s.status) ?? "pending"))
+    .sort(comparePlannedByStartTime);
+}
+
+function firstPendingAfterToday(metrics: PlannerMetrics, today: string): PlannedStudySession | null {
+  return (
+    metrics.weekSessions
+      .filter(
+        (s) =>
+          s.date > today &&
+          isPendingLikeStatus(normalizePlannedSessionStatus(s.status) ?? "pending"),
+      )
+      .sort((a, b) => a.date.localeCompare(b.date) || comparePlannedByStartTime(a, b))[0] ?? null
+  );
+}
+
+function blockLabel(count: number): string {
+  return `${count} bloque${count === 1 ? "" : "s"}`;
+}
+
 /**
  * Hero de “Hoy” / semana en marcha según métricas centrales (casos A–D).
  */
-export function buildDashboardHeroFromMetrics(
-  metrics: PlannerMetrics,
-  options?: { onReorganizeWeek?: boolean },
-): SessionHeroContext {
+export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionHeroContext {
   const today = getTodayDateString();
-  const { nextSession, skippedSessions, todayPendingSessions, pendingLikeCount } = metrics;
+  const { skippedSessions, todayPendingSessions, pendingLikeCount } = metrics;
   const weekHasPending = pendingLikeCount > 0;
+
   const todayAllDone =
     metrics.todaySessions.length > 0 &&
     todayPendingSessions === 0 &&
     metrics.todayCompletedSessions > 0;
+
   const weekAllDone =
     metrics.hasPlan &&
+    metrics.totalPlannedSessions > 0 &&
     !weekHasPending &&
     metrics.completedSessions === metrics.totalPlannedSessions;
 
-  if (nextSession) {
-    const subjectName = getSubjectById(nextSession.subjectId)?.name ?? nextSession.subjectId;
+  const todayPendingList = pendingTodaySessions(metrics);
+  const followingSession = firstPendingAfterToday(metrics, today);
+
+  // Caso A — pendientes hoy
+  if (todayPendingSessions > 0 && todayPendingList[0]) {
+    const session = todayPendingList[0];
     return {
       mode: "planned",
       sectionLabel: "Próxima sesión",
-      durationLine: formatNextBlockLine(nextSession),
-      metaLine:
-        todayPendingSessions > 0
-          ? `Hoy tienes ${todayPendingSessions} bloque${todayPendingSessions === 1 ? "" : "s"} pendiente${todayPendingSessions === 1 ? "" : "s"}`
-          : undefined,
+      durationLine: formatNextBlockLine(session),
+      metaLine: `Te quedan ${blockLabel(todayPendingSessions)} hoy.`,
       ctaLabel: "Empezar sesión",
+      primaryAction: "start_session",
+      focusPlannedSessionId: session.id,
+      secondaryLink: "calendar",
+      showLogTodayLink: true,
     };
   }
 
-  if (skippedSessions > 0 && !weekHasPending) {
+  // Caso B — hoy cerrado, semana con pendientes
+  if (todayAllDone && weekHasPending) {
     return {
       mode: "planned",
-      sectionLabel: "Sesiones por recuperar",
-      title: `${skippedSessions} sesión${skippedSessions === 1 ? "" : "es"} saltada${skippedSessions === 1 ? "" : "s"}`,
-      metaLine: "Reorganiza la semana para recuperar el tiempo perdido.",
-      ctaLabel: options?.onReorganizeWeek ? "Reorganizar semana" : "Ver plan semanal",
+      sectionLabel: "Día completado",
+      title: "Has completado tu estudio de hoy",
+      metaLine: followingSession
+        ? `Tu siguiente sesión es ${formatFollowingSessionLine(followingSession)}.`
+        : "Revisa el calendario para ver los próximos bloques.",
+      ctaLabel: followingSession ? "Adelantar siguiente sesión" : "Ver calendario",
+      primaryAction: followingSession ? "advance_session" : "view_calendar",
+      focusPlannedSessionId: followingSession?.id,
+      secondaryLink: "calendar",
+      showLogTodayLink: false,
     };
   }
 
+  // Caso C — semana completada
   if (weekAllDone) {
     return {
       mode: "planned",
       sectionLabel: "Semana completada",
-      title: "Buen trabajo",
-      metaLine: "Puedes revisar o preparar la próxima semana.",
-      ctaLabel: "Ver plan semanal",
+      title: "Has cerrado tu semana de estudio",
+      metaLine:
+        "Puedes revisar errores, hacer banco extra o preparar la próxima semana.",
+      ctaLabel: "Ver calendario",
+      primaryAction: "view_calendar",
+      secondaryLink: "evaluation",
+      showLogTodayLink: false,
     };
   }
 
-  if (todayAllDone && weekHasPending) {
-    const afterToday = metrics.weekSessions
-      .filter((s) => isPendingLikeStatus(s.status) && s.date > today)
-      .sort((a, b) => a.date.localeCompare(b.date) || comparePlannedByStartTime(a, b));
-    const following = afterToday[0] ?? null;
+  // Caso D — sesiones saltadas
+  if (skippedSessions > 0) {
     return {
       mode: "planned",
-      sectionLabel: "Día completado",
-      title: "Has cerrado los bloques de hoy",
-      metaLine: following
-        ? `Tu siguiente bloque es ${formatNextBlockLine(following)}`
-        : "Revisa el calendario para ver los próximos bloques.",
-      ctaLabel: "Ver plan semanal",
+      sectionLabel: "Sesiones por recuperar",
+      title: "Hay bloques que no se han completado",
+      metaLine: "Reorganiza tu semana para recuperar el ritmo sin sobrecargarte.",
+      ctaLabel: "Reorganizar semana",
+      primaryAction: "reorganize_week",
+      secondaryLink: "calendar",
+      showLogTodayLink: false,
     };
   }
 
@@ -89,6 +132,9 @@ export function buildDashboardHeroFromMetrics(
     sectionLabel: "Semana en marcha",
     title: metrics.hasPlan ? "Sin bloques pendientes ahora" : "Sin plan activo",
     metaLine: "Revisa tu calendario o marca bloques completados.",
-    ctaLabel: "Ver plan semanal",
+    ctaLabel: "Ver calendario",
+    primaryAction: "view_calendar",
+    secondaryLink: "calendar",
+    showLogTodayLink: false,
   };
 }

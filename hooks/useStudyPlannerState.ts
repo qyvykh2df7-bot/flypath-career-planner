@@ -14,13 +14,20 @@ import {
   type ReviewItem,
   type StudyMode,
   type StudySession,
+  type StudySessionQuality,
 } from "@/lib/study-planner/types";
-import {
-  addDaysToDate,
-  createPlannerId,
-  getTodayDateString,
-} from "@/lib/study-planner/calculations";
+
+export type CompletePlannedSessionOverrides = {
+  durationMinutes?: number;
+  quality?: StudySessionQuality;
+  notes?: string;
+};
+import { addDaysToDate, getTodayDateString } from "@/lib/study-planner/calculations";
 import { getWeekRange } from "@/lib/study-planner/date-utils";
+import {
+  completePlannedSessionWithLog,
+  deleteStudySessionWithPlannedSync,
+} from "@/lib/study-planner/planned-log-sync";
 import { isPendingLikeStatus } from "@/lib/study-planner/planner-session-status";
 import type { ApplyPlanMode, WeeklyStudyPlan } from "@/lib/study-planner/planning/planning-types";
 import { markPlanActivated } from "@/lib/study-planner/plan-activation";
@@ -171,10 +178,14 @@ export function useStudyPlannerState() {
   }, []);
 
   const deleteSession = useCallback((sessionId: string) => {
-    setState((prev) => ({
-      ...prev,
-      sessions: prev.sessions.filter((s) => s.id !== sessionId),
-    }));
+    setState((prev) => {
+      const synced = deleteStudySessionWithPlannedSync(
+        prev.sessions,
+        prev.plannedSessions,
+        sessionId,
+      );
+      return { ...prev, ...synced };
+    });
   }, []);
 
   const addPlannedSession = useCallback((planned: PlannedStudySession) => {
@@ -184,31 +195,21 @@ export function useStudyPlannerState() {
     }));
   }, []);
 
-  const completePlannedSession = useCallback((plannedId: string) => {
-    setState((prev) => {
-      const planned = prev.plannedSessions.find((p) => p.id === plannedId);
-      if (!planned || !isPendingLikeStatus(planned.status)) return prev;
-
-      const realSession: StudySession = {
-        id: createPlannerId(),
-        date: planned.date,
-        subjectId: planned.subjectId,
-        type: planned.type,
-        durationMinutes: planned.plannedDurationMinutes,
-        notes: planned.goal,
-      };
-
-      return {
-        ...prev,
-        sessions: [...prev.sessions, realSession],
-        plannedSessions: prev.plannedSessions.map((p) =>
-          p.id === plannedId
-            ? { ...p, status: "completed" as const, completedSessionId: realSession.id }
-            : p,
-        ),
-      };
-    });
-  }, []);
+  const completePlannedSession = useCallback(
+    (plannedId: string, overrides?: CompletePlannedSessionOverrides) => {
+      setState((prev) => {
+        const result = completePlannedSessionWithLog(
+          prev.plannedSessions,
+          prev.sessions,
+          plannedId,
+          overrides,
+        );
+        if (!result) return prev;
+        return { ...prev, ...result };
+      });
+    },
+    [],
+  );
 
   const skipPlannedSession = useCallback((plannedId: string) => {
     setState((prev) => ({

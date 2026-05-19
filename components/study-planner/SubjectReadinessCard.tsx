@@ -1,12 +1,17 @@
 "use client";
 
-import type { StudySubject, SubjectReadiness } from "@/lib/study-planner/types";
+import type { ExamDate, StudySubject, SubjectReadiness } from "@/lib/study-planner/types";
 import { formatMockScore, minutesToHoursLabel } from "@/lib/study-planner/calculations";
+import {
+  getSubjectDisplayLabel,
+  resolveSubjectDisplayStatus,
+} from "@/lib/study-planner/subjects-page-logic";
 
 type SubjectReadinessCardProps = {
   subject: StudySubject;
   readiness: SubjectReadiness;
   pendingErrorsCount?: number;
+  examDates?: ExamDate[];
 };
 
 function levelStyles(level: SubjectReadiness["level"]): {
@@ -59,10 +64,13 @@ export function SubjectReadinessCard({
   subject,
   readiness,
   pendingErrorsCount = 0,
+  examDates = [],
 }: SubjectReadinessCardProps) {
   const styles = levelStyles(readiness.level);
   const { factors } = readiness;
   const barPct = readiness.level === "no_data" ? 0 : readiness.score;
+  const displayStatus = resolveSubjectDisplayStatus(readiness, examDates, pendingErrorsCount);
+  const statusLabel = getSubjectDisplayLabel(displayStatus, readiness);
 
   return (
     <article
@@ -73,11 +81,14 @@ export function SubjectReadinessCard({
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${styles.badge}`}
         >
-          {readiness.label}
+          {statusLabel}
         </span>
       </div>
 
-      <div className="mt-3 flex items-baseline gap-2">
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+        Nivel de preparación
+      </p>
+      <div className="mt-1 flex items-baseline gap-2">
         <span className="text-2xl font-semibold tabular-nums text-[#0f1a33]">
           {readiness.level === "no_data" ? "—" : readiness.score}
         </span>
