@@ -103,3 +103,15 @@ export function filterExamDatesByMode(examDates: ExamDate[], mode: StudyMode): E
   const ids = getSubjectIdsForMode(mode);
   return examDates.filter((e) => ids.has(e.subjectId));
 }
+
+/** Asignaturas del modo que están en activeSubjectIds (o todas del modo si la lista está vacía). */
+export function getActiveSubjects(
+  mode: StudyMode,
+  activeSubjectIds: string[],
+): StudySubject[] {
+  const catalog = getSubjectsByMode(mode);
+  if (activeSubjectIds.length === 0) return catalog;
+  const active = new Set(activeSubjectIds);
+  const filtered = catalog.filter((s) => active.has(s.id));
+  return filtered.length > 0 ? filtered : catalog;
+}

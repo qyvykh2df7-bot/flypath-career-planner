@@ -5,18 +5,21 @@ import type {
   PlannedStudySession,
   ReviewItem,
   ReviewStatus,
+  StudyMode,
   StudySession,
   SubjectReadiness,
   SubjectReadinessLevel,
 } from "./types";
 import { ERROR_LOG_TYPE_OPTIONS, getErrorLogTypeLabel } from "./labels";
+import {
+  formatDateLocal,
+  getCurrentWeekStart,
+  getExpectedProgressPercentForDate,
+  getWeekDates,
+  getWeekRange,
+} from "./date-utils";
 
-export function formatDateLocal(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+export { formatDateLocal } from "./date-utils";
 
 export function minutesToHoursLabel(minutes: number): string {
   if (!Number.isFinite(minutes) || minutes <= 0) return "0 h";
@@ -35,15 +38,7 @@ export function calculateTotalStudyMinutes(sessions: StudySession[]): number {
 }
 
 export function getCurrentWeekRange(): { start: string; end: string } {
-  const now = new Date();
-  const day = now.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setHours(0, 0, 0, 0);
-  monday.setDate(now.getDate() + diffToMonday);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { start: formatDateLocal(monday), end: formatDateLocal(sunday) };
+  return getWeekRange(getCurrentWeekStart());
 }
 
 export function getSessionsForCurrentWeek(sessions: StudySession[]): StudySession[] {
@@ -276,16 +271,7 @@ export function createPlannerId(): string {
 }
 
 export function getCurrentWeekDates(): string[] {
-  const { start } = getCurrentWeekRange();
-  const [y, m, d] = start.split("-").map(Number);
-  const monday = new Date(y, m - 1, d);
-  const dates: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(monday);
-    day.setDate(monday.getDate() + i);
-    dates.push(formatDateLocal(day));
-  }
-  return dates;
+  return getWeekDates(getCurrentWeekStart());
 }
 
 export function getPlannedSessionsForCurrentWeek(
@@ -293,6 +279,238 @@ export function getPlannedSessionsForCurrentWeek(
 ): PlannedStudySession[] {
   const { start, end } = getCurrentWeekRange();
   return plannedSessions.filter((p) => p.date >= start && p.date <= end);
+}
+
+/** Alias explícito para el plan de la semana actual (dashboard / cumplimiento). */
+export function getCurrentWeekPlannedSessions(
+  plannedSessions: PlannedStudySession[],
+): PlannedStudySession[] {
+  return getPlannedSessionsForCurrentWeek(plannedSessions);
+}
+
+export type WeeklyPlanCompletionStatus = "no_plan" | "goal_without_plan";
+
+export type WeeklyPlanStatus =
+  | "ahead"
+  | "on_track"
+  | "slightly_behind"
+  | "behind"
+  | "critical";
+
+export type WeeklyPlanCompletion = {
+  weekSessions: PlannedStudySession[];
+  weekLoggedSessions: StudySession[];
+  plannedMinutes: number;
+  completedPlannedMinutes: number;
+  actualLoggedMinutes: number;
+  totalCreditedMinutes: number;
+  completionPercent: number;
+  expectedProgressPercent: number;
+  expectedMinutesByToday: number;
+  progressDelta: number;
+  weeklyStatus: WeeklyPlanStatus;
+  pendingCount: number;
+  completedCount: number;
+  skippedCount: number;
+  hasPlan: boolean;
+  hasLoggedStudyThisWeek: boolean;
+  /** Objetivo de referencia: plan semanal o weeklyGoalMinutes si no hay plan. */
+  weeklyGoalMinutes: number;
+  targetMinutes: number;
+  usesWeeklyGoalAsTarget: boolean;
+  /** Texto explicativo cuando se usa objetivo semanal sin plan. */
+  referenceHint?: string;
+  status?: WeeklyPlanCompletionStatus;
+  statusMessage: string;
+  upcomingSessions: PlannedStudySession[];
+};
+
+export function weeklyStatusMessage(
+  status: WeeklyPlanStatus,
+  usesWeeklyGoalAsTarget = false,
+): string {
+  switch (status) {
+    case "ahead":
+      return usesWeeklyGoalAsTarget
+        ? "Vas adelantado respecto a tu objetivo semanal"
+        : "Vas adelantado esta semana";
+    case "on_track":
+      return "Vas en ritmo";
+    case "slightly_behind":
+      return "Empiezas a retrasarte";
+    case "behind":
+      return usesWeeklyGoalAsTarget
+        ? "Vas retrasado respecto a tu objetivo semanal"
+        : "Vas bastante retrasado";
+    case "critical":
+      return usesWeeklyGoalAsTarget
+        ? "Riesgo alto de no cumplir tu objetivo semanal"
+        : "Riesgo alto de no cumplir el plan semanal";
+  }
+}
+
+function resolveWeeklyStatus(progressDelta: number): WeeklyPlanStatus {
+  if (progressDelta > 10) return "ahead";
+  if (progressDelta >= -5) return "on_track";
+  if (progressDelta >= -15) return "slightly_behind";
+  if (progressDelta >= -30) return "behind";
+  return "critical";
+}
+
+function emptyWeeklyPlanCompletion(
+  overrides: Partial<WeeklyPlanCompletion> & Pick<WeeklyPlanCompletion, "status" | "statusMessage">,
+): WeeklyPlanCompletion {
+  return {
+    weekSessions: [],
+    weekLoggedSessions: [],
+    plannedMinutes: 0,
+    completedPlannedMinutes: 0,
+    actualLoggedMinutes: 0,
+    totalCreditedMinutes: 0,
+    completionPercent: 0,
+    expectedProgressPercent: 0,
+    expectedMinutesByToday: 0,
+    progressDelta: 0,
+    weeklyStatus: "on_track",
+    pendingCount: 0,
+    completedCount: 0,
+    skippedCount: 0,
+    hasPlan: false,
+    hasLoggedStudyThisWeek: false,
+    weeklyGoalMinutes: 0,
+    targetMinutes: 0,
+    usesWeeklyGoalAsTarget: false,
+    upcomingSessions: [],
+    ...overrides,
+  };
+}
+
+function buildGoalBasedCompletion(params: {
+  weekLoggedSessions: StudySession[];
+  actualLoggedMinutes: number;
+  weeklyGoalMinutes: number;
+  today: string;
+}): WeeklyPlanCompletion {
+  const { weekLoggedSessions, actualLoggedMinutes, weeklyGoalMinutes, today } = params;
+  const weekStart = getCurrentWeekStart(today);
+  const targetMinutes = Math.max(60, weeklyGoalMinutes);
+  const totalCreditedMinutes = actualLoggedMinutes;
+  const completionPercent =
+    targetMinutes > 0 ? Math.round((totalCreditedMinutes / targetMinutes) * 100) : 0;
+  const expectedProgressPercent = getExpectedProgressPercentForDate(today, weekStart);
+  const expectedMinutesByToday = Math.round((targetMinutes * expectedProgressPercent) / 100);
+  const progressDelta = completionPercent - expectedProgressPercent;
+  const weeklyStatus = resolveWeeklyStatus(progressDelta);
+
+  return {
+    weekSessions: [],
+    weekLoggedSessions,
+    plannedMinutes: 0,
+    completedPlannedMinutes: 0,
+    actualLoggedMinutes,
+    totalCreditedMinutes,
+    completionPercent,
+    expectedProgressPercent,
+    expectedMinutesByToday,
+    progressDelta,
+    weeklyStatus,
+    pendingCount: 0,
+    completedCount: 0,
+    skippedCount: 0,
+    hasPlan: false,
+    hasLoggedStudyThisWeek: actualLoggedMinutes > 0,
+    weeklyGoalMinutes: targetMinutes,
+    targetMinutes,
+    usesWeeklyGoalAsTarget: true,
+    referenceHint: "Sin plan generado, usando tu objetivo semanal como referencia.",
+    status: "goal_without_plan",
+    statusMessage: weeklyStatusMessage(weeklyStatus, true),
+    upcomingSessions: [],
+  };
+}
+
+export function calculateWeeklyPlanCompletion(
+  plannedSessions: PlannedStudySession[],
+  studySessions: StudySession[] = [],
+  weeklyGoalMinutes: number = 0,
+  today: string = getTodayDateString(),
+): WeeklyPlanCompletion {
+  const weekSessions = getCurrentWeekPlannedSessions(plannedSessions);
+  const weekLoggedSessions = getSessionsForCurrentWeek(studySessions);
+  const actualLoggedMinutes = calculateTotalStudyMinutes(weekLoggedSessions);
+  const hasPlan = weekSessions.length > 0;
+  const hasLoggedStudyThisWeek = actualLoggedMinutes > 0;
+  const goalMinutes = Math.max(0, weeklyGoalMinutes);
+
+  if (!hasPlan && goalMinutes > 0) {
+    return buildGoalBasedCompletion({
+      weekLoggedSessions,
+      actualLoggedMinutes,
+      weeklyGoalMinutes: goalMinutes,
+      today,
+    });
+  }
+
+  if (!hasPlan && !hasLoggedStudyThisWeek) {
+    return emptyWeeklyPlanCompletion({
+      weeklyGoalMinutes: goalMinutes,
+      status: "no_plan",
+      statusMessage: "Sin plan semanal todavía",
+    });
+  }
+
+  const weekStart = getCurrentWeekStart(today);
+  const plannedMinutes = calculatePlannedMinutes(weekSessions);
+  const completedPlannedMinutes = calculateCompletedPlannedMinutes(weekSessions);
+  const totalCreditedMinutes = Math.max(completedPlannedMinutes, actualLoggedMinutes);
+  const pending = weekSessions.filter((p) => p.status === "planned");
+  const completed = weekSessions.filter((p) => p.status === "completed");
+  const skipped = weekSessions.filter((p) => p.status === "skipped");
+
+  const completionPercent =
+    plannedMinutes > 0 ? Math.round((totalCreditedMinutes / plannedMinutes) * 100) : 0;
+
+  const expectedProgressPercent = getExpectedProgressPercentForDate(today, weekStart);
+  const expectedMinutesByToday = Math.round((plannedMinutes * expectedProgressPercent) / 100);
+  const progressDelta = completionPercent - expectedProgressPercent;
+  const weeklyStatus = resolveWeeklyStatus(progressDelta);
+  const statusMessage = weeklyStatusMessage(weeklyStatus, false);
+
+  const sortUpcoming = (a: PlannedStudySession, b: PlannedStudySession) => {
+    const byDate = a.date.localeCompare(b.date);
+    if (byDate !== 0) return byDate;
+    return comparePlannedByStartTime(a, b);
+  };
+
+  const upcomingFromToday = pending.filter((p) => p.date >= today).sort(sortUpcoming);
+  const upcomingSessions = (upcomingFromToday.length > 0 ? upcomingFromToday : [...pending].sort(sortUpcoming)).slice(
+    0,
+    3,
+  );
+
+  return {
+    weekSessions,
+    weekLoggedSessions,
+    plannedMinutes,
+    completedPlannedMinutes,
+    actualLoggedMinutes,
+    totalCreditedMinutes,
+    completionPercent,
+    expectedProgressPercent,
+    expectedMinutesByToday,
+    progressDelta,
+    weeklyStatus,
+    pendingCount: pending.length,
+    completedCount: completed.length,
+    skippedCount: skipped.length,
+    hasPlan: true,
+    hasLoggedStudyThisWeek,
+    weeklyGoalMinutes: goalMinutes,
+    targetMinutes: plannedMinutes,
+    usesWeeklyGoalAsTarget: false,
+    statusMessage,
+    upcomingSessions,
+  };
 }
 
 export function calculatePlannedMinutes(plannedSessions: PlannedStudySession[]): number {
@@ -821,4 +1039,89 @@ export function getErrorDashboardHint(errorLogItems: ErrorLogItem[]): {
     value: `${pending} pendiente${pending === 1 ? "" : "s"}`,
     hint: typeHint || "Revisa patrones en la pestaña Errores",
   };
+}
+
+const DEFAULT_ESTIMATED_MINUTES_PER_SUBJECT_ATPL = 2400;
+const DEFAULT_ESTIMATED_MINUTES_PER_SUBJECT_PPL = 1200;
+
+/** Semanas completas entre dos fechas (mínimo 1 si end > start). */
+export function getWeeksBetweenDates(
+  startDate: string,
+  endDate: string,
+  today: string = getTodayDateString(),
+): number {
+  const effectiveStart = startDate <= today ? startDate : today;
+  const days = getDaysUntilDate(endDate, effectiveStart);
+  if (days <= 0) return 0;
+  return Math.max(1, Math.ceil(days / 7));
+}
+
+export function getApproximateWeeksRemaining(
+  targetExamDate: string | undefined,
+  today: string = getTodayDateString(),
+): number | null {
+  if (!targetExamDate) return null;
+  const days = getDaysUntilDate(targetExamDate, today);
+  if (days < 0) return 0;
+  return Math.max(1, Math.ceil(days / 7));
+}
+
+export function calculateEstimatedMinutesPerSubject(params: {
+  mode: StudyMode;
+  activeSubjectCount: number;
+  weeklyGoalMinutes: number;
+  targetExamDate?: string;
+  studyStartDate?: string;
+}): number {
+  const { mode, activeSubjectCount, weeklyGoalMinutes, targetExamDate, studyStartDate } = params;
+  const count = Math.max(1, activeSubjectCount);
+
+  if (targetExamDate) {
+    const today = getTodayDateString();
+    const start = studyStartDate && studyStartDate <= today ? studyStartDate : today;
+    const weeks = getWeeksBetweenDates(start, targetExamDate, today);
+    if (weeks > 0 && weeklyGoalMinutes > 0) {
+      return Math.max(180, Math.round((weeklyGoalMinutes * weeks) / count));
+    }
+  }
+
+  return mode === "atpl"
+    ? DEFAULT_ESTIMATED_MINUTES_PER_SUBJECT_ATPL
+    : DEFAULT_ESTIMATED_MINUTES_PER_SUBJECT_PPL;
+}
+
+/** Progreso orientativo 0–100: horas estudiadas + bonus por mocks. */
+export function calculateSubjectProgressPercent(params: {
+  subjectId: string;
+  sessions: StudySession[];
+  mockResults: MockResult[];
+  estimatedTargetMinutes: number;
+}): number {
+  const { subjectId, sessions, mockResults, estimatedTargetMinutes } = params;
+  const studied =
+    sessions
+      .filter((s) => s.subjectId === subjectId)
+      .reduce((sum, s) => sum + (Number.isFinite(s.durationMinutes) ? s.durationMinutes : 0), 0) ?? 0;
+
+  const hoursPart =
+    estimatedTargetMinutes > 0
+      ? Math.min(85, Math.round((studied / estimatedTargetMinutes) * 85))
+      : 0;
+
+  const subjectMocks = mockResults.filter((m) => m.subjectId === subjectId);
+  let mockPart = 0;
+  if (subjectMocks.length > 0) {
+    const avg = subjectMocks.reduce((sum, m) => sum + m.score, 0) / subjectMocks.length;
+    mockPart = Math.min(15, Math.round((avg / 100) * 15));
+  }
+
+  if (studied <= 0 && subjectMocks.length === 0) return 0;
+  return Math.min(100, hoursPart + mockPart);
+}
+
+export function formatWeeksRemainingLabel(weeks: number | null): string {
+  if (weeks === null) return "Sin fecha objetivo";
+  if (weeks === 0) return "Objetivo pasado o hoy";
+  if (weeks === 1) return "~1 semana restante";
+  return `~${weeks} semanas restantes`;
 }

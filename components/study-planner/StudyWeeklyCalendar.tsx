@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { PlannedStudySession } from "@/lib/study-planner/types";
 import {
   PLANNED_STATUS_LABELS,
@@ -7,20 +8,53 @@ import {
   calculatePlannedMinutes,
   comparePlannedByStartTime,
   formatShortDate,
-  getCurrentWeekDates,
   getDayShortLabel,
-  getPlannedSessionsForCurrentWeek,
+  getTodayDateString,
   minutesToHoursLabel,
 } from "@/lib/study-planner/calculations";
+import {
+  addWeeks,
+  formatWeekRange,
+  getCurrentWeekStart,
+  getPlannedSessionsForWeek,
+  getWeekDates,
+  getWeekKind,
+  type WeekKind,
+} from "@/lib/study-planner/date-utils";
 import { getSessionTypeLabel } from "@/lib/study-planner/labels";
+import { plannerBtnGhost } from "@/lib/study-planner/planner-ui";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 
 type StudyWeeklyCalendarProps = {
   plannedSessions: PlannedStudySession[];
+  visibleWeekStartDate: string;
+  onVisibleWeekStartChange: (weekStart: string) => void;
   onCompletePlannedSession: (plannedId: string) => void;
   onSkipPlannedSession: (plannedId: string) => void;
   onDeletePlannedSession: (plannedId: string) => void;
 };
+
+function weekKindLabel(kind: WeekKind): string {
+  switch (kind) {
+    case "current":
+      return "Semana actual";
+    case "past":
+      return "Semana pasada";
+    case "future":
+      return "Semana futura";
+  }
+}
+
+function weekKindBadgeClass(kind: WeekKind): string {
+  switch (kind) {
+    case "current":
+      return "border-[#c9a454]/40 bg-[#fff8e8] text-[#7a5a16]";
+    case "past":
+      return "border-slate-200 bg-slate-100 text-slate-600";
+    case "future":
+      return "border-sky-200/90 bg-sky-50/90 text-sky-900";
+  }
+}
 
 function statusStyles(status: PlannedStudySession["status"]): string {
   switch (status) {
@@ -35,23 +69,72 @@ function statusStyles(status: PlannedStudySession["status"]): string {
 
 export function StudyWeeklyCalendar({
   plannedSessions,
+  visibleWeekStartDate,
+  onVisibleWeekStartChange,
   onCompletePlannedSession,
   onSkipPlannedSession,
   onDeletePlannedSession,
 }: StudyWeeklyCalendarProps) {
-  const weekDates = getCurrentWeekDates();
-  const weekPlanned = getPlannedSessionsForCurrentWeek(plannedSessions);
+  const today = getTodayDateString();
+  const currentWeekStart = getCurrentWeekStart(today);
+  const weekKind = getWeekKind(visibleWeekStartDate, today);
+  const weekDates = getWeekDates(visibleWeekStartDate);
+  const weekPlanned = getPlannedSessionsForWeek(plannedSessions, visibleWeekStartDate);
   const plannedMinutes = calculatePlannedMinutes(weekPlanned);
   const completedMinutes = calculateCompletedPlannedMinutes(weekPlanned);
   const skippedCount = weekPlanned.filter((p) => p.status === "skipped").length;
+  const isCurrentWeek = visibleWeekStartDate === currentWeekStart;
 
   const byDate = (date: string) =>
     weekPlanned.filter((p) => p.date === date).sort(comparePlannedByStartTime);
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[15px] font-semibold text-[#0f1a33]">
+            {formatWeekRange(visibleWeekStartDate)}
+          </p>
+          <span
+            className={`mt-1 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${weekKindBadgeClass(weekKind)}`}
+          >
+            {weekKindLabel(weekKind)}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, -1))}
+            className={`${plannerBtnGhost} inline-flex items-center gap-1`}
+            aria-label="Semana anterior"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            Anterior
+          </button>
+          <button
+            type="button"
+            onClick={() => onVisibleWeekStartChange(currentWeekStart)}
+            disabled={isCurrentWeek}
+            className={`${plannerBtnGhost} disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            Esta semana
+          </button>
+          <button
+            type="button"
+            onClick={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, 1))}
+            className={`${plannerBtnGhost} inline-flex items-center gap-1`}
+            aria-label="Semana siguiente"
+          >
+            Siguiente
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-lg border border-slate-200/90 bg-[#fffdf8] px-3 py-2.5 text-[13px] text-slate-700 ring-1 ring-[#c9a454]/15">
-        <span className="font-semibold text-[#0f1a33]">Esta semana:</span>{" "}
+        <span className="font-semibold text-[#0f1a33]">
+          {isCurrentWeek ? "Esta semana" : "Semana visible"}:
+        </span>{" "}
         Planificado: {minutesToHoursLabel(plannedMinutes)} · Completado:{" "}
         {minutesToHoursLabel(completedMinutes)} · Saltadas: {skippedCount}
       </div>
@@ -61,6 +144,7 @@ export function StudyWeeklyCalendar({
           <DayColumn
             key={date}
             date={date}
+            today={today}
             sessions={byDate(date)}
             onComplete={onCompletePlannedSession}
             onSkip={onSkipPlannedSession}
@@ -74,6 +158,7 @@ export function StudyWeeklyCalendar({
           <DayColumn
             key={date}
             date={date}
+            today={today}
             sessions={byDate(date)}
             onComplete={onCompletePlannedSession}
             onSkip={onSkipPlannedSession}
@@ -88,6 +173,7 @@ export function StudyWeeklyCalendar({
 
 function DayColumn({
   date,
+  today,
   sessions,
   onComplete,
   onSkip,
@@ -95,15 +181,14 @@ function DayColumn({
   layout = "column",
 }: {
   date: string;
+  today: string;
   sessions: PlannedStudySession[];
   onComplete: (id: string) => void;
   onSkip: (id: string) => void;
   onDelete: (id: string) => void;
   layout?: "column" | "list";
 }) {
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const isToday = date === todayStr;
+  const isToday = date === today;
 
   return (
     <div

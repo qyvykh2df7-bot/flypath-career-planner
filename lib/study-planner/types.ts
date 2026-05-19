@@ -154,6 +154,13 @@ export type RecoveryPlan = {
 export type AtplPlannerState = {
   mode: StudyMode;
   weeklyGoalMinutes: number;
+  /** Asignaturas activas en el plan (ids del catálogo del modo actual). */
+  activeSubjectIds: string[];
+  /** Fecha objetivo global (YYYY-MM-DD). */
+  targetExamDate?: string;
+  /** Inicio del plan (YYYY-MM-DD). */
+  studyStartDate?: string;
+  onboardingCompleted?: boolean;
   sessions: StudySession[];
   plannedSessions: PlannedStudySession[];
   mockResults: MockResult[];
@@ -165,10 +172,29 @@ export type AtplPlannerState = {
 export const DEFAULT_ATPL_PLANNER_STATE: AtplPlannerState = {
   mode: "atpl",
   weeklyGoalMinutes: 600,
+  activeSubjectIds: [],
+  onboardingCompleted: false,
   sessions: [],
   plannedSessions: [],
   mockResults: [],
   reviewItems: [],
   errorLogItems: [],
   examDates: [],
+};
+
+export type PlannerOnboardingPayload = {
+  mode: StudyMode;
+  activeSubjectIds: string[];
+  weeklyGoalMinutes: number;
+  targetExamDate: string;
+  studyStartDate?: string;
+};
+
+/** Configuración editable del plan (post-onboarding). */
+export type PlannerPlanSettingsPayload = {
+  mode: StudyMode;
+  activeSubjectIds: string[];
+  weeklyGoalMinutes: number;
+  targetExamDate?: string;
+  studyStartDate?: string;
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import {
   Compass,
   GraduationCap,
   RotateCcw,
+  Settings2,
   Target,
   TrendingUp,
 } from "lucide-react";
@@ -20,10 +22,15 @@ import type {
   MockResult,
   PlannedStudySession,
   ErrorLogItem,
+  PlannerPlanSettingsPayload,
   ReviewItem,
+  StudyMode,
   StudySession,
   StudySubject,
 } from "@/lib/study-planner/types";
+import { PlannerDashboardSummary } from "@/components/study-planner/PlannerDashboardSummary";
+import { WeeklyPlanDashboard } from "@/components/study-planner/planning/WeeklyPlanDashboard";
+import { PlannerSettingsPanel } from "@/components/study-planner/settings/PlannerSettingsPanel";
 import {
   calculateActiveSubjectIds,
   calculateCompletedPlannedMinutes,
@@ -57,6 +64,10 @@ import { plannerMetricCard } from "@/lib/study-planner/planner-ui";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 
 type StudyDashboardProps = {
+  mode: StudyMode;
+  activeSubjectIds: string[];
+  targetExamDate?: string;
+  studyStartDate?: string;
   sessions: StudySession[];
   plannedSessions: PlannedStudySession[];
   mockResults: MockResult[];
@@ -66,6 +77,7 @@ type StudyDashboardProps = {
   weeklyGoalMinutes: number;
   subjects: StudySubject[];
   onWeeklyGoalHoursChange: (hours: number) => void;
+  onSavePlanSettings: (payload: PlannerPlanSettingsPayload) => void;
   onGoToRecovery?: () => void;
   onGoToCalendar?: () => void;
 };
@@ -208,6 +220,10 @@ function getStudyHealthBadge(level: ReturnType<typeof calculateStudyHealth>["lev
 }
 
 export function StudyDashboard({
+  mode,
+  activeSubjectIds,
+  targetExamDate,
+  studyStartDate,
   sessions,
   plannedSessions,
   mockResults,
@@ -217,9 +233,23 @@ export function StudyDashboard({
   weeklyGoalMinutes,
   subjects,
   onWeeklyGoalHoursChange,
+  onSavePlanSettings,
   onGoToRecovery,
   onGoToCalendar,
 }: StudyDashboardProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const planSettingsInitial = useMemo<PlannerPlanSettingsPayload>(
+    () => ({
+      mode,
+      activeSubjectIds,
+      weeklyGoalMinutes,
+      targetExamDate,
+      studyStartDate,
+    }),
+    [mode, activeSubjectIds, weeklyGoalMinutes, targetExamDate, studyStartDate],
+  );
+
   const today = getTodayDateString();
   const weekSessions = getSessionsForCurrentWeek(sessions);
   const weekMinutes = calculateTotalStudyMinutes(weekSessions);
@@ -305,6 +335,35 @@ export function StudyDashboard({
 
   return (
     <div className="space-y-4">
+      <PlannerDashboardSummary
+        mode={mode}
+        targetExamDate={targetExamDate}
+        studyStartDate={studyStartDate}
+        weeklyGoalMinutes={weeklyGoalMinutes}
+        activeSubjectCount={subjects.length}
+      />
+      <WeeklyPlanDashboard
+        plannedSessions={plannedSessions}
+        studySessions={sessions}
+        weeklyGoalMinutes={weeklyGoalMinutes}
+        onGoToCalendar={onGoToCalendar}
+      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/40 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
+        >
+          <Settings2 className="h-4 w-4 text-[#c9a454]" aria-hidden />
+          Editar configuración del plan
+        </button>
+      </div>
+      <PlannerSettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        initial={planSettingsInitial}
+        onSave={onSavePlanSettings}
+      />
       <section className={`${plannerMetricCard} border-[#0f1a33]/10 bg-gradient-to-br from-white to-slate-50/80`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">

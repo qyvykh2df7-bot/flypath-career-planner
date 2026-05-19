@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -11,30 +11,9 @@ import {
   TrendingUp,
   AlertTriangle,
   Compass,
+  Settings2,
 } from "lucide-react";
-import {
-  DEFAULT_ATPL_PLANNER_STATE,
-  type AtplPlannerState,
-  type ExamDate,
-  type MockResult,
-  type PlannedStudySession,
-  type ErrorLogItem,
-  type ErrorLogStatus,
-  type ReviewItem,
-  type StudyMode,
-  type StudySession,
-} from "@/lib/study-planner/types";
-import { addDaysToDate, createPlannerId, getTodayDateString } from "@/lib/study-planner/calculations";
-import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
-import {
-  filterErrorLogItemsByMode,
-  filterExamDatesByMode,
-  filterMockResultsByMode,
-  filterPlannedSessionsByMode,
-  filterReviewItemsByMode,
-  filterSessionsByMode,
-  getSubjectsByMode,
-} from "@/lib/study-planner/subjects";
+import { useStudyPlannerState } from "@/hooks/useStudyPlannerState";
 import { FlyPathPlatformHeader } from "./FlyPathPlatformHeader";
 import { PlannerHero } from "./PlannerHero";
 import { StudyModeSelector } from "./StudyModeSelector";
@@ -56,9 +35,16 @@ import { ErrorLogForm } from "./ErrorLogForm";
 import { ErrorLogSummary } from "./ErrorLogSummary";
 import { ErrorLogList } from "./ErrorLogList";
 import { RecoveryMode } from "./RecoveryMode";
+import { PlannerOnboarding } from "./onboarding/PlannerOnboarding";
+import { WeeklyPlanGenerator } from "./planning/WeeklyPlanGenerator";
+import { PlannerSettingsPanel } from "./settings/PlannerSettingsPanel";
+import type { PlannerPlanSettingsPayload } from "@/lib/study-planner/types";
+import { getCurrentWeekStart } from "@/lib/study-planner/date-utils";
+import { getTodayDateString } from "@/lib/study-planner/calculations";
 
 type PlannerTab =
   | "dashboard"
+  | "settings"
   | "subjects"
   | "log"
   | "calendar"
@@ -70,6 +56,7 @@ type PlannerTab =
 
 const TABS: { id: PlannerTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "settings", label: "Configuración", icon: Settings2 },
   { id: "subjects", label: "Asignaturas", icon: BookOpen },
   { id: "log", label: "Registro", icon: PenLine },
   { id: "calendar", label: "Calendario", icon: Calendar },
@@ -83,217 +70,61 @@ const TABS: { id: PlannerTab; label: string; icon: typeof LayoutDashboard }[] = 
 const PLACEHOLDER_MSG = "Esta sección se activará en una próxima fase.";
 
 export function AtplPlannerApp() {
-  const [state, setState] = useState<AtplPlannerState>(DEFAULT_ATPL_PLANNER_STATE);
-  const [hydrated, setHydrated] = useState(false);
-  const [activeTab, setActiveTab] = useState<PlannerTab>("dashboard");
-  const workspaceRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setState(loadStudyPlannerState(DEFAULT_ATPL_PLANNER_STATE));
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveStudyPlannerState(state);
-  }, [state, hydrated]);
-
   const {
+    hydrated,
+    onboardingCompleted,
     mode,
     weeklyGoalMinutes,
-    sessions,
-    plannedSessions,
-    mockResults,
-    reviewItems,
-    errorLogItems,
-    examDates,
-  } = state;
-  const subjects = useMemo(() => getSubjectsByMode(mode), [mode]);
-  const modeSessions = useMemo(() => filterSessionsByMode(sessions, mode), [sessions, mode]);
-  const modePlannedSessions = useMemo(
-    () => filterPlannedSessionsByMode(plannedSessions, mode),
-    [plannedSessions, mode],
+    targetExamDate,
+    studyStartDate,
+    activeSubjectIds,
+    activeSubjects,
+    modeSessions,
+    modePlannedSessions,
+    modeMockResults,
+    modeReviewItems,
+    modeErrorLogItems,
+    modeExamDates,
+    setMode,
+    completeOnboarding,
+    updatePlanSettings,
+    setWeeklyGoalHours,
+    addSession,
+    deleteSession,
+    addPlannedSession,
+    completePlannedSession,
+    skipPlannedSession,
+    deletePlannedSession,
+    addMockResult,
+    deleteMockResult,
+    addReviewItem,
+    completeReviewItem,
+    rescheduleReviewItem,
+    deleteReviewItem,
+    addErrorLogItem,
+    setErrorLogStatus,
+    deleteErrorLogItem,
+    addExamDate,
+    deleteExamDate,
+    applyGeneratedWeeklyPlan,
+  } = useStudyPlannerState();
+
+  const [activeTab, setActiveTab] = useState<PlannerTab>("dashboard");
+  const [visibleWeekStartDate, setVisibleWeekStartDate] = useState(() =>
+    getCurrentWeekStart(getTodayDateString()),
   );
-  const modeMockResults = useMemo(
-    () => filterMockResultsByMode(mockResults, mode),
-    [mockResults, mode],
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  const planSettingsInitial = useMemo<PlannerPlanSettingsPayload>(
+    () => ({
+      mode,
+      activeSubjectIds,
+      weeklyGoalMinutes,
+      targetExamDate,
+      studyStartDate,
+    }),
+    [mode, activeSubjectIds, weeklyGoalMinutes, targetExamDate, studyStartDate],
   );
-  const modeReviewItems = useMemo(
-    () => filterReviewItemsByMode(reviewItems, mode),
-    [reviewItems, mode],
-  );
-  const modeErrorLogItems = useMemo(
-    () => filterErrorLogItemsByMode(errorLogItems, mode),
-    [errorLogItems, mode],
-  );
-  const modeExamDates = useMemo(
-    () => filterExamDatesByMode(examDates, mode),
-    [examDates, mode],
-  );
-
-  const setMode = useCallback((next: StudyMode) => {
-    setState((prev) => ({ ...prev, mode: next }));
-  }, []);
-
-  const addSession = useCallback((session: StudySession) => {
-    setState((prev) => ({ ...prev, sessions: [...prev.sessions, session] }));
-  }, []);
-
-  const deleteSession = useCallback((sessionId: string) => {
-    setState((prev) => ({
-      ...prev,
-      sessions: prev.sessions.filter((s) => s.id !== sessionId),
-    }));
-  }, []);
-
-  const setWeeklyGoalHours = useCallback((hours: number) => {
-    const clamped = Math.min(80, Math.max(1, hours));
-    setState((prev) => ({ ...prev, weeklyGoalMinutes: clamped * 60 }));
-  }, []);
-
-  const addPlannedSession = useCallback((planned: PlannedStudySession) => {
-    setState((prev) => ({
-      ...prev,
-      plannedSessions: [...prev.plannedSessions, planned],
-    }));
-  }, []);
-
-  const completePlannedSession = useCallback((plannedId: string) => {
-    setState((prev) => {
-      const planned = prev.plannedSessions.find((p) => p.id === plannedId);
-      if (!planned || planned.status !== "planned") return prev;
-
-      const realSession: StudySession = {
-        id: createPlannerId(),
-        date: planned.date,
-        subjectId: planned.subjectId,
-        type: planned.type,
-        durationMinutes: planned.plannedDurationMinutes,
-        notes: planned.goal,
-      };
-
-      return {
-        ...prev,
-        sessions: [...prev.sessions, realSession],
-        plannedSessions: prev.plannedSessions.map((p) =>
-          p.id === plannedId
-            ? { ...p, status: "completed" as const, completedSessionId: realSession.id }
-            : p,
-        ),
-      };
-    });
-  }, []);
-
-  const skipPlannedSession = useCallback((plannedId: string) => {
-    setState((prev) => ({
-      ...prev,
-      plannedSessions: prev.plannedSessions.map((p) =>
-        p.id === plannedId && p.status === "planned" ? { ...p, status: "skipped" as const } : p,
-      ),
-    }));
-  }, []);
-
-  const deletePlannedSession = useCallback((plannedId: string) => {
-    setState((prev) => ({
-      ...prev,
-      plannedSessions: prev.plannedSessions.filter((p) => p.id !== plannedId),
-    }));
-  }, []);
-
-  const addMockResult = useCallback((mock: MockResult) => {
-    setState((prev) => ({
-      ...prev,
-      mockResults: [...prev.mockResults, mock],
-    }));
-  }, []);
-
-  const deleteMockResult = useCallback((mockId: string) => {
-    setState((prev) => ({
-      ...prev,
-      mockResults: prev.mockResults.filter((m) => m.id !== mockId),
-    }));
-  }, []);
-
-  const addReviewItem = useCallback((item: ReviewItem) => {
-    setState((prev) => ({
-      ...prev,
-      reviewItems: [...prev.reviewItems, item],
-    }));
-  }, []);
-
-  const completeReviewItem = useCallback((reviewId: string) => {
-    const today = getTodayDateString();
-    setState((prev) => ({
-      ...prev,
-      reviewItems: prev.reviewItems.map((r) =>
-        r.id === reviewId
-          ? { ...r, status: "completed" as const, completedAt: today }
-          : r,
-      ),
-    }));
-  }, []);
-
-  const rescheduleReviewItem = useCallback((reviewId: string, days: number) => {
-    const today = getTodayDateString();
-    const dueDate = addDaysToDate(today, days);
-    setState((prev) => ({
-      ...prev,
-      reviewItems: prev.reviewItems.map((r) => {
-        if (r.id !== reviewId) return r;
-        const { completedAt: _removed, ...rest } = r;
-        return {
-          ...rest,
-          dueDate,
-          intervalDays: days,
-          status: "pending" as const,
-        };
-      }),
-    }));
-  }, []);
-
-  const deleteReviewItem = useCallback((reviewId: string) => {
-    setState((prev) => ({
-      ...prev,
-      reviewItems: prev.reviewItems.filter((r) => r.id !== reviewId),
-    }));
-  }, []);
-
-  const addErrorLogItem = useCallback((item: ErrorLogItem) => {
-    setState((prev) => ({
-      ...prev,
-      errorLogItems: [...prev.errorLogItems, item],
-    }));
-  }, []);
-
-  const setErrorLogStatus = useCallback((errorId: string, status: ErrorLogStatus) => {
-    setState((prev) => ({
-      ...prev,
-      errorLogItems: prev.errorLogItems.map((e) =>
-        e.id === errorId ? { ...e, status } : e,
-      ),
-    }));
-  }, []);
-
-  const deleteErrorLogItem = useCallback((errorId: string) => {
-    setState((prev) => ({
-      ...prev,
-      errorLogItems: prev.errorLogItems.filter((e) => e.id !== errorId),
-    }));
-  }, []);
-
-  const addExamDate = useCallback((exam: ExamDate) => {
-    setState((prev) => ({
-      ...prev,
-      examDates: [...prev.examDates, exam],
-    }));
-  }, []);
-
-  const deleteExamDate = useCallback((examId: string) => {
-    setState((prev) => ({
-      ...prev,
-      examDates: prev.examDates.filter((e) => e.id !== examId),
-    }));
-  }, []);
 
   const scrollToWorkspace = useCallback(() => {
     workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -303,6 +134,23 @@ export function AtplPlannerApp() {
     setActiveTab("recovery");
     requestAnimationFrame(() => scrollToWorkspace());
   }, [scrollToWorkspace]);
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen bg-[#f4f7fb] text-[#0f1a33]">
+        <FlyPathPlatformHeader pageTitle="ATPL Planner" currentModuleId="atpl" />
+      </div>
+    );
+  }
+
+  if (!onboardingCompleted) {
+    return (
+      <>
+        <FlyPathPlatformHeader pageTitle="ATPL Planner" currentModuleId="atpl" />
+        <PlannerOnboarding onComplete={completeOnboarding} />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-[#0f1a33]">
@@ -366,6 +214,10 @@ export function AtplPlannerApp() {
             <div className="border-t border-slate-100 p-3 sm:p-4" role="tabpanel">
               {activeTab === "dashboard" ? (
                 <StudyDashboard
+                  mode={mode}
+                  activeSubjectIds={activeSubjectIds}
+                  targetExamDate={targetExamDate}
+                  studyStartDate={studyStartDate}
                   sessions={modeSessions}
                   plannedSessions={modePlannedSessions}
                   mockResults={modeMockResults}
@@ -373,8 +225,9 @@ export function AtplPlannerApp() {
                   errorLogItems={modeErrorLogItems}
                   examDates={modeExamDates}
                   weeklyGoalMinutes={weeklyGoalMinutes}
-                  subjects={subjects}
+                  subjects={activeSubjects}
                   onWeeklyGoalHoursChange={setWeeklyGoalHours}
+                  onSavePlanSettings={updatePlanSettings}
                   onGoToRecovery={() => {
                     setActiveTab("recovery");
                     requestAnimationFrame(() => scrollToWorkspace());
@@ -386,23 +239,41 @@ export function AtplPlannerApp() {
                 />
               ) : null}
 
+              {activeTab === "settings" ? (
+                <PlannerSettingsPanel
+                  embedded
+                  open
+                  onClose={() => setActiveTab("dashboard")}
+                  initial={planSettingsInitial}
+                  onSave={updatePlanSettings}
+                />
+              ) : null}
+
               {activeTab === "subjects" ? (
                 <div className="space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-[14px] font-semibold text-[#0f1a33]">
                       Asignaturas ({mode.toUpperCase()})
                     </h3>
-                    <SubjectOverview subjects={subjects} sessions={modeSessions} />
+                    <SubjectOverview
+                      subjects={activeSubjects}
+                      sessions={modeSessions}
+                      mockResults={modeMockResults}
+                      mode={mode}
+                      weeklyGoalMinutes={weeklyGoalMinutes}
+                      targetExamDate={targetExamDate}
+                      studyStartDate={studyStartDate}
+                    />
                   </div>
                   <ExamDateSettings
-                    subjects={subjects}
+                    subjects={activeSubjects}
                     examDates={modeExamDates}
                     onAddExamDate={addExamDate}
                     onDeleteExamDate={deleteExamDate}
                   />
                   <SubjectReadinessOverview
                     mode={mode}
-                    subjects={subjects}
+                    subjects={activeSubjects}
                     sessions={modeSessions}
                     mockResults={modeMockResults}
                     errorLogItems={modeErrorLogItems}
@@ -418,7 +289,7 @@ export function AtplPlannerApp() {
                       Anota qué has estudiado, cuánto tiempo le has dedicado y cómo ha ido la sesión.
                     </p>
                   </div>
-                  <StudyLogForm subjects={subjects} onAddSession={addSession} />
+                  <StudyLogForm subjects={activeSubjects} onAddSession={addSession} />
                   <div>
                     <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Sesiones registradas</h4>
                     <StudyLogTable sessions={modeSessions} onDelete={deleteSession} />
@@ -434,7 +305,7 @@ export function AtplPlannerApp() {
                       Registra tus mocks por asignatura para controlar tu evolución antes del examen.
                     </p>
                   </div>
-                  <MockResultForm subjects={subjects} onAddMockResult={addMockResult} />
+                  <MockResultForm subjects={activeSubjects} onAddMockResult={addMockResult} />
                   <div>
                     <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Resumen por asignatura</h4>
                     <MockSubjectSummary mockResults={modeMockResults} />
@@ -454,9 +325,23 @@ export function AtplPlannerApp() {
                       Planifica tus sesiones de estudio y compáralas con lo que realmente completas.
                     </p>
                   </div>
-                  <PlannedSessionForm subjects={subjects} onAddPlannedSession={addPlannedSession} />
+                  <WeeklyPlanGenerator
+                    mode={mode}
+                    activeSubjectIds={activeSubjectIds}
+                    weeklyGoalMinutes={weeklyGoalMinutes}
+                    targetExamDate={targetExamDate}
+                    studyStartDate={studyStartDate}
+                    visibleWeekStartDate={visibleWeekStartDate}
+                    sessions={modeSessions}
+                    mockResults={modeMockResults}
+                    plannedSessions={modePlannedSessions}
+                    onApply={applyGeneratedWeeklyPlan}
+                  />
+                  <PlannedSessionForm subjects={activeSubjects} onAddPlannedSession={addPlannedSession} />
                   <StudyWeeklyCalendar
                     plannedSessions={modePlannedSessions}
+                    visibleWeekStartDate={visibleWeekStartDate}
+                    onVisibleWeekStartChange={setVisibleWeekStartDate}
                     onCompletePlannedSession={completePlannedSession}
                     onSkipPlannedSession={skipPlannedSession}
                     onDeletePlannedSession={deletePlannedSession}
@@ -472,7 +357,7 @@ export function AtplPlannerApp() {
                       Programa temas para revisar y evita que se te acumulen antes del examen.
                     </p>
                   </div>
-                  <ReviewItemForm subjects={subjects} onAddReviewItem={addReviewItem} />
+                  <ReviewItemForm subjects={activeSubjects} onAddReviewItem={addReviewItem} />
                   <ReviewItemsList
                     reviewItems={modeReviewItems}
                     onComplete={completeReviewItem}
@@ -490,10 +375,10 @@ export function AtplPlannerApp() {
                       Registra los errores que repites para detectar patrones y corregirlos antes del examen.
                     </p>
                   </div>
-                  <ErrorLogForm subjects={subjects} onAddErrorLogItem={addErrorLogItem} />
+                  <ErrorLogForm subjects={activeSubjects} onAddErrorLogItem={addErrorLogItem} />
                   <ErrorLogSummary
                     errorLogItems={modeErrorLogItems}
-                    subjects={subjects}
+                    subjects={activeSubjects}
                     mode={mode}
                   />
                   <ErrorLogList
@@ -507,7 +392,7 @@ export function AtplPlannerApp() {
               {activeTab === "recovery" ? (
                 <RecoveryMode
                   mode={mode}
-                  subjects={subjects}
+                  subjects={activeSubjects}
                   sessions={modeSessions}
                   plannedSessions={modePlannedSessions}
                   mockResults={modeMockResults}
@@ -529,13 +414,14 @@ export function AtplPlannerApp() {
                     mode={mode}
                     sessions={modeSessions}
                     mockResults={modeMockResults}
-                    subjects={subjects}
+                    subjects={activeSubjects}
                     weeklyGoalMinutes={weeklyGoalMinutes}
                   />
                 </div>
               ) : null}
 
               {activeTab !== "dashboard" &&
+              activeTab !== "settings" &&
               activeTab !== "subjects" &&
               activeTab !== "log" &&
               activeTab !== "calendar" &&

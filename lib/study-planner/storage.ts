@@ -15,6 +15,7 @@ import {
   type StudySessionQuality,
   type StudySessionType,
 } from "./types";
+import { getSubjectsByMode } from "./subjects";
 
 export const STUDY_PLANNER_STORAGE_KEY = "flypath_atpl_planner_state";
 
@@ -281,9 +282,73 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
   const examsRaw = Array.isArray(o.examDates) ? o.examDates : [];
   const examDates = examsRaw.map(parseExamDate).filter((e): e is ExamDate => e !== null);
 
+  const modeSubjectIds = getSubjectsByMode(mode).map((s) => s.id);
+  const modeSubjectSet = new Set(modeSubjectIds);
+
+  const activeRaw = Array.isArray(o.activeSubjectIds) ? o.activeSubjectIds : [];
+  let activeSubjectIds = activeRaw.filter(
+    (id): id is string => typeof id === "string" && modeSubjectSet.has(id),
+  );
+
+  const usedSubjectIds = new Set<string>();
+  for (const s of sessions) {
+    if (modeSubjectSet.has(s.subjectId)) usedSubjectIds.add(s.subjectId);
+  }
+  for (const p of plannedSessions) {
+    if (modeSubjectSet.has(p.subjectId)) usedSubjectIds.add(p.subjectId);
+  }
+  for (const m of mockResults) {
+    if (modeSubjectSet.has(m.subjectId)) usedSubjectIds.add(m.subjectId);
+  }
+  for (const r of reviewItems) {
+    if (modeSubjectSet.has(r.subjectId)) usedSubjectIds.add(r.subjectId);
+  }
+  for (const e of errorLogItems) {
+    if (modeSubjectSet.has(e.subjectId)) usedSubjectIds.add(e.subjectId);
+  }
+  for (const e of examDates) {
+    if (modeSubjectSet.has(e.subjectId)) usedSubjectIds.add(e.subjectId);
+  }
+
+  if (activeSubjectIds.length === 0) {
+    activeSubjectIds =
+      usedSubjectIds.size > 0
+        ? modeSubjectIds.filter((id) => usedSubjectIds.has(id))
+        : [...modeSubjectIds];
+  }
+
+  const targetExamDate =
+    typeof o.targetExamDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.targetExamDate)
+      ? o.targetExamDate
+      : undefined;
+
+  const studyStartDate =
+    typeof o.studyStartDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.studyStartDate)
+      ? o.studyStartDate
+      : undefined;
+
+  const hasLegacyData =
+    sessions.length > 0 ||
+    plannedSessions.length > 0 ||
+    mockResults.length > 0 ||
+    reviewItems.length > 0 ||
+    errorLogItems.length > 0 ||
+    examDates.length > 0;
+
+  let onboardingCompleted: boolean;
+  if (typeof o.onboardingCompleted === "boolean") {
+    onboardingCompleted = o.onboardingCompleted;
+  } else {
+    onboardingCompleted = hasLegacyData;
+  }
+
   return {
     mode,
     weeklyGoalMinutes: goal,
+    activeSubjectIds,
+    targetExamDate,
+    studyStartDate,
+    onboardingCompleted,
     sessions,
     plannedSessions,
     mockResults,
