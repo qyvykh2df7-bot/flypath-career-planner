@@ -1,4 +1,10 @@
-import type { ErrorLogItem, ReviewItem, StudySession } from "../types";
+import type { ErrorLogItem, InitialSubjectState, ReviewItem, StudySession } from "../types";
+import {
+  effectiveProgressPercent,
+  getInitialStateForSubject,
+  hasRealStudyDataFromStats,
+  resolveSubjectMaturityPhaseWithGetter,
+} from "../initial-subject-state";
 import {
   buildSubjectStudyStats,
   getSubjectMaturityPhase,
@@ -36,27 +42,55 @@ export function buildSubjectPlanningMetaMap(
     examDaysLeftBySubject?: Record<string, number | null>;
     progressBySubject?: Record<string, number>;
     mockScoreBySubject?: Record<string, number | null>;
+    initialSubjectStates?: InitialSubjectState[];
   },
   subjectIds: string[],
 ): Map<string, SubjectPlanningMeta> {
   const map = new Map<string, SubjectPlanningMeta>();
-
   for (const subjectId of subjectIds) {
+    const declared = getInitialStateForSubject(subjectId, input.initialSubjectStates);
     const perSubjectDays =
       input.examDaysLeftBySubject?.[subjectId] ??
       input.examDaysLeft ??
       null;
+
+    const rawProgress = input.progressBySubject?.[subjectId] ?? 0;
+    const rawMock = input.mockScoreBySubject?.[subjectId] ?? null;
+
+    const statsDraft = buildSubjectStudyStats({
+      subjectId,
+      sessions: input.sessions,
+      reviewItems: input.reviewItems,
+      errorLogItems: input.errorLogItems,
+      referenceDate: input.referenceDate,
+      progressPercent: rawProgress,
+      latestMockScore: rawMock,
+      examDaysLeft: perSubjectDays,
+    });
+
+    const hasRealData = hasRealStudyDataFromStats(statsDraft);
+    const progressPercent = effectiveProgressPercent(rawProgress, declared, hasRealData);
+    const latestMockScore =
+      hasRealData || declared?.estimatedMockAverage === undefined
+        ? rawMock
+        : declared.estimatedMockAverage;
+
     const stats = buildSubjectStudyStats({
       subjectId,
       sessions: input.sessions,
       reviewItems: input.reviewItems,
       errorLogItems: input.errorLogItems,
       referenceDate: input.referenceDate,
-      progressPercent: input.progressBySubject?.[subjectId] ?? 0,
-      latestMockScore: input.mockScoreBySubject?.[subjectId] ?? null,
+      progressPercent,
+      latestMockScore,
       examDaysLeft: perSubjectDays,
     });
-    const phase = getSubjectMaturityPhase(stats);
+
+    const phase = resolveSubjectMaturityPhaseWithGetter(
+      stats,
+      declared,
+      getSubjectMaturityPhase,
+    );
 
     map.set(subjectId, {
       ...stats,

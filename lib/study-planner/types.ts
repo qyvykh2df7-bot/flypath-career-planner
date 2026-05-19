@@ -159,6 +159,29 @@ export type RecoveryPlan = {
   };
 };
 
+export type InitialStudyContext =
+  | "from_zero"
+  | "started_some_subjects"
+  | "mostly_bank"
+  | "exam_prep"
+  | "returning_after_break";
+
+export type DeclaredSubjectStage =
+  | "not_started"
+  | "base_initial"
+  | "in_progress"
+  | "mostly_bank"
+  | "exam_prep"
+  | "passed";
+
+export type InitialSubjectState = {
+  subjectId: string;
+  declaredStage: DeclaredSubjectStage;
+  estimatedProgressPercent?: number;
+  estimatedMockAverage?: number;
+  examDate?: string;
+};
+
 export type AtplPlannerState = {
   mode: StudyMode;
   weeklyGoalMinutes: number;
@@ -168,6 +191,10 @@ export type AtplPlannerState = {
   targetExamDate?: string;
   /** Inicio del plan (YYYY-MM-DD). */
   studyStartDate?: string;
+  /** Contexto global declarado en onboarding/ajustes. */
+  initialStudyContext?: InitialStudyContext;
+  /** Estado inicial por asignatura (señal hasta que haya datos reales). */
+  initialSubjectStates?: InitialSubjectState[];
   onboardingCompleted?: boolean;
   sessions: StudySession[];
   plannedSessions: PlannedStudySession[];
@@ -196,6 +223,8 @@ export type PlannerOnboardingPayload = {
   weeklyGoalMinutes: number;
   targetExamDate: string;
   studyStartDate?: string;
+  initialStudyContext: InitialStudyContext;
+  initialSubjectStates: InitialSubjectState[];
 };
 
 /** Configuración editable del plan (post-onboarding). */
@@ -205,4 +234,6 @@ export type PlannerPlanSettingsPayload = {
   weeklyGoalMinutes: number;
   targetExamDate?: string;
   studyStartDate?: string;
+  initialStudyContext?: InitialStudyContext;
+  initialSubjectStates?: InitialSubjectState[];
 };

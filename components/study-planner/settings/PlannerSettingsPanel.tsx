@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Settings2, X } from "lucide-react";
-import type { PlannerPlanSettingsPayload, StudyMode } from "@/lib/study-planner/types";
+import type {
+  InitialStudyContext,
+  InitialSubjectState,
+  PlannerPlanSettingsPayload,
+  StudyMode,
+} from "@/lib/study-planner/types";
+import { buildDefaultInitialSubjectStates } from "@/lib/study-planner/initial-subject-state";
 import { getTodayDateString } from "@/lib/study-planner/calculations";
 import { getSubjectsByMode } from "@/lib/study-planner/subjects";
 import {
@@ -15,6 +21,7 @@ import { StudyModeSelector } from "@/components/study-planner/StudyModeSelector"
 import { PlannerSettingsSubjects } from "./PlannerSettingsSubjects";
 import { PlannerSettingsDates } from "./PlannerSettingsDates";
 import { PlannerSettingsWeeklyGoal } from "./PlannerSettingsWeeklyGoal";
+import { PlannerSettingsInitialProgress } from "./PlannerSettingsInitialProgress";
 
 export type PlannerSettingsPanelProps = {
   open: boolean;
@@ -26,6 +33,12 @@ export type PlannerSettingsPanelProps = {
 };
 
 function draftFromInitial(initial: PlannerPlanSettingsPayload) {
+  const ctx = initial.initialStudyContext ?? "from_zero";
+  const states =
+    initial.initialSubjectStates && initial.initialSubjectStates.length > 0
+      ? [...initial.initialSubjectStates]
+      : buildDefaultInitialSubjectStates(initial.activeSubjectIds, ctx);
+
   return {
     mode: initial.mode,
     activeSubjectIds: [...initial.activeSubjectIds],
@@ -33,6 +46,8 @@ function draftFromInitial(initial: PlannerPlanSettingsPayload) {
     targetExamDate: initial.targetExamDate ?? "",
     useStudyStart: Boolean(initial.studyStartDate),
     studyStartDate: initial.studyStartDate ?? getTodayDateString(),
+    initialStudyContext: ctx as InitialStudyContext,
+    initialSubjectStates: states,
   };
 }
 
@@ -85,6 +100,8 @@ export function PlannerSettingsPanel({
       weeklyGoalMinutes: Math.round(hours * 60),
       targetExamDate: draft.targetExamDate,
       studyStartDate: draft.useStudyStart ? draft.studyStartDate : undefined,
+      initialStudyContext: draft.initialStudyContext,
+      initialSubjectStates: draft.initialSubjectStates,
     });
     if (!embedded) onClose();
   };
@@ -135,9 +152,45 @@ export function PlannerSettingsPanel({
           subjects={catalogSubjects}
           selectedIds={draft.activeSubjectIds}
           onChange={(ids) => {
-            setDraft((prev) => ({ ...prev, activeSubjectIds: ids }));
+            setDraft((prev) => {
+              const nextStates = prev.initialSubjectStates.filter((s) =>
+                ids.includes(s.subjectId),
+              );
+              const missing = ids.filter(
+                (id) => !nextStates.some((s) => s.subjectId === id),
+              );
+              const added = buildDefaultInitialSubjectStates(
+                missing,
+                prev.initialStudyContext,
+              );
+              return {
+                ...prev,
+                activeSubjectIds: ids,
+                initialSubjectStates: [...nextStates, ...added],
+              };
+            });
             setError(null);
           }}
+        />
+
+        <PlannerSettingsInitialProgress
+          subjects={catalogSubjects}
+          activeSubjectIds={draft.activeSubjectIds}
+          initialStudyContext={draft.initialStudyContext}
+          initialSubjectStates={draft.initialSubjectStates}
+          onContextChange={(ctx) =>
+            setDraft((prev) => ({
+              ...prev,
+              initialStudyContext: ctx,
+              initialSubjectStates: buildDefaultInitialSubjectStates(
+                prev.activeSubjectIds,
+                ctx,
+              ),
+            }))
+          }
+          onStatesChange={(states) =>
+            setDraft((prev) => ({ ...prev, initialSubjectStates: states }))
+          }
         />
 
         <PlannerSettingsWeeklyGoal

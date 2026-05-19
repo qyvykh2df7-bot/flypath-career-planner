@@ -46,7 +46,7 @@ const TEAM = [
     name: "Jorge Feliu",
     role: "First Officer B737",
     text: "Experiencia real en aerolínea y formación de pilotos.",
-    image: "/jorge.jpg",
+    image: "/jorge.jpeg",
   },
   {
     id: "carlos-vaello",

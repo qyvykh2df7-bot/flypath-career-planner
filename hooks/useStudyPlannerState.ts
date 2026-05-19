@@ -22,7 +22,11 @@ export type CompletePlannedSessionOverrides = {
   quality?: StudySessionQuality;
   notes?: string;
 };
-import { addDaysToDate, getTodayDateString } from "@/lib/study-planner/calculations";
+import { addDaysToDate, createPlannerId, getTodayDateString } from "@/lib/study-planner/calculations";
+import {
+  buildDefaultInitialSubjectStates,
+  mergeExamDatesFromInitialStates,
+} from "@/lib/study-planner/initial-subject-state";
 import { getWeekRange } from "@/lib/study-planner/date-utils";
 import {
   completePlannedSessionWithLog,
@@ -64,6 +68,8 @@ export function useStudyPlannerState() {
     activeSubjectIds,
     targetExamDate,
     studyStartDate,
+    initialStudyContext,
+    initialSubjectStates,
     onboardingCompleted,
     sessions,
     plannedSessions,
@@ -116,13 +122,26 @@ export function useStudyPlannerState() {
   const completeOnboarding = useCallback((payload: PlannerOnboardingPayload) => {
     const catalogIds = new Set(getSubjectsByMode(payload.mode).map((s) => s.id));
     const active = payload.activeSubjectIds.filter((id) => catalogIds.has(id));
+    const activeIds = active.length > 0 ? active : [...catalogIds];
+    const initialSubjectStates =
+      payload.initialSubjectStates.length > 0
+        ? payload.initialSubjectStates.filter((s) => catalogIds.has(s.subjectId))
+        : buildDefaultInitialSubjectStates(activeIds, payload.initialStudyContext);
+
     setState((prev) => ({
       ...prev,
       mode: payload.mode,
-      activeSubjectIds: active.length > 0 ? active : [...catalogIds],
+      activeSubjectIds: activeIds,
       weeklyGoalMinutes: payload.weeklyGoalMinutes,
       targetExamDate: payload.targetExamDate,
       studyStartDate: payload.studyStartDate,
+      initialStudyContext: payload.initialStudyContext,
+      initialSubjectStates,
+      examDates: mergeExamDatesFromInitialStates(
+        prev.examDates,
+        initialSubjectStates,
+        createPlannerId,
+      ),
       onboardingCompleted: true,
     }));
   }, []);
@@ -163,14 +182,29 @@ export function useStudyPlannerState() {
         ? payload.studyStartDate
         : undefined;
 
-    setState((prev) => ({
-      ...prev,
-      mode: payload.mode,
-      activeSubjectIds: active.length > 0 ? active : [...catalogIds],
-      weeklyGoalMinutes,
-      targetExamDate,
-      studyStartDate,
-    }));
+    const activeIds = active.length > 0 ? active : [...catalogIds];
+
+    setState((prev) => {
+      const nextInitialStates =
+        payload.initialSubjectStates !== undefined
+          ? payload.initialSubjectStates.filter((s) => catalogSet.has(s.subjectId))
+          : prev.initialSubjectStates?.filter((s) => catalogSet.has(s.subjectId));
+
+      return {
+        ...prev,
+        mode: payload.mode,
+        activeSubjectIds: activeIds,
+        weeklyGoalMinutes,
+        targetExamDate,
+        studyStartDate,
+        initialStudyContext: payload.initialStudyContext ?? prev.initialStudyContext,
+        initialSubjectStates: nextInitialStates,
+        examDates:
+          nextInitialStates && nextInitialStates.length > 0
+            ? mergeExamDatesFromInitialStates(prev.examDates, nextInitialStates, createPlannerId)
+            : prev.examDates,
+      };
+    });
   }, []);
 
   const addSession = useCallback((session: StudySession) => {
@@ -383,6 +417,8 @@ export function useStudyPlannerState() {
     activeSubjectIds,
     targetExamDate,
     studyStartDate,
+    initialStudyContext,
+    initialSubjectStates,
     catalogSubjects,
     activeSubjects,
     modeSessions,

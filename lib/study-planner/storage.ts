@@ -20,6 +20,10 @@ import {
   type PlannedStudySessionStatus,
 } from "./planner-session-status";
 import { getSubjectsByMode } from "./subjects";
+import {
+  isInitialStudyContext,
+  normalizeInitialSubjectStates,
+} from "./initial-subject-state";
 
 export const STUDY_PLANNER_STORAGE_KEY = "flypath_atpl_planner_state";
 
@@ -362,12 +366,24 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
 
   const reconciled = reconcilePlannedAndStudyLogs(sessions, plannedSessions);
 
+  const initialStudyContext = isInitialStudyContext(o.initialStudyContext)
+    ? o.initialStudyContext
+    : undefined;
+
+  const initialSubjectStates = normalizeInitialSubjectStates(
+    o.initialSubjectStates,
+    activeSubjectIds,
+  );
+
   return {
     mode,
     weeklyGoalMinutes: goal,
     activeSubjectIds,
     targetExamDate,
     studyStartDate,
+    initialStudyContext,
+    initialSubjectStates:
+      initialSubjectStates.length > 0 ? initialSubjectStates : undefined,
     onboardingCompleted,
     sessions: reconciled.sessions,
     plannedSessions: reconciled.plannedSessions,

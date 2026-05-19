@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Plane } from "lucide-react";
 
-const JORGE_IMAGE = "/jorge.jpg";
+const JORGE_IMAGE = "/jorge.jpeg";
 const CARLOS_IMAGE = "/pollo.jpg";
 const MEMBER_PHOTO_IMAGES = new Set([JORGE_IMAGE, CARLOS_IMAGE]);
 const AVATAR_SIZE_PX = 128;

@@ -1,8 +1,18 @@
-import type { ExamDate, SubjectReadiness } from "./types";
+import type { ExamDate, InitialSubjectState, SubjectReadiness } from "./types";
+import {
+  DECLARED_STAGE_OPTIONS,
+  getInitialStateForSubject,
+  hasRealStudyDataFromReadiness,
+} from "./initial-subject-state";
 import { getDaysUntilDate, getNextUpcomingExam, getTodayDateString } from "./calculations";
 import { getSubjectById } from "./subjects";
 
-export type SubjectDisplayStatus = "no_data" | "in_progress" | "at_risk" | "prepared";
+export type SubjectDisplayStatus =
+  | "no_data"
+  | "in_progress"
+  | "at_risk"
+  | "prepared"
+  | "passed";
 
 export type SubjectFilterId = "all" | "at_risk" | "in_progress" | "no_data" | "with_exam";
 
@@ -11,7 +21,29 @@ export const SUBJECT_DISPLAY_STATUS_LABELS: Record<SubjectDisplayStatus, string>
   in_progress: "En progreso",
   at_risk: "En riesgo",
   prepared: "Preparada",
+  passed: "Aprobada",
 };
+
+function declaredStageToDisplayStatus(
+  stage: InitialSubjectState["declaredStage"],
+): SubjectDisplayStatus {
+  switch (stage) {
+    case "not_started":
+      return "no_data";
+    case "base_initial":
+    case "in_progress":
+      return "in_progress";
+    case "mostly_bank":
+    case "exam_prep":
+      return "in_progress";
+    case "passed":
+      return "passed";
+  }
+}
+
+export function getDeclaredStageLabel(stage: InitialSubjectState["declaredStage"]): string {
+  return DECLARED_STAGE_OPTIONS.find((o) => o.value === stage)?.label ?? stage;
+}
 
 export const SUBJECT_FILTER_LABELS: Record<SubjectFilterId, string> = {
   all: "Todas",
@@ -98,7 +130,17 @@ export function resolveSubjectDisplayStatus(
   examDates: ExamDate[],
   pendingErrorsCount: number,
   today: string = getTodayDateString(),
+  initialState?: InitialSubjectState | null,
 ): SubjectDisplayStatus {
+  const hasReal = hasRealStudyDataFromReadiness(readiness);
+
+  if (!hasReal && initialState) {
+    if (initialState.declaredStage === "passed") return "passed";
+    if (initialState.declaredStage !== "not_started") {
+      return declaredStageToDisplayStatus(initialState.declaredStage);
+    }
+  }
+
   if (!isSubjectInCourse(readiness)) return "no_data";
 
   if (readiness.level === "high" || readiness.level === "solid") return "prepared";
@@ -115,7 +157,18 @@ export function resolveSubjectDisplayStatus(
 export function getSubjectDisplayLabel(
   status: SubjectDisplayStatus,
   readiness: SubjectReadiness,
+  initialState?: InitialSubjectState | null,
 ): string {
+  if (status === "passed") return "Aprobada";
+
+  if (
+    !hasRealStudyDataFromReadiness(readiness) &&
+    initialState &&
+    initialState.declaredStage !== "not_started"
+  ) {
+    return getDeclaredStageLabel(initialState.declaredStage);
+  }
+
   if (
     status === "in_progress" &&
     readiness.score <= INITIAL_BASE_SCORE_MAX &&
@@ -159,6 +212,7 @@ export function getExamForSubject(
 export type SubjectDisplayContext = {
   examDates: ExamDate[];
   pendingErrorsBySubject: Record<string, number>;
+  initialSubjectStates?: InitialSubjectState[];
   today?: string;
 };
 
@@ -168,7 +222,17 @@ export function resolveDisplayStatusWithContext(
 ): SubjectDisplayStatus {
   const today = ctx.today ?? getTodayDateString();
   const pending = ctx.pendingErrorsBySubject[readiness.subjectId] ?? 0;
-  return resolveSubjectDisplayStatus(readiness, ctx.examDates, pending, today);
+  const initial = getInitialStateForSubject(
+    readiness.subjectId,
+    ctx.initialSubjectStates,
+  );
+  return resolveSubjectDisplayStatus(
+    readiness,
+    ctx.examDates,
+    pending,
+    today,
+    initial,
+  );
 }
 
 export function filterReadinessByChip(
@@ -177,15 +241,18 @@ export function filterReadinessByChip(
   examDates: ExamDate[],
   pendingErrorsBySubject: Record<string, number> = {},
   today: string = getTodayDateString(),
+  initialSubjectStates?: InitialSubjectState[],
 ): SubjectReadiness[] {
   if (filter === "all") return readinessList;
 
   return readinessList.filter((r) => {
+    const initial = getInitialStateForSubject(r.subjectId, initialSubjectStates);
     const status = resolveSubjectDisplayStatus(
       r,
       examDates,
       pendingErrorsBySubject[r.subjectId] ?? 0,
       today,
+      initial,
     );
     if (filter === "at_risk") return status === "at_risk";
     if (filter === "in_progress") return status === "in_progress";
@@ -208,6 +275,7 @@ export function buildSubjectsPageSummary(
   examDates: ExamDate[],
   pendingErrorsBySubject: Record<string, number> = {},
   today: string = getTodayDateString(),
+  initialSubjectStates?: InitialSubjectState[],
 ): SubjectsPageSummary {
   let inProgressCount = 0;
   let atRiskCount = 0;
@@ -215,7 +283,14 @@ export function buildSubjectsPageSummary(
 
   for (const r of readinessList) {
     const pending = pendingErrorsBySubject[r.subjectId] ?? 0;
-    const status = resolveSubjectDisplayStatus(r, examDates, pending, today);
+    const initial = getInitialStateForSubject(r.subjectId, initialSubjectStates);
+    const status = resolveSubjectDisplayStatus(
+      r,
+      examDates,
+      pending,
+      today,
+      initial,
+    );
 
     if (isSubjectInCourse(r)) inProgressCount += 1;
     if (status === "at_risk") atRiskCount += 1;
@@ -283,5 +358,7 @@ export function displayStatusStyles(status: SubjectDisplayStatus): string {
       return "border-amber-200/80 bg-amber-50 text-amber-900";
     case "prepared":
       return "border-emerald-200/70 bg-emerald-50 text-emerald-800";
+    case "passed":
+      return "border-sky-200/70 bg-sky-50 text-sky-900";
   }
 }

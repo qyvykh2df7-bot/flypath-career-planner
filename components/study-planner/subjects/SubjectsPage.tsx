@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import type {
   ErrorLogItem,
   ExamDate,
+  InitialSubjectState,
   MockResult,
   PlannedStudySession,
   StudySession,
   StudySubject,
 } from "@/lib/study-planner/types";
+import { getInitialStateForSubject } from "@/lib/study-planner/initial-subject-state";
 import {
   calculatePendingErrorsForSubject,
   calculateReadinessForSubjects,
@@ -41,6 +43,7 @@ type SubjectsPageProps = {
   errorLogItems: ErrorLogItem[];
   examDates: ExamDate[];
   plannedSessions: PlannedStudySession[];
+  initialSubjectStates?: InitialSubjectState[];
   onAddExamDate: (exam: ExamDate) => void;
   onDeleteExamDate: (id: string) => void;
 };
@@ -64,6 +67,8 @@ function readinessBarClass(status: SubjectDisplayStatus): string {
       return "bg-gradient-to-r from-[#c9a454] to-[#ddb75c]";
     case "prepared":
       return "bg-emerald-500/85";
+    case "passed":
+      return "bg-sky-400/85";
   }
 }
 
@@ -74,6 +79,7 @@ export function SubjectsPage({
   errorLogItems,
   examDates,
   plannedSessions,
+  initialSubjectStates,
   onAddExamDate,
   onDeleteExamDate,
 }: SubjectsPageProps) {
@@ -102,13 +108,28 @@ export function SubjectsPage({
   }, [subjects, errorLogItems]);
 
   const summary = useMemo(
-    () => buildSubjectsPageSummary(readinessList, examDates, pendingErrorsBySubject, today),
-    [readinessList, examDates, pendingErrorsBySubject, today],
+    () =>
+      buildSubjectsPageSummary(
+        readinessList,
+        examDates,
+        pendingErrorsBySubject,
+        today,
+        initialSubjectStates,
+      ),
+    [readinessList, examDates, pendingErrorsBySubject, today, initialSubjectStates],
   );
 
   const filtered = useMemo(
-    () => filterReadinessByChip(readinessList, filter, examDates, pendingErrorsBySubject, today),
-    [readinessList, filter, examDates, pendingErrorsBySubject, today],
+    () =>
+      filterReadinessByChip(
+        readinessList,
+        filter,
+        examDates,
+        pendingErrorsBySubject,
+        today,
+        initialSubjectStates,
+      ),
+    [readinessList, filter, examDates, pendingErrorsBySubject, today, initialSubjectStates],
   );
 
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId) ?? null;
@@ -172,14 +193,28 @@ export function SubjectsPage({
             if (!subject) return null;
 
             const pendingErrors = pendingErrorsBySubject[subject.id] ?? 0;
+            const initialState = getInitialStateForSubject(
+              subject.id,
+              initialSubjectStates,
+            );
             const displayStatus = resolveSubjectDisplayStatus(
               readiness,
               examDates,
               pendingErrors,
               today,
+              initialState,
             );
-            const displayLabel = getSubjectDisplayLabel(displayStatus, readiness);
-            const barPct = displayStatus === "no_data" ? 0 : readiness.score;
+            const displayLabel = getSubjectDisplayLabel(
+              displayStatus,
+              readiness,
+              initialState,
+            );
+            const barPct =
+              displayStatus === "no_data"
+                ? 0
+                : displayStatus === "passed"
+                  ? 100
+                  : readiness.score;
             const exam = getExamForSubject(subject.id, examDates, today);
 
             return (
@@ -201,12 +236,16 @@ export function SubjectsPage({
                   </span>
                 </div>
 
-                {displayStatus !== "no_data" ? (
+                {displayStatus !== "no_data" && displayStatus !== "passed" ? (
                   <p className="mt-2 text-[12px] text-slate-500">
                     Nivel de preparación:{" "}
                     <span className="font-semibold tabular-nums text-[#0f1a33]">
                       {readiness.score}%
                     </span>
+                  </p>
+                ) : displayStatus === "passed" ? (
+                  <p className="mt-2 text-[12px] text-slate-500">
+                    Marcada como aprobada. No se prioriza en el plan habitual.
                   </p>
                 ) : (
                   <p className="mt-2 text-[12px] text-slate-500">

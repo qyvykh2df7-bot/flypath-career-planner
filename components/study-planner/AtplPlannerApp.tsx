@@ -38,6 +38,8 @@ export function AtplPlannerApp() {
     modeReviewItems,
     modeErrorLogItems,
     modeExamDates,
+    initialStudyContext,
+    initialSubjectStates,
     completeOnboarding,
     updatePlanSettings,
     addSession,
@@ -92,8 +94,18 @@ export function AtplPlannerApp() {
       weeklyGoalMinutes,
       targetExamDate,
       studyStartDate,
+      initialStudyContext,
+      initialSubjectStates,
     }),
-    [mode, activeSubjectIds, weeklyGoalMinutes, targetExamDate, studyStartDate],
+    [
+      mode,
+      activeSubjectIds,
+      weeklyGoalMinutes,
+      targetExamDate,
+      studyStartDate,
+      initialStudyContext,
+      initialSubjectStates,
+    ],
   );
 
   const modeLabel = mode === "atpl" ? "Modo ATPL" : "Modo PPL";
@@ -224,6 +236,7 @@ export function AtplPlannerApp() {
               weeklyGoalMinutes={weeklyGoalMinutes}
               targetExamDate={targetExamDate}
               examDates={modeExamDates}
+              initialSubjectStates={initialSubjectStates}
               studyStartDate={studyStartDate}
               visibleWeekStartDate={visibleWeekStartDate}
               sessions={modeSessions}
@@ -271,6 +284,7 @@ export function AtplPlannerApp() {
             errorLogItems={modeErrorLogItems}
             examDates={modeExamDates}
             plannedSessions={modePlannedSessions}
+            initialSubjectStates={initialSubjectStates}
             onAddExamDate={addExamDate}
             onDeleteExamDate={deleteExamDate}
           />

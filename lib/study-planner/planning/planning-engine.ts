@@ -13,6 +13,7 @@ import {
 } from "../date-utils";
 import { getSessionTypeReasonLabel } from "./planning-labels";
 import { buildExamDaysLeftBySubject } from "./exam-date-pressure";
+import { isSubjectDeclaredPassed } from "../initial-subject-state";
 import {
   buildSubjectPlanningMetaMap,
   pickSessionTypeForBlock,
@@ -108,9 +109,14 @@ export function rankSubjectsByPriority(input: PlanningEngineInput): SubjectPrior
     targetExamDate,
     studyStartDate,
     examDates = [],
+    initialSubjectStates = [],
   } = input;
 
   if (activeSubjectIds.length === 0) return [];
+
+  const hasRealActivity = (subjectId: string) =>
+    sessions.some((s) => s.subjectId === subjectId) ||
+    mockResults.some((m) => m.subjectId === subjectId);
 
   const estimatedPerSubject = calculateEstimatedMinutesPerSubject({
     mode,
@@ -129,6 +135,20 @@ export function rankSubjectsByPriority(input: PlanningEngineInput): SubjectPrior
 
   return activeSubjectIds
     .map((subjectId) => {
+      if (
+        isSubjectDeclaredPassed(subjectId, initialSubjectStates) &&
+        !hasRealActivity(subjectId)
+      ) {
+        return {
+          subjectId,
+          score: 0,
+          progressPercent: 100,
+          latestMockScore: null,
+          daysSinceLastSession: null,
+          dominantReason: "maintain_rhythm" as const,
+        };
+      }
+
       const examDaysLeft = examDaysBySubject[subjectId] ?? null;
       const progressPercent = calculateSubjectProgressPercent({
         subjectId,
@@ -186,10 +206,16 @@ export function distributeWeeklyMinutes(
   const total = Math.max(0, input.weeklyGoalMinutes);
   if (ranked.length === 0 || total === 0) return {};
 
-  const weightSum = ranked.reduce((s, r) => s + Math.max(r.score, 1), 0);
-  const shares = ranked.map((r) => ({
+  const planEligible = ranked.filter((r) => r.score > 0);
+  const pool = planEligible.length > 0 ? planEligible : ranked;
+
+  const weightSum = pool.reduce((s, r) => s + Math.max(r.score, 1), 0);
+  const shares = pool.map((r) => ({
     subjectId: r.subjectId,
-    minutes: Math.floor((total * Math.max(r.score, 1)) / weightSum),
+    minutes:
+      r.score <= 0
+        ? 0
+        : Math.floor((total * Math.max(r.score, 1)) / weightSum),
   }));
 
   let allocated = shares.reduce((s, x) => s + x.minutes, 0);
@@ -433,6 +459,7 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
       examDaysLeftBySubject: examDaysBySubject,
       progressBySubject,
       mockScoreBySubject,
+      initialSubjectStates: input.initialSubjectStates,
     },
     input.activeSubjectIds,
   );

@@ -1,16 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { PlannerOnboardingPayload, StudyMode } from "@/lib/study-planner/types";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  InitialStudyContext,
+  InitialSubjectState,
+  PlannerOnboardingPayload,
+  StudyMode,
+} from "@/lib/study-planner/types";
 import { getTodayDateString } from "@/lib/study-planner/calculations";
+import { buildDefaultInitialSubjectStates } from "@/lib/study-planner/initial-subject-state";
 import { getSubjectsByMode } from "@/lib/study-planner/subjects";
 import { plannerFieldClass, plannerFieldLabel } from "@/lib/study-planner/planner-ui";
 import { StudyModeSelector } from "@/components/study-planner/StudyModeSelector";
 import { PlannerOnboardingStep } from "./PlannerOnboardingStep";
 import { OnboardingTargetDateFields } from "./OnboardingTargetDateFields";
 import { SubjectSelector } from "./SubjectSelector";
+import { OnboardingStudyContextPicker } from "./OnboardingStudyContextPicker";
+import { OnboardingSubjectStatesList } from "./OnboardingSubjectStatesList";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 7;
 
 type PlannerOnboardingProps = {
   onComplete: (payload: PlannerOnboardingPayload) => void;
@@ -22,16 +30,54 @@ export function PlannerOnboarding({ onComplete }: PlannerOnboardingProps) {
   const [activeSubjectIds, setActiveSubjectIds] = useState<string[]>(() =>
     getSubjectsByMode("atpl").map((s) => s.id),
   );
+  const [initialStudyContext, setInitialStudyContext] =
+    useState<InitialStudyContext>("from_zero");
+  const [initialSubjectStates, setInitialSubjectStates] = useState<InitialSubjectState[]>(
+    [],
+  );
   const [weeklyHours, setWeeklyHours] = useState(10);
   const [targetExamDate, setTargetExamDate] = useState("");
   const [studyStartDate, setStudyStartDate] = useState(() => getTodayDateString());
   const [useStudyStart, setUseStudyStart] = useState(false);
 
   const catalogSubjects = useMemo(() => getSubjectsByMode(mode), [mode]);
+  const activeSubjects = useMemo(
+    () => catalogSubjects.filter((s) => activeSubjectIds.includes(s.id)),
+    [catalogSubjects, activeSubjectIds],
+  );
+
+  useEffect(() => {
+    setInitialSubjectStates((prev) => {
+      const defaults = buildDefaultInitialSubjectStates(
+        activeSubjectIds,
+        initialStudyContext,
+      );
+      const byId = new Map(prev.map((s) => [s.subjectId, s]));
+      return defaults.map((d) => {
+        const existing = byId.get(d.subjectId);
+        return existing && activeSubjectIds.includes(d.subjectId)
+          ? { ...d, ...existing, subjectId: d.subjectId }
+          : d;
+      });
+    });
+  }, [activeSubjectIds, initialStudyContext]);
 
   const handleModeChange = (next: StudyMode) => {
     setMode(next);
     setActiveSubjectIds(getSubjectsByMode(next).map((s) => s.id));
+  };
+
+  const handleContextChange = (ctx: InitialStudyContext) => {
+    setInitialStudyContext(ctx);
+    setInitialSubjectStates(buildDefaultInitialSubjectStates(activeSubjectIds, ctx));
+  };
+
+  const goFromContext = () => {
+    if (initialStudyContext === "from_zero") {
+      setStep(5);
+    } else {
+      setStep(4);
+    }
   };
 
   const finish = () => {
@@ -41,6 +87,11 @@ export function PlannerOnboarding({ onComplete }: PlannerOnboardingProps) {
       weeklyGoalMinutes: Math.round(weeklyHours * 60),
       targetExamDate,
       studyStartDate: useStudyStart ? studyStartDate : undefined,
+      initialStudyContext,
+      initialSubjectStates:
+        initialStudyContext === "from_zero"
+          ? buildDefaultInitialSubjectStates(activeSubjectIds, "from_zero")
+          : initialSubjectStates,
     });
   };
 
@@ -81,10 +132,43 @@ export function PlannerOnboarding({ onComplete }: PlannerOnboardingProps) {
           <PlannerOnboardingStep
             step={3}
             totalSteps={TOTAL_STEPS}
+            title="¿En qué punto estás?"
+            description="Así adaptamos el primer plan a tu situación real, no solo a un alumno nuevo."
+            onBack={() => setStep(2)}
+            onNext={goFromContext}
+          >
+            <OnboardingStudyContextPicker
+              value={initialStudyContext}
+              onChange={handleContextChange}
+            />
+          </PlannerOnboardingStep>
+        ) : null}
+
+        {step === 4 ? (
+          <PlannerOnboardingStep
+            step={4}
+            totalSteps={TOTAL_STEPS}
+            title="Estado por asignatura"
+            description="Indica en qué punto está cada materia. Es rápido y puedes afinarlo después en ajustes."
+            onBack={() => setStep(3)}
+            onNext={() => setStep(5)}
+          >
+            <OnboardingSubjectStatesList
+              subjects={activeSubjects}
+              states={initialSubjectStates}
+              onChange={setInitialSubjectStates}
+            />
+          </PlannerOnboardingStep>
+        ) : null}
+
+        {step === 5 ? (
+          <PlannerOnboardingStep
+            step={5}
+            totalSteps={TOTAL_STEPS}
             title="Horas disponibles por semana"
             description="Un objetivo realista ayuda a medir si vas al ritmo previsto."
-            onBack={() => setStep(2)}
-            onNext={() => setStep(4)}
+            onBack={() => setStep(initialStudyContext === "from_zero" ? 3 : 4)}
+            onNext={() => setStep(6)}
           >
             <label className={plannerFieldLabel}>
               Horas por semana
@@ -103,14 +187,14 @@ export function PlannerOnboarding({ onComplete }: PlannerOnboardingProps) {
           </PlannerOnboardingStep>
         ) : null}
 
-        {step === 4 ? (
+        {step === 6 ? (
           <PlannerOnboardingStep
-            step={4}
+            step={6}
             totalSteps={TOTAL_STEPS}
             title="Fecha objetivo de estudio"
             description="Elige una fecha aproximada para terminar este bloque de estudio. No tiene que ser tu fecha oficial de examen."
-            onBack={() => setStep(3)}
-            onNext={() => setStep(5)}
+            onBack={() => setStep(5)}
+            onNext={() => setStep(7)}
             nextDisabled={!targetExamDate}
             nextDisabledHint="Selecciona una fecha para continuar."
           >
@@ -118,13 +202,13 @@ export function PlannerOnboarding({ onComplete }: PlannerOnboardingProps) {
           </PlannerOnboardingStep>
         ) : null}
 
-        {step === 5 ? (
+        {step === 7 ? (
           <PlannerOnboardingStep
-            step={5}
+            step={7}
             totalSteps={TOTAL_STEPS}
             title="Inicio del plan (opcional)"
             description="Si ya llevas tiempo estudiando, indica cuándo empezaste para estimar semanas restantes."
-            onBack={() => setStep(4)}
+            onBack={() => setStep(6)}
             onNext={finish}
             nextLabel="Empezar con mi plan"
           >
