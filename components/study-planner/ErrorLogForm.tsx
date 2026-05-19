@@ -9,7 +9,7 @@ type ErrorSeverity = "baja" | "media" | "alta";
 
 const SOURCE_OPTIONS: { value: ErrorSource; label: string }[] = [
   { value: "banco", label: "Banco" },
-  { value: "simulacro", label: "Simulacro" },
+  { value: "simulacro", label: "Simulacro de examen" },
   { value: "clase", label: "Clase" },
   { value: "otro", label: "Otro" },
 ];
@@ -22,7 +22,7 @@ const SEVERITY_OPTIONS: { value: ErrorSeverity; label: string }[] = [
 
 const SOURCE_LABELS: Record<ErrorSource, string> = {
   banco: "Banco",
-  simulacro: "Simulacro",
+  simulacro: "Simulacro de examen",
   clase: "Clase",
   otro: "Otro",
 };

@@ -467,7 +467,7 @@ export function resolveDashboardHeroEmptyState(
     return {
       variant: "fresh",
       metaLine:
-        "Genera una semana de estudio adaptada a tus horas, asignaturas activas y fecha objetivo. El planner repartirá tus bloques entre teoría, banco, repasos y simulacros según la madurez de cada asignatura.",
+        "Genera una semana de estudio adaptada a tus horas, asignaturas activas y fecha objetivo. El planner repartirá tus bloques entre teoría, banco, repasos y simulacros de examen según la madurez de cada asignatura.",
       ctaLabel: "Generar plan semanal",
     };
   }
@@ -711,7 +711,7 @@ export function buildAttentionItems(params: {
         subjectName: name,
         priority: "high",
         reason: mock
-          ? `Preparación baja · simulacro ${mock.score}%`
+          ? `Preparación baja · simulacro de examen ${mock.score}%`
           : "Preparación baja",
         sortKey: 200,
       });
@@ -935,10 +935,10 @@ export const READINESS_LEVEL_LABELS: Record<SubjectReadinessLevel, string> = {
 };
 
 export const READINESS_LEVEL_MESSAGES: Record<SubjectReadinessLevel, string> = {
-  no_data: "Registra sesiones o simulacros para calcular el nivel de preparación.",
+  no_data: "Registra sesiones o simulacros de examen para calcular el nivel de preparación.",
   low: "Faltan datos, horas o resultados suficientes antes de presentarte.",
   medium: "Hay base, pero todavía conviene reforzar antes de examinarte.",
-  high: "La asignatura va bien, mantén repasos y simulacros.",
+  high: "La asignatura va bien, mantén repasos y simulacros de examen.",
   solid: "Buen nivel de preparación, mantén consistencia hasta el examen.",
 };
 
@@ -1036,7 +1036,7 @@ export function getReadinessSummary(readinessList: SubjectReadiness[]): {
 
 export function getReadinessDashboardHint(summary: ReturnType<typeof getReadinessSummary>): string {
   if (summary.withDataCount === 0) {
-    return "Registra horas y simulacros para calcular el nivel de preparación.";
+    return "Registra horas y simulacros de examen para calcular el nivel de preparación.";
   }
   if (summary.lowCount > 0) {
     return "Hay asignaturas con preparación baja. Conviene reforzar antes de presentarte.";

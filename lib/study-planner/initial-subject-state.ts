@@ -30,7 +30,7 @@ export const INITIAL_STUDY_CONTEXT_OPTIONS: {
   {
     value: "exam_prep",
     label: "Estoy preparando exámenes",
-    description: "Enfocado en simulacros, repaso y fechas de examen.",
+    description: "Enfocado en simulacros de examen, repaso y fechas de examen.",
   },
   {
     value: "returning_after_break",

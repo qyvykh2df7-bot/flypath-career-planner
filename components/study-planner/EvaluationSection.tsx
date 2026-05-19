@@ -32,7 +32,7 @@ import { createPlannerId, formatDateLocal } from "@/lib/study-planner/calculatio
 export type { EvaluationView };
 
 const SUB_TABS: { id: EvaluationView; label: string }[] = [
-  { id: "mocks", label: "Simulacros" },
+  { id: "mocks", label: "Simulacros de examen" },
   { id: "errors", label: "Errores" },
   { id: "reviews", label: "Repasos" },
   { id: "progress", label: "Progreso" },
@@ -170,7 +170,7 @@ export function EvaluationSection({
       <header className="space-y-1">
         <h2 className="text-[18px] font-semibold tracking-tight text-[#0f1a33]">Evaluación</h2>
         <p className="max-w-2xl text-[13px] leading-relaxed text-slate-600">
-          Controla tus simulacros, errores y repasos para saber qué reforzar antes del examen.
+          Controla tus simulacros de examen, errores y repasos para saber qué reforzar antes del examen.
         </p>
       </header>
 
@@ -200,7 +200,7 @@ export function EvaluationSection({
       {view === "mocks" ? (
         <div className="space-y-4">
           <div ref={mockFormRef}>
-            <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Registro rápido de simulacro</p>
+            <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Registro rápido de simulacro de examen</p>
             <MockResultForm subjects={subjects} onAddMockResult={onAddMockResult} />
           </div>
           <div>
@@ -208,7 +208,7 @@ export function EvaluationSection({
             <MockSubjectSummary mockResults={mockResults} />
           </div>
           <div>
-            <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Historial de simulacros</h4>
+            <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Historial de simulacros de examen</h4>
             <MockResultsTable mockResults={mockResults} onDelete={onDeleteMockResult} />
           </div>
         </div>

@@ -262,7 +262,7 @@ export function buildReadinessMessage(
   b: ReadinessBreakdown,
 ): string {
   if (b.sessionCount === 0 && b.mockCount === 0) {
-    return "Registra sesiones o simulacros para calcular el nivel de preparación.";
+    return "Registra sesiones o simulacros de examen para calcular el nivel de preparación.";
   }
 
   if (
@@ -271,23 +271,23 @@ export function buildReadinessMessage(
     b.latestMockScore !== null &&
     b.latestMockScore >= 75
   ) {
-    return "Buen resultado en simulacro, pero aún hay pocos datos para confirmar preparación sólida.";
+    return "Buen resultado en simulacro de examen, pero aún hay pocos datos para confirmar preparación sólida.";
   }
 
   if (b.pendingErrors > 0) {
-    return "Corrige errores pendientes antes de confiar en un simulacro aislado.";
+    return "Corrige errores pendientes antes de confiar en un simulacro de examen aislado.";
   }
 
   if (pedagogicalLabel === "Inicio" || pedagogicalLabel === "Construyendo base") {
-    return "Estás empezando. Alterna teoría, banco y simulacros para afinar el nivel.";
+    return "Estás empezando. Alterna teoría, banco y simulacros de examen para afinar el nivel.";
   }
 
   if (pedagogicalLabel === "Primeras señales positivas") {
-    return "Hay señales alentadoras; sigue acumulando banco y más simulacros.";
+    return "Hay señales alentadoras; sigue acumulando banco y más simulacros de examen.";
   }
 
   if (pedagogicalLabel === "Progresando bien") {
-    return "Buen ritmo. Mantén repasos y simulacros antes del examen.";
+    return "Buen ritmo. Mantén repasos y simulacros de examen antes del examen.";
   }
 
   if (score >= 90) {

@@ -229,9 +229,9 @@ export function StudyProgressCharts({
         )}
       </ChartCard>
 
-      <ChartCard title="Evolución de simulacros">
+      <ChartCard title="Evolución de simulacros de examen">
         {recentMocks.length === 0 ? (
-          <EmptyState message="Registra simulacros para ver tu evolución de notas." />
+          <EmptyState message="Registra simulacros de examen para ver tu evolución de notas." />
         ) : (
           <ul className="space-y-3">
             {recentMocks.map((mock) => (
@@ -256,7 +256,7 @@ export function StudyProgressCharts({
 
       <ChartCard title="Nivel de preparación por asignatura">
         {readinessRows.length === 0 ? (
-          <EmptyState message="Registra horas o simulacros para ver la preparación orientativa por asignatura." />
+          <EmptyState message="Registra horas o simulacros de examen para ver la preparación orientativa por asignatura." />
         ) : (
           <ul className="space-y-3">
             {readinessRows.map((row) => (

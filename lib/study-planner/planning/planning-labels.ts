@@ -4,11 +4,11 @@ import type { PlanningPriorityReason } from "./planning-types";
 const REASON_LABELS: Record<PlanningPriorityReason, string> = {
   exam_soon: "Fecha objetivo cercana",
   low_progress: "Progreso bajo",
-  low_mock_score: "Simulacro reciente bajo",
+  low_mock_score: "Simulacro de examen reciente bajo",
   no_recent_study: "Sin estudio reciente",
   question_bank_focus: "Refuerzo de banco",
   review_recommended: "Repaso recomendado",
-  mock_recommended: "Simulacro recomendado",
+  mock_recommended: "Simulacro de examen recomendado",
   maintain_rhythm: "Mantener ritmo",
 };
 
@@ -26,7 +26,7 @@ export function getSessionTypeReasonLabel(
     case "review":
       return "Repaso recomendado";
     case "mock":
-      return "Simulacro recomendado";
+      return "Simulacro de examen recomendado";
     case "error_correction":
       return "Revisión de errores pendientes";
     case "theory":

@@ -120,7 +120,7 @@ export function SubjectReadinessCard({
           <dd className="font-medium text-slate-700">{minutesToHoursLabel(breakdown.bankMinutes)}</dd>
         </div>
         <div>
-          <dt className="text-slate-500">Simulacros</dt>
+          <dt className="text-slate-500">Simulacros de examen</dt>
           <dd className="font-medium text-slate-700">
             {breakdown.mockCount > 0
               ? `${breakdown.mockCount}${factors.averageMockScore !== null ? ` · media ${formatMockScore(factors.averageMockScore)}` : ""}`

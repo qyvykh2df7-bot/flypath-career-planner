@@ -212,7 +212,7 @@ export function WeeklyPlanGenerator({
           <p className={plannerPanelSubtitle}>
             {regenerateMode
               ? "Genera un nuevo reparto. Puedes reemplazar o añadir a las sesiones actuales."
-              : "FlyPath reparte tus horas entre asignaturas activas según progreso, simulacros y fecha objetivo."}
+              : "FlyPath reparte tus horas entre asignaturas activas según progreso, simulacros de examen y fecha objetivo."}
             {weekKind !== "current" ? (
               <span className="mt-1 block font-medium text-[#0f1a33]">
                 Semana visible: {formatWeekRange(visibleWeekStartDate)}

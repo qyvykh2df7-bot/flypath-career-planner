@@ -11,7 +11,7 @@ function buildPedagogyLine(phases: SubjectMaturityPhase[]): string {
   const hasExam = set.has("exam");
 
   if (hasInitial && hasBank && (hasReview || hasExam)) {
-    return "Esta semana empezamos con teoría en las asignaturas nuevas y añadimos banco donde ya tienes base suficiente. Donde hay errores o simulacros bajos, priorizamos repaso y corrección.";
+    return "Esta semana empezamos con teoría en las asignaturas nuevas y añadimos banco donde ya tienes base suficiente. Donde hay errores o simulacros de examen bajos, priorizamos repaso y corrección.";
   }
   if (hasInitial && hasBank) {
     return "Esta semana empezamos con teoría en las asignaturas nuevas y añadimos banco donde ya tienes base suficiente. El objetivo es no estudiar a ciegas: primero entender, luego aplicar y después revisar errores.";
@@ -20,7 +20,7 @@ function buildPedagogyLine(phases: SubjectMaturityPhase[]): string {
     return "Esta semana combinamos banco y bloques de repaso o corrección de errores en las asignaturas que lo necesitan, sin saltar la teoría donde aún estás empezando.";
   }
   if (hasExam) {
-    return "Esta semana reforzamos con simulacros y banco las asignaturas más maduras, especialmente si el examen se acerca o el último simulacro fue bajo.";
+    return "Esta semana reforzamos con simulacros de examen y banco las asignaturas más maduras, especialmente si el examen se acerca o el último simulacro de examen fue bajo.";
   }
   return "Esta semana el reparto sigue la madurez de cada asignatura: teoría donde hace falta base, banco para aplicar y repaso donde hay huecos.";
 }

@@ -257,7 +257,7 @@ export function SubjectsPage({
                     </p>
                     {readiness.factors.latestMockScore !== null ? (
                       <p className="text-[11px] text-slate-500">
-                        Último simulacro: {formatMockScore(readiness.factors.latestMockScore)}
+                        Último simulacro de examen: {formatMockScore(readiness.factors.latestMockScore)}
                       </p>
                     ) : null}
                     {readiness.isProvisional ? (

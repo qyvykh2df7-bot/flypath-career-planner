@@ -20,7 +20,7 @@ export function EvaluationSummaryBar({ summary }: EvaluationSummaryBarProps) {
   if (!summary.hasEnoughData) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
-        No hay suficientes datos todavía. Registra simulacros o errores para empezar a detectar
+        No hay suficientes datos todavía. Registra simulacros de examen o errores para empezar a detectar
         patrones.
       </div>
     );
@@ -29,10 +29,10 @@ export function EvaluationSummaryBar({ summary }: EvaluationSummaryBarProps) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
       <StatCell
-        label="Media últimos simulacros"
+        label="Media de últimos simulacros de examen"
         value={summary.avgMockScore !== null ? formatMockScore(summary.avgMockScore) : "—"}
       />
-      <StatCell label="Simulacros registrados" value={String(summary.mockCount)} />
+      <StatCell label="Simulacros de examen registrados" value={String(summary.mockCount)} />
       <StatCell label="Errores pendientes" value={String(summary.pendingErrors)} />
       <StatCell label="Repasos pendientes" value={String(summary.pendingReviews)} />
       <StatCell label="Asignaturas en riesgo" value={String(summary.atRiskCount)} />

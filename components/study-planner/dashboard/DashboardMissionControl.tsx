@@ -94,7 +94,7 @@ export function DashboardMissionControl({
                 Organiza tu primera semana
               </h3>
               <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-slate-300/95">
-                El planner repartirá tus horas entre teoría, banco, repasos y simulacros para que
+                El planner repartirá tus horas entre teoría, banco, repasos y simulacros de examen para que
                 sepas qué estudiar cada día.
               </p>
             </div>

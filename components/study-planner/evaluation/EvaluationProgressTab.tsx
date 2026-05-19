@@ -20,7 +20,7 @@ export function EvaluationProgressTab({ diagnostic }: EvaluationProgressTabProps
         <h5 className="text-[13px] font-semibold text-[#0f1a33]">Asignaturas que más atención necesitan</h5>
         {diagnostic.attentionSubjects.length === 0 ? (
           <p className="mt-2 text-[13px] text-slate-600">
-            Sin señales de riesgo claras. Sigue registrando simulacros y errores para afinar el
+            Sin señales de riesgo claras. Sigue registrando simulacros de examen y errores para afinar el
             diagnóstico.
           </p>
         ) : (
@@ -39,7 +39,7 @@ export function EvaluationProgressTab({ diagnostic }: EvaluationProgressTabProps
       </section>
 
       <section className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80">
-        <h5 className="text-[13px] font-semibold text-[#0f1a33]">Tendencia de simulacros</h5>
+        <h5 className="text-[13px] font-semibold text-[#0f1a33]">Tendencia de simulacros de examen</h5>
         <p className="mt-2 text-[13px] text-slate-700">{diagnostic.mockTrendLabel}</p>
       </section>
 

@@ -310,7 +310,7 @@ export function RecoveryMode(props: RecoveryModeProps) {
           {plan.cta ? (
             <section className="border-t border-slate-100 px-4 py-3 sm:px-5">
               <p className="text-[12px] text-slate-500">
-                ¿Una asignatura te bloquea (teoría, banco o simulacro)?
+                ¿Una asignatura te bloquea (teoría, banco o simulacro de examen)?
               </p>
               <button
                 type="button"

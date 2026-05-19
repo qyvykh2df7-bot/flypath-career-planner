@@ -24,7 +24,7 @@ import {
 
 export const RECOVERY_PROBLEM_OPTIONS: { value: RecoveryProblem; label: string }[] = [
   { value: "too_many_subjects", label: "Tengo demasiadas asignaturas abiertas" },
-  { value: "low_mock_scores", label: "Hago simulacros pero no subo nota" },
+  { value: "low_mock_scores", label: "Hago simulacros de examen pero no subo nota" },
   { value: "no_weekly_plan", label: "No sé qué estudiar esta semana" },
   { value: "overdue_reviews", label: "Tengo repasos atrasados" },
   { value: "pending_errors", label: "Tengo errores pendientes sin revisar" },
@@ -44,15 +44,15 @@ const PROBLEM_STEP_TEMPLATES: Record<
     actionType: "reduce_subjects",
   },
   low_mock_scores: {
-    title: "Haz un simulacro diagnóstico y corrige errores",
+    title: "Haz un simulacro de examen diagnóstico y corrige errores",
     description:
-      "No hagas bancos en automático. Haz un simulacro, registra los errores y repasa los temas que más fallas.",
+      "No hagas bancos en automático. Haz un simulacro de examen, registra los errores y repasa los temas que más fallas.",
     actionType: "mock",
   },
   no_weekly_plan: {
     title: "Planifica 3 sesiones realistas esta semana",
     description:
-      "Crea tres sesiones de estudio en el calendario: una de teoría, una de banco y una de repaso o simulacro.",
+      "Crea tres sesiones de estudio en el calendario: una de teoría, una de banco y una de repaso o simulacro de examen.",
     actionType: "plan_session",
   },
   overdue_reviews: {
@@ -93,7 +93,7 @@ export const RECOVERY_ACTION_LABELS: Record<
 > = {
   plan_session: "Planificar",
   review: "Repasos",
-  mock: "Simulacros",
+  mock: "Simulacros de examen",
   error_log: "Errores",
   reduce_subjects: "Enfoque",
   rest: "Descanso",
@@ -263,7 +263,7 @@ export function generateRecoveryPlan(params: {
       steps,
       makeStep({
         title: "Tienes errores pendientes: revisa los más repetidos",
-        description: `Hay ${pendingErrors} error${pendingErrors === 1 ? "" : "es"} pendiente${pendingErrors === 1 ? "" : "s"}. Revisa los patrones antes de seguir haciendo simulacros.`,
+        description: `Hay ${pendingErrors} error${pendingErrors === 1 ? "" : "es"} pendiente${pendingErrors === 1 ? "" : "s"}. Revisa los patrones antes de seguir haciendo simulacros de examen.`,
         actionType: "error_log",
       }),
     );
@@ -296,8 +296,8 @@ export function generateRecoveryPlan(params: {
     addStepUnique(
       steps,
       makeStep({
-        title: "Tu media de simulacros está ajustada; prioriza corrección de errores",
-        description: `Media orientativa: ${Math.round(avgMock)}%. Haz simulacros más cortos, registra fallos y repasa antes de repetir bancos completos.`,
+        title: "Tu media de simulacros de examen está ajustada; prioriza corrección de errores",
+        description: `Media orientativa: ${Math.round(avgMock)}%. Haz simulacros de examen más cortos, registra fallos y repasa antes de repetir bancos completos.`,
         actionType: "mock",
       }),
     );

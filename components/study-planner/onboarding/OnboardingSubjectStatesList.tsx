@@ -90,7 +90,7 @@ export function OnboardingSubjectStatesList({
                   />
                 </label>
                 <label className={plannerFieldLabel}>
-                  Media simulacros
+                  Media de simulacros de examen
                   <input
                     type="number"
                     min={0}

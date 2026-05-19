@@ -39,7 +39,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
     }
 
     if (score.trim() === "") {
-      setError("Introduce el resultado del simulacro.");
+      setError("Introduce el resultado del simulacro de examen.");
       return;
     }
 
@@ -69,7 +69,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
     setMinutes("0");
     setNotes("");
     setShowExtras(false);
-    setFeedback("Simulacro guardado");
+    setFeedback("Simulacro de examen guardado");
     window.setTimeout(() => setFeedback(null), 2500);
   };
 
@@ -173,7 +173,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className={`${fieldClass} min-h-[52px] resize-y`}
-              placeholder="Observaciones del simulacro…"
+              placeholder="Observaciones del simulacro de examen…"
             />
           </label>
         </div>
@@ -194,7 +194,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
         type="submit"
         className="mt-2.5 inline-flex min-h-[40px] w-full items-center justify-center rounded-lg border border-[#c9a454] bg-[#c9a454] px-4 py-2 text-[13px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto"
       >
-        Guardar simulacro
+        Guardar simulacro de examen
       </button>
     </form>
   );

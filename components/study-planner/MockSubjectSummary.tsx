@@ -20,7 +20,7 @@ function trendBadgeClass(label: string | null): string {
   if (!label) return "";
   if (label === "Subiendo") return "bg-emerald-50 text-emerald-800 ring-emerald-200/70";
   if (label === "Bajando") return "bg-amber-50 text-amber-900 ring-amber-200/70";
-  if (label === "Primer simulacro") return "bg-[#e8eef8] text-[#0f1a33] ring-[#0f1a33]/12";
+  if (label === "Primer simulacro de examen") return "bg-[#e8eef8] text-[#0f1a33] ring-[#0f1a33]/12";
   return "bg-slate-50 text-slate-700 ring-slate-200/70";
 }
 
@@ -51,7 +51,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
   if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-[13px] font-medium text-slate-600">
-        <p>Registra tus primeros simulacros para ver evolución por asignatura.</p>
+        <p>Registra tus primeros simulacros de examen para ver evolución por asignatura.</p>
       </div>
     );
   }
@@ -75,7 +75,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
           </div>
           <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1.5 text-[12px]">
             <div>
-              <dt className="text-slate-500">Último simulacro</dt>
+              <dt className="text-slate-500">Último simulacro de examen</dt>
               <dd className="font-semibold tabular-nums text-[#0f1a33]">
                 {row.latest ? formatMockScore(row.latest.score) : "—"}
               </dd>
@@ -93,7 +93,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Simulacros</dt>
+              <dt className="text-slate-500">Simulacros de examen</dt>
               <dd className="font-semibold text-[#0f1a33]">{row.mocks.length}</dd>
             </div>
           </dl>

@@ -57,7 +57,7 @@ export function formatSubjectMockTrendLabel(
   mockCount: number,
   trend: ReturnType<typeof getMockTrend>,
 ): string | null {
-  if (mockCount <= 1) return "Primer simulacro";
+  if (mockCount <= 1) return "Primer simulacro de examen";
   if (trend === "none") return null;
   return MOCK_TREND_LABELS[trend];
 }
@@ -66,7 +66,7 @@ export function formatHistoryMockTrendLabel(sorted: MockResult[], index: number)
   const current = sorted[index];
   if (!current) return null;
   const olderSameSubject = sorted.slice(index + 1).find((m) => m.subjectId === current.subjectId);
-  if (!olderSameSubject) return "Primer simulacro";
+  if (!olderSameSubject) return "Primer simulacro de examen";
   const trend = getMockTrend([current, olderSameSubject]);
   if (trend === "none") return null;
   return MOCK_TREND_LABELS[trend];
@@ -128,7 +128,7 @@ export function buildEvaluationCoachRecommendation(
       message:
         "Empieza registrando tu primer simulacro de examen para detectar tu nivel real.",
       action: { kind: "register_mock" },
-      ctaLabel: "Registrar simulacro",
+      ctaLabel: "Registrar simulacro de examen",
     };
   }
 
@@ -139,8 +139,8 @@ export function buildEvaluationCoachRecommendation(
       : null;
     const message =
       summary.pendingErrors === 1 && subjectHint
-        ? `Tienes un error pendiente en ${subjectHint}. Corrígelo antes de hacer otro simulacro.`
-        : "Tienes errores pendientes. Corrígelos antes de hacer otro simulacro.";
+        ? `Tienes un error pendiente en ${subjectHint}. Corrígelo antes de hacer otro simulacro de examen.`
+        : "Tienes errores pendientes. Corrígelos antes de hacer otro simulacro de examen.";
     return {
       title: COACH_TITLE,
       message,
@@ -174,7 +174,7 @@ export function buildEvaluationCoachRecommendation(
     const name = getSubjectById(last.subjectId)?.name ?? "esta asignatura";
     return {
       title: COACH_TITLE,
-      message: `Refuerza ${name} antes de repetir simulacro.`,
+      message: `Refuerza ${name} antes de repetir simulacro de examen.`,
       action: { kind: "plan_review" },
       ctaLabel: "Planificar repaso",
     };
@@ -184,7 +184,7 @@ export function buildEvaluationCoachRecommendation(
     return {
       title: COACH_TITLE,
       message:
-        "Buen resultado. Mantén el ritmo con banco y un repaso ligero antes de repetir simulacro.",
+        "Buen resultado. Mantén el ritmo con banco y un repaso ligero antes de repetir simulacro de examen.",
       action: { kind: "view_calendar" },
       ctaLabel: "Ir al calendario",
     };
@@ -192,7 +192,7 @@ export function buildEvaluationCoachRecommendation(
 
   return {
     title: COACH_TITLE,
-    message: "Mantén el ritmo: alterna banco, repaso y simulacros según tu plan semanal.",
+    message: "Mantén el ritmo: alterna banco, repaso y simulacros de examen según tu plan semanal.",
     action: { kind: "view_calendar" },
     ctaLabel: "Ir al calendario",
   };
@@ -218,7 +218,7 @@ export function formatEvaluationDashboardLine(
   const reviewLabel = reviewsToday === 1 ? "repaso hoy" : "repasos hoy";
 
   return [
-    `Simulacros ${avg}%`,
+    `Simulacros de examen ${avg}%`,
     `${summary.pendingErrors} ${errorLabel}`,
     `${reviewsToday} ${reviewLabel}`,
   ].join(" · ");
@@ -261,7 +261,7 @@ export function buildEvaluationDiagnostic(params: {
       const name = getSubjectById(r.subjectId)?.name ?? r.subjectId;
       const reason =
         status === "at_risk"
-          ? "Preparación baja o simulacro reciente bajo"
+          ? "Preparación baja o simulacro de examen reciente bajo"
           : "Sin actividad registrada";
       return { subjectId: r.subjectId, name, reason };
     })
@@ -269,14 +269,14 @@ export function buildEvaluationDiagnostic(params: {
     .slice(0, 3);
 
   const sorted = sortMocksByDateDesc(params.mockResults);
-  let mockTrendLabel = "Sin simulacros registrados";
+  let mockTrendLabel = "Sin simulacros de examen registrados";
   if (sorted.length >= 2) {
     const diff = sorted[0]!.score - sorted[1]!.score;
-    if (diff > 3) mockTrendLabel = "Tendencia de simulacros: subiendo";
-    else if (diff < -3) mockTrendLabel = "Tendencia de simulacros: bajando";
-    else mockTrendLabel = "Tendencia de simulacros: estable";
+    if (diff > 3) mockTrendLabel = "Tendencia de simulacros de examen: subiendo";
+    else if (diff < -3) mockTrendLabel = "Tendencia de simulacros de examen: bajando";
+    else mockTrendLabel = "Tendencia de simulacros de examen: estable";
   } else if (sorted.length === 1) {
-    mockTrendLabel = "Primer simulacro registrado";
+    mockTrendLabel = "Primer simulacro de examen registrado";
   }
 
   const topicCounts = new Map<string, number>();

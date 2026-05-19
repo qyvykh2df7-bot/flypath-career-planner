@@ -19,7 +19,7 @@ function scoreBadgeClass(score: number): string {
 function trendBadgeClass(label: string): string {
   if (label === "Subiendo") return "bg-emerald-50 text-emerald-800 ring-emerald-200/60";
   if (label === "Bajando") return "bg-amber-50 text-amber-900 ring-amber-200/60";
-  if (label === "Primer simulacro") return "bg-[#e8eef8] text-[#0f1a33] ring-[#0f1a33]/10";
+  if (label === "Primer simulacro de examen") return "bg-[#e8eef8] text-[#0f1a33] ring-[#0f1a33]/10";
   return "bg-slate-50 text-slate-600 ring-slate-200/60";
 }
 
@@ -29,7 +29,7 @@ export function MockResultsTable({ mockResults, onDelete }: MockResultsTableProp
   if (sorted.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-[13px] font-medium text-slate-600">
-        <p>Todavía no has registrado ningún simulacro.</p>
+        <p>Todavía no has registrado ningún simulacro de examen.</p>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export function MockResultsTable({ mockResults, onDelete }: MockResultsTableProp
               type="button"
               onClick={() => onDelete(mock.id)}
               className="shrink-0 p-1 text-[11px] font-medium text-slate-400 transition hover:text-red-600"
-              aria-label={`Eliminar simulacro de ${subjectName}`}
+              aria-label={`Eliminar simulacro de examen de ${subjectName}`}
             >
               Eliminar
             </button>

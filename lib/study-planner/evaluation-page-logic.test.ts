@@ -35,7 +35,7 @@ describe("evaluation-page-logic", () => {
       sessions: [],
     });
     const line = formatEvaluationDashboardLine(summary, [], "2026-05-19");
-    expect(line).toBe("Simulacros 99% · 0 errores pendientes · 0 repasos hoy");
+    expect(line).toBe("Simulacros de examen 99% · 0 errores pendientes · 0 repasos hoy");
   });
 
   it("coach recommends first mock when none", () => {
@@ -48,7 +48,7 @@ describe("evaluation-page-logic", () => {
       sessions: [],
     });
     const coach = buildEvaluationCoachRecommendation(summary, [], [], []);
-    expect(coach.ctaLabel).toBe("Registrar simulacro");
+    expect(coach.ctaLabel).toBe("Registrar simulacro de examen");
     expect(coach.message).toMatch(/detectar tu nivel real/);
   });
 
@@ -78,8 +78,8 @@ describe("evaluation-page-logic", () => {
   });
 
   it("trend label for single mock", () => {
-    expect(formatSubjectMockTrendLabel(1, "none")).toBe("Primer simulacro");
+    expect(formatSubjectMockTrendLabel(1, "none")).toBe("Primer simulacro de examen");
     const sorted: MockResult[] = [{ id: "1", date: "2026-05-19", subjectId: "a", score: 80 }];
-    expect(formatHistoryMockTrendLabel(sorted, 0)).toBe("Primer simulacro");
+    expect(formatHistoryMockTrendLabel(sorted, 0)).toBe("Primer simulacro de examen");
   });
 });
