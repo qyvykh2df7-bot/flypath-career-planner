@@ -13,13 +13,15 @@ type EvaluationCoachCardProps = {
 
 export function EvaluationCoachCard({ recommendation, onAction }: EvaluationCoachCardProps) {
   return (
-    <section className="rounded-xl border border-[#c9a454]/30 bg-gradient-to-br from-[#fffdf8] to-white p-4 shadow-sm ring-1 ring-[#c9a454]/15">
-      <h3 className="text-[14px] font-semibold text-[#0f1a33]">{recommendation.title}</h3>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-slate-700">{recommendation.message}</p>
+    <section className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#fffdf8]/80 px-3 py-2 ring-1 ring-[#c9a454]/12">
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold text-[#7a5a16]">{recommendation.title}</p>
+        <p className="text-[12px] leading-snug text-slate-600">{recommendation.message}</p>
+      </div>
       <button
         type="button"
         onClick={() => onAction(recommendation.action)}
-        className="mt-3 inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#c9a454] bg-[#c9a454] px-4 py-2 text-[13px] font-semibold text-[#0f1a33] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+        className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-[#c9a454] px-3 text-[11px] font-semibold text-[#0f1a33] ring-1 ring-[#ddb75c]/35 transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
       >
         {recommendation.ctaLabel}
       </button>

@@ -342,6 +342,7 @@ export function AtplPlannerApp() {
             subjects={activeSubjects}
             plannedSessions={modePlannedSessions}
             sessions={modeSessions}
+            examDates={modeExamDates}
             intent={logIntent}
             onIntentConsumed={() => setLogIntent(null)}
             onAddSession={addSession}

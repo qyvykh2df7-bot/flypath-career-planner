@@ -1,6 +1,6 @@
 "use client";
 
-import type { PlannedStudySession, StudySession, StudySubject } from "@/lib/study-planner/types";
+import type { ExamDate, PlannedStudySession, StudySession, StudySubject } from "@/lib/study-planner/types";
 import type { CompletePlannedSessionOverrides } from "@/hooks/useStudyPlannerState";
 import { getTodayDateString } from "@/lib/study-planner/calculations";
 import type { StudyLogIntent } from "@/lib/study-planner/study-log-intent";
@@ -11,6 +11,7 @@ type StudyLogSectionProps = {
   subjects: StudySubject[];
   plannedSessions: PlannedStudySession[];
   sessions: StudySession[];
+  examDates?: ExamDate[];
   intent?: StudyLogIntent | null;
   onIntentConsumed?: () => void;
   onAddSession: (session: StudySession) => void;
@@ -25,6 +26,7 @@ export function StudyLogSection({
   subjects,
   plannedSessions,
   sessions,
+  examDates = [],
   intent,
   onIntentConsumed,
   onAddSession,
@@ -47,11 +49,13 @@ export function StudyLogSection({
   };
 
   return (
-    <div className="space-y-6 pb-2">
-      <header className="space-y-1">
-        <h2 className="text-[18px] font-semibold tracking-tight text-[#0f1a33]">Registro de estudio</h2>
-        <p className="max-w-xl text-[14px] leading-relaxed text-slate-600">
-          Guarda lo que has estudiado para que el planner ajuste tu progreso y próximas sesiones.
+    <div className="space-y-4 pb-2">
+      <header className="space-y-0.5">
+        <h2 className="text-[17px] font-medium tracking-tight text-[#0f1a33]">
+          Registro de estudio
+        </h2>
+        <p className="max-w-xl text-[13px] text-slate-600">
+          Registra sesiones en segundos y alimenta tu progreso.
         </p>
       </header>
 
@@ -64,7 +68,11 @@ export function StudyLogSection({
         onIntentConsumed={onIntentConsumed}
       />
 
-      <StudyLogHistory sessions={sessions} onDelete={onDeleteSession} />
+      <StudyLogHistory
+        sessions={sessions}
+        examDates={examDates}
+        onDelete={onDeleteSession}
+      />
     </div>
   );
 }

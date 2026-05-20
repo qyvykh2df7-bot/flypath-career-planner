@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarPlus, Layers } from "lucide-react";
+import {
+  BatteryWarning,
+  CalendarDays,
+  CalendarPlus,
+  CircleAlert,
+  Compass,
+  Layers,
+  type LucideIcon,
+  Timer,
+  TrendingDown,
+  RotateCcw,
+} from "lucide-react";
 import type {
   ErrorLogItem,
   MockResult,
@@ -15,6 +26,10 @@ import type {
 } from "@/lib/study-planner/types";
 import type { RecoveryApplyResult } from "@/lib/study-planner/recovery-apply";
 import {
+  formatRecoveryStepForDisplay,
+  formatRecoverySummaryForDisplay,
+} from "@/lib/study-planner/recovery-display";
+import {
   RECOVERY_ACTION_LABELS,
   RECOVERY_PROBLEM_OPTIONS,
   RECOVERY_WEEK_LOAD_LABELS,
@@ -24,6 +39,17 @@ import {
 const HELP_TOAST =
   "Próximamente: clases y mentorías por asignatura.";
 const TOAST_MS = 4000;
+
+const RECOVERY_PROBLEM_ICONS: Record<RecoveryProblem, LucideIcon> = {
+  too_many_subjects: Layers,
+  low_mock_scores: TrendingDown,
+  no_weekly_plan: CalendarDays,
+  overdue_reviews: RotateCcw,
+  pending_errors: CircleAlert,
+  low_time: Timer,
+  burnout: BatteryWarning,
+  dont_know_where_to_start: Compass,
+};
 
 type RecoveryModeProps = {
   mode: StudyMode;
@@ -180,22 +206,39 @@ export function RecoveryMode(props: RecoveryModeProps) {
 
       <section className="space-y-2">
         <h3 className="text-[14px] font-semibold text-[#0f1a33]">¿Qué te está pasando?</h3>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-1.5 sm:grid-cols-2">
           {RECOVERY_PROBLEM_OPTIONS.map((option) => {
             const isSelected = selected.has(option.value);
+            const Icon = RECOVERY_PROBLEM_ICONS[option.value];
             return (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => toggleProblem(option.value)}
-                className={`rounded-lg border px-3 py-2.5 text-left text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45 ${
+                className={`group flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40 ${
                   isSelected
-                    ? "border-[#c9a454] bg-[#fffdf8] text-[#0f1a33] ring-1 ring-[#c9a454]/30"
-                    : "border-slate-200/90 bg-white text-slate-700 hover:border-[#c9a454]/40 hover:bg-[#fffdf8]"
+                    ? "bg-[#fffdf8] shadow-[0_2px_12px_-6px_rgba(201,164,84,0.35)] ring-2 ring-[#c9a454]/45"
+                    : "bg-white/80 ring-1 ring-slate-200/35 hover:bg-[#fffdf8]/60 hover:ring-[#c9a454]/25"
                 }`}
                 aria-pressed={isSelected}
               >
-                {option.label}
+                <span
+                  className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition ${
+                    isSelected
+                      ? "bg-[#c9a454]/20 text-[#7a5a16]"
+                      : "bg-slate-100/80 text-slate-500 group-hover:bg-[#fff8e8]/80 group-hover:text-[#7a5a16]"
+                  }`}
+                  aria-hidden
+                >
+                  <Icon className="h-3.5 w-3.5" strokeWidth={2.25} />
+                </span>
+                <span
+                  className={`min-w-0 flex-1 text-[12px] font-medium leading-snug ${
+                    isSelected ? "text-[#0f1a33]" : "text-slate-700"
+                  }`}
+                >
+                  {option.label}
+                </span>
               </button>
             );
           })}
@@ -217,18 +260,20 @@ export function RecoveryMode(props: RecoveryModeProps) {
       </button>
 
       {plan ? (
-        <article className="overflow-hidden rounded-xl border border-[#c9a454]/25 bg-white shadow-md ring-1 ring-[#c9a454]/20">
-          <div className="border-b border-[#c9a454]/20 bg-gradient-to-r from-[#0f1a33] to-[#1a2d52] px-4 py-3">
+        <article className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_-14px_rgba(15,26,51,0.12)] ring-1 ring-slate-200/40">
+          <div className="border-b border-[#0f1a33]/[0.08] bg-gradient-to-r from-[#0f1a33]/[0.07] via-[#eef2f8] to-[#fffdf8] px-3.5 py-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-[16px] font-semibold text-white">Plan de 7 días</h3>
+              <h3 className="text-[16px] font-semibold tracking-tight text-[#0f1a33]">
+                Plan de 7 días
+              </h3>
               <div className="flex flex-wrap items-center gap-1.5">
                 {plan.variant === "lighter" ? (
-                  <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-white/25">
+                  <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[#1e4a7a] ring-1 ring-[#3b6ea8]/15">
                     Versión con menos carga
                   </span>
                 ) : null}
                 <span
-                  className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ${weekLoadStyles(plan.riskLevel)}`}
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1 ${weekLoadStyles(plan.riskLevel)}`}
                 >
                   {RECOVERY_WEEK_LOAD_LABELS[plan.riskLevel]}
                 </span>
@@ -236,68 +281,77 @@ export function RecoveryMode(props: RecoveryModeProps) {
             </div>
           </div>
 
-          <div className="space-y-4 p-4 sm:p-5">
-            <p className="text-[14px] leading-relaxed text-slate-700">{plan.summary}</p>
+          <div className="space-y-3.5 p-3.5 sm:p-4">
+            <p className="text-[12px] leading-snug text-slate-500">
+              {formatRecoverySummaryForDisplay(plan.summary)}
+            </p>
 
-            <ol className="space-y-3">
-              {plan.steps.map((step, index) => (
-                <li
-                  key={step.id}
-                  className="rounded-lg border border-slate-100 bg-slate-50/50 p-3"
-                >
-                  <div className="flex flex-wrap items-start gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0f1a33] text-[12px] font-bold text-white">
+            <ol className="space-y-2">
+              {plan.steps.map((step, index) => {
+                const display = formatRecoveryStepForDisplay(step);
+                return (
+                  <li
+                    key={step.id}
+                    className="flex gap-2.5 rounded-lg bg-slate-50/55 px-2.5 py-2 ring-1 ring-slate-100/80"
+                  >
+                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg bg-[#0f1a33] text-[10px] font-bold text-white shadow-[0_1px_4px_rgba(15,26,51,0.2)]">
                       {index + 1}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-[#0f1a33]">{step.title}</p>
+                    <div className="min-w-0 flex-1 pt-px">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <p
+                          className="text-[13px] font-semibold leading-snug text-[#0f1a33]"
+                          title={step.title}
+                        >
+                          {display.title}
+                        </p>
                         {step.actionType ? (
-                          <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                          <span className="shrink-0 rounded-md bg-white px-1.5 py-px text-[9px] font-medium text-[#1e4a7a] ring-1 ring-[#3b6ea8]/15">
                             {RECOVERY_ACTION_LABELS[step.actionType]}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-1.5 text-[13px] leading-relaxed text-slate-600">
-                        {step.description}
+                      <p
+                        className="mt-1 line-clamp-2 text-[11px] leading-snug text-slate-400"
+                        title={step.description}
+                      >
+                        {display.description}
                       </p>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
 
-            <section className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 ring-1 ring-slate-100/80">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                Siguiente paso
-              </p>
-              <p className="mt-1 text-[13px] text-slate-600">
+            <section className="rounded-lg bg-slate-50/50 px-2.5 py-2 ring-1 ring-slate-200/25">
+              <p className="text-[11px] font-semibold text-slate-500">Siguiente paso</p>
+              <p className="mt-0.5 text-[12px] text-slate-600">
                 Puedes aplicar esta propuesta a tu calendario o pedir una versión con menos carga.
               </p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap">
                 <button
                   type="button"
                   onClick={handleApplyPlan}
-                  className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#c9a454] bg-[#c9a454] px-3 py-2 text-[13px] font-semibold text-[#0f1a33] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:flex-none sm:px-4"
+                  className="inline-flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#c9a454] bg-[#c9a454] px-3 py-1.5 text-[12px] font-semibold text-[#0f1a33] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:flex-none sm:px-3.5"
                 >
-                  <CalendarPlus className="h-4 w-4 shrink-0" aria-hidden />
+                  <CalendarPlus className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   Aplicar este plan
                 </button>
                 <button
                   type="button"
                   onClick={handleGenerateLighter}
-                  className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-semibold text-[#0f1a33] transition hover:border-[#c9a454]/40 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40 sm:flex-none sm:px-4"
+                  className="inline-flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12px] font-semibold text-[#0f1a33] ring-1 ring-slate-200/40 transition hover:bg-[#fffdf8] hover:ring-[#c9a454]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40 sm:flex-none sm:px-3.5"
                 >
-                  <Layers className="h-4 w-4 shrink-0" aria-hidden />
+                  <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   Generar versión más ligera
                 </button>
               </div>
               {actionNote ? (
                 <p
-                  className={`mt-2.5 rounded-lg border px-3 py-2 text-[12px] leading-relaxed ${
+                  className={`mt-2 rounded-md px-2 py-1.5 text-[11px] leading-relaxed ${
                     applySuccess
-                      ? "border-emerald-200/80 bg-emerald-50/80 font-medium text-emerald-900"
-                      : "border-slate-200/80 bg-white text-slate-600"
+                      ? "bg-emerald-50/90 font-medium text-emerald-900"
+                      : "bg-white/80 text-slate-600"
                   }`}
                   role="status"
                 >
@@ -308,14 +362,15 @@ export function RecoveryMode(props: RecoveryModeProps) {
           </div>
 
           {plan.cta ? (
-            <section className="border-t border-slate-100 px-4 py-3 sm:px-5">
-              <p className="text-[12px] text-slate-500">
-                ¿Una asignatura te bloquea (teoría, banco o simulacro de examen)?
+            <section className="mx-3 mb-3 rounded-xl bg-gradient-to-br from-[#fff9ee] via-[#fffdf8] to-white p-3 ring-1 ring-[#c9a454]/28 sm:mx-3.5">
+              <p className="text-[13px] font-semibold text-[#0f1a33]">¿Bloqueo concreto?</p>
+              <p className="mt-0.5 text-[12px] leading-snug text-slate-600">
+                Convierte una asignatura difícil en una acción concreta.
               </p>
               <button
                 type="button"
                 onClick={() => setToast(HELP_TOAST)}
-                className="mt-2 inline-flex min-h-[40px] items-center justify-center rounded-lg border border-slate-200/90 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:border-[#c9a454]/40 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
+                className="mt-2.5 inline-flex min-h-[40px] w-full items-center justify-center rounded-lg border border-[#c9a454]/50 bg-white px-4 py-2 text-[13px] font-semibold text-[#0f1a33] shadow-[0_2px_10px_-6px_rgba(201,164,84,0.35)] transition hover:border-[#c9a454] hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40 sm:w-auto"
               >
                 {plan.cta.label}
               </button>

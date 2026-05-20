@@ -10,8 +10,7 @@ import type {
   StudySubject,
 } from "@/lib/study-planner/types";
 import { getTodayDateString } from "@/lib/study-planner/calculations";
-import { SESSION_QUALITY_OPTIONS, SESSION_TYPE_OPTIONS } from "@/lib/study-planner/labels";
-import { formatSessionHeadline } from "@/lib/study-planner/session-type-visual";
+import { SESSION_QUALITY_OPTIONS, SESSION_TYPE_OPTIONS, getSessionTypeShortLabel } from "@/lib/study-planner/labels";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import type { StudyLogIntent, StudyLogMode } from "@/lib/study-planner/study-log-intent";
 import { isPendingLikeStatus } from "@/lib/study-planner/planner-session-status";
@@ -56,6 +55,11 @@ function emptyFormFields(today: string) {
     date: today,
     notesOpen: false,
   };
+}
+
+function formatPlannedOneLiner(planned: PlannedStudySession): string {
+  const subjectName = getSubjectById(planned.subjectId)?.name ?? planned.subjectId;
+  return `${subjectName} · ${getSessionTypeShortLabel(planned.type)} · ${planned.plannedDurationMinutes} min`;
 }
 
 export function StudyLogForm({
@@ -182,14 +186,8 @@ export function StudyLogForm({
     }
   }, [mode, plannedSessionId, todayPending, applyPlannedToForm, subjectId, resetToManualEntry]);
 
-  const plannedHeadline =
-    showPlanConfirm && selectedPlanned
-      ? formatSessionHeadline({
-          minutes: selectedPlanned.plannedDurationMinutes,
-          subjectName: getSubjectById(selectedPlanned.subjectId)?.name ?? selectedPlanned.subjectId,
-          sessionType: selectedPlanned.type,
-        })
-      : null;
+  const plannedOneLiner =
+    showPlanConfirm && selectedPlanned ? formatPlannedOneLiner(selectedPlanned) : null;
 
   const parseDurationMinutes = (): number | null => {
     const n = parseInt(durationMinutes, 10);
@@ -252,14 +250,19 @@ export function StudyLogForm({
   };
 
   const fieldClass =
-    "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[14px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25";
-  const labelClass = "text-[12px] font-semibold text-slate-600";
+    "mt-0.5 h-9 w-full rounded-md bg-white px-2.5 text-[13px] text-[#0f1a33] ring-1 ring-slate-200/45 focus:ring-2 focus:ring-[#c9a454]/25 focus:outline-none";
+  const labelClass = "text-[11px] font-medium text-slate-500";
+
+  const confirmBtnPrimary =
+    "inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-[#c9a454] px-3 text-[13px] font-semibold text-[#0f1a33] ring-1 ring-[#ddb75c]/40 transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40";
+  const confirmBtnSecondary =
+    "inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-white px-3 text-[13px] font-semibold text-slate-700 ring-1 ring-slate-200/50 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200/80";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {feedback ? (
         <p
-          className="rounded-lg border border-emerald-200/90 bg-emerald-50 px-3.5 py-2.5 text-[14px] font-medium text-emerald-800 shadow-sm"
+          className="rounded-lg bg-emerald-50/90 px-3 py-2 text-[13px] font-medium text-emerald-800 ring-1 ring-emerald-200/50"
           role="status"
           aria-live="polite"
         >
@@ -268,7 +271,7 @@ export function StudyLogForm({
       ) : null}
 
       <div
-        className="flex rounded-xl border border-slate-200/90 bg-slate-50/80 p-1"
+        className="inline-flex w-full max-w-md rounded-lg bg-slate-100/60 p-0.5 ring-1 ring-slate-200/25"
         role="tablist"
         aria-label="Modo de registro"
       >
@@ -291,10 +294,10 @@ export function StudyLogForm({
                 applyPlannedToForm(todayPending[0]!);
               }
             }}
-            className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold transition ${
+            className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition ${
               mode === item.id
-                ? "bg-white text-[#0f1a33] shadow-sm ring-1 ring-slate-200/80"
-                : "text-slate-600 hover:text-[#0f1a33]"
+                ? "bg-white text-[#0f1a33] shadow-[0_1px_3px_-1px_rgba(15,26,51,0.08)]"
+                : "text-slate-600 hover:bg-white/50 hover:text-[#0f1a33]"
             }`}
           >
             {item.label}
@@ -303,7 +306,7 @@ export function StudyLogForm({
       </div>
 
       {mode === "plan_block" ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {todayPending.length > 1 ? (
             <label className="block">
               <span className={labelClass}>Bloque pendiente hoy</span>
@@ -319,50 +322,46 @@ export function StudyLogForm({
               >
                 {todayPending.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {formatSessionHeadline({
-                      minutes: p.plannedDurationMinutes,
-                      subjectName: getSubjectById(p.subjectId)?.name ?? p.subjectId,
-                      sessionType: p.type,
-                    })}
+                    {formatPlannedOneLiner(p)}
                   </option>
                 ))}
               </select>
             </label>
           ) : null}
 
-          {showPlanConfirm && plannedHeadline ? (
-            <div className="rounded-xl border border-[#c9a454]/35 bg-gradient-to-br from-[#fffdf8] to-white p-4 shadow-sm ring-1 ring-[#c9a454]/20">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
+          {showPlanConfirm && plannedOneLiner ? (
+            <div className="rounded-lg bg-gradient-to-r from-[#fffdf8] to-white px-3 py-2.5 ring-1 ring-[#c9a454]/18">
+              <p className="text-[10px] font-semibold text-[#7a5a16]">
                 ¿Has completado este bloque?
               </p>
-              <p className="mt-2 text-[16px] font-semibold text-[#0f1a33]">{plannedHeadline}</p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={handleConfirmPlanned}
-                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-4 py-2.5 text-[14px] font-semibold text-[#0f1a33] shadow-[0_6px_20px_rgba(201,164,84,0.28)] transition hover:bg-[#ddb75c]"
-                >
+              <p className="mt-0.5 truncate text-[13px] font-semibold text-[#0f1a33]">
+                {plannedOneLiner}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button type="button" onClick={handleConfirmPlanned} className={confirmBtnPrimary}>
                   Confirmar y guardar
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    const el = document.getElementById("study-log-quick-form");
-                    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    document.getElementById("study-log-quick-form")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
                   }}
-                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[14px] font-semibold text-slate-700 transition hover:border-slate-300"
+                  className={confirmBtnSecondary}
                 >
                   Editar antes de guardar
                 </button>
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-3.5">
-              <p className="text-[14px] font-medium text-slate-700">
+            <div className="rounded-lg bg-slate-50/70 px-3 py-2 ring-1 ring-slate-200/25">
+              <p className="text-[13px] font-medium text-slate-700">
                 Ya no quedan bloques pendientes hoy.
               </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-                Puedes registrar estudio libre o adelantar una sesión desde el calendario.
+              <p className="mt-0.5 text-[12px] text-slate-500">
+                Registra estudio libre o adelanta desde el calendario.
               </p>
             </div>
           )}
@@ -372,10 +371,10 @@ export function StudyLogForm({
       <form
         id="study-log-quick-form"
         onSubmit={handleSubmit}
-        className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm ring-1 ring-slate-100/80 sm:p-4"
+        className="rounded-xl bg-white/95 p-3 ring-1 ring-slate-200/30 sm:p-3.5"
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <label className="block">
             <span className={labelClass}>Asignatura</span>
             <select
               value={subjectId}
@@ -392,7 +391,7 @@ export function StudyLogForm({
             </select>
           </label>
 
-          <label className="block sm:col-span-2">
+          <label className="block">
             <span className={labelClass}>Tipo de sesión</span>
             <select
               value={type}
@@ -409,24 +408,24 @@ export function StudyLogForm({
 
           <div className="sm:col-span-2">
             <span className={labelClass}>Duración</span>
-            <div className="mt-1.5 flex flex-wrap gap-2">
+            <div className="mt-0.5 flex flex-wrap gap-1.5">
               {DURATION_PRESETS.map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => setDurationMinutes(String(m))}
-                  className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold transition ${
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
                     durationMinutes === String(m)
-                      ? "border-[#c9a454]/50 bg-[#fff8e8] text-[#7a5a16]"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      ? "bg-[#fff8e8] text-[#7a5a16] ring-1 ring-[#c9a454]/35"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200/45 hover:ring-[#c9a454]/25 hover:text-[#7a5a16]"
                   }`}
                 >
                   {m} min
                 </button>
               ))}
             </div>
-            <label className="mt-2 block">
-              <span className="text-[12px] text-slate-500">Minutos</span>
+            <label className="mt-1.5 block">
+              <span className="text-[10px] text-slate-400">Minutos</span>
               <input
                 type="number"
                 min={1}
@@ -439,8 +438,8 @@ export function StudyLogForm({
             </label>
           </div>
 
-          <label className="block sm:col-span-2">
-            <span className={labelClass}>Calidad de sesión</span>
+          <label className="block">
+            <span className={labelClass}>Calidad</span>
             <select
               value={quality}
               onChange={(e) => setQuality(e.target.value as StudySessionQuality)}
@@ -454,13 +453,23 @@ export function StudyLogForm({
             </select>
           </label>
 
+          <label className="block">
+            <span className={labelClass}>Fecha</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className={fieldClass}
+            />
+          </label>
+
           <div className="sm:col-span-2">
             <button
               type="button"
               onClick={() => setNotesOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-600 transition hover:text-[#0f1a33]"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-[#0f1a33]"
             >
-              {notesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {notesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               Añadir notas
             </button>
             {notesOpen ? (
@@ -468,32 +477,22 @@ export function StudyLogForm({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className={`${fieldClass} mt-2 resize-y min-h-[64px]`}
-                placeholder="Temas vistos, dudas, simulacro de examen parcial…"
+                className={`${fieldClass} mt-1 min-h-[52px] resize-y`}
+                placeholder="Temas vistos, dudas…"
               />
             ) : null}
           </div>
-
-          <label className="block sm:col-span-2">
-            <span className="text-[12px] text-slate-500">Fecha</span>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={`${fieldClass} max-w-[12rem]`}
-            />
-          </label>
         </div>
 
         {error ? (
-          <p className="mt-3 text-[14px] font-medium text-red-600" role="alert">
+          <p className="mt-2 text-[12px] font-medium text-red-600" role="alert">
             {error}
           </p>
         ) : null}
 
         <button
           type="submit"
-          className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[14px] font-semibold text-[#0f1a33] shadow-[0_6px_20px_rgba(201,164,84,0.28)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#c9a454] px-4 text-[13px] font-semibold text-[#0f1a33] ring-1 ring-[#ddb75c]/40 transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
         >
           Guardar estudio
         </button>

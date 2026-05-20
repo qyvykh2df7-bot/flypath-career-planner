@@ -2,12 +2,11 @@
 
 import { useMemo } from "react";
 import { Check } from "lucide-react";
-import type { ExamDate, PlannedStudySession, StudyMode, StudySubject } from "@/lib/study-planner/types";
+import type { PlannedStudySession, StudyMode, StudySubject } from "@/lib/study-planner/types";
 import {
   isPendingLikeStatus,
   normalizePlannedSessionStatus,
 } from "@/lib/study-planner/planner-session-status";
-import { formatNextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
 import {
   comparePlannedByStartTime,
   getPlannerMetrics,
@@ -19,12 +18,8 @@ import type { WeeklyPlanAlert } from "@/lib/study-planner/weekly-alerts";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
 import { SessionHeroCard, type SessionHeroPrimaryAction } from "./SessionHeroCard";
-import { PulseLine } from "./PulseLine";
 import { WeekAlertsCompact } from "../planning/WeeklyPlanDashboard";
-import {
-  EvaluationDashboardLine,
-  type DashboardQuickAction,
-} from "../evaluation/EvaluationDashboardLine";
+import { DashboardEvaluationVigil } from "./DashboardEvaluationVigil";
 import type {
   GoToEvaluationOptions,
   GoToSubjectsOptions,
@@ -38,15 +33,13 @@ type DashboardWeekInProgressProps = {
   nextSessionSubjectName?: string;
   alerts: WeeklyPlanAlert[];
   positiveMessage: string | null;
-  pulseParts: { label: string; onClick?: () => void }[];
   onOpenSession: (session: PlannedStudySession) => void;
-  examDates: ExamDate[];
   onGoToLog?: () => void;
   onViewPlan?: () => void;
   onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
   onGoToEvaluation?: (options?: GoToEvaluationOptions) => void;
-  evaluationLine?: string | null;
-  showEvaluationEmptyCta?: boolean;
+  evaluationVigilLine?: string | null;
+  onEvaluationVigilGo?: () => void;
 };
 
 function TodayTimelineItem({
@@ -148,18 +141,14 @@ export function DashboardWeekInProgress({
   nextSessionSubjectName: _nextSessionSubjectName,
   alerts,
   positiveMessage,
-  pulseParts,
   onOpenSession,
-  examDates,
   onGoToLog,
   onViewPlan,
-  onGoToSubjects,
   onGoToEvaluation,
-  evaluationLine,
-  showEvaluationEmptyCta = false,
+  evaluationVigilLine = null,
+  onEvaluationVigilGo,
 }: DashboardWeekInProgressProps) {
   const today = getTodayDateString();
-  const nextExam = formatNextExamHighlight(examDates, today);
 
   const todaySessions = useMemo(
     () =>
@@ -191,23 +180,6 @@ export function DashboardWeekInProgress({
 
   const heroContext = useMemo(() => buildDashboardHeroFromMetrics(metrics), [metrics]);
   const nextUpSessionId = heroContext.focusPlannedSessionId ?? null;
-
-  const insightQuickActions = useMemo(() => {
-    const actions: DashboardQuickAction[] = [];
-    if (!nextExam && onGoToSubjects) {
-      actions.push({
-        label: "Añadir fecha de examen",
-        onClick: () => onGoToSubjects({ openExamDatesForm: true }),
-      });
-    }
-    if (showEvaluationEmptyCta && onGoToEvaluation) {
-      actions.push({
-        label: "Registrar simulacro de examen",
-        onClick: () => onGoToEvaluation({ section: "mocks", focusMockForm: true }),
-      });
-    }
-    return actions;
-  }, [nextExam, onGoToSubjects, showEvaluationEmptyCta, onGoToEvaluation]);
 
   const handleHeroPrimaryAction = () => {
     const action: SessionHeroPrimaryAction =
@@ -286,19 +258,6 @@ export function DashboardWeekInProgress({
         )}
       </section>
 
-      <EvaluationDashboardLine
-        line={evaluationLine ?? null}
-        showEmptyCta={showEvaluationEmptyCta}
-        onGoToEvaluation={onGoToEvaluation ? () => onGoToEvaluation() : undefined}
-        nextExamHint={
-          nextExam
-            ? { subjectName: nextExam.subjectName, daysLabel: nextExam.daysLabel }
-            : null
-        }
-        quickActions={insightQuickActions}
-        variant="subtle"
-      />
-
       {alerts.length > 0 ? (
         <div className="rounded-lg border border-amber-200/50 bg-amber-50/35 px-3 py-2">
           <WeekAlertsCompact alerts={alerts} />
@@ -309,7 +268,10 @@ export function DashboardWeekInProgress({
         </div>
       ) : null}
 
-      <PulseLine parts={pulseParts} alert={null} />
+      <DashboardEvaluationVigil
+        line={evaluationVigilLine}
+        onGoToEvaluation={onEvaluationVigilGo}
+      />
     </div>
   );
 }

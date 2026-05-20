@@ -25,7 +25,6 @@ import {
 } from "./SessionHeroCard";
 import { MomentumStrip } from "./MomentumStrip";
 import { AttentionList } from "./AttentionList";
-import { PulseLine } from "./PulseLine";
 import { DashboardMissionControl } from "./DashboardMissionControl";
 import { DashboardStudyCenter } from "./DashboardStudyCenter";
 import { DashboardWeekInProgress } from "./DashboardWeekInProgress";
@@ -36,8 +35,6 @@ import {
   calculatePendingErrorsForSubject,
   calculatePendingReviewCount,
   calculateReadinessForSubjects,
-  formatDaysRemaining,
-  getDaysUntilDate,
   getNextUpcomingExam,
   getReviewStatus,
   getCurrentWeekPlannedSessions,
@@ -47,15 +44,10 @@ import {
 } from "@/lib/study-planner/calculations";
 import { resolveWeeklyAlertsDisplay } from "@/lib/study-planner/weekly-alerts-display";
 import { getSubjectById } from "@/lib/study-planner/subjects";
+import { buildEvaluationSummary } from "@/lib/study-planner/evaluation-page-logic";
+import { formatDashboardEvaluationVigilLine } from "@/lib/study-planner/dashboard-atpl-focus";
 import { formatNextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
-import {
-  buildEvaluationSummary,
-  formatEvaluationDashboardLine,
-} from "@/lib/study-planner/evaluation-page-logic";
-import {
-  EvaluationDashboardLine,
-  type DashboardQuickAction,
-} from "../evaluation/EvaluationDashboardLine";
+import { DashboardEvaluationVigil } from "./DashboardEvaluationVigil";
 import type {
   GoToEvaluationOptions,
   GoToSubjectsOptions,
@@ -194,7 +186,6 @@ export function StudyDashboard({
     today,
   });
 
-  const pendingReviews = calculatePendingReviewCount(reviewItems);
   const evaluationSummary = useMemo(
     () =>
       buildEvaluationSummary({
@@ -208,10 +199,19 @@ export function StudyDashboard({
       }),
     [mockResults, errorLogItems, reviewItems, subjects, examDates, sessions, today],
   );
-  const evaluationLine = formatEvaluationDashboardLine(evaluationSummary, reviewItems, today);
-  const nextExamHighlight = formatNextExamHighlight(examDates, today);
+  const nextExamHighlight = useMemo(
+    () => formatNextExamHighlight(examDates, today),
+    [examDates, today],
+  );
+  const evaluationVigilLine = useMemo(
+    () =>
+      formatDashboardEvaluationVigilLine({
+        pendingErrors: evaluationSummary.pendingErrors,
+        nextExam: nextExamHighlight,
+      }),
+    [evaluationSummary.pendingErrors, nextExamHighlight],
+  );
   const nextExam = getNextUpcomingExam(examDates, today);
-  const nextExamDays = nextExam ? getDaysUntilDate(nextExam.date, today) : null;
 
   const topAlert =
     alertsDisplay.alerts.find(
@@ -228,35 +228,9 @@ export function StudyDashboard({
     emptyHeroState?.variant === "fresh" ||
     (emptyHeroState?.variant === "study_no_plan" && !completion.hasLoggedStudyThisWeek);
 
-  const pulseParts = [
-    {
-      label:
-        pendingReviews > 0
-          ? `${pendingReviews} repaso${pendingReviews === 1 ? "" : "s"}`
-          : "",
-      onClick:
-        pendingReviews > 0 && onGoToEvaluation
-          ? () => onGoToEvaluation({ section: "reviews" })
-          : undefined,
-    },
-    {
-      label:
-        nextExam && nextExamDays !== null && nextExamDays >= 0
-          ? `Examen ${formatDaysRemaining(nextExamDays)}`
-          : "",
-    },
-  ];
-
-  const dashboardQuickActions = useMemo(() => {
-    const actions: DashboardQuickAction[] = [];
-    if (!nextExamHighlight && onGoToSubjects) {
-      actions.push({
-        label: "Añadir fecha de examen",
-        onClick: () => onGoToSubjects({ openExamDatesForm: true }),
-      });
-    }
-    return actions;
-  }, [nextExamHighlight, onGoToSubjects]);
+  const goToEvaluationDefault = onGoToEvaluation
+    ? () => onGoToEvaluation({ section: "mocks" })
+    : undefined;
 
   const openFocusSession = (session: PlannedStudySession | null) => {
     if (session) setFocusSession(session);
@@ -296,15 +270,13 @@ export function StudyDashboard({
           nextSessionSubjectName={nextSessionInfo?.subjectName ?? focusSubjectName}
           alerts={alertsDisplay.alerts}
           positiveMessage={alertsDisplay.positiveMessage}
-          pulseParts={pulseParts}
-          examDates={examDates}
           onOpenSession={setFocusSession}
           onGoToLog={onGoToLog}
           onViewPlan={onGoToCalendar}
           onGoToSubjects={onGoToSubjects}
           onGoToEvaluation={onGoToEvaluation}
-          evaluationLine={evaluationLine}
-          showEvaluationEmptyCta={evaluationSummary.mockCount === 0}
+          evaluationVigilLine={evaluationVigilLine}
+          onEvaluationVigilGo={goToEvaluationDefault}
         />
         <StudySessionFocusSheet
           session={focusSession}
@@ -339,25 +311,6 @@ export function StudyDashboard({
         onViewPlan={onGoToCalendar}
       />
 
-      <EvaluationDashboardLine
-        line={evaluationLine}
-        showEmptyCta={evaluationSummary.mockCount === 0}
-        onGoToEvaluation={
-          onGoToEvaluation
-            ? () => onGoToEvaluation({ section: "mocks", focusMockForm: true })
-            : undefined
-        }
-        nextExamHint={
-          nextExamHighlight
-            ? {
-                subjectName: nextExamHighlight.subjectName,
-                daysLabel: nextExamHighlight.daysLabel,
-              }
-            : null
-        }
-        quickActions={dashboardQuickActions}
-      />
-
       <MomentumStrip
         sessions={sessions}
         weekPercent={completion.completionPercent}
@@ -372,7 +325,20 @@ export function StudyDashboard({
         onSelectSubject={onGoToSubjects ? () => onGoToSubjects() : undefined}
       />
 
-      <PulseLine parts={pulseParts} alert={topAlert} />
+      {topAlert ? (
+        <p
+          className={`text-[11px] leading-snug ${
+            topAlert.severity === "risk" ? "text-red-700/90" : "text-amber-800/90"
+          }`}
+        >
+          {topAlert.message}
+        </p>
+      ) : null}
+
+      <DashboardEvaluationVigil
+        line={evaluationVigilLine}
+        onGoToEvaluation={goToEvaluationDefault}
+      />
     </div>
   );
 }

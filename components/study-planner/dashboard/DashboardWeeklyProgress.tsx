@@ -88,9 +88,11 @@ export function DashboardWeeklyProgress({
           <span className="font-semibold tabular-nums text-[#0f1a33]">{blockCount}</span>
           <span> bloques completados</span>
         </p>
-      </section>
 
-      <p className="text-[11px] leading-snug tracking-tight text-slate-600">{planMetaLine}</p>
+        <p className="mt-2 border-t border-[#c9a454]/12 pt-1.5 text-[10px] leading-snug text-slate-500">
+          {planMetaLine}
+        </p>
+      </section>
     </div>
   );
 }

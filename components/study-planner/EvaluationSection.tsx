@@ -16,6 +16,8 @@ import {
   type EvaluationCoachAction,
   type EvaluationView,
 } from "@/lib/study-planner/evaluation-page-logic";
+import { calculateReadinessForSubjects, getTodayDateString } from "@/lib/study-planner/calculations";
+import { buildEvaluationPriorityGroups } from "@/lib/study-planner/evaluation-presentation";
 import { MockResultForm } from "./MockResultForm";
 import { MockSubjectSummary } from "./MockSubjectSummary";
 import { MockResultsTable } from "./MockResultsTable";
@@ -23,7 +25,8 @@ import { ReviewItemForm } from "./ReviewItemForm";
 import { ReviewItemsList } from "./ReviewItemsList";
 import { ErrorLogForm } from "./ErrorLogForm";
 import { ErrorLogList } from "./ErrorLogList";
-import { EvaluationSummaryBar } from "./evaluation/EvaluationSummaryBar";
+import { EvaluationHero } from "./evaluation/EvaluationHero";
+import { EvaluationPriorityPanel } from "./evaluation/EvaluationPriorityPanel";
 import { EvaluationCoachCard, resolveCoachView } from "./evaluation/EvaluationCoachCard";
 import { createPlannerId, formatDateLocal } from "@/lib/study-planner/calculations";
 import type { GoToSubjectsOptions } from "@/lib/study-planner/dashboard-navigation";
@@ -31,7 +34,7 @@ import type { GoToSubjectsOptions } from "@/lib/study-planner/dashboard-navigati
 export type { EvaluationView };
 
 const SUB_TABS: { id: EvaluationView; label: string }[] = [
-  { id: "mocks", label: "Simulacros de examen" },
+  { id: "mocks", label: "Simulacros" },
   { id: "errors", label: "Errores" },
   { id: "reviews", label: "Repasos" },
 ];
@@ -45,7 +48,6 @@ type EvaluationSectionProps = {
   errorLogItems: ErrorLogItem[];
   examDates: ExamDate[];
   initialView?: EvaluationView;
-  /** Incrementar desde navegación para abrir simulacros y enfocar el formulario. */
   focusMockFormRequestKey?: number;
   onAddMockResult: (mock: MockResult) => void;
   onDeleteMockResult: (id: string) => void;
@@ -81,6 +83,7 @@ export function EvaluationSection({
   onGoToCalendar,
   onGoToSubjects,
 }: EvaluationSectionProps) {
+  const today = getTodayDateString();
   const [view, setView] = useState<EvaluationView>(initialView);
   const [pendingFocusTarget, setPendingFocusTarget] = useState<"errors" | "reviews" | null>(null);
   const mockFormRef = useRef<HTMLDivElement>(null);
@@ -120,6 +123,29 @@ export function EvaluationSection({
   const coach = useMemo(
     () => buildEvaluationCoachRecommendation(summary, errorLogItems, reviewItems, mockResults),
     [summary, errorLogItems, reviewItems, mockResults],
+  );
+
+  const readiness = useMemo(
+    () =>
+      calculateReadinessForSubjects({
+        subjectIds: subjects.map((s) => s.id),
+        sessions,
+        mockResults,
+      }),
+    [subjects, sessions, mockResults],
+  );
+
+  const priorityGroups = useMemo(
+    () =>
+      buildEvaluationPriorityGroups({
+        subjects,
+        readiness,
+        mockResults,
+        errorLogItems,
+        examDates,
+        today,
+      }),
+    [subjects, readiness, mockResults, errorLogItems, examDates, today],
   );
 
   useEffect(() => {
@@ -173,13 +199,13 @@ export function EvaluationSection({
   };
 
   const handleCreateReviewFromError = (error: ErrorLogItem) => {
-    const today = formatDateLocal(new Date());
+    const todayStr = formatDateLocal(new Date());
     onAddReviewItem({
       id: createPlannerId(),
       subjectId: error.subjectId,
       topic: error.topic,
-      createdAt: today,
-      dueDate: today,
+      createdAt: todayStr,
+      dueDate: todayStr,
       intervalDays: 3,
       status: "pending",
       notes: `Repaso desde error: ${error.description.slice(0, 120)}`,
@@ -188,43 +214,43 @@ export function EvaluationSection({
   };
 
   return (
-    <div className="space-y-5">
-      <header className="space-y-1">
-        <h2 className="text-[18px] font-semibold tracking-tight text-[#0f1a33]">Evaluación</h2>
-        <p className="max-w-2xl text-[13px] leading-relaxed text-slate-600">
-          Controla tus simulacros de examen, errores y repasos para saber qué reforzar antes del examen.
+    <div className="space-y-3 pb-2">
+      <header className="space-y-0.5">
+        <h2 className="text-[17px] font-medium tracking-tight text-[#0f1a33]">Evaluación</h2>
+        <p className="max-w-xl text-[13px] text-slate-600">
+          Centro de control: simulacros, riesgo y qué reforzar.
         </p>
       </header>
 
-      <section className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/80 sm:p-4">
-        <EvaluationSummaryBar
-          summary={summary}
-          onNavigate={(target) => {
-            if (target === "errors_pending") {
-              goToPendingErrors();
-              return;
-            }
-            if (target === "reviews_pending") {
-              goToPendingReviews();
-              return;
-            }
-            goToSubjectsAtRisk();
-          }}
-        />
-      </section>
+      <EvaluationHero
+        subjects={subjects}
+        sessions={sessions}
+        mockResults={mockResults}
+        errorLogItems={errorLogItems}
+        reviewItems={reviewItems}
+        examDates={examDates}
+        summary={summary}
+        coach={coach}
+      />
+
+      <EvaluationPriorityPanel groups={priorityGroups} />
 
       <EvaluationCoachCard recommendation={coach} onAction={handleCoachAction} />
 
-      <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200/90 bg-slate-50/80 p-1">
+      <div
+        className="inline-flex max-w-full flex-wrap gap-0.5 rounded-lg bg-slate-100/55 p-0.5 ring-1 ring-slate-200/25"
+        role="tablist"
+        aria-label="Sección de evaluación"
+      >
         {SUB_TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setView(tab.id)}
-            className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40 ${
+            className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/30 ${
               view === tab.id
-                ? "bg-white text-[#0f1a33] shadow-sm ring-1 ring-slate-200/80"
-                : "text-slate-600 hover:text-[#0f1a33]"
+                ? "bg-white text-[#0f1a33] shadow-[0_1px_3px_-1px_rgba(15,26,51,0.08)]"
+                : "text-slate-600 hover:bg-white/50"
             }`}
           >
             {tab.label}
@@ -233,27 +259,31 @@ export function EvaluationSection({
       </div>
 
       {view === "mocks" ? (
-        <div className="space-y-4">
-          <div ref={mockFormRef}>
-            <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Registro rápido de simulacro de examen</p>
+        <div className="space-y-3">
+          <div ref={mockFormRef} className="rounded-xl bg-white/90 p-3 ring-1 ring-slate-200/25">
+            <p className="mb-2 text-[12px] font-semibold text-[#0f1a33]">Nuevo simulacro</p>
             <MockResultForm subjects={subjects} onAddMockResult={onAddMockResult} />
           </div>
           <div>
-            <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Resumen por asignatura</h4>
+            <h4 className="mb-1.5 text-[12px] font-semibold text-[#0f1a33]">
+              Rendimiento por asignatura
+            </h4>
             <MockSubjectSummary mockResults={mockResults} />
           </div>
           <div>
-            <h4 className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Historial de simulacros de examen</h4>
+            <h4 className="mb-1.5 text-[12px] font-semibold text-[#0f1a33]">Historial</h4>
             <MockResultsTable mockResults={mockResults} onDelete={onDeleteMockResult} />
           </div>
         </div>
       ) : null}
 
       {view === "errors" ? (
-        <div className="space-y-4">
-          <ErrorLogForm subjects={subjects} onAddErrorLogItem={onAddErrorLogItem} />
+        <div className="space-y-3">
+          <div className="rounded-xl bg-white/90 p-3 ring-1 ring-slate-200/25">
+            <ErrorLogForm subjects={subjects} onAddErrorLogItem={onAddErrorLogItem} />
+          </div>
           <div ref={errorsPendingRef} tabIndex={-1} className="scroll-mt-4 focus:outline-none">
-            <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Errores pendientes</p>
+            <p className="mb-1.5 text-[12px] font-semibold text-[#0f1a33]">Errores pendientes</p>
           </div>
           <ErrorLogList
             errorLogItems={errorLogItems}
@@ -265,17 +295,19 @@ export function EvaluationSection({
       ) : null}
 
       {view === "reviews" ? (
-        <div className="space-y-4">
-          <ReviewItemForm subjects={subjects} onAddReviewItem={onAddReviewItem} />
+        <div className="space-y-3">
+          <div className="rounded-xl bg-white/90 p-3 ring-1 ring-slate-200/25">
+            <ReviewItemForm subjects={subjects} onAddReviewItem={onAddReviewItem} />
+          </div>
           <div ref={reviewsPendingRef} tabIndex={-1} className="scroll-mt-4 focus:outline-none">
-            <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Repasos pendientes</p>
+            <p className="mb-1.5 text-[12px] font-semibold text-[#0f1a33]">Repasos pendientes</p>
           </div>
           <ReviewItemsList
             reviewItems={reviewItems}
             onComplete={onCompleteReviewItem}
             onReschedule={onRescheduleReviewItem}
             onDelete={onDeleteReviewItem}
-            emptyPendingMessage="Sin repasos pendientes. Cuando registres errores o temas débiles, aparecerán aquí."
+            emptyPendingMessage="Sin repasos pendientes. Registra errores o temas débiles para planificar repaso."
           />
         </div>
       ) : null}
