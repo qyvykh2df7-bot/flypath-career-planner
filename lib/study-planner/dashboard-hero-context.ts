@@ -6,6 +6,7 @@ import { formatSessionHeadline } from "./session-type-visual";
 import { getSessionTypeShortLabel } from "./labels";
 import { getSubjectById } from "./subjects";
 import type { SessionHeroContext } from "@/components/study-planner/dashboard/SessionHeroCard";
+import { formatWeeklyBlockPosition } from "./dashboard-week-pace";
 
 function formatNextBlockLine(session: PlannedStudySession): string {
   const subjectName = getSubjectById(session.subjectId)?.name ?? session.subjectId;
@@ -39,10 +40,6 @@ function firstPendingAfterToday(metrics: PlannerMetrics, today: string): Planned
   );
 }
 
-function blockLabel(count: number): string {
-  return `${count} bloque${count === 1 ? "" : "s"}`;
-}
-
 /**
  * Hero de “Hoy” / semana en marcha según métricas centrales (casos A–D).
  */
@@ -65,14 +62,19 @@ export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionH
   const todayPendingList = pendingTodaySessions(metrics);
   const followingSession = firstPendingAfterToday(metrics, today);
 
+  const weekBlockPosition = formatWeeklyBlockPosition(
+    metrics.completedSessions,
+    metrics.totalPlannedSessions,
+  );
+
   // Caso A — pendientes hoy
   if (todayPendingSessions > 0 && todayPendingList[0]) {
     const session = todayPendingList[0];
     return {
       mode: "planned",
-      sectionLabel: "Próxima sesión",
+      sectionLabel: "Siguiente bloque",
+      blockPositionLine: weekBlockPosition,
       durationLine: formatNextBlockLine(session),
-      metaLine: `Te quedan ${blockLabel(todayPendingSessions)} hoy.`,
       ctaLabel: "Empezar sesión",
       primaryAction: "start_session",
       focusPlannedSessionId: session.id,
@@ -86,6 +88,7 @@ export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionH
     return {
       mode: "planned",
       sectionLabel: "Día completado",
+      blockPositionLine: weekBlockPosition,
       title: "Has completado tu estudio de hoy",
       metaLine: followingSession
         ? `Tu siguiente sesión es ${formatFollowingSessionLine(followingSession)}.`

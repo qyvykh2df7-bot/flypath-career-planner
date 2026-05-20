@@ -3,13 +3,15 @@
 import { useMemo } from "react";
 import { Check } from "lucide-react";
 import type { ExamDate, PlannedStudySession, StudyMode, StudySubject } from "@/lib/study-planner/types";
-import { normalizePlannedSessionStatus } from "@/lib/study-planner/planner-session-status";
+import {
+  isPendingLikeStatus,
+  normalizePlannedSessionStatus,
+} from "@/lib/study-planner/planner-session-status";
 import { formatNextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
 import {
   comparePlannedByStartTime,
   getPlannerMetrics,
   getTodayDateString,
-  minutesToHoursLabel,
   type WeeklyPlanCompletion,
 } from "@/lib/study-planner/calculations";
 import { buildDashboardHeroFromMetrics } from "@/lib/study-planner/dashboard-hero-context";
@@ -19,7 +21,10 @@ import { SessionTypeBadge } from "../SessionTypeBadge";
 import { SessionHeroCard, type SessionHeroPrimaryAction } from "./SessionHeroCard";
 import { PulseLine } from "./PulseLine";
 import { WeekAlertsCompact } from "../planning/WeeklyPlanDashboard";
-import { EvaluationDashboardLine } from "../evaluation/EvaluationDashboardLine";
+import {
+  EvaluationDashboardLine,
+  type DashboardQuickAction,
+} from "../evaluation/EvaluationDashboardLine";
 import type {
   GoToEvaluationOptions,
   GoToSubjectsOptions,
@@ -44,37 +49,16 @@ type DashboardWeekInProgressProps = {
   showEvaluationEmptyCta?: boolean;
 };
 
-function ProgressRow({
-  label,
-  value,
-  percent,
-}: {
-  label: string;
-  value: string;
-  percent: number;
-}) {
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-[12px] text-slate-600">{label}</span>
-        <span className="text-[12px] font-medium text-[#0f1a33]">{value}</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-200/80">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-[#c9a454]/90 to-[#ddb75c]/90 transition-[width] duration-500"
-          style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 function TodayTimelineItem({
   session,
   onOpen,
+  isNextUp = false,
+  isDimmed = false,
 }: {
   session: PlannedStudySession;
   onOpen: (session: PlannedStudySession) => void;
+  isNextUp?: boolean;
+  isDimmed?: boolean;
 }) {
   const subjectName = getSubjectById(session.subjectId)?.name ?? session.subjectId;
   const time = session.startTime ?? "—";
@@ -82,20 +66,23 @@ function TodayTimelineItem({
   const isDone = status === "completed";
   const isSkipped = status === "skipped";
   const isInProgress = status === "in_progress";
+  const isPending = isPendingLikeStatus(status);
 
   return (
-    <li>
+    <li className={isDimmed ? "opacity-60" : undefined}>
       <button
         type="button"
         onClick={() => onOpen(session)}
-        className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-[12px] transition hover:shadow-sm ${
+        className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] transition-[background-color,box-shadow] duration-200 ${
           isDone
-            ? "border-emerald-200/80 bg-emerald-50/60"
+            ? "bg-emerald-50/60"
             : isSkipped
-              ? "border-amber-200/60 bg-amber-50/40"
-              : isInProgress
-                ? "border-[#c9a454]/30 bg-[#fffdf8]"
-                : "border-slate-200/80 bg-white hover:border-slate-300"
+              ? "bg-amber-50/30"
+              : isNextUp
+                ? "bg-[#fffdf8] ring-1 ring-[#c9a454]/35 shadow-[0_2px_10px_-8px_rgba(201,164,84,0.35)]"
+                : isInProgress
+                  ? "bg-[#fffdf8]/90"
+                  : "bg-white/90 hover:bg-slate-50/70"
         }`}
       >
         <span
@@ -118,16 +105,29 @@ function TodayTimelineItem({
           {time}
         </span>
         <span
-          className={`min-w-0 flex-1 font-medium leading-snug ${isDone ? "text-emerald-900 line-through decoration-emerald-300/80" : isSkipped ? "text-slate-600" : "text-[#0f1a33]"}`}
+          className={`min-w-0 flex-1 font-medium leading-snug ${
+            isDone
+              ? "text-emerald-900 line-through decoration-emerald-300/80"
+              : isSkipped
+                ? "text-slate-500"
+                : isDimmed
+                  ? "text-slate-500"
+                  : "text-[#0f1a33]"
+          }`}
         >
           {subjectName}
         </span>
+        {isNextUp && isPending ? (
+          <span className="shrink-0 rounded-full bg-[#fff8e8] px-1.5 py-0.5 text-[10px] font-semibold text-[#7a5a16] ring-1 ring-[#c9a454]/30">
+            Ahora
+          </span>
+        ) : null}
         {isSkipped ? (
-          <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 ring-1 ring-amber-200/70">
+          <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
             Saltada
           </span>
         ) : isInProgress ? (
-          <span className="shrink-0 rounded-full bg-[#e8eef8] px-1.5 py-0.5 text-[10px] font-semibold text-[#0f1a33] ring-1 ring-[#0f1a33]/10">
+          <span className="shrink-0 rounded-full bg-[#e8eef8] px-1.5 py-0.5 text-[10px] font-semibold text-[#0f1a33]">
             En curso
           </span>
         ) : null}
@@ -141,11 +141,11 @@ function TodayTimelineItem({
 }
 
 export function DashboardWeekInProgress({
-  mode,
+  mode: _mode,
   completion,
-  subjects,
+  subjects: _subjects,
   nextSession,
-  nextSessionSubjectName,
+  nextSessionSubjectName: _nextSessionSubjectName,
   alerts,
   positiveMessage,
   pulseParts,
@@ -169,6 +169,17 @@ export function DashboardWeekInProgress({
     [completion.weekSessions, today],
   );
 
+  const todaySummary = useMemo(() => {
+    let done = 0;
+    let pending = 0;
+    for (const s of todaySessions) {
+      const status = normalizePlannedSessionStatus(s.status) ?? "pending";
+      if (status === "completed") done += 1;
+      else if (status !== "skipped") pending += 1;
+    }
+    return { done, pending };
+  }, [todaySessions]);
+
   const metrics = useMemo(
     () =>
       getPlannerMetrics(completion.weekSessions, {
@@ -178,14 +189,25 @@ export function DashboardWeekInProgress({
     [completion.weekSessions, completion.weekLoggedSessions, today],
   );
 
-  const blockCount = metrics.totalPlannedSessions;
-  const progressPercent = metrics.weeklyProgressPercent;
-  const plannedHoursLabel = minutesToHoursLabel(metrics.totalPlannedMinutes);
-  const completedHoursLabel = minutesToHoursLabel(metrics.completedMinutes);
-  const blocksPercent =
-    blockCount > 0 ? Math.round((metrics.completedSessions / blockCount) * 100) : 0;
-
   const heroContext = useMemo(() => buildDashboardHeroFromMetrics(metrics), [metrics]);
+  const nextUpSessionId = heroContext.focusPlannedSessionId ?? null;
+
+  const insightQuickActions = useMemo(() => {
+    const actions: DashboardQuickAction[] = [];
+    if (!nextExam && onGoToSubjects) {
+      actions.push({
+        label: "Añadir fecha de examen",
+        onClick: () => onGoToSubjects({ openExamDatesForm: true }),
+      });
+    }
+    if (showEvaluationEmptyCta && onGoToEvaluation) {
+      actions.push({
+        label: "Registrar simulacro de examen",
+        onClick: () => onGoToEvaluation({ section: "mocks", focusMockForm: true }),
+      });
+    }
+    return actions;
+  }, [nextExam, onGoToSubjects, showEvaluationEmptyCta, onGoToEvaluation]);
 
   const handleHeroPrimaryAction = () => {
     const action: SessionHeroPrimaryAction =
@@ -212,15 +234,7 @@ export function DashboardWeekInProgress({
   };
 
   return (
-    <div className="planner-fade-up space-y-3 pb-1">
-      <header className="space-y-1">
-        <h3 className="text-[16px] font-semibold tracking-tight text-[#0f1a33]">Semana en marcha</h3>
-        <p className="max-w-lg text-[13px] leading-relaxed text-slate-600">
-          Tu plan semanal ya está activo. Empieza por la próxima sesión y marca tu progreso.
-        </p>
-      </header>
-
-
+    <div className="planner-fade-up space-y-2.5 pb-1">
       <SessionHeroCard
         context={heroContext}
         coachTone={{ emotionalLine: "" }}
@@ -231,94 +245,66 @@ export function DashboardWeekInProgress({
         onViewEvaluation={onGoToEvaluation ? () => onGoToEvaluation() : undefined}
       />
 
-      {evaluationLine ? (
-        <EvaluationDashboardLine
-          line={evaluationLine}
-          showEmptyCta={false}
-          onGoToEvaluation={onGoToEvaluation ? () => onGoToEvaluation() : undefined}
-        />
-      ) : null}
-
-      {nextExam ? (
-        <p className="rounded-lg border border-[#c9a454]/25 bg-[#fffdf8] px-3 py-2 text-[13px] text-slate-700">
-          <span className="font-semibold text-[#7a5a16]">Próximo examen:</span>{" "}
-          {nextExam.subjectName} · {nextExam.daysLabel}
-        </p>
-      ) : showEvaluationEmptyCta || onGoToSubjects ? (
-        <div className="flex flex-wrap items-center gap-2">
-          {showEvaluationEmptyCta && onGoToEvaluation ? (
-            <button
-              type="button"
-              onClick={() =>
-                onGoToEvaluation({ section: "mocks", focusMockForm: true })
-              }
-              className="inline-flex items-center rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-100/60 transition hover:border-[#c9a454]/35 hover:bg-[#fffdf8] hover:text-[#7a5a16]"
-            >
-              Registrar simulacro de examen
-            </button>
-          ) : null}
-          {!nextExam && onGoToSubjects ? (
-            <button
-              type="button"
-              onClick={() => onGoToSubjects({ openExamDatesForm: true })}
-              className="inline-flex items-center rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-100/60 transition hover:border-[#c9a454]/35 hover:bg-[#fffdf8] hover:text-[#7a5a16]"
-            >
-              Añadir fecha de examen
-            </button>
+      <section className="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-slate-200/25">
+        <div className="mb-1.5 flex items-baseline justify-between gap-2">
+          <p className="text-[12px] font-semibold text-[#0f1a33]">Hoy</p>
+          {todaySessions.length > 0 ? (
+            <p className="text-[11px] font-medium tabular-nums text-slate-500">
+              {todaySummary.done} hecho{todaySummary.done === 1 ? "" : "s"}
+              {todaySummary.pending > 0
+                ? ` · ${todaySummary.pending} pendiente${todaySummary.pending === 1 ? "" : "s"}`
+                : ""}
+            </p>
           ) : null}
         </div>
-      ) : null}
+        {todaySessions.length === 0 ? (
+          <p className="text-[12px] text-slate-500">No tienes bloques planificados para hoy.</p>
+        ) : (
+          <ul className="space-y-1">
+            {todaySessions.map((session) => {
+              const status = normalizePlannedSessionStatus(session.status) ?? "pending";
+              const isDone = status === "completed";
+              const isNextUp = session.id === nextUpSessionId;
+              const isDimmed =
+                !isDone &&
+                !isNextUp &&
+                status !== "skipped" &&
+                status !== "in_progress" &&
+                isPendingLikeStatus(status);
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <section className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/70">
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            Hoy
-          </p>
-          {todaySessions.length === 0 ? (
-            <p className="text-[13px] text-slate-500">No tienes bloques planificados para hoy.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {todaySessions.map((session) => (
-                <TodayTimelineItem key={session.id} session={session} onOpen={onOpenSession} />
-              ))}
-            </ul>
-          )}
-        </section>
+              return (
+                <TodayTimelineItem
+                  key={session.id}
+                  session={session}
+                  onOpen={onOpenSession}
+                  isNextUp={isNextUp}
+                  isDimmed={isDimmed}
+                />
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
-        <section className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/70">
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            Progreso
-          </p>
-          <div className="space-y-3">
-            <ProgressRow
-              label="Esta semana"
-              value={`${completedHoursLabel} / ${plannedHoursLabel}`}
-              percent={progressPercent}
-            />
-            <ProgressRow
-              label="Bloques completados"
-              value={`${metrics.completedSessions} / ${blockCount}`}
-              percent={blocksPercent}
-            />
-            <ProgressRow
-              label="Asignaturas tocadas"
-              value={`${metrics.activeSubjectsTouched} / ${subjects.length}`}
-              percent={
-                subjects.length > 0
-                  ? Math.round((metrics.activeSubjectsTouched / subjects.length) * 100)
-                  : 0
-              }
-            />
-          </div>
-        </section>
-      </div>
+      <EvaluationDashboardLine
+        line={evaluationLine ?? null}
+        showEmptyCta={showEvaluationEmptyCta}
+        onGoToEvaluation={onGoToEvaluation ? () => onGoToEvaluation() : undefined}
+        nextExamHint={
+          nextExam
+            ? { subjectName: nextExam.subjectName, daysLabel: nextExam.daysLabel }
+            : null
+        }
+        quickActions={insightQuickActions}
+        variant="subtle"
+      />
 
       {alerts.length > 0 ? (
-        <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 px-3 py-2.5">
+        <div className="rounded-lg border border-amber-200/50 bg-amber-50/35 px-3 py-2">
           <WeekAlertsCompact alerts={alerts} />
         </div>
       ) : positiveMessage ? (
-        <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 px-3 py-2.5 text-[13px] font-medium text-emerald-900">
+        <div className="rounded-lg border border-emerald-200/60 bg-emerald-50/45 px-3 py-2 text-[12px] font-medium text-emerald-900">
           {positiveMessage}
         </div>
       ) : null}

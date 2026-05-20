@@ -8,8 +8,6 @@ import type {
   HeroCoachTone,
 } from "@/lib/study-planner/calculations";
 import { REGISTER_STUDY_LINK_LABEL } from "@/lib/study-planner/study-log-form-logic";
-import { plannerBtnHero } from "@/lib/study-planner/planner-ui";
-
 export type SessionHeroPrimaryAction =
   | "start_session"
   | "advance_session"
@@ -22,6 +20,8 @@ export type SessionHeroSecondaryLink = "calendar" | "evaluation" | "none";
 export type SessionHeroContext = {
   mode: "planned" | "suggested" | "empty";
   sectionLabel?: string;
+  /** Ej. «Bloque 3 de 13» — conecta el hero con el avance semanal. */
+  blockPositionLine?: string;
   title?: string;
   durationLine?: string;
   metaLine?: string;
@@ -153,13 +153,16 @@ export function SessionHeroCard({
   const showHeadline = Boolean(context.durationLine || context.title);
   const showSectionLabel = Boolean(context.sectionLabel);
 
+  const heroBtnClass =
+    "inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg border border-[#ddb75c]/35 bg-[#c9a454] px-3.5 py-1.5 text-[13px] font-medium tracking-tight text-[#0f1a33] shadow-[0_4px_14px_-6px_rgba(201,164,84,0.3)] transition-[background-color,box-shadow] duration-300 ease-out hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ddb75c]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#131f36]";
+
   return (
-    <section className="planner-fade-up relative min-h-[min(220px,38dvh)] overflow-hidden rounded-2xl bg-[#0f1a33] px-6 py-5 shadow-[0_16px_44px_rgba(15,26,51,0.2)] ring-1 ring-white/[0.08] sm:px-7 sm:py-6">
+    <section className="planner-fade-up relative overflow-hidden rounded-xl bg-[#131f36] px-3.5 py-2.5 shadow-[0_4px_20px_-12px_rgba(15,26,51,0.22)] ring-1 ring-white/[0.04] sm:px-4">
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#c9a454]/[0.07] via-transparent to-transparent"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#c9a454]/[0.015] via-transparent to-transparent"
         aria-hidden
       />
-      <div className="relative flex min-h-[min(200px,34dvh)] flex-col">
+      <div className="relative flex flex-col">
         {!suppressCoachHeader && coachTone.emotionalLine ? (
           <div className="space-y-1">
             <p className="text-[13px] font-semibold tracking-tight text-[#f2ddaa]">
@@ -175,12 +178,10 @@ export function SessionHeroCard({
           className={`flex-1 ${!suppressCoachHeader && coachTone.emotionalLine ? (showSectionLabel ? "mt-5" : "mt-4") : showSectionLabel ? "mt-1" : "mt-0"}`}
         >
           {showSectionLabel ? (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              {context.sectionLabel}
-            </p>
+            <p className="text-[11px] font-medium text-slate-500">{context.sectionLabel}</p>
           ) : null}
           {showHeadline ? (
-            <h2 className="mt-2 text-[26px] font-semibold leading-[1.15] tracking-tight text-white sm:text-[28px]">
+            <h2 className="mt-0.5 text-[20px] font-medium leading-[1.2] tracking-tight text-white">
               {context.durationLine && context.title ? (
                 <>
                   <span className="text-[#ddb75c]">{context.durationLine}</span>
@@ -193,14 +194,19 @@ export function SessionHeroCard({
               )}
             </h2>
           ) : null}
+          {context.blockPositionLine ? (
+            <p className="mt-1 text-[10px] tabular-nums text-slate-600">
+              {context.blockPositionLine}
+            </p>
+          ) : null}
           {context.metaLine ? (
             <p
-              className={`max-w-lg leading-relaxed text-slate-300/95 ${
+              className={`max-w-lg leading-snug text-slate-500 ${
                 showHeadline
-                  ? "mt-2.5 text-[14px]"
+                  ? "mt-1 text-[12px]"
                   : showSectionLabel
-                    ? "mt-2 text-[14px]"
-                    : "mt-0 text-[14px] sm:text-[15px]"
+                    ? "mt-1 text-[12px]"
+                    : "mt-0 text-[12px]"
               }`}
             >
               {context.metaLine}
@@ -211,26 +217,21 @@ export function SessionHeroCard({
           ) : null}
         </div>
 
-        <div className="mt-auto space-y-2.5 pt-4">
-          <button type="button" onClick={onPrimaryAction} className={plannerBtnHero}>
+        <div className="mt-auto space-y-1 pt-1.5">
+          <button type="button" onClick={onPrimaryAction} className={heroBtnClass}>
             {context.ctaLabel}
-            <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+            <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
           </button>
           {(showLogToday || showSecondary) && (
-            <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[12px] text-slate-400">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[13px]">
               {showLogToday && onLogToday ? (
                 <button
                   type="button"
                   onClick={onLogToday}
-                  className="font-medium underline-offset-2 transition hover:text-[#ddb75c] hover:underline"
+                  className="font-medium text-slate-300 transition-[color] duration-200 hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ddb75c]/50"
                 >
                   {REGISTER_STUDY_LINK_LABEL}
                 </button>
-              ) : null}
-              {showLogToday && onLogToday && showSecondary ? (
-                <span className="text-slate-600" aria-hidden>
-                  ·
-                </span>
               ) : null}
               {showSecondary ? (
                 <button
@@ -238,12 +239,12 @@ export function SessionHeroCard({
                   onClick={
                     secondaryLink === "evaluation" ? onViewEvaluation : onViewPlan
                   }
-                  className="font-medium underline-offset-2 transition hover:text-[#ddb75c] hover:underline"
+                  className="font-medium text-slate-300 transition-[color] duration-200 hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ddb75c]/50"
                 >
                   {secondaryLabel}
                 </button>
               ) : null}
-            </p>
+            </div>
           )}
         </div>
       </div>

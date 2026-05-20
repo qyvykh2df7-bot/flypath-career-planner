@@ -1,12 +1,7 @@
 "use client";
 
 import type { PlannedStudySession } from "@/lib/study-planner/types";
-import {
-  calculateCompletedPlannedMinutes,
-  calculatePlannedMinutes,
-  getTodayDateString,
-  minutesToHoursLabel,
-} from "@/lib/study-planner/calculations";
+import { calculatePlannedMinutes, getTodayDateString, minutesToHoursLabel } from "@/lib/study-planner/calculations";
 import {
   addMonths,
   formatMonthYear,
@@ -66,9 +61,6 @@ export function StudyMonthView({
   const today = getTodayDateString();
   const monthSessions = getPlannedSessionsForMonth(plannedSessions, visibleMonthStart);
   const grid = getMonthGridDates(visibleMonthStart);
-  const totalPlanned = calculatePlannedMinutes(monthSessions);
-  const totalCompleted = calculateCompletedPlannedMinutes(monthSessions);
-
   const sessionsByDate = new Map<string, PlannedStudySession[]>();
   for (const s of monthSessions) {
     const list = sessionsByDate.get(s.date) ?? [];
@@ -87,9 +79,6 @@ export function StudyMonthView({
         <div>
           <p className="text-[17px] font-medium tracking-tight text-[#0f1a33]">
             {formatMonthYear(visibleMonthStart)}
-          </p>
-          <p className="mt-0.5 text-[12px] text-slate-500">
-            {minutesToHoursLabel(totalPlanned)} planificadas · {minutesToHoursLabel(totalCompleted)} hechas
           </p>
         </div>
         <CalendarPeriodNav

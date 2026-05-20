@@ -47,11 +47,15 @@ import {
 } from "@/lib/study-planner/calculations";
 import { resolveWeeklyAlertsDisplay } from "@/lib/study-planner/weekly-alerts-display";
 import { getSubjectById } from "@/lib/study-planner/subjects";
+import { formatNextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
 import {
   buildEvaluationSummary,
   formatEvaluationDashboardLine,
 } from "@/lib/study-planner/evaluation-page-logic";
-import { EvaluationDashboardLine } from "../evaluation/EvaluationDashboardLine";
+import {
+  EvaluationDashboardLine,
+  type DashboardQuickAction,
+} from "../evaluation/EvaluationDashboardLine";
 import type {
   GoToEvaluationOptions,
   GoToSubjectsOptions,
@@ -205,6 +209,7 @@ export function StudyDashboard({
     [mockResults, errorLogItems, reviewItems, subjects, examDates, sessions, today],
   );
   const evaluationLine = formatEvaluationDashboardLine(evaluationSummary, reviewItems, today);
+  const nextExamHighlight = formatNextExamHighlight(examDates, today);
   const nextExam = getNextUpcomingExam(examDates, today);
   const nextExamDays = nextExam ? getDaysUntilDate(nextExam.date, today) : null;
 
@@ -242,6 +247,17 @@ export function StudyDashboard({
     },
   ];
 
+  const dashboardQuickActions = useMemo(() => {
+    const actions: DashboardQuickAction[] = [];
+    if (!nextExamHighlight && onGoToSubjects) {
+      actions.push({
+        label: "Añadir fecha de examen",
+        onClick: () => onGoToSubjects({ openExamDatesForm: true }),
+      });
+    }
+    return actions;
+  }, [nextExamHighlight, onGoToSubjects]);
+
   const openFocusSession = (session: PlannedStudySession | null) => {
     if (session) setFocusSession(session);
     else if (nextSession) setFocusSession(nextSession);
@@ -264,7 +280,7 @@ export function StudyDashboard({
 
   if (completion.hasPlan) {
     return (
-      <div className="flex flex-col gap-3 pb-1">
+      <div className="flex flex-col gap-2.5 pb-1">
         <DashboardStudyCenter
           mode={mode}
           weeklyGoalMinutes={weeklyGoalMinutes}
@@ -331,6 +347,15 @@ export function StudyDashboard({
             ? () => onGoToEvaluation({ section: "mocks", focusMockForm: true })
             : undefined
         }
+        nextExamHint={
+          nextExamHighlight
+            ? {
+                subjectName: nextExamHighlight.subjectName,
+                daysLabel: nextExamHighlight.daysLabel,
+              }
+            : null
+        }
+        quickActions={dashboardQuickActions}
       />
 
       <MomentumStrip

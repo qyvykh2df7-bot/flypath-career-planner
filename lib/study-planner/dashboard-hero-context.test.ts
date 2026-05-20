@@ -28,15 +28,16 @@ function hero(plannedSessions: PlannedStudySession[]) {
 }
 
 describe("buildDashboardHeroFromMetrics", () => {
-  it("Caso A: pendientes hoy → Próxima sesión y Empezar sesión", () => {
+  it("Caso A: pendientes hoy → Siguiente bloque y Empezar sesión", () => {
     const ctx = hero([
       planned({ id: "today-p", status: "pending", date: TODAY }),
       planned({ id: "tomorrow", status: "pending", date: "2026-05-20" }),
     ]);
 
-    expect(ctx.sectionLabel).toBe("Próxima sesión");
+    expect(ctx.sectionLabel).toBe("Siguiente bloque");
+    expect(ctx.blockPositionLine).toBe("Bloque 1 de 2");
     expect(ctx.durationLine).toContain("45 min");
-    expect(ctx.metaLine).toMatch(/Te quedan 1 bloque hoy/);
+    expect(ctx.metaLine).toBeUndefined();
     expect(ctx.ctaLabel).toBe("Empezar sesión");
     expect(ctx.primaryAction).toBe("start_session");
     expect(ctx.focusPlannedSessionId).toBe("today-p");
@@ -58,13 +59,13 @@ describe("buildDashboardHeroFromMetrics", () => {
     expect(ctx.showLogTodayLink).toBe(false);
   });
 
-  it("no muestra Próxima sesión si hoy ya está completado", () => {
+  it("no muestra Siguiente bloque si hoy ya está completado", () => {
     const ctx = hero([
       planned({ id: "today-done", status: "completed", date: TODAY }),
       planned({ id: "next", status: "pending", date: "2026-05-20" }),
     ]);
 
-    expect(ctx.sectionLabel).not.toBe("Próxima sesión");
+    expect(ctx.sectionLabel).not.toBe("Siguiente bloque");
     expect(ctx.ctaLabel).not.toBe("Empezar sesión");
   });
 

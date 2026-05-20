@@ -4,8 +4,6 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import type { PlannedStudySession } from "@/lib/study-planner/types";
 import {
-  calculateCompletedPlannedMinutes,
-  calculatePlannedMinutes,
   comparePlannedByStartTime,
   formatShortDate,
   getDayShortLabel,
@@ -18,8 +16,6 @@ import {
   getCurrentWeekStart,
   getPlannedSessionsForWeek,
   getWeekDates,
-  getWeekKind,
-  type WeekKind,
 } from "@/lib/study-planner/date-utils";
 import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-session-scheduling";
 import { canMovePlannedSessionToDate } from "@/lib/study-planner/planned-session-move";
@@ -58,28 +54,6 @@ function useIsLgViewport(): boolean | null {
   return isLg;
 }
 
-function weekKindLabel(kind: WeekKind): string {
-  switch (kind) {
-    case "current":
-      return "Semana actual";
-    case "past":
-      return "Semana pasada";
-    case "future":
-      return "Semana futura";
-  }
-}
-
-function weekKindBadgeClass(kind: WeekKind): string {
-  switch (kind) {
-    case "current":
-      return "bg-[#fff8e8]/80 text-[#7a5a16]";
-    case "past":
-      return "bg-slate-100/80 text-slate-600";
-    case "future":
-      return "bg-sky-50/70 text-sky-900";
-  }
-}
-
 function buildSessionsByDate(
   weekDates: string[],
   weekPlanned: PlannedStudySession[],
@@ -109,7 +83,6 @@ export function StudyWeekView({
 }: StudyWeekViewProps) {
   const today = getTodayDateString();
   const currentWeekStart = getCurrentWeekStart(today);
-  const weekKind = getWeekKind(visibleWeekStartDate, today);
   const weekDates = useMemo(
     () => getWeekDates(visibleWeekStartDate),
     [visibleWeekStartDate],
@@ -121,15 +94,6 @@ export function StudyWeekView({
   const sessionsByDate = useMemo(
     () => buildSessionsByDate(weekDates, weekPlanned),
     [weekDates, weekPlanned],
-  );
-  const plannedMinutes = useMemo(() => calculatePlannedMinutes(weekPlanned), [weekPlanned]);
-  const completedMinutes = useMemo(
-    () => calculateCompletedPlannedMinutes(weekPlanned),
-    [weekPlanned],
-  );
-  const completedCount = useMemo(
-    () => weekPlanned.filter((p) => p.status === "completed").length,
-    [weekPlanned],
   );
   const isCurrentWeek = visibleWeekStartDate === currentWeekStart;
   const isLgViewport = useIsLgViewport();
@@ -186,11 +150,6 @@ export function StudyWeekView({
           <p className="text-[16px] font-medium tracking-tight text-[#0f1a33] sm:text-[17px]">
             {formatWeekRange(visibleWeekStartDate)}
           </p>
-          <span
-            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium transition-[background-color] duration-200 ${weekKindBadgeClass(weekKind)}`}
-          >
-            {weekKindLabel(weekKind)}
-          </span>
         </div>
         <CalendarPeriodNav
           onPrev={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, -1))}
@@ -202,11 +161,6 @@ export function StudyWeekView({
           nextAriaLabel="Semana siguiente"
         />
       </div>
-
-      <p className="text-[12px] text-slate-500">
-        {minutesToHoursLabel(plannedMinutes)} planificadas · {completedCount} completadas ·{" "}
-        {minutesToHoursLabel(completedMinutes)} hechas
-      </p>
 
       {feedback ? (
         <p className="rounded-lg bg-slate-50/90 px-3 py-1.5 text-[12px] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
