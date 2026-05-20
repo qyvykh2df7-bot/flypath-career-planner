@@ -16,6 +16,7 @@ import { PlannerSettingsPanel } from "./settings/PlannerSettingsPanel";
 import { EvaluationSection, type EvaluationView } from "./EvaluationSection";
 import type { PlannerPlanSettingsPayload, RecoveryPlan } from "@/lib/study-planner/types";
 import type { RecoveryApplyResult } from "@/lib/study-planner/recovery-apply";
+import type { SubjectFilterId } from "@/lib/study-planner/subjects-page-logic";
 import type {
   GoToEvaluationOptions,
   GoToSubjectsOptions,
@@ -75,6 +76,7 @@ export function AtplPlannerApp() {
   const [evaluationView, setEvaluationView] = useState<EvaluationView>("mocks");
   const [mockFormFocusKey, setMockFormFocusKey] = useState(0);
   const [examDatesFormKey, setExamDatesFormKey] = useState(0);
+  const [subjectsFilter, setSubjectsFilter] = useState<SubjectFilterId>("all");
   const [visibleWeekStartDate, setVisibleWeekStartDate] = useState(() =>
     getCurrentWeekStart(getTodayDateString()),
   );
@@ -151,6 +153,9 @@ export function AtplPlannerApp() {
     (options?: GoToSubjectsOptions) => {
       if (options?.openExamDatesForm) {
         setExamDatesFormKey((k) => k + 1);
+      }
+      if (options?.filter) {
+        setSubjectsFilter(options.filter);
       }
       navigate("subjects");
     },
@@ -325,6 +330,7 @@ export function AtplPlannerApp() {
             onAddExamDate={addExamDate}
             onDeleteExamDate={deleteExamDate}
             examDatesFormRequestKey={examDatesFormKey}
+            initialFilter={subjectsFilter}
           />
         ) : null}
 

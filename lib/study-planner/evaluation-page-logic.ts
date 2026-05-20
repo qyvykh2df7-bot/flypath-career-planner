@@ -22,7 +22,7 @@ import {
 } from "./subjects-page-logic";
 import { getSubjectById } from "./subjects";
 
-export type EvaluationView = "mocks" | "reviews" | "errors" | "progress";
+export type EvaluationView = "mocks" | "reviews" | "errors";
 
 export type EvaluationSummary = {
   avgMockScore: number | null;

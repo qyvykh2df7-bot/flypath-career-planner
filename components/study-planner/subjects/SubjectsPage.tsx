@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   ErrorLogItem,
   ExamDate,
@@ -50,6 +50,7 @@ type SubjectsPageProps = {
   onAddExamDate: (exam: ExamDate) => void;
   onDeleteExamDate: (id: string) => void;
   examDatesFormRequestKey?: number;
+  initialFilter?: SubjectFilterId;
 };
 
 function formatLastSessionLine(sessions: StudySession[], subjectId: string): string {
@@ -88,10 +89,15 @@ export function SubjectsPage({
   onAddExamDate,
   onDeleteExamDate,
   examDatesFormRequestKey = 0,
+  initialFilter = "all",
 }: SubjectsPageProps) {
   const today = getTodayDateString();
-  const [filter, setFilter] = useState<SubjectFilterId>("all");
+  const [filter, setFilter] = useState<SubjectFilterId>(initialFilter);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
 
   const readinessList = useMemo(
     () =>

@@ -12,7 +12,6 @@ import type {
 } from "@/lib/study-planner/types";
 import {
   buildEvaluationCoachRecommendation,
-  buildEvaluationDiagnostic,
   buildEvaluationSummary,
   type EvaluationCoachAction,
   type EvaluationView,
@@ -26,8 +25,8 @@ import { ErrorLogForm } from "./ErrorLogForm";
 import { ErrorLogList } from "./ErrorLogList";
 import { EvaluationSummaryBar } from "./evaluation/EvaluationSummaryBar";
 import { EvaluationCoachCard, resolveCoachView } from "./evaluation/EvaluationCoachCard";
-import { EvaluationProgressTab } from "./evaluation/EvaluationProgressTab";
 import { createPlannerId, formatDateLocal } from "@/lib/study-planner/calculations";
+import type { GoToSubjectsOptions } from "@/lib/study-planner/dashboard-navigation";
 
 export type { EvaluationView };
 
@@ -35,7 +34,6 @@ const SUB_TABS: { id: EvaluationView; label: string }[] = [
   { id: "mocks", label: "Simulacros de examen" },
   { id: "errors", label: "Errores" },
   { id: "reviews", label: "Repasos" },
-  { id: "progress", label: "Progreso" },
 ];
 
 type EvaluationSectionProps = {
@@ -59,7 +57,7 @@ type EvaluationSectionProps = {
   onSetErrorLogStatus: (id: string, status: ErrorLogItem["status"]) => void;
   onDeleteErrorLogItem: (id: string) => void;
   onGoToCalendar?: () => void;
-  onGoToSubjects?: () => void;
+  onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
 };
 
 export function EvaluationSection({
@@ -84,7 +82,10 @@ export function EvaluationSection({
   onGoToSubjects,
 }: EvaluationSectionProps) {
   const [view, setView] = useState<EvaluationView>(initialView);
+  const [pendingFocusTarget, setPendingFocusTarget] = useState<"errors" | "reviews" | null>(null);
   const mockFormRef = useRef<HTMLDivElement>(null);
+  const errorsPendingRef = useRef<HTMLDivElement>(null);
+  const reviewsPendingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setView(initialView);
@@ -121,18 +122,31 @@ export function EvaluationSection({
     [summary, errorLogItems, reviewItems, mockResults],
   );
 
-  const diagnostic = useMemo(
-    () =>
-      buildEvaluationDiagnostic({
-        subjects,
-        sessions,
-        mockResults,
-        errorLogItems,
-        reviewItems,
-        examDates,
-      }),
-    [subjects, sessions, mockResults, errorLogItems, reviewItems, examDates],
-  );
+  useEffect(() => {
+    if (!pendingFocusTarget) return;
+    if (pendingFocusTarget !== view) return;
+    const targetRef = pendingFocusTarget === "errors" ? errorsPendingRef : reviewsPendingRef;
+    const timer = window.setTimeout(() => {
+      targetRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      targetRef.current?.focus();
+      setPendingFocusTarget(null);
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [pendingFocusTarget, view]);
+
+  const goToPendingErrors = () => {
+    setView("errors");
+    setPendingFocusTarget("errors");
+  };
+
+  const goToPendingReviews = () => {
+    setView("reviews");
+    setPendingFocusTarget("reviews");
+  };
+
+  const goToSubjectsAtRisk = () => {
+    onGoToSubjects?.({ filter: "at_risk" });
+  };
 
   const handleCoachAction = (action: EvaluationCoachAction) => {
     if (action.kind === "view_calendar") {
@@ -140,7 +154,15 @@ export function EvaluationSection({
       return;
     }
     if (action.kind === "view_subjects") {
-      onGoToSubjects?.();
+      goToSubjectsAtRisk();
+      return;
+    }
+    if (action.kind === "view_errors") {
+      goToPendingErrors();
+      return;
+    }
+    if (action.kind === "view_reviews") {
+      goToPendingReviews();
       return;
     }
     const nextView = resolveCoachView(action);
@@ -175,7 +197,20 @@ export function EvaluationSection({
       </header>
 
       <section className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/80 sm:p-4">
-        <EvaluationSummaryBar summary={summary} />
+        <EvaluationSummaryBar
+          summary={summary}
+          onNavigate={(target) => {
+            if (target === "errors_pending") {
+              goToPendingErrors();
+              return;
+            }
+            if (target === "reviews_pending") {
+              goToPendingReviews();
+              return;
+            }
+            goToSubjectsAtRisk();
+          }}
+        />
       </section>
 
       <EvaluationCoachCard recommendation={coach} onAction={handleCoachAction} />
@@ -217,6 +252,9 @@ export function EvaluationSection({
       {view === "errors" ? (
         <div className="space-y-4">
           <ErrorLogForm subjects={subjects} onAddErrorLogItem={onAddErrorLogItem} />
+          <div ref={errorsPendingRef} tabIndex={-1} className="scroll-mt-4 focus:outline-none">
+            <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Errores pendientes</p>
+          </div>
           <ErrorLogList
             errorLogItems={errorLogItems}
             onSetStatus={onSetErrorLogStatus}
@@ -229,6 +267,9 @@ export function EvaluationSection({
       {view === "reviews" ? (
         <div className="space-y-4">
           <ReviewItemForm subjects={subjects} onAddReviewItem={onAddReviewItem} />
+          <div ref={reviewsPendingRef} tabIndex={-1} className="scroll-mt-4 focus:outline-none">
+            <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Repasos pendientes</p>
+          </div>
           <ReviewItemsList
             reviewItems={reviewItems}
             onComplete={onCompleteReviewItem}
@@ -238,8 +279,6 @@ export function EvaluationSection({
           />
         </div>
       ) : null}
-
-      {view === "progress" ? <EvaluationProgressTab diagnostic={diagnostic} /> : null}
     </div>
   );
 }

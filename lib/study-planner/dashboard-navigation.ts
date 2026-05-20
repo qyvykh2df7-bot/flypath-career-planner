@@ -1,4 +1,5 @@
 import type { EvaluationView } from "./evaluation-page-logic";
+import type { SubjectFilterId } from "./subjects-page-logic";
 
 export type GoToEvaluationOptions = {
   section?: EvaluationView;
@@ -7,4 +8,5 @@ export type GoToEvaluationOptions = {
 
 export type GoToSubjectsOptions = {
   openExamDatesForm?: boolean;
+  filter?: SubjectFilterId;
 };

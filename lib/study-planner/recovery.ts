@@ -135,7 +135,13 @@ const LIGHTER_STEP_PRIORITY: NonNullable<RecoveryPlanStep["actionType"]>[] = [
 
 function buildSummary(selected: RecoveryProblem[], variant: RecoveryPlanVariant = "standard"): string {
   if (variant === "lighter") {
+    if (selected.includes("burnout")) {
+      return "Versión suave activada con menos carga: prioriza descanso, repasos mínimos y corrección de errores clave para recuperar energía sin perder el hilo.";
+    }
     return "Propuesta con menos carga: primero repasos y errores, bloques cortos en calendario y menos asignaturas abiertas hasta recuperar ritmo.";
+  }
+  if (selected.includes("overdue_reviews") && selected.includes("pending_errors")) {
+    return "Primero limpia la base: cierra repasos atrasados y corrige errores pendientes antes de abrir más carga nueva.";
   }
   if (selected.includes("burnout")) {
     return "Ahora mismo conviene bajar el ritmo: menos asignaturas abiertas, pendientes al día y sesiones que sí puedas cumplir.";
