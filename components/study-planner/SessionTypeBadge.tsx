@@ -18,10 +18,10 @@ export function SessionTypeBadge({ type, className = "" }: SessionTypeBadgeProps
 
   return (
     <span
-      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide ring-1 ${badgeClass} ${className}`}
+      className={`inline-flex max-w-full min-w-0 items-center gap-0.5 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide ring-1 ${badgeClass} ${className}`}
     >
       <Icon className="h-2.5 w-2.5 shrink-0 opacity-80" aria-hidden />
-      {getSessionTypeShortLabel(type)}
+      <span className="min-w-0 truncate">{getSessionTypeShortLabel(type)}</span>
     </span>
   );
 }

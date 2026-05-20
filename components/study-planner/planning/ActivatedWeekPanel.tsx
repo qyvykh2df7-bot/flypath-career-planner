@@ -45,16 +45,16 @@ export function ActivatedWeekPanel({
 
   return (
     <>
-      <section className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/95 to-[#fffdf8] px-4 py-3.5 shadow-sm ring-1 ring-emerald-100/80">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800/90">
-              Semana activada
+      <section className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-white to-slate-50/70 px-3.5 py-3 shadow-sm ring-1 ring-slate-100/80">
+        <div className="flex flex-wrap items-start justify-between gap-2.5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5a16]">
+              Semana activa
             </p>
-            <p className="mt-1 text-[15px] font-semibold text-[#0f1a33]">
+            <p className="mt-1 text-[15px] font-semibold tracking-tight text-[#0f1a33]">
               {blockCount} bloques · {hoursLabel} · {dayCount} día{dayCount === 1 ? "" : "s"}
             </p>
-            <p className="mt-0.5 text-[13px] text-slate-600">
+            <p className="mt-0.5 text-[12px] text-slate-600">
               {completedCount} completado{completedCount === 1 ? "" : "s"}
               {skippedCount > 0
                 ? ` · ${skippedCount} saltada${skippedCount === 1 ? "" : "s"}`
@@ -65,11 +65,11 @@ export function ActivatedWeekPanel({
               · {weekLabel}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
               onClick={onRegenerate}
-              className={`${plannerBtnGhost} inline-flex items-center gap-1.5 text-[12px]`}
+              className={`${plannerBtnGhost} inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm`}
             >
               <RefreshCw className="h-3.5 w-3.5" aria-hidden />
               Regenerar semana
@@ -77,7 +77,7 @@ export function ActivatedWeekPanel({
             <button
               type="button"
               onClick={onAddManual}
-              className={`${plannerBtnGhost} inline-flex items-center gap-1.5 text-[12px]`}
+              className={`${plannerBtnGhost} inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm`}
             >
               <Plus className="h-3.5 w-3.5 text-[#c9a454]" aria-hidden />
               Añadir sesión manual
@@ -87,7 +87,7 @@ export function ActivatedWeekPanel({
         <button
           type="button"
           onClick={() => setClearDialogOpen(true)}
-          className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-red-800/90 underline-offset-2 hover:text-red-900 hover:underline"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[11px] font-medium text-red-800/90 transition-colors hover:bg-red-50 hover:text-red-900"
         >
           <Trash2 className="h-3.5 w-3.5" aria-hidden />
           Vaciar calendario semanal
