@@ -31,3 +31,18 @@ export const PLANNER_NAV_ITEMS: {
   { id: "recovery", label: "Recuperación", icon: LifeBuoy },
   { id: "settings", label: "Ajustes", icon: Settings2 },
 ];
+
+/** Bottom bar principal (móvil). */
+export const PLANNER_MOBILE_PRIMARY_NAV_IDS: PlannerNavId[] = [
+  "dashboard",
+  "calendar",
+  "subjects",
+  "evaluation",
+];
+
+/** Dentro de “Más” en móvil. */
+export const PLANNER_MOBILE_MORE_NAV_IDS: PlannerNavId[] = ["log", "recovery", "settings"];
+
+export function getPlannerNavItem(id: PlannerNavId) {
+  return PLANNER_NAV_ITEMS.find((item) => item.id === id);
+}

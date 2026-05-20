@@ -17,7 +17,7 @@ type CalendarViewSwitcherProps = {
 export function CalendarViewSwitcher({ value, onChange }: CalendarViewSwitcherProps) {
   return (
     <div
-      className="inline-flex rounded-xl border border-slate-200/90 bg-slate-50/80 p-0.5 shadow-sm ring-1 ring-slate-100/80"
+      className="inline-flex rounded-xl bg-slate-100/60 p-0.5 shadow-[inset_0_1px_2px_rgba(15,26,51,0.04)] transition-[background-color] duration-200"
       role="tablist"
       aria-label="Vista del calendario"
     >
@@ -30,12 +30,18 @@ export function CalendarViewSwitcher({ value, onChange }: CalendarViewSwitcherPr
             role="tab"
             aria-selected={active}
             onClick={() => onChange(view.id)}
-            className={`min-w-[4.5rem] rounded-[10px] px-3.5 py-1.5 text-[13px] font-semibold transition ${
+            className={`relative min-w-[4.5rem] rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-[color,background-color,box-shadow] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b6ea8]/20 ${
               active
-                ? "bg-white text-[#0f1a33] shadow-sm ring-1 ring-slate-200/80"
-                : "text-slate-500 hover:text-[#0f1a33]"
+                ? "bg-white text-[#0f1a33] shadow-[0_2px_8px_-4px_rgba(15,26,51,0.1)]"
+                : "text-slate-500 hover:bg-white/50 hover:text-slate-800"
             }`}
           >
+            {active ? (
+              <span
+                className="pointer-events-none absolute inset-x-2.5 bottom-1 h-px rounded-full bg-[#c9a454]/70 transition-opacity duration-200"
+                aria-hidden
+              />
+            ) : null}
             {view.label}
           </button>
         );

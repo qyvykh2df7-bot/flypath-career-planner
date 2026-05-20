@@ -11,12 +11,12 @@ import type { StudySessionType } from "./types";
 import { getSessionTypeShortLabel } from "./labels";
 
 export const SESSION_TYPE_ACCENT: Partial<Record<StudySessionType, string>> = {
-  theory: "border-l-[#3b6ea8]",
-  question_bank: "border-l-[#2d8a6b]",
-  review: "border-l-[#8b6bb8]",
-  mock: "border-l-[#c9a454]",
-  error_correction: "border-l-[#b85c5c]",
-  class: "border-l-[#5c6b8a]",
+  theory: "border-l-2 border-l-[#3b6ea8]/55",
+  question_bank: "border-l-2 border-l-[#2d8a6b]/55",
+  review: "border-l-2 border-l-[#8b6bb8]/55",
+  mock: "border-l-2 border-l-[#c9a454]/60",
+  error_correction: "border-l-2 border-l-[#b85c5c]/55",
+  class: "border-l-2 border-l-[#5c6b8a]/50",
 };
 
 export const SESSION_TYPE_ICON: Partial<Record<StudySessionType, LucideIcon>> = {
@@ -52,7 +52,7 @@ export function getSessionTypeIcon(type: StudySessionType): LucideIcon {
 }
 
 export function getSessionTypeAccentClass(type: StudySessionType): string {
-  return SESSION_TYPE_ACCENT[type] ?? "border-l-slate-300";
+  return SESSION_TYPE_ACCENT[type] ?? "border-l-2 border-l-slate-300/50";
 }
 
 export function getSessionTypeBadgeClass(type: StudySessionType): string {

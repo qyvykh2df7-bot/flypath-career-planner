@@ -230,22 +230,35 @@ export function StudyPlannerCalendar({
     [onUpdatePlannedSession, plannedSessions, today],
   );
 
+  const viewTitle =
+    viewMode === "week"
+      ? "Vista semanal"
+      : viewMode === "day"
+        ? "Vista diaria"
+        : "Vista mensual";
+
+  const viewSubtitle =
+    viewMode === "week"
+      ? "Bloques de la semana · arrastra sesiones para reorganizar"
+      : viewMode === "day"
+        ? "Agenda diaria y progreso de estudio"
+        : "Carga mensual y distribución de sesiones";
+
   return (
-    <section className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/70 sm:p-4">
-      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Calendario de estudio
-          </p>
-          <p className="mt-0.5 text-[13px] leading-snug text-slate-600">
-            Vista {viewMode === "week" ? "semanal" : viewMode === "day" ? "del día" : "mensual"} · toca un
-            bloque para gestionarlo
-          </p>
+    <section className="rounded-2xl bg-white p-3 shadow-[0_6px_28px_-20px_rgba(15,26,51,0.12)] ring-1 ring-slate-200/35 transition-[box-shadow] duration-300 sm:p-3.5">
+      <header className="mb-3 flex flex-col gap-2.5 border-b border-slate-100/70 pb-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-[16px] font-medium tracking-tight text-[#0f1a33] sm:text-[17px]">
+            {viewTitle}
+          </h3>
+          <p className="mt-0.5 text-[13px] leading-snug text-slate-500">{viewSubtitle}</p>
         </div>
         <CalendarViewSwitcher value={viewMode} onChange={persistView} />
-      </div>
+      </header>
 
-      <CalendarInsightStrip insight={activeInsight} />
+      <div className="mb-3 transition-opacity duration-200">
+        <CalendarInsightStrip insight={activeInsight} />
+      </div>
 
       {viewMode === "day" ? (
         <StudyDayView

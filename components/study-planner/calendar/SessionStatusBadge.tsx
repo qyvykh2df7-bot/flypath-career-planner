@@ -20,7 +20,7 @@ export function SessionStatusBadge({ session, today, className = "" }: SessionSt
 
   return (
     <span
-      className={`inline-flex max-w-full min-w-0 shrink rounded-full px-1.5 py-px text-[8px] font-semibold uppercase tracking-wide ring-1 ${displayStatusBadgeClass(displayStatus)} ${className}`}
+      className={`inline-flex max-w-full min-w-0 shrink rounded-md px-1 py-px text-[8px] font-medium tracking-normal ${displayStatusBadgeClass(displayStatus)} ${className}`}
     >
       <span className="min-w-0 truncate">{DISPLAY_STATUS_LABELS[displayStatus]}</span>
     </span>

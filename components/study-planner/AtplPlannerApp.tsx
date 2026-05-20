@@ -250,12 +250,15 @@ export function AtplPlannerApp() {
         ) : null}
 
         {activeTab === "calendar" ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <h2 className="text-[16px] font-semibold text-[#0f1a33]">Calendario de estudio</h2>
-              <p className="mt-0.5 text-[13px] text-slate-600">
+              <p className="text-[12px] font-medium text-slate-500">Planificación</p>
+              <h2 className="mt-0.5 text-[19px] font-semibold tracking-tight text-[#0f1a33] sm:text-[21px]">
+                Calendario de estudio
+              </h2>
+              <p className="mt-0.5 text-[13px] leading-snug text-slate-500">
                 {hasActiveWeek
-                  ? "Vista día, semana o mes. Toca un bloque para gestionarlo o + para planificar."
+                  ? "Gestiona la semana activa y navega por día, semana o mes en el panel inferior."
                   : "Genera tu semana automáticamente o crea sesiones manualmente desde el calendario."}
               </p>
             </div>

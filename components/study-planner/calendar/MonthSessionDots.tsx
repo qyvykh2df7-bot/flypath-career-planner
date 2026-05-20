@@ -15,12 +15,12 @@ export function MonthSessionDots({ sessions }: MonthSessionDotsProps) {
   const overflow = sessions.length - sorted.length;
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-0.5" aria-hidden>
+    <div className="mt-0.5 flex flex-wrap items-center gap-px" aria-hidden>
       {sorted.map((s) => (
         <span
           key={s.id}
-          className={`h-1.5 w-1.5 rounded-full ${getSessionTypeDotClass(s.type)} ${
-            s.status === "completed" ? "opacity-50" : ""
+          className={`h-1 w-1 rounded-full ${getSessionTypeDotClass(s.type)} ${
+            s.status === "completed" ? "opacity-40" : "opacity-90"
           }`}
         />
       ))}

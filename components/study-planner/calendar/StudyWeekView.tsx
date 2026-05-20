@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import type { PlannedStudySession } from "@/lib/study-planner/types";
 import {
   calculateCompletedPlannedMinutes,
@@ -23,8 +23,8 @@ import {
 } from "@/lib/study-planner/date-utils";
 import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-session-scheduling";
 import { canMovePlannedSessionToDate } from "@/lib/study-planner/planned-session-move";
-import { plannerBtnGhost } from "@/lib/study-planner/planner-ui";
 import { getSessionTypeAccentClass } from "@/lib/study-planner/session-type-visual";
+import { CalendarPeriodNav } from "./CalendarPeriodNav";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
 import { SessionStatusBadge } from "./SessionStatusBadge";
@@ -72,11 +72,11 @@ function weekKindLabel(kind: WeekKind): string {
 function weekKindBadgeClass(kind: WeekKind): string {
   switch (kind) {
     case "current":
-      return "border-[#c9a454]/40 bg-[#fff8e8] text-[#7a5a16]";
+      return "bg-[#fff8e8]/80 text-[#7a5a16]";
     case "past":
-      return "border-slate-200 bg-slate-100 text-slate-600";
+      return "bg-slate-100/80 text-slate-600";
     case "future":
-      return "border-sky-200/90 bg-sky-50/90 text-sky-900";
+      return "bg-sky-50/70 text-sky-900";
   }
 }
 
@@ -176,48 +176,31 @@ export function StudyWeekView({
   const isDragging = draggingSessionId !== null;
   const weekColumnsClassName =
     weekLayout === "column"
-      ? "grid gap-3 lg:grid-cols-7"
+      ? "grid gap-2.5 lg:grid-cols-7 lg:gap-3"
       : "space-y-2.5";
 
   return (
-    <div className="space-y-3.5 sm:space-y-4">
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[15px] font-semibold tracking-tight text-[#0f1a33]">
+    <div className="space-y-2.5 sm:space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[16px] font-medium tracking-tight text-[#0f1a33] sm:text-[17px]">
             {formatWeekRange(visibleWeekStartDate)}
           </p>
           <span
-            className={`mt-1.5 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${weekKindBadgeClass(weekKind)}`}
+            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium transition-[background-color] duration-200 ${weekKindBadgeClass(weekKind)}`}
           >
             {weekKindLabel(weekKind)}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, -1))}
-            className={`${plannerBtnGhost} inline-flex items-center rounded-lg px-2.5 py-1.5 text-[12px] transition-[transform,box-shadow,opacity] duration-200 hover:-translate-y-px hover:shadow-sm active:translate-y-0`}
-            aria-label="Semana anterior"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onVisibleWeekStartChange(currentWeekStart)}
-            disabled={isCurrentWeek}
-            className={`${plannerBtnGhost} rounded-lg px-2.5 py-1.5 text-[12px] transition-[transform,box-shadow,opacity] duration-200 hover:-translate-y-px hover:shadow-sm disabled:opacity-50`}
-          >
-            Esta semana
-          </button>
-          <button
-            type="button"
-            onClick={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, 1))}
-            className={`${plannerBtnGhost} inline-flex items-center rounded-lg px-2.5 py-1.5 text-[12px] transition-[transform,box-shadow,opacity] duration-200 hover:-translate-y-px hover:shadow-sm active:translate-y-0`}
-            aria-label="Semana siguiente"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        <CalendarPeriodNav
+          onPrev={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, -1))}
+          onNext={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, 1))}
+          onJumpToCurrent={() => onVisibleWeekStartChange(currentWeekStart)}
+          currentLabel="Esta semana"
+          currentDisabled={isCurrentWeek}
+          prevAriaLabel="Semana anterior"
+          nextAriaLabel="Semana siguiente"
+        />
       </div>
 
       <p className="text-[12px] text-slate-500">
@@ -226,7 +209,7 @@ export function StudyWeekView({
       </p>
 
       {feedback ? (
-        <p className="rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-[12px] text-slate-700">
+        <p className="rounded-lg bg-slate-50/90 px-3 py-1.5 text-[12px] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           {feedback}
         </p>
       ) : null}
@@ -254,7 +237,7 @@ export function StudyWeekView({
       </div>
 
       {weekPlanned.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-200/90 bg-gradient-to-br from-slate-50 to-white px-4 py-7 text-center text-[13px] text-slate-500">
+        <p className="rounded-xl bg-slate-50/50 px-4 py-6 text-center text-[13px] text-slate-500">
           Sin sesiones esta semana. Genera un plan automático o añade bloques con + en un día.
         </p>
       ) : null}
@@ -332,27 +315,25 @@ const WeekDayColumn = memo(function WeekDayColumn({
             }
           : undefined
       }
-      className={`flex min-w-0 flex-col overflow-x-hidden rounded-xl border px-1.5 py-2.5 transition-[border-color,background-color,box-shadow] duration-200 ${
+      className={`flex min-w-0 flex-col overflow-x-hidden rounded-xl px-2 py-2 transition-[background-color,box-shadow] duration-300 ease-out ${
         isToday
-          ? "border-[#c9a454]/45 bg-gradient-to-b from-[#fffdf8] to-white ring-1 ring-[#c9a454]/20 shadow-[0_1px_0_rgba(201,164,84,0.08)]"
-          : "border-slate-200/80 bg-white"
+          ? "bg-[#fffdf8]/90 shadow-[0_2px_12px_-8px_rgba(201,164,84,0.2)] ring-1 ring-[#c9a454]/15"
+          : "bg-slate-50/30 shadow-[0_1px_0_rgba(15,26,51,0.03)]"
       } ${layout === "column" ? "min-h-[4.5rem]" : ""} ${
-        isHovered && canDropHere
-          ? "border-[#c9a454]/60 bg-[#fff8e8] ring-1 ring-[#c9a454]/20"
-          : ""
-      } ${isInvalidHover ? "border-slate-200/80 bg-slate-50/50" : ""}`}
+        isHovered && canDropHere ? "bg-[#fff8e8]/90 shadow-[0_4px_16px_-10px_rgba(201,164,84,0.25)] ring-1 ring-[#c9a454]/20" : ""
+      } ${isInvalidHover ? "bg-slate-100/40" : ""}`}
     >
-      <div className="mb-2.5 flex items-center justify-between gap-1 border-b border-slate-100/90 pb-1.5">
+      <div className="mb-2 flex items-center justify-between gap-1 pb-1.5">
         <button
           type="button"
           onClick={() => onOpenDay(date)}
-          className="min-w-0 truncate text-left text-[11px] font-semibold text-[#0f1a33] hover:underline"
+          className="min-w-0 truncate text-left text-[11px] font-medium text-[#0f1a33] transition-colors duration-200 hover:text-[#3b6ea8] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25"
         >
           {getDayShortLabel(date)}
         </button>
         <div className="flex shrink-0 items-center gap-0.5">
           {isToday ? (
-            <span className="rounded-full bg-[#fff3d6] px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-[#7a5a16] ring-1 ring-[#c9a454]/30">
+            <span className="rounded-full bg-[#fff3d6]/90 px-1.5 py-px text-[10px] font-medium text-[#7a5a16]">
               Hoy
             </span>
           ) : (
@@ -376,12 +357,12 @@ const WeekDayColumn = memo(function WeekDayColumn({
           <button
             type="button"
             onClick={() => onAdd(date)}
-            className="rounded-lg border border-dashed border-slate-200/80 py-2 text-[10px] font-medium text-slate-400 transition-colors hover:border-[#c9a454]/35 hover:text-[#7a5a16]"
+            className="rounded-lg bg-white/60 py-2 text-[10px] font-medium text-slate-400 transition-[background-color,color] duration-200 hover:bg-white hover:text-[#7a5a16] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/20"
           >
             + Añadir sesión
           </button>
         ) : (
-          <p className="rounded-lg border border-dashed border-slate-200/70 py-2 text-center text-[10px] font-medium text-slate-300">
+          <p className="rounded-lg bg-slate-50/40 py-2 text-center text-[10px] font-medium text-slate-400">
             Día pasado
           </p>
         )
@@ -440,31 +421,35 @@ const WeekSessionCard = memo(function WeekSessionCard({
         }}
         onDragEnd={() => onDragEnd?.()}
         data-planned-session-id={session.id}
-        className={`box-border w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200/70 border-l-[3px] bg-white px-2 py-2.5 text-left transition-[box-shadow,border-color,opacity] duration-200 ease-out hover:border-slate-300 hover:shadow-[0_6px_18px_-12px_rgba(15,26,51,0.35)] hover:ring-1 hover:ring-[#c9a454]/12 active:shadow-[0_2px_8px_-6px_rgba(15,26,51,0.25)] ${getSessionTypeAccentClass(session.type)} ${
-          canDrag ? "cursor-grab active:cursor-grabbing" : ""
-        } ${isDragging ? "z-[1] opacity-95 shadow-md ring-2 ring-[#c9a454]/25" : ""}`}
+        title={subjectName}
+        className={`box-border w-full min-w-0 max-w-full overflow-hidden rounded-lg bg-white/95 px-3 py-2 text-left shadow-[0_1px_0_rgba(15,26,51,0.04)] ${getSessionTypeAccentClass(session.type)} transition-[box-shadow,background-color,opacity] duration-300 ease-out hover:bg-white hover:shadow-[0_6px_20px_-14px_rgba(15,26,51,0.14)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25 focus-visible:ring-offset-1 ${canDrag ? "cursor-grab active:cursor-grabbing" : ""} ${
+          isDragging ? "z-[1] bg-white opacity-95 shadow-[0_8px_24px_-12px_rgba(15,26,51,0.18)] ring-1 ring-[#c9a454]/15" : ""
+        }`}
       >
-        <div className="flex min-w-0 items-start justify-between gap-1.5">
-          <span className="min-w-0 flex-1 hyphens-auto break-words text-left text-[12px] font-semibold leading-snug text-[#0f1a33] [overflow-wrap:anywhere] line-clamp-2">
+        <div className="flex min-w-0 items-start gap-2">
+          <span className="min-w-0 flex-1 break-words text-left text-[12px] font-medium leading-[1.35] text-[#0f1a33] line-clamp-2">
             {subjectName}
           </span>
           {session.status === "completed" ? (
-            <Check className="h-3 w-3 shrink-0 text-emerald-600" aria-hidden />
+            <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" aria-hidden />
           ) : null}
         </div>
-        <p className="mt-1.5 min-w-0 truncate text-[11px] tabular-nums text-slate-500">
+        <p className="mt-1 min-w-0 text-[11px] font-medium tabular-nums leading-tight text-slate-600">
           {timePart} · {minutesToHoursLabel(session.plannedDurationMinutes)}
         </p>
-        <div className="mt-2 w-full min-w-0 space-y-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
-            <SessionTypeBadge type={session.type} className="max-w-full text-[8px]" />
+        <div className="mt-1.5 w-full min-w-0 space-y-0.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
+            <SessionTypeBadge
+              type={session.type}
+              className="max-w-full !normal-case text-[7.5px] tracking-tight ring-0"
+            />
             <SessionStatusBadge
               session={session}
               today={today}
-              className="max-w-full px-1 py-px text-[7px] opacity-90"
+              className="max-w-full !normal-case px-1 py-px text-[7px] tracking-tight opacity-90 ring-0"
             />
           </div>
-          <span className="block text-[9px] font-medium uppercase tracking-wide text-slate-400">
+          <span className="block text-[9px] font-normal text-slate-400/90">
             {session.source === "manual" ? "Manual" : "Auto"}
           </span>
         </div>

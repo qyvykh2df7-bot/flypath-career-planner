@@ -11,10 +11,10 @@ export function SessionSourceBadge({ source, className = "" }: SessionSourceBadg
   const isManual = source === "manual";
   return (
     <span
-      className={`inline-flex shrink-0 rounded px-1 py-px text-[8px] font-bold uppercase tracking-wide ring-1 ${
+      className={`inline-flex shrink-0 rounded px-1 py-px text-[8px] font-medium tracking-normal ${
         isManual
-          ? "bg-violet-50 text-violet-900 ring-violet-200/80"
-          : "bg-slate-100 text-slate-600 ring-slate-200/80"
+          ? "bg-violet-50/80 text-violet-800/90"
+          : "bg-slate-100/80 text-slate-500"
       } ${className}`}
     >
       {isManual ? "Manual" : "Auto"}

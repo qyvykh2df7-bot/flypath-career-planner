@@ -12,14 +12,14 @@ export function CalendarInsightStrip({ insight }: CalendarInsightStripProps) {
 
   const toneClass =
     insight.tone === "positive"
-      ? "border-emerald-200/80 bg-emerald-50/60 text-emerald-900"
+      ? "bg-emerald-50/50 text-emerald-900"
       : insight.tone === "attention"
-        ? "border-amber-200/80 bg-amber-50/50 text-amber-950"
-        : "border-slate-200/80 bg-slate-50/80 text-slate-700";
+        ? "bg-amber-50/40 text-amber-950"
+        : "bg-slate-50/70 text-slate-700";
 
   return (
     <div
-      className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-[12px] leading-snug ${toneClass}`}
+      className={`flex items-start gap-2 rounded-xl px-3 py-1.5 text-[12px] leading-snug transition-[background-color,opacity] duration-200 ${toneClass}`}
       role="status"
     >
       <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
