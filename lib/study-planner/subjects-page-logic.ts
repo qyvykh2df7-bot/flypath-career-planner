@@ -358,14 +358,28 @@ export function formatSubjectsSummaryLine(summary: SubjectsPageSummary): string 
 export function displayStatusStyles(status: SubjectDisplayStatus): string {
   switch (status) {
     case "no_data":
-      return "border-slate-200 bg-slate-50 text-slate-600";
+      return "bg-slate-100/80 text-slate-500 ring-slate-200/50";
     case "in_progress":
-      return "border-[#c9a454]/35 bg-[#fff8e8] text-[#7a5a16]";
+      return "bg-[#fff8e8]/90 text-[#7a5a16] ring-[#c9a454]/20";
     case "at_risk":
-      return "border-amber-200/80 bg-amber-50 text-amber-900";
+      return "bg-amber-50/90 text-amber-800 ring-amber-200/45";
     case "prepared":
-      return "border-emerald-200/70 bg-emerald-50 text-emerald-800";
+      return "bg-emerald-50/90 text-emerald-800 ring-emerald-200/40";
     case "passed":
-      return "border-sky-200/70 bg-sky-50 text-sky-900";
+      return "bg-sky-50/90 text-sky-800 ring-sky-200/40";
   }
+}
+
+/** Etiqueta corta en cards (presentación; no altera resolveSubjectDisplayStatus). */
+export function subjectCardBadgeLabel(
+  status: SubjectDisplayStatus,
+  displayLabel: string,
+): string {
+  if (status === "no_data") return "Por empezar";
+  return displayLabel;
+}
+
+/** Badge más discreto en cards sin datos. */
+export function subjectNoDataBadgeClass(): string {
+  return "bg-transparent text-slate-400 ring-0";
 }
