@@ -7,7 +7,7 @@ import type {
   StudySession,
   StudySubject,
 } from "@/lib/study-planner/types";
-import { getTodayDateString } from "@/lib/study-planner/calculations";
+import { formatShortDate, getTodayDateString } from "@/lib/study-planner/calculations";
 import {
   getDayCalendarInsight,
   getWeekCalendarInsight,
@@ -19,6 +19,10 @@ import {
   getWeekStart,
 } from "@/lib/study-planner/date-utils";
 import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-session-scheduling";
+import {
+  canMovePlannedSessionToDate,
+  PAST_MOVE_DATE_ERROR,
+} from "@/lib/study-planner/planned-session-move";
 import { StudySessionFocusSheet } from "../StudySessionFocusSheet";
 import { CalendarInsightStrip } from "./CalendarInsightStrip";
 import { CalendarViewSwitcher } from "./CalendarViewSwitcher";
@@ -49,6 +53,8 @@ type StudyPlannerCalendarProps = {
   externalCreateNonce?: number;
   externalCreateDate?: string;
 };
+
+type MoveSessionResult = { ok: true; message: string } | { ok: false; message: string };
 
 function loadStoredView(): CalendarViewMode {
   if (typeof window === "undefined") return DEFAULT_CALENDAR_VIEW;
@@ -206,6 +212,24 @@ export function StudyPlannerCalendar({
     [onDeletePlannedSession],
   );
 
+  const handleMoveSessionInWeek = useCallback(
+    (sessionId: string, targetDate: string): MoveSessionResult => {
+      const session = plannedSessions.find((item) => item.id === sessionId);
+      if (!session) {
+        return { ok: false, message: "No se pudo mover la sesión." };
+      }
+      if (!canMovePlannedSessionToDate(session, targetDate, today)) {
+        return { ok: false, message: PAST_MOVE_DATE_ERROR };
+      }
+      if (session.date === targetDate) {
+        return { ok: true, message: `Sesión movida al ${formatShortDate(targetDate)}` };
+      }
+      onUpdatePlannedSession(sessionId, { date: targetDate });
+      return { ok: true, message: `Sesión movida al ${formatShortDate(targetDate)}` };
+    },
+    [onUpdatePlannedSession, plannedSessions, today],
+  );
+
   return (
     <section className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/70 sm:p-4">
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -247,6 +271,7 @@ export function StudyPlannerCalendar({
           onSelectSession={setSelectedSession}
           onOpenDay={handleOpenDayFromWeek}
           onAddSessionOnDate={openCreateDrawer}
+          onMoveSessionOnDate={handleMoveSessionInWeek}
         />
       ) : null}
 

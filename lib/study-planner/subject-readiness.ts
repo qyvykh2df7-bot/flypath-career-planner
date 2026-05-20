@@ -317,7 +317,7 @@ export function qualifiesAsPrepared(readiness: SubjectReadiness): boolean {
   }
   if (readiness.breakdown.pendingErrors > 0) return false;
   const label = readiness.pedagogicalLabel;
-  return label === "Preparación sólida" || label === "Muy preparado";
+  return label === "Progresando bien" || label === "Preparación sólida" || label === "Muy preparado";
 }
 
 export function computeSubjectReadinessMetrics(params: {

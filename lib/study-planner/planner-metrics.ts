@@ -9,6 +9,7 @@ import {
 } from "./planner-session-status";
 
 export type PlannerMetrics = {
+  today: string;
   weekStartDate: string;
   weekSessions: PlannedStudySession[];
   totalPlannedSessions: number;
@@ -146,6 +147,7 @@ export function getPlannerMetrics(
   const totalActiveSubjects = options.activeSubjectIds?.length ?? 0;
 
   return {
+    today,
     weekStartDate,
     weekSessions,
     totalPlannedSessions: weekSessions.length,

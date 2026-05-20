@@ -1,5 +1,5 @@
 import type { PlannedStudySession } from "./types";
-import { comparePlannedByStartTime, getTodayDateString } from "./calculations";
+import { comparePlannedByStartTime } from "./calculations";
 import type { PlannerMetrics } from "./planner-metrics";
 import { isPendingLikeStatus, normalizePlannedSessionStatus } from "./planner-session-status";
 import { formatSessionHeadline } from "./session-type-visual";
@@ -47,7 +47,7 @@ function blockLabel(count: number): string {
  * Hero de “Hoy” / semana en marcha según métricas centrales (casos A–D).
  */
 export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionHeroContext {
-  const today = getTodayDateString();
+  const today = metrics.today;
   const { skippedSessions, todayPendingSessions, pendingLikeCount } = metrics;
   const weekHasPending = pendingLikeCount > 0;
 
