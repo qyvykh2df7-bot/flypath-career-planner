@@ -251,7 +251,7 @@ export function StudyLogForm({
 
   const fieldClass =
     "mt-0.5 h-9 w-full rounded-md bg-white px-2.5 text-[13px] text-[#0f1a33] ring-1 ring-slate-200/45 focus:ring-2 focus:ring-[#c9a454]/25 focus:outline-none";
-  const labelClass = "text-[11px] font-medium text-slate-500";
+  const labelClass = "text-[13px] font-medium text-slate-500";
 
   const confirmBtnPrimary =
     "inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-[#c9a454] px-3 text-[13px] font-semibold text-[#0f1a33] ring-1 ring-[#ddb75c]/40 transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40";
@@ -331,7 +331,7 @@ export function StudyLogForm({
 
           {showPlanConfirm && plannedOneLiner ? (
             <div className="rounded-lg bg-gradient-to-r from-[#fffdf8] to-white px-3 py-2.5 ring-1 ring-[#c9a454]/18">
-              <p className="text-[10px] font-semibold text-[#7a5a16]">
+              <p className="text-[12px] font-semibold text-[#7a5a16]">
                 ¿Has completado este bloque?
               </p>
               <p className="mt-0.5 truncate text-[13px] font-semibold text-[#0f1a33]">
@@ -360,7 +360,7 @@ export function StudyLogForm({
               <p className="text-[13px] font-medium text-slate-700">
                 Ya no quedan bloques pendientes hoy.
               </p>
-              <p className="mt-0.5 text-[12px] text-slate-500">
+              <p className="mt-0.5 text-[13px] text-slate-500">
                 Registra estudio libre o adelanta desde el calendario.
               </p>
             </div>
@@ -414,7 +414,7 @@ export function StudyLogForm({
                   key={m}
                   type="button"
                   onClick={() => setDurationMinutes(String(m))}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                  className={`rounded-full px-2.5 py-1 text-[12px] font-semibold transition ${
                     durationMinutes === String(m)
                       ? "bg-[#fff8e8] text-[#7a5a16] ring-1 ring-[#c9a454]/35"
                       : "bg-white text-slate-600 ring-1 ring-slate-200/45 hover:ring-[#c9a454]/25 hover:text-[#7a5a16]"
@@ -425,7 +425,7 @@ export function StudyLogForm({
               ))}
             </div>
             <label className="mt-1.5 block">
-              <span className="text-[10px] text-slate-400">Minutos</span>
+              <span className="text-[13px] text-slate-400">Minutos</span>
               <input
                 type="number"
                 min={1}
@@ -467,7 +467,7 @@ export function StudyLogForm({
             <button
               type="button"
               onClick={() => setNotesOpen((v) => !v)}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-[#0f1a33]"
+              className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-500 transition hover:text-[#0f1a33]"
             >
               {notesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               Añadir notas

@@ -73,7 +73,7 @@ export function PlannedSessionActionDrawer({
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
               {getDayShortLabel(session.date)} · {formatShortDate(session.date)}
             </p>
             <h2 id="planned-session-drawer-title" className="mt-0.5 text-[17px] font-semibold text-[#0f1a33]">
@@ -83,7 +83,7 @@ export function PlannedSessionActionDrawer({
               {session.startTime ? `${session.startTime} · ` : ""}
               {minutesToHoursLabel(session.plannedDurationMinutes)} · {getSessionTypeLabel(session.type)}
             </p>
-            <p className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase text-slate-600">
+            <p className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-semibold uppercase text-slate-600">
               {PLANNED_STATUS_LABELS[session.status]}
             </p>
           </div>

@@ -28,7 +28,7 @@ export function OnboardingStudyContextPicker({
             }`}
           >
             <p className="text-[14px] font-semibold text-[#0f1a33]">{opt.label}</p>
-            <p className="mt-0.5 text-[12px] text-slate-500">{opt.description}</p>
+            <p className="mt-0.5 text-[13px] text-slate-500">{opt.description}</p>
           </button>
         );
       })}

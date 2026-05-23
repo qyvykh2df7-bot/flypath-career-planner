@@ -93,7 +93,7 @@ export function ExamDatesPanel({
         <div className="flex flex-wrap items-center gap-2">
           {next ? (
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-gradient-to-r from-[#fff9ee]/90 to-transparent px-2 py-1 ring-1 ring-[#c9a454]/12">
-              <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-[#7a5a16]/90">
+              <span className="shrink-0 text-[12px] font-semibold uppercase tracking-wide text-[#7a5a16]/90">
                 Próximo examen
               </span>
               <p className="min-w-0 truncate text-[12px] font-medium text-[#0f1a33]">
@@ -106,7 +106,7 @@ export function ExamDatesPanel({
               </p>
             </div>
           ) : (
-            <p className="min-w-0 flex-1 text-[12px] text-slate-500">
+            <p className="min-w-0 flex-1 text-[13px] text-slate-500">
               Sin fechas de examen configuradas
             </p>
           )}
@@ -114,7 +114,7 @@ export function ExamDatesPanel({
             type="button"
             onClick={() => setShowForm((v) => !v)}
             aria-expanded={showForm}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-[#7a5a16] transition hover:bg-[#fff8e8]/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a454]/35"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] font-semibold text-[#7a5a16] transition hover:bg-[#fff8e8]/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a454]/35"
           >
             <Plus className="h-3 w-3" aria-hidden />
             Añadir fecha
@@ -136,7 +136,7 @@ export function ExamDatesPanel({
               className="rounded-md bg-[#fffdf8]/60 px-2 py-1.5 ring-1 ring-[#c9a454]/10"
             >
               <div className="flex flex-wrap items-end gap-2">
-                <label className="min-w-[min(100%,10rem)] flex-1 text-[10px] font-medium text-slate-500">
+                <label className="min-w-[min(100%,10rem)] flex-1 text-[13px] font-medium text-slate-500">
                   Asignatura
                   <select
                     ref={subjectSelectRef}
@@ -153,7 +153,7 @@ export function ExamDatesPanel({
                     ))}
                   </select>
                 </label>
-                <label className="w-full min-w-[8.5rem] flex-1 text-[10px] font-medium text-slate-500 sm:max-w-[9.5rem] sm:flex-none">
+                <label className="w-full min-w-[8.5rem] flex-1 text-[13px] font-medium text-slate-500 sm:max-w-[9.5rem] sm:flex-none">
                   Fecha
                   <input
                     type="date"
@@ -165,13 +165,13 @@ export function ExamDatesPanel({
                 </label>
                 <button
                   type="submit"
-                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-[#c9a454] px-3 text-[11px] font-semibold text-[#0f1a33] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a454]/40"
+                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-[#c9a454] px-3 text-[12px] font-semibold text-[#0f1a33] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#c9a454]/40"
                 >
                   Guardar
                 </button>
               </div>
               {error ? (
-                <p className="mt-1 text-[10px] font-medium text-red-600" role="alert">
+                <p className="mt-1 text-[12px] font-medium text-red-600" role="alert">
                   {error}
                 </p>
               ) : null}
@@ -189,7 +189,7 @@ export function ExamDatesPanel({
               return (
                 <li
                   key={exam.id}
-                  className="flex items-center justify-between gap-2 rounded-md px-1.5 py-0.5 text-[11px] hover:bg-slate-50/70"
+                  className="flex items-center justify-between gap-2 rounded-md px-1.5 py-0.5 text-[12px] hover:bg-slate-50/70"
                 >
                   <span className="min-w-0 truncate text-slate-600">
                     <span className="font-medium text-slate-700">{name}</span>
@@ -201,7 +201,7 @@ export function ExamDatesPanel({
                   <button
                     type="button"
                     onClick={() => onDeleteExamDate(exam.id)}
-                    className={`${plannerBtnGhost} shrink-0 px-1 py-0.5 text-[10px]`}
+                    className={`${plannerBtnGhost} shrink-0 px-1 py-0.5 text-[12px]`}
                   >
                     Quitar
                   </button>
@@ -213,7 +213,7 @@ export function ExamDatesPanel({
             <button
               type="button"
               onClick={() => setListExpanded((v) => !v)}
-              className="flex w-full items-center justify-center gap-0.5 py-0.5 text-[10px] font-medium text-slate-500 hover:text-[#7a5a16]"
+              className="flex w-full items-center justify-center gap-0.5 py-0.5 text-[13px] font-medium text-slate-500 hover:text-[#7a5a16]"
             >
               {listExpanded ? "Ver menos" : `Ver ${restUpcoming.length} más`}
               <ChevronDown

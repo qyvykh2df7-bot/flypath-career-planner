@@ -45,7 +45,7 @@ export function EvaluationDashboardLine({
               aria-hidden
             />
             <span
-              className={`min-w-0 flex-1 font-medium leading-snug ${isSubtle ? "text-[12px] text-slate-500" : "text-[13px] text-slate-700"}`}
+              className={`min-w-0 flex-1 font-medium leading-snug ${isSubtle ? "text-[13px] text-slate-500" : "text-[13px] text-slate-700"}`}
             >
               {line}
             </span>
@@ -68,7 +68,7 @@ export function EvaluationDashboardLine({
             className={`flex flex-wrap items-center gap-1.5 ${isSubtle ? "mt-1 px-0 py-0" : "border-t border-slate-100/90 bg-slate-50/50 px-2.5 py-2"}`}
           >
             {nextExamHint ? (
-              <span className="inline-flex items-center rounded-lg bg-[#fff8e8]/80 px-2 py-1 text-[11px] font-medium text-[#7a5a16]">
+              <span className="inline-flex items-center rounded-lg bg-[#fff8e8]/80 px-2 py-1 text-[12px] font-medium text-[#7a5a16]">
                 Próximo examen: {nextExamHint.subjectName} · {nextExamHint.daysLabel}
               </span>
             ) : null}
@@ -77,7 +77,7 @@ export function EvaluationDashboardLine({
                 key={action.label}
                 type="button"
                 onClick={action.onClick}
-                className="inline-flex items-center rounded-lg border border-slate-200/50 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-[0_2px_8px_-6px_rgba(15,26,51,0.08)] transition-[background-color,border-color,box-shadow] duration-200 hover:border-[#c9a454]/30 hover:bg-[#fffdf8] hover:text-[#7a5a16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b6ea8]/20"
+                className="inline-flex items-center rounded-lg border border-slate-200/50 bg-white px-2.5 py-1 text-[13px] font-medium text-slate-600 shadow-[0_2px_8px_-6px_rgba(15,26,51,0.08)] transition-[background-color,border-color,box-shadow] duration-200 hover:border-[#c9a454]/30 hover:bg-[#fffdf8] hover:text-[#7a5a16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b6ea8]/20"
               >
                 {action.label}
               </button>
@@ -110,7 +110,7 @@ export function EvaluationDashboardLine({
             }`}
           >
             {nextExamHint ? (
-              <span className="inline-flex items-center rounded-lg bg-[#fff8e8]/80 px-2 py-1 text-[11px] font-medium text-[#7a5a16]">
+              <span className="inline-flex items-center rounded-lg bg-[#fff8e8]/80 px-2 py-1 text-[12px] font-medium text-[#7a5a16]">
                 Próximo examen: {nextExamHint.subjectName} · {nextExamHint.daysLabel}
               </span>
             ) : null}
@@ -119,7 +119,7 @@ export function EvaluationDashboardLine({
                 key={action.label}
                 type="button"
                 onClick={action.onClick}
-                className="inline-flex items-center rounded-lg border border-slate-200/50 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-[0_2px_8px_-6px_rgba(15,26,51,0.08)] transition-[background-color,border-color] duration-200 hover:border-[#c9a454]/30 hover:bg-[#fffdf8] hover:text-[#7a5a16]"
+                className="inline-flex items-center rounded-lg border border-slate-200/50 bg-white px-2.5 py-1 text-[13px] font-medium text-slate-600 shadow-[0_2px_8px_-6px_rgba(15,26,51,0.08)] transition-[background-color,border-color] duration-200 hover:border-[#c9a454]/30 hover:bg-[#fffdf8] hover:text-[#7a5a16]"
               >
                 {action.label}
               </button>

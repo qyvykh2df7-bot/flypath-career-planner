@@ -25,7 +25,7 @@ function ProgressRow({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-[12px] text-slate-600">{label}</span>
+        <span className="text-[13px] text-slate-600">{label}</span>
         <span className="text-[12px] font-medium text-[#0f1a33]">{value}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-slate-200/80">
@@ -54,7 +54,7 @@ function HelpMini({
       </span>
       <div className="min-w-0">
         <p className="text-[12px] font-medium text-[#0f1a33]">{title}</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{description}</p>
+        <p className="mt-0.5 text-[13px] leading-snug text-slate-500">{description}</p>
       </div>
     </div>
   );
@@ -108,7 +108,7 @@ export function DashboardMissionControl({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <section className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/70">
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Cómo te ayuda FlyPath
           </p>
           <div className="space-y-2">
@@ -131,7 +131,7 @@ export function DashboardMissionControl({
         </section>
 
         <section className="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/70">
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Progreso
           </p>
           <div className="space-y-3">

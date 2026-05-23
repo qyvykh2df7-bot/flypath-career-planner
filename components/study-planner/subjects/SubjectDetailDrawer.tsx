@@ -88,7 +88,7 @@ export function SubjectDetailDrawer({
 
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200/80 px-4 pb-3 pt-1 sm:px-5 sm:pt-5">
           <div className="min-w-0 pr-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Detalle</p>
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">Detalle</p>
             <h2
               id="subject-detail-title"
               className="truncate text-[18px] font-semibold text-[#0f1a33]"
@@ -123,7 +123,7 @@ export function SubjectDetailDrawer({
 
           {upcomingPlanned.length > 0 ? (
             <div className="mt-4 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 Próximas sesiones planificadas
               </p>
               <ul className="mt-2 space-y-1.5 text-[13px] text-slate-600">

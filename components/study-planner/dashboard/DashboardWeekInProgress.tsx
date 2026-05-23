@@ -15,11 +15,13 @@ import {
 } from "@/lib/study-planner/calculations";
 import { buildDashboardHeroFromMetrics } from "@/lib/study-planner/dashboard-hero-context";
 import type { WeeklyPlanAlert } from "@/lib/study-planner/weekly-alerts";
+import { getSessionTypeShortLabel } from "@/lib/study-planner/labels";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
 import { SessionHeroCard, type SessionHeroPrimaryAction } from "./SessionHeroCard";
 import { WeekAlertsCompact } from "../planning/WeeklyPlanDashboard";
 import { DashboardEvaluationVigil } from "./DashboardEvaluationVigil";
+import type { NextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
 import type {
   GoToEvaluationOptions,
   GoToSubjectsOptions,
@@ -34,12 +36,11 @@ type DashboardWeekInProgressProps = {
   alerts: WeeklyPlanAlert[];
   positiveMessage: string | null;
   onOpenSession: (session: PlannedStudySession) => void;
-  onGoToLog?: () => void;
   onViewPlan?: () => void;
   onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
   onGoToEvaluation?: (options?: GoToEvaluationOptions) => void;
-  evaluationVigilLine?: string | null;
-  onEvaluationVigilGo?: () => void;
+  nextExamHighlight?: NextExamHighlight | null;
+  onPrepareExam?: () => void;
 };
 
 function TodayTimelineItem({
@@ -61,21 +62,44 @@ function TodayTimelineItem({
   const isInProgress = status === "in_progress";
   const isPending = isPendingLikeStatus(status);
 
+  const typeLabel = getSessionTypeShortLabel(session.type);
+
+  const subjectClass = isDone
+    ? "text-emerald-900 line-through decoration-emerald-300/80"
+    : isSkipped || isDimmed
+      ? "text-slate-500"
+      : "text-[#0f1a33]";
+
+  const statusBadge =
+    isNextUp && isPending ? (
+      <span className="rounded-full bg-[#c9a454] px-2 py-0.5 text-[12px] font-bold uppercase leading-none tracking-wide text-[#0f1a33]">
+        Ahora
+      </span>
+    ) : isSkipped ? (
+      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[12px] font-semibold leading-none text-amber-900">
+        Saltada
+      </span>
+    ) : isInProgress ? (
+      <span className="rounded-full bg-[#e8eef8] px-2 py-0.5 text-[12px] font-semibold leading-none text-[#0f1a33]">
+        En curso
+      </span>
+    ) : null;
+
   return (
-    <li className={isDimmed ? "opacity-60" : undefined}>
+    <li className={isDimmed ? "opacity-55" : undefined}>
       <button
         type="button"
         onClick={() => onOpen(session)}
-        className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] transition-[background-color,box-shadow] duration-200 ${
+        className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-[background-color,box-shadow,ring-color] duration-200 ${
           isDone
             ? "bg-emerald-50/60"
             : isSkipped
               ? "bg-amber-50/30"
               : isNextUp
-                ? "bg-[#fffdf8] ring-1 ring-[#c9a454]/35 shadow-[0_2px_10px_-8px_rgba(201,164,84,0.35)]"
+                ? "bg-[#fffdf8] shadow-[0_4px_14px_-8px_rgba(201,164,84,0.38)] ring-2 ring-[#c9a454]/45"
                 : isInProgress
-                  ? "bg-[#fffdf8]/90"
-                  : "bg-white/90 hover:bg-slate-50/70"
+                  ? "bg-[#fffdf8]/95 ring-1 ring-[#c9a454]/25"
+                  : "bg-white/95 ring-1 ring-slate-200/40 hover:bg-slate-50/80"
         }`}
       >
         <span
@@ -84,49 +108,54 @@ function TodayTimelineItem({
               ? "bg-emerald-600 text-white ring-emerald-600"
               : isSkipped
                 ? "bg-amber-100 text-amber-800 ring-amber-200/80"
-                : isInProgress
-                  ? "bg-[#c9a454]/20 text-[#7a5a16] ring-[#c9a454]/40"
-                  : "bg-slate-50 text-slate-300 ring-slate-200"
+                : isNextUp
+                  ? "bg-[#c9a454] text-white ring-[#c9a454]"
+                  : isInProgress
+                    ? "bg-[#c9a454]/25 text-[#7a5a16] ring-[#c9a454]/40"
+                    : "bg-slate-50 text-slate-300 ring-slate-200"
           }`}
           aria-hidden
         >
           {isDone ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
         </span>
-        <span
-          className={`w-9 shrink-0 tabular-nums font-semibold ${isDone ? "text-emerald-800" : "text-[#0f1a33]"}`}
-        >
-          {time}
-        </span>
-        <span
-          className={`min-w-0 flex-1 font-medium leading-snug ${
-            isDone
-              ? "text-emerald-900 line-through decoration-emerald-300/80"
-              : isSkipped
-                ? "text-slate-500"
-                : isDimmed
-                  ? "text-slate-500"
-                  : "text-[#0f1a33]"
-          }`}
-        >
-          {subjectName}
-        </span>
-        {isNextUp && isPending ? (
-          <span className="shrink-0 rounded-full bg-[#fff8e8] px-1.5 py-0.5 text-[10px] font-semibold text-[#7a5a16] ring-1 ring-[#c9a454]/30">
-            Ahora
+
+        {/* Misma rejilla en todas las filas: hora · badge · asignatura · tipo · duración */}
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 sm:grid sm:grid-cols-[2.75rem_4.5rem_minmax(0,1fr)_7.75rem_3.25rem] sm:items-center sm:gap-x-2 sm:gap-y-0">
+          <span
+            className={`shrink-0 text-[13px] font-semibold tabular-nums leading-none sm:col-start-1 ${
+              isDone ? "text-emerald-800" : isNextUp ? "text-[#7a5a16]" : "text-slate-600"
+            }`}
+          >
+            {time}
           </span>
-        ) : null}
-        {isSkipped ? (
-          <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
-            Saltada
+
+          <span
+            className="flex h-5 w-[4.5rem] shrink-0 items-center sm:col-start-2"
+            aria-hidden={statusBadge ? undefined : true}
+          >
+            {statusBadge}
           </span>
-        ) : isInProgress ? (
-          <span className="shrink-0 rounded-full bg-[#e8eef8] px-1.5 py-0.5 text-[10px] font-semibold text-[#0f1a33]">
-            En curso
+
+          <span
+            className={`min-w-0 flex-1 truncate text-[14px] font-semibold leading-tight sm:col-start-3 ${subjectClass}`}
+          >
+            {subjectName}
           </span>
-        ) : null}
-        <SessionTypeBadge type={session.type} />
-        <span className={`shrink-0 tabular-nums ${isDone ? "text-emerald-700" : "text-slate-500"}`}>
-          {session.plannedDurationMinutes} min
+
+          <span className="ml-auto inline-flex shrink-0 items-center gap-2 sm:contents">
+            <SessionTypeBadge
+              type={session.type}
+              className="!max-w-[7.75rem] !justify-self-end !normal-case !px-2 !py-1 text-[13px] tracking-normal ring-0 sm:col-start-4 [&_svg]:!h-3.5 [&_svg]:!w-3.5"
+            />
+            <span
+              className={`shrink-0 text-right text-[13px] font-semibold tabular-nums leading-none sm:col-start-5 sm:w-[3.25rem] ${
+                isDone ? "text-emerald-700" : "text-slate-600"
+              }`}
+            >
+              {session.plannedDurationMinutes} min
+              <span className="sr-only"> · {typeLabel}</span>
+            </span>
+          </span>
         </span>
       </button>
     </li>
@@ -142,11 +171,10 @@ export function DashboardWeekInProgress({
   alerts,
   positiveMessage,
   onOpenSession,
-  onGoToLog,
   onViewPlan,
   onGoToEvaluation,
-  evaluationVigilLine = null,
-  onEvaluationVigilGo,
+  nextExamHighlight = null,
+  onPrepareExam,
 }: DashboardWeekInProgressProps) {
   const today = getTodayDateString();
 
@@ -212,16 +240,15 @@ export function DashboardWeekInProgress({
         coachTone={{ emotionalLine: "" }}
         suppressCoachHeader
         onPrimaryAction={handleHeroPrimaryAction}
-        onLogToday={onGoToLog}
         onViewPlan={onViewPlan}
         onViewEvaluation={onGoToEvaluation ? () => onGoToEvaluation() : undefined}
       />
 
-      <section className="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-slate-200/25">
-        <div className="mb-1.5 flex items-baseline justify-between gap-2">
-          <p className="text-[12px] font-semibold text-[#0f1a33]">Hoy</p>
+      <section className="rounded-xl bg-white px-3.5 py-3 shadow-[0_2px_14px_-12px_rgba(15,26,51,0.08)] ring-1 ring-slate-200/30">
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <p className="text-[13px] font-semibold text-[#0f1a33]">Hoy</p>
           {todaySessions.length > 0 ? (
-            <p className="text-[11px] font-medium tabular-nums text-slate-500">
+            <p className="text-[12px] font-medium tabular-nums text-slate-500">
               {todaySummary.done} hecho{todaySummary.done === 1 ? "" : "s"}
               {todaySummary.pending > 0
                 ? ` · ${todaySummary.pending} pendiente${todaySummary.pending === 1 ? "" : "s"}`
@@ -230,9 +257,9 @@ export function DashboardWeekInProgress({
           ) : null}
         </div>
         {todaySessions.length === 0 ? (
-          <p className="text-[12px] text-slate-500">No tienes bloques planificados para hoy.</p>
+          <p className="text-[13px] text-slate-500">No tienes bloques planificados para hoy.</p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {todaySessions.map((session) => {
               const status = normalizePlannedSessionStatus(session.status) ?? "pending";
               const isDone = status === "completed";
@@ -269,8 +296,8 @@ export function DashboardWeekInProgress({
       ) : null}
 
       <DashboardEvaluationVigil
-        line={evaluationVigilLine}
-        onGoToEvaluation={onEvaluationVigilGo}
+        nextExam={nextExamHighlight}
+        onPrepareExam={onPrepareExam}
       />
     </div>
   );

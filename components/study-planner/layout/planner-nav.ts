@@ -32,6 +32,19 @@ export const PLANNER_NAV_ITEMS: {
   { id: "settings", label: "Ajustes", icon: Settings2 },
 ];
 
+/** Rail lateral (escritorio): navegación principal sin Registro. */
+export const PLANNER_RAIL_PRIMARY_NAV_IDS: PlannerNavId[] = [
+  "dashboard",
+  "calendar",
+  "subjects",
+  "evaluation",
+  "recovery",
+  "settings",
+];
+
+/** Rail lateral — secundario (Registro hasta retirada final). */
+export const PLANNER_RAIL_MORE_NAV_IDS: PlannerNavId[] = ["log"];
+
 /** Bottom bar principal (móvil). */
 export const PLANNER_MOBILE_PRIMARY_NAV_IDS: PlannerNavId[] = [
   "dashboard",

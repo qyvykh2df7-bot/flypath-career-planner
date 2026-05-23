@@ -22,15 +22,13 @@ function formatGoalDateShort(iso?: string): string {
 
 function buildPlanMetaLine(params: {
   hoursLabel: string;
-  subjectCount: number;
   targetExamDate?: string;
-  modeLabel: string;
 }): string {
-  const { hoursLabel, subjectCount, targetExamDate, modeLabel } = params;
+  const { hoursLabel, targetExamDate } = params;
   const goalPart = targetExamDate
-    ? `Objetivo ${formatGoalDateShort(targetExamDate)}`
-    : "Sin fecha objetivo";
-  return `${hoursLabel} objetivo · ${subjectCount} asignaturas · ${goalPart} · ${modeLabel}`;
+    ? `objetivo ${formatGoalDateShort(targetExamDate)}`
+    : "sin fecha objetivo";
+  return `${hoursLabel} esta semana · ${goalPart}`;
 }
 
 export function DashboardStudyCenter({
@@ -45,9 +43,7 @@ export function DashboardStudyCenter({
   const hoursLabel = minutesToHoursLabel(Math.max(0, weeklyGoalMinutes));
   const planMetaLine = buildPlanMetaLine({
     hoursLabel,
-    subjectCount,
     targetExamDate,
-    modeLabel,
   });
 
   return (
@@ -59,7 +55,7 @@ export function DashboardStudyCenter({
       {hasActivePlan && completion ? (
         <DashboardWeeklyProgress completion={completion} planMetaLine={planMetaLine} />
       ) : (
-        <p className="text-[11px] leading-relaxed text-slate-500">{planMetaLine}</p>
+        <p className="text-[13px] leading-relaxed text-slate-500">{planMetaLine}</p>
       )}
     </header>
   );

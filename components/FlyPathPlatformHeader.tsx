@@ -3,17 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Plane, User } from "lucide-react";
+import { Plane } from "lucide-react";
 import { FlyPathPlatformModuleMenu } from "@/components/FlyPathPlatformModuleMenu";
-import {
-  PLATFORM_DASHBOARD,
-  isPlatformNavCurrent,
-} from "@/lib/platform-navigation";
-
 type FlyPathPlatformHeaderProps = {
   pageTitle: string;
   currentModuleId: string;
   logoMode?: "default" | "landing";
+  /** Career Planner: header más plano para continuidad con el rail azul. */
+  integratedShell?: boolean;
   onSoonClick?: (message?: string) => void;
 };
 
@@ -21,13 +18,20 @@ export function FlyPathPlatformHeader({
   pageTitle,
   currentModuleId,
   logoMode = "default",
+  integratedShell = false,
   onSoonClick,
 }: FlyPathPlatformHeaderProps) {
   const [logoFallback, setLogoFallback] = useState(false);
   const [landingLogoPhase, setLandingLogoPhase] = useState<"white" | "plain" | "fallback">("white");
 
   return (
-    <header className="relative z-50 overflow-visible border-b border-white/10 bg-[#0f1a33] text-white shadow-[0_12px_40px_rgba(15,26,51,0.35)]">
+    <header
+      className={`relative z-50 overflow-visible border-b border-white/10 bg-[#0f1a33] text-white ${
+        integratedShell
+          ? "shadow-[0_1px_0_rgba(255,255,255,0.06)]"
+          : "shadow-[0_12px_40px_rgba(15,26,51,0.35)]"
+      }`}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 overflow-visible px-6 py-3 sm:gap-4 md:justify-normal md:gap-4 lg:px-10">
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none md:min-w-0 md:flex-1 md:justify-start">
           <Link href="/" className="min-w-0 shrink">
@@ -88,18 +92,7 @@ export function FlyPathPlatformHeader({
         >
           {pageTitle}
         </p>
-        <div className="flex shrink-0 items-center gap-2 md:min-w-0 md:flex-1 md:justify-end">
-          <Link
-            href={PLATFORM_DASHBOARD.href}
-            aria-label="Mi dashboard"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a454]/55 ${
-              isPlatformNavCurrent(currentModuleId, PLATFORM_DASHBOARD.id)
-                ? "border-[#c9a454]/50 bg-[#c9a454]/20 text-[#f2ddaa]"
-                : "border-white/15 bg-white/[0.08] text-white hover:border-white/24 hover:bg-white/[0.14]"
-            }`}
-          >
-            <User className="h-[18px] w-[18px] shrink-0" strokeWidth={2} aria-hidden />
-          </Link>
+        <div className="flex shrink-0 items-center md:min-w-0 md:flex-1 md:justify-end">
           <FlyPathPlatformModuleMenu
             currentModuleId={currentModuleId}
             onSoonClick={onSoonClick}

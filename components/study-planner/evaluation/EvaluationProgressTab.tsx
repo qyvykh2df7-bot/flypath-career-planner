@@ -31,7 +31,7 @@ export function EvaluationProgressTab({ diagnostic }: EvaluationProgressTabProps
                 className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2"
               >
                 <p className="font-semibold text-[#0f1a33]">{row.name}</p>
-                <p className="mt-0.5 text-[12px] text-slate-600">{row.reason}</p>
+                <p className="mt-0.5 text-[13px] text-slate-600">{row.reason}</p>
               </li>
             ))}
           </ul>

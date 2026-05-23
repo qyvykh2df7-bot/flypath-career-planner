@@ -26,14 +26,14 @@ function StatCell({
         onClick={onClick}
         className={`${baseClass} transition hover:bg-slate-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
       >
-        <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">{label}</p>
+        <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-slate-400">{label}</p>
         <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#0f1a33]">{value}</p>
       </button>
     );
   }
   return (
     <div className={baseClass}>
-      <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">{label}</p>
+      <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-slate-400">{label}</p>
       <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#0f1a33]">{value}</p>
     </div>
   );

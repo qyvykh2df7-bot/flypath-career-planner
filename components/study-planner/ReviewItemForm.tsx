@@ -157,7 +157,7 @@ export function ReviewItemForm({ subjects, onAddReviewItem }: ReviewItemFormProp
           </div>
           {intervalMode === "custom" ? (
             <label className="mt-3 block">
-              <span className="text-[12px] text-slate-500">Elegir fecha</span>
+              <span className="text-[13px] text-slate-500">Elegir fecha</span>
               <input
                 type="date"
                 value={customDueDate}

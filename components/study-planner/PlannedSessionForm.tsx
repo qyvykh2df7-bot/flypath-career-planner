@@ -126,7 +126,7 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
           <legend className={labelClass}>Duración prevista</legend>
           <div className="mt-1.5 grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-[12px] text-slate-500">Horas</span>
+              <span className="text-[13px] text-slate-500">Horas</span>
               <input
                 type="number"
                 min={0}
@@ -137,7 +137,7 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
               />
             </label>
             <label className="block">
-              <span className="text-[12px] text-slate-500">Minutos</span>
+              <span className="text-[13px] text-slate-500">Minutos</span>
               <input
                 type="number"
                 min={0}

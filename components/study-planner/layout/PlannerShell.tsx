@@ -33,7 +33,7 @@ export function PlannerShell({
   const mainPadding = wideWorkspace
     ? "px-3 py-4 pb-24 sm:px-5 sm:py-5 md:pb-5"
     : narrowWorkspace
-      ? "px-4 py-2 pb-24 sm:px-6 sm:py-3 md:pb-3"
+      ? "px-4 py-3 pb-24 sm:px-6 sm:py-4 md:pb-4"
       : "px-4 py-5 pb-24 sm:px-8 sm:py-6 md:pb-6";
 
   return (
@@ -43,7 +43,9 @@ export function PlannerShell({
         <PlannerRail activeId={activeNavId} onNavigate={onNavigate} />
         <div className="flex min-w-0 flex-1 flex-col">
           <PlannerTopbar activeNavId={activeNavId} onOpenSettings={onOpenSettings} />
-          <main className={`flex-1 overflow-y-auto ${mainPadding}`}>
+          <main
+            className={`flex-1 overflow-y-auto text-[14px] leading-relaxed text-[#0f1a33] antialiased ${mainPadding}`}
+          >
             <div className={`mx-auto w-full ${widthClass}`}>{children}</div>
           </main>
         </div>

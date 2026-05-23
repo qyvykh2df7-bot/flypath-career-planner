@@ -1,7 +1,8 @@
 "use client";
 
 import type { PlannedStudySession } from "@/lib/study-planner/types";
-import { calculatePlannedMinutes, getTodayDateString, minutesToHoursLabel } from "@/lib/study-planner/calculations";
+import { calculatePlannedMinutes, minutesToHoursLabel } from "@/lib/study-planner/calculations";
+import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-session-scheduling";
 import {
   addMonths,
   formatMonthYear,
@@ -48,17 +49,22 @@ function loadTierStyles(tier: LoadTier): { cell: string; bar: string } {
 type StudyMonthViewProps = {
   plannedSessions: PlannedStudySession[];
   visibleMonthStart: string;
+  today: string;
   onVisibleMonthStartChange: (monthStart: string) => void;
-  onSelectDay: (date: string) => void;
+  /** Día planificable (hoy o futuro): abrir creación de sesión. */
+  onCreateSessionOnDate: (date: string) => void;
+  /** Ver agenda del día (doble acción secundaria en cabecera del número). */
+  onOpenDay?: (date: string) => void;
 };
 
 export function StudyMonthView({
   plannedSessions,
   visibleMonthStart,
+  today,
   onVisibleMonthStartChange,
-  onSelectDay,
+  onCreateSessionOnDate,
+  onOpenDay,
 }: StudyMonthViewProps) {
-  const today = getTodayDateString();
   const monthSessions = getPlannedSessionsForMonth(plannedSessions, visibleMonthStart);
   const grid = getMonthGridDates(visibleMonthStart);
   const sessionsByDate = new Map<string, PlannedStudySession[]>();
@@ -92,7 +98,7 @@ export function StudyMonthView({
         />
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-600">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-slate-600">
         <span className="inline-flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#3b6ea8]/80" /> Teoría
         </span>
@@ -112,7 +118,7 @@ export function StudyMonthView({
         </span>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-slate-500">
+      <div className="grid grid-cols-7 gap-1 text-center text-[13px] font-medium text-slate-500">
         {WEEKDAY_LABELS.map((d) => (
           <span key={d} className="py-1.5">
             {d}
@@ -130,39 +136,85 @@ export function StudyMonthView({
           const minutes = calculatePlannedMinutes(daySessions);
           const loadRatio = minutes / maxDayMinutes;
           const isToday = date === today;
+          const canSchedule = inMonth && canSchedulePlannedSessionOnDate(date, today);
+          const isPast = inMonth && date < today;
           const tier = getLoadTier(count, loadRatio);
           const tierStyle = loadTierStyles(tier);
 
+          const handleDayClick = () => {
+            if (!inMonth) return;
+            if (canSchedule) {
+              onCreateSessionOnDate(date);
+            }
+          };
+
           return (
-            <button
+            <div
               key={date}
-              type="button"
-              onClick={() => inMonth && onSelectDay(date)}
-              disabled={!inMonth}
               data-calendar-day={date}
+              role={canSchedule ? "button" : undefined}
+              tabIndex={canSchedule ? 0 : undefined}
+              onClick={handleDayClick}
+              onKeyDown={
+                canSchedule
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onCreateSessionOnDate(date);
+                      }
+                    }
+                  : undefined
+              }
               className={`group relative flex min-h-[5rem] flex-col rounded-xl px-1.5 py-1.5 text-left transition-[background-color,box-shadow] duration-300 ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25 ${
                 !inMonth
                   ? "cursor-default bg-transparent opacity-15"
-                  : isToday
-                    ? "bg-[#fffdf8] shadow-[0_2px_14px_-8px_rgba(201,164,84,0.28)] ring-1 ring-[#c9a454]/20 hover:shadow-[0_4px_18px_-8px_rgba(201,164,84,0.32)]"
-                    : count > 0
-                      ? `${tierStyle.cell} bg-white/90 hover:bg-white hover:shadow-[0_4px_16px_-12px_rgba(15,26,51,0.1)]`
-                      : "bg-slate-50/20 hover:bg-white/80 hover:shadow-[0_2px_12px_-10px_rgba(15,26,51,0.06)]"
+                  : isPast
+                    ? "cursor-default bg-slate-50/15 opacity-70"
+                    : canSchedule
+                      ? isToday
+                        ? "cursor-pointer bg-[#fffdf8] shadow-[0_2px_14px_-8px_rgba(201,164,84,0.28)] ring-1 ring-[#c9a454]/20 hover:shadow-[0_4px_18px_-8px_rgba(201,164,84,0.32)]"
+                        : count > 0
+                          ? `cursor-pointer ${tierStyle.cell} bg-white/90 hover:bg-white hover:shadow-[0_4px_16px_-12px_rgba(15,26,51,0.1)]`
+                          : "cursor-pointer bg-slate-50/20 hover:bg-white/80 hover:shadow-[0_2px_12px_-10px_rgba(15,26,51,0.06)]"
+                      : "cursor-default bg-slate-50/15"
               }`}
             >
               {inMonth ? (
                 <>
-                  <span
-                    className={`text-[12px] font-medium tabular-nums transition-colors duration-200 ${
-                      isToday ? "text-[#7a5a16]" : "text-[#0f1a33]"
-                    }`}
-                  >
-                    {parseInt(date.split("-")[2]!, 10)}
-                  </span>
+                  <div className="flex items-start justify-between gap-0.5">
+                    {onOpenDay ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenDay(date);
+                        }}
+                        className={`text-[12px] font-medium tabular-nums underline-offset-2 transition-colors hover:underline ${
+                          isToday ? "text-[#7a5a16]" : "text-[#0f1a33]"
+                        }`}
+                        title="Ver agenda del día"
+                      >
+                        {parseInt(date.split("-")[2]!, 10)}
+                      </button>
+                    ) : (
+                      <span
+                        className={`text-[12px] font-medium tabular-nums transition-colors duration-200 ${
+                          isToday ? "text-[#7a5a16]" : "text-[#0f1a33]"
+                        }`}
+                      >
+                        {parseInt(date.split("-")[2]!, 10)}
+                      </span>
+                    )}
+                    {canSchedule && count === 0 ? (
+                      <span className="text-[12px] font-medium text-slate-300 opacity-0 transition-opacity group-hover:opacity-100">
+                        +
+                      </span>
+                    ) : null}
+                  </div>
                   {count > 0 ? (
                     <>
                       <MonthSessionDots sessions={daySessions} />
-                      <p className="mt-1 text-[10px] font-medium leading-tight text-slate-600">
+                      <p className="mt-1 text-[12px] font-medium leading-tight text-slate-600">
                         <span className="tabular-nums">
                           {count} ses. · {minutesToHoursLabel(minutes)}
                         </span>
@@ -174,14 +226,16 @@ export function StudyMonthView({
                         />
                       </div>
                     </>
-                  ) : (
-                    <span className="mt-auto text-[11px] text-slate-300/80 transition-colors duration-200 group-hover:text-slate-400">
-                      —
+                  ) : canSchedule ? (
+                    <span className="mt-auto text-[13px] text-slate-300/80 transition-colors duration-200 group-hover:text-[#7a5a16]">
+                      Añadir
                     </span>
+                  ) : (
+                    <span className="mt-auto text-[13px] text-slate-300/60">—</span>
                   )}
                 </>
               ) : null}
-            </button>
+            </div>
           );
         })}
       </div>

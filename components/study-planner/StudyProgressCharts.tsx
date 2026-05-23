@@ -186,7 +186,7 @@ export function StudyProgressCharts({
         <div className="mt-4">
           <ProgressBar value={weekMinutes} max={weeklyGoalMinutes || 1} variant="gold" />
         </div>
-        <p className="mt-2 text-[12px] text-slate-500">
+        <p className="mt-2 text-[13px] text-slate-500">
           Modo {mode.toUpperCase()} · semana actual (lunes a domingo)
         </p>
       </ChartCard>
@@ -244,7 +244,7 @@ export function StudyProgressCharts({
                     {formatMockScore(mock.score)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[12px] text-slate-500">{mock.date}</p>
+                <p className="mt-0.5 text-[13px] text-slate-500">{mock.date}</p>
                 <div className="mt-1.5">
                   <ProgressBar value={mock.score} max={100} variant="gold" />
                 </div>
@@ -271,7 +271,7 @@ export function StudyProgressCharts({
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2 text-[13px]">
                   <span className="tabular-nums text-slate-600">{row.score}/100</span>
-                  <span className="text-[11px] text-slate-400">orientativo</span>
+                  <span className="text-[13px] text-slate-400">orientativo</span>
                 </div>
                 <div className="mt-1.5">
                   <ProgressBar value={row.score} max={100} variant="navy" />
@@ -296,7 +296,7 @@ function ConsistencyItem({
 }) {
   return (
     <div className={`rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5 ${className}`}>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">{label}</dt>
+      <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-slate-500">{label}</dt>
       <dd className="mt-1 text-[14px] font-semibold text-[#0f1a33]">{value}</dd>
     </div>
   );

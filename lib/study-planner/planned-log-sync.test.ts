@@ -173,6 +173,18 @@ describe("planned-log-sync", () => {
     expect(state.sessions[0]?.linkedPlannedSessionId).toBeUndefined();
   });
 
+  it("completing mock session can attach mock result for evaluation", () => {
+    const plannedSessions = [
+      planned({ id: "m1", status: "pending", type: "mock", subjectId: "air-law" }),
+    ];
+    const result = completePlannedSessionWithLog(plannedSessions, [], "m1", {
+      mockScore: 78,
+      quality: "good",
+    });
+    expect(result?.mockResult?.score).toBe(78);
+    expect(result?.mockResult?.subjectId).toBe("air-law");
+  });
+
   it("legacy completedSessionId link is reverted on delete without linkedPlannedSessionId", () => {
     const log = buildStudySessionForPlannedCompletion(
       planned({ id: "p1", status: "pending" }),

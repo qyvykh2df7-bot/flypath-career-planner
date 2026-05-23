@@ -56,14 +56,14 @@ function ErrorCard({
           </p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${statusBadgeClass(item.status)}`}
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ${statusBadgeClass(item.status)}`}
         >
           {ERROR_LOG_STATUS_LABELS[item.status]}
         </span>
       </div>
 
       {meta.source || meta.severity ? (
-        <p className="mt-2 text-[12px] font-medium text-slate-500">
+        <p className="mt-2 text-[13px] font-medium text-slate-500">
           {[meta.source, meta.severity].filter(Boolean).join(" · ")}
         </p>
       ) : null}

@@ -275,7 +275,7 @@ export function WeeklyPlanGenerator({
 
           {strategyNarrative ? (
             <div className="rounded-lg border border-[#0f1a33]/10 bg-white/90 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-[#7a5a16]">
                 Estrategia de la semana
               </p>
               <p className="mt-1 text-[13px] leading-snug text-slate-700">{strategyNarrative}</p>
@@ -288,7 +288,7 @@ export function WeeklyPlanGenerator({
                 Ya tienes sesiones en esta semana ({pendingWeekPlanned.length} pendientes).
               </p>
               <fieldset className="mt-2 space-y-1.5">
-                <label className="flex cursor-pointer items-center gap-2 text-[12px] text-slate-700">
+                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-slate-700">
                   <input
                     type="radio"
                     name="apply-plan-mode"
@@ -299,7 +299,7 @@ export function WeeklyPlanGenerator({
                   Mantener y añadir
                 </label>
                 {hasManualPending ? (
-                  <label className="flex cursor-pointer items-center gap-2 text-[12px] text-slate-700">
+                  <label className="flex cursor-pointer items-center gap-2 text-[13px] text-slate-700">
                     <input
                       type="radio"
                       name="apply-plan-mode"
@@ -310,7 +310,7 @@ export function WeeklyPlanGenerator({
                     Reemplazar auto y mantener manuales
                   </label>
                 ) : null}
-                <label className="flex cursor-pointer items-center gap-2 text-[12px] text-slate-700">
+                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-slate-700">
                   <input
                     type="radio"
                     name="apply-plan-mode"

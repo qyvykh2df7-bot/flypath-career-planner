@@ -26,7 +26,7 @@ export function MockResultsTable({ mockResults, onDelete }: MockResultsTableProp
         <p className="text-[13px] font-medium text-slate-700">
           Aún no hay simulacros en el historial
         </p>
-        <p className="mt-0.5 text-[12px] text-slate-500">
+        <p className="mt-0.5 text-[13px] text-slate-500">
           El primero que registres aparecerá aquí con tendencia.
         </p>
       </div>
@@ -66,21 +66,21 @@ export function MockResultsTable({ mockResults, onDelete }: MockResultsTableProp
                 <p className="text-[12px] font-semibold text-[#0f1a33]">{subjectName}</p>
                 {trendLabel ? (
                   <span
-                    className={`rounded px-1 py-px text-[9px] font-semibold ${trendChipClass(trendLabel)}`}
+                    className={`rounded px-1 py-0.5 text-[12px] font-semibold ${trendChipClass(trendLabel)}`}
                   >
                     {trendLabel}
                   </span>
                 ) : null}
               </div>
-              <p className="mt-0.5 text-[10px] text-slate-500">{metaParts.join(" · ")}</p>
+              <p className="mt-0.5 text-[13px] text-slate-500">{metaParts.join(" · ")}</p>
               {mock.notes ? (
-                <p className="mt-0.5 line-clamp-1 text-[10px] text-slate-400">{mock.notes}</p>
+                <p className="mt-0.5 line-clamp-1 text-[13px] text-slate-400">{mock.notes}</p>
               ) : null}
             </div>
             <button
               type="button"
               onClick={() => onDelete(mock.id)}
-              className="shrink-0 px-1.5 py-1 text-[10px] font-medium text-slate-400 opacity-0 transition hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
+              className="shrink-0 px-1.5 py-1 text-[13px] font-medium text-slate-400 opacity-0 transition hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100"
               aria-label={`Eliminar simulacro de ${subjectName}`}
             >
               Eliminar

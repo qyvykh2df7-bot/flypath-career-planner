@@ -54,7 +54,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
         <p className="text-[13px] font-medium text-[#0f1a33]">
           Empieza con un simulacro para detectar puntos débiles
         </p>
-        <p className="mt-1 text-[12px] text-slate-500">
+        <p className="mt-1 text-[13px] text-slate-500">
           Verás evolución, tendencia y si vas en ritmo de aprobado por asignatura.
         </p>
       </div>
@@ -76,7 +76,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
               <p className="text-[12px] font-semibold text-[#0f1a33]">{row.subjectName}</p>
               {row.trendLabel ? (
                 <span
-                  className={`shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold ring-1 ${trendTone(row.trendLabel)}`}
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[12px] font-semibold ring-1 ${trendTone(row.trendLabel)}`}
                 >
                   {row.trendLabel}
                 </span>
@@ -85,7 +85,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
 
             <div className="mt-1.5 flex items-end justify-between gap-2">
               <div>
-                <p className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+                <p className="text-[12px] font-medium uppercase tracking-wide text-slate-400">
                   Último simulacro
                 </p>
                 <p className="text-[26px] font-semibold leading-none tabular-nums text-[#0f1a33]">
@@ -94,7 +94,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
               </div>
               {passes !== null ? (
                 <span
-                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                  className={`rounded-md px-1.5 py-0.5 text-[12px] font-semibold ${
                     passes
                       ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/40"
                       : "bg-amber-50 text-amber-900 ring-1 ring-amber-200/40"
@@ -116,7 +116,7 @@ export function MockSubjectSummary({ mockResults }: MockSubjectSummaryProps) {
               />
             </div>
 
-            <p className="mt-1.5 text-[10px] tabular-nums text-slate-500">
+            <p className="mt-1.5 text-[12px] tabular-nums text-slate-500">
               Media 3: {row.avg3 !== null ? formatMockScore(row.avg3) : "—"}
               <span className="text-slate-300"> · </span>
               Mejor: {row.best !== null ? formatMockScore(row.best) : "—"}

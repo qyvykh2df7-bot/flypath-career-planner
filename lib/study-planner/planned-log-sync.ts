@@ -1,4 +1,9 @@
-import type { PlannedStudySession, StudySession, StudySessionQuality } from "./types";
+import type {
+  MockResult,
+  PlannedStudySession,
+  StudySession,
+  StudySessionQuality,
+} from "./types";
 import { createPlannerId } from "./calculations";
 import { isPendingLikeStatus, normalizePlannedSessionStatus } from "./planner-session-status";
 
@@ -6,7 +11,23 @@ export type CompletePlannedOverrides = {
   durationMinutes?: number;
   quality?: StudySessionQuality;
   notes?: string;
+  /** Si la sesión es simulacro de examen, registra resultado en Evaluación. */
+  mockScore?: number;
 };
+
+export function buildMockResultFromPlannedCompletion(
+  planned: PlannedStudySession,
+  score: number,
+): MockResult {
+  return {
+    id: createPlannerId(),
+    date: planned.date,
+    subjectId: planned.subjectId,
+    score: Math.min(100, Math.max(0, score)),
+    bank: "Calendario",
+    notes: planned.goal?.trim() || undefined,
+  };
+}
 
 /** Quita marca de completado del bloque planificado (vuelve a pending). */
 export function clearPlannedCompletion(planned: PlannedStudySession): PlannedStudySession {
@@ -106,18 +127,33 @@ export function completePlannedSessionWithLog(
   sessions: StudySession[],
   plannedId: string,
   overrides: CompletePlannedOverrides = {},
-): { sessions: StudySession[]; plannedSessions: PlannedStudySession[] } | null {
+): {
+  sessions: StudySession[];
+  plannedSessions: PlannedStudySession[];
+  mockResult?: MockResult;
+} | null {
   const planned = plannedSessions.find((p) => p.id === plannedId);
   if (!planned || !isPendingLikeStatus(planned.status)) {
     return null;
   }
 
-  const studySession = buildStudySessionForPlannedCompletion(planned, overrides);
+  const { mockScore, ...sessionOverrides } = overrides;
+  const studySession = buildStudySessionForPlannedCompletion(planned, sessionOverrides);
+  let mockResult: MockResult | undefined;
+  if (
+    planned.type === "mock" &&
+    mockScore !== undefined &&
+    !Number.isNaN(mockScore)
+  ) {
+    mockResult = buildMockResultFromPlannedCompletion(planned, mockScore);
+  }
+
   return {
     sessions: [...sessions, studySession],
     plannedSessions: plannedSessions.map((p) =>
       p.id === plannedId ? applyPlannedCompletion(p, studySession) : p,
     ),
+    mockResult,
   };
 }
 

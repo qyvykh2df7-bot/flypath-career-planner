@@ -69,7 +69,7 @@ export function PlannerSettingsInitialProgress({
             />
             <span>
               <span className="block text-[13px] font-medium text-[#0f1a33]">{opt.label}</span>
-              <span className="block text-[12px] text-slate-500">{opt.description}</span>
+              <span className="block text-[13px] text-slate-500">{opt.description}</span>
             </span>
           </label>
         ))}

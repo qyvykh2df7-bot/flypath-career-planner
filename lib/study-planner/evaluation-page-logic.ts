@@ -22,7 +22,13 @@ import {
 } from "./subjects-page-logic";
 import { getSubjectById } from "./subjects";
 
-export type EvaluationView = "mocks" | "reviews" | "errors";
+export type EvaluationView = "mocks" | "reviews";
+
+/** Compatibilidad: vistas antiguas que apuntaban a errores. */
+export function normalizeEvaluationView(view: string | undefined): EvaluationView {
+  if (view === "reviews") return "reviews";
+  return "mocks";
+}
 
 export type EvaluationSummary = {
   avgMockScore: number | null;
@@ -118,7 +124,7 @@ export function buildEvaluationSummary(params: {
 
 export function buildEvaluationCoachRecommendation(
   summary: EvaluationSummary,
-  errorLogItems: ErrorLogItem[],
+  _errorLogItems: ErrorLogItem[],
   reviewItems: ReviewItem[],
   mockResults: MockResult[],
 ): EvaluationCoachRecommendation {
@@ -129,23 +135,6 @@ export function buildEvaluationCoachRecommendation(
         "Empieza registrando tu primer simulacro de examen para detectar tu nivel real.",
       action: { kind: "register_mock" },
       ctaLabel: "Registrar simulacro de examen",
-    };
-  }
-
-  if (summary.pendingErrors > 0) {
-    const top = errorLogItems.find((e) => e.status === "pending");
-    const subjectHint = top
-      ? getSubjectById(top.subjectId)?.name ?? top.subjectId
-      : null;
-    const message =
-      summary.pendingErrors === 1 && subjectHint
-        ? `Tienes un error pendiente en ${subjectHint}. Corrígelo antes de hacer otro simulacro de examen.`
-        : "Tienes errores pendientes. Corrígelos antes de hacer otro simulacro de examen.";
-    return {
-      title: COACH_TITLE,
-      message,
-      action: { kind: "view_errors" },
-      ctaLabel: "Ver errores",
     };
   }
 
@@ -213,15 +202,9 @@ export function formatEvaluationDashboardLine(
 
   const avg = summary.avgMockScore !== null ? Math.round(summary.avgMockScore) : 0;
   const reviewsToday = countReviewsDueToday(reviewItems, today);
-  const errorLabel =
-    summary.pendingErrors === 1 ? "error pendiente" : "errores pendientes";
   const reviewLabel = reviewsToday === 1 ? "repaso hoy" : "repasos hoy";
 
-  return [
-    `Simulacros de examen ${avg}%`,
-    `${summary.pendingErrors} ${errorLabel}`,
-    `${reviewsToday} ${reviewLabel}`,
-  ].join(" · ");
+  return [`Simulacros de examen ${avg}%`, `${reviewsToday} ${reviewLabel}`].join(" · ");
 }
 
 export type EvaluationDiagnostic = {
@@ -295,9 +278,6 @@ export function buildEvaluationDiagnostic(params: {
 
   const nextActions: string[] = [];
   if (params.mockResults.length === 0) nextActions.push("Registrar un simulacro de examen");
-  if (params.errorLogItems.some((e) => e.status === "pending")) {
-    nextActions.push("Corregir errores pendientes");
-  }
   if (calculatePendingReviewCount(params.reviewItems) > 0) {
     nextActions.push("Completar repasos vencidos");
   }

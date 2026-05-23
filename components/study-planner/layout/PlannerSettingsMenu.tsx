@@ -31,7 +31,7 @@ export function PlannerSettingsMenu({
   const triggerClass =
     variant === "sidebar"
       ? "flex w-full items-start gap-2.5 rounded-lg border-l-2 border-transparent px-2.5 py-2.5 text-left transition hover:border-[#c9a454]/40 hover:bg-[#eeebe4]/90"
-      : "inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-slate-500 transition hover:bg-slate-200/60 hover:text-[#0f1a33]";
+      : "inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[13px] font-medium text-slate-500 transition hover:bg-slate-200/60 hover:text-[#0f1a33]";
 
   return (
     <div ref={rootRef} className={variant === "sidebar" ? "relative px-2" : "relative"}>
@@ -51,7 +51,7 @@ export function PlannerSettingsMenu({
           <>
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-medium text-[#0f1a33]">Ajustes del planner</span>
-              <span className="mt-0.5 block text-[11px] leading-snug text-slate-500">
+              <span className="mt-0.5 block text-[13px] leading-snug text-slate-500">
                 Objetivo · horas · asignaturas
               </span>
             </span>
@@ -74,7 +74,7 @@ export function PlannerSettingsMenu({
           }`}
         >
           <div className="border-b border-slate-100 px-3 py-2.5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
+            <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-slate-400">
               Modo
             </p>
             <p className="mt-0.5 text-[13px] font-medium text-[#0f1a33]">{modeLabel}</p>
@@ -123,7 +123,7 @@ export function PlannerSettingsMenu({
           >
             <Download className="h-3.5 w-3.5" aria-hidden />
             Exportar plan
-            <span className="ml-auto text-[10px]">Pronto</span>
+            <span className="ml-auto text-[12px]">Pronto</span>
           </button>
         </div>
       ) : null}

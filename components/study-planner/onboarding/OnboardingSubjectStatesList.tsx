@@ -61,7 +61,7 @@ export function OnboardingSubjectStatesList({
               <button
                 type="button"
                 onClick={() => setExpandedId(expanded ? null : subject.id)}
-                className="shrink-0 text-[11px] font-semibold text-[#7a5a16] hover:underline"
+                className="shrink-0 text-[12px] font-semibold text-[#7a5a16] hover:underline"
               >
                 {expanded ? "Ocultar detalles" : "Añadir detalles"}
               </button>

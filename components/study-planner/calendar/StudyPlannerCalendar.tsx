@@ -18,6 +18,7 @@ import {
   getPlannedSessionsForDate,
   getWeekStart,
 } from "@/lib/study-planner/date-utils";
+import type { CompletePlannedOverrides } from "@/lib/study-planner/planned-log-sync";
 import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-session-scheduling";
 import {
   canMovePlannedSessionToDate,
@@ -47,7 +48,7 @@ type StudyPlannerCalendarProps = {
   onAddPlannedSession: (session: PlannedStudySession) => void;
   onUpdatePlannedSession: (id: string, patch: Partial<Omit<PlannedStudySession, "id">>) => void;
   onDeletePlannedSession: (id: string) => void;
-  onCompletePlannedSession: (plannedId: string) => void;
+  onCompletePlannedSession: (plannedId: string, overrides?: CompletePlannedOverrides) => void;
   onSkipPlannedSession: (plannedId: string) => void;
   onAddStudySession: (session: StudySession) => void;
   externalCreateNonce?: number;
@@ -156,7 +157,7 @@ export function StudyPlannerCalendar({
     setSelectedSession(null);
   }, []);
 
-  const handleSelectDayFromMonth = useCallback(
+  const handleOpenDayFromMonth = useCallback(
     (date: string) => {
       setFocusDate(date);
       setVisibleMonthStart(getMonthStart(date));
@@ -242,7 +243,7 @@ export function StudyPlannerCalendar({
       ? "Bloques de la semana · arrastra sesiones para reorganizar"
       : viewMode === "day"
         ? "Agenda diaria y progreso de estudio"
-        : "Carga mensual y distribución de sesiones";
+        : "Pulsa un día para añadir sesión · número del día para ver agenda";
 
   return (
     <section className="rounded-2xl bg-white p-3 shadow-[0_6px_28px_-20px_rgba(15,26,51,0.12)] ring-1 ring-slate-200/35 transition-[box-shadow] duration-300 sm:p-3.5">
@@ -292,8 +293,10 @@ export function StudyPlannerCalendar({
         <StudyMonthView
           plannedSessions={plannedSessions}
           visibleMonthStart={visibleMonthStart}
+          today={today}
           onVisibleMonthStartChange={setVisibleMonthStart}
-          onSelectDay={handleSelectDayFromMonth}
+          onCreateSessionOnDate={openCreateDrawer}
+          onOpenDay={handleOpenDayFromMonth}
         />
       ) : null}
 

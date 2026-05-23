@@ -28,7 +28,7 @@ export function PlannerSettingsWeeklyGoal({
           className={plannerFieldClass}
         />
       </label>
-      <p className="text-[12px] text-slate-500">
+      <p className="text-[13px] text-slate-500">
         {weeklyHours} h/semana ({weeklyHours * 60} minutos).
       </p>
     </section>

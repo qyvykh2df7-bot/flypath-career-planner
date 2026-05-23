@@ -122,7 +122,7 @@ export function StudyWeeklyCalendar({
               {formatWeekRange(visibleWeekStartDate)}
             </p>
             <span
-              className={`mt-1 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${weekKindBadgeClass(weekKind)}`}
+              className={`mt-1 inline-flex rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${weekKindBadgeClass(weekKind)}`}
             >
               {weekKindLabel(weekKind)}
             </span>
@@ -155,7 +155,7 @@ export function StudyWeeklyCalendar({
           </div>
         </div>
 
-        <p className="text-[12px] text-slate-500">
+        <p className="text-[13px] text-slate-500">
           {minutesToHoursLabel(plannedMinutes)} planificadas · {completedCount} completadas ·{" "}
           {minutesToHoursLabel(completedMinutes)} hechas
         </p>
@@ -221,20 +221,20 @@ function DayColumn({
       } ${layout === "list" ? "" : "min-h-[72px]"}`}
     >
       <div className="mb-1.5 flex items-center justify-between gap-1 border-b border-slate-100/90 pb-1.5">
-        <p className="truncate text-[11px] font-semibold text-[#0f1a33]">{getDayShortLabel(date)}</p>
+        <p className="truncate text-[12px] font-semibold text-[#0f1a33]">{getDayShortLabel(date)}</p>
         {isToday ? (
-          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-[#7a5a16]">
+          <span className="shrink-0 text-[12px] font-bold uppercase tracking-wide text-[#7a5a16]">
             Hoy
           </span>
         ) : (
-          <span className="shrink-0 text-[10px] tabular-nums text-slate-400">
+          <span className="shrink-0 text-[12px] tabular-nums text-slate-400">
             {formatShortDate(date)}
           </span>
         )}
       </div>
 
       {sessions.length === 0 ? (
-        <p className="py-1 text-[10px] text-slate-300">—</p>
+        <p className="py-1 text-[13px] text-slate-300">—</p>
       ) : (
         <ul className="space-y-1">
           {sessions.map((session) => (
@@ -265,11 +265,11 @@ function CompactSessionCard({
         className={`group w-full rounded-md border border-slate-200/80 border-l-[3px] bg-white px-2 py-1.5 text-left transition hover:border-slate-300 hover:shadow-sm ${getSessionTypeAccentClass(session.type)} ${accentBorder(session.status)}`}
       >
         <div className="flex items-start justify-between gap-1">
-          <span className="min-w-0 flex-1 text-[11px] font-semibold leading-[1.25] text-[#0f1a33] [overflow-wrap:anywhere]">
+          <span className="min-w-0 flex-1 text-[12px] font-semibold leading-[1.25] text-[#0f1a33] [overflow-wrap:anywhere]">
             {subjectName}
           </span>
           <span
-            className={`inline-flex shrink-0 rounded px-1 py-px text-[8px] font-semibold uppercase ${statusBadgeClass(session.status)}`}
+            className={`inline-flex shrink-0 rounded px-1 py-0.5 text-[8px] font-semibold uppercase ${statusBadgeClass(session.status)}`}
           >
             {session.status === "completed" ? (
               <Check className="mr-0.5 inline h-2 w-2" aria-hidden />
@@ -277,7 +277,7 @@ function CompactSessionCard({
             {PLANNED_STATUS_LABELS[session.status]}
           </span>
         </div>
-        <p className="mt-1 flex flex-wrap items-center gap-1 text-[10px] tabular-nums text-slate-500">
+        <p className="mt-1 flex flex-wrap items-center gap-1 text-[12px] tabular-nums text-slate-500">
           <span>
             {timePart} · {session.plannedDurationMinutes} min
           </span>

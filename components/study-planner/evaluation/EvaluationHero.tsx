@@ -87,12 +87,12 @@ export function EvaluationHero({
   if (!summary.hasEnoughData) {
     return (
       <section className="rounded-xl bg-gradient-to-br from-[#fff9ee]/80 via-white to-white px-4 py-3.5 ring-1 ring-[#c9a454]/15">
-        <p className="text-[11px] font-medium text-[#7a5a16]">Centro de control ATPL</p>
+        <p className="text-[12px] font-medium text-[#7a5a16]">Preparación general</p>
         <p className="mt-1 text-[14px] font-medium text-[#0f1a33]">
-          Empieza con un simulacro para detectar puntos débiles
+          Completa un simulacro en el calendario para ver tu diagnóstico
         </p>
-        <p className="mt-1 text-[12px] text-slate-600">
-          Registra resultados y errores para ver preparación, riesgos y prioridades.
+        <p className="mt-1 text-[13px] text-slate-600">
+          Aquí verás preparación, riesgos y prioridades cuando haya datos.
         </p>
       </section>
     );
@@ -102,7 +102,7 @@ export function EvaluationHero({
     <section className="rounded-xl bg-gradient-to-br from-[#0f1a33]/[0.03] via-[#fffdf8] to-white px-4 py-3 ring-1 ring-[#c9a454]/15">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
             Preparación general
           </p>
           <p className="mt-0.5 flex items-baseline gap-1 tabular-nums">
@@ -115,17 +115,17 @@ export function EvaluationHero({
           </p>
         </div>
         <span
-          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1 ${CHIP_CLASS[chip.tone]}`}
+          className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ring-1 ${CHIP_CLASS[chip.tone]}`}
         >
           {chip.label}
         </span>
       </div>
 
-      <p className="mt-2 max-w-xl text-[12px] leading-snug text-slate-600">{contextLine}</p>
+      <p className="mt-2 max-w-xl text-[13px] leading-snug text-slate-600">{contextLine}</p>
 
       <div className="mt-2.5 flex flex-wrap gap-2">
         <div className="rounded-md bg-white/80 px-2 py-1 ring-1 ring-slate-200/35">
-          <p className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+          <p className="text-[12px] font-medium uppercase tracking-wide text-slate-400">
             Simulacros
           </p>
           <p className="text-[12px] font-semibold tabular-nums text-[#0f1a33]">
@@ -136,7 +136,7 @@ export function EvaluationHero({
           </p>
         </div>
         <div className="rounded-md bg-white/80 px-2 py-1 ring-1 ring-slate-200/35">
-          <p className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+          <p className="text-[12px] font-medium uppercase tracking-wide text-slate-400">
             En riesgo
           </p>
           <p className="text-[12px] font-semibold tabular-nums text-[#0f1a33]">
@@ -145,14 +145,11 @@ export function EvaluationHero({
           </p>
         </div>
         <div className="rounded-md bg-white/80 px-2 py-1 ring-1 ring-slate-200/35">
-          <p className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
-            Pendientes
+          <p className="text-[12px] font-medium uppercase tracking-wide text-slate-400">
+            Repasos pend.
           </p>
           <p className="text-[12px] font-semibold tabular-nums text-[#0f1a33]">
-            {summary.pendingErrors}
-            <span className="font-normal text-slate-500"> err. · </span>
             {summary.pendingReviews}
-            <span className="font-normal text-slate-500"> rep.</span>
           </p>
         </div>
       </div>

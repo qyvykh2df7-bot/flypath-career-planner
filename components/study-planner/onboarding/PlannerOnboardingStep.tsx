@@ -26,7 +26,7 @@ export function PlannerOnboardingStep({
 }: PlannerOnboardingStepProps) {
   return (
     <div className="mx-auto w-full max-w-lg">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9a454]">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#c9a454]">
         Configuración · paso {step} de {totalSteps}
       </p>
       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#0f1a33]">{title}</h2>
@@ -46,7 +46,7 @@ export function PlannerOnboardingStep({
         )}
         <div className="flex flex-col items-stretch gap-1.5 sm:ml-auto sm:items-end">
           {nextDisabled && nextDisabledHint ? (
-            <p className="text-center text-[12px] text-slate-500 sm:text-right">{nextDisabledHint}</p>
+            <p className="text-center text-[13px] text-slate-500 sm:text-right">{nextDisabledHint}</p>
           ) : null}
           <button
             type="button"

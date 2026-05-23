@@ -6,7 +6,7 @@ export const calendarPeriodNavShell =
   "inline-flex items-center rounded-xl bg-slate-100/55 p-0.5 shadow-[inset_0_1px_2px_rgba(15,26,51,0.03)]";
 
 export const calendarPeriodNavBtn =
-  "inline-flex items-center justify-center rounded-[10px] px-2.5 py-1.5 text-[12px] font-medium text-slate-600 transition-[background-color,color,box-shadow] duration-300 ease-out hover:bg-white/90 hover:text-[#0f1a33] hover:shadow-[0_2px_8px_-4px_rgba(15,26,51,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b6ea8]/20";
+  "inline-flex items-center justify-center rounded-[10px] px-2.5 py-1.5 text-[13px] font-medium text-slate-600 transition-[background-color,color,box-shadow] duration-300 ease-out hover:bg-white/90 hover:text-[#0f1a33] hover:shadow-[0_2px_8px_-4px_rgba(15,26,51,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b6ea8]/20";
 
 type CalendarPeriodNavProps = {
   onPrev: () => void;

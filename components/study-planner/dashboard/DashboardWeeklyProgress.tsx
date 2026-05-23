@@ -50,9 +50,9 @@ export function DashboardWeeklyProgress({
         aria-label="Progreso semanal"
       >
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-medium text-[#7a5a16]/85">Tu semana</p>
+          <p className="text-[13px] font-medium text-[#7a5a16]/85">Tu semana</p>
           <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${DASHBOARD_WEEK_BADGE_TONE_CLASS[badge.tone]}`}
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold leading-none ring-1 ${DASHBOARD_WEEK_BADGE_TONE_CLASS[badge.tone]}`}
           >
             {badge.label}
           </span>
@@ -67,7 +67,7 @@ export function DashboardWeeklyProgress({
           </span>
         </p>
 
-        <p className="mt-0.5 text-[11px] leading-snug text-slate-600">{encouragement}</p>
+        <p className="mt-0.5 text-[13px] leading-snug text-slate-600">{encouragement}</p>
 
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e8e0d0]/45">
           <div
@@ -80,7 +80,7 @@ export function DashboardWeeklyProgress({
           />
         </div>
 
-        <p className="mt-1.5 text-[11px] text-slate-600">
+        <p className="mt-1.5 text-[13px] text-slate-600">
           <span className="font-semibold tabular-nums text-[#0f1a33]">
             {metrics.completedSessions}
           </span>
@@ -89,7 +89,7 @@ export function DashboardWeeklyProgress({
           <span> bloques completados</span>
         </p>
 
-        <p className="mt-2 border-t border-[#c9a454]/12 pt-1.5 text-[10px] leading-snug text-slate-500">
+        <p className="mt-2 border-t border-[#c9a454]/12 pt-1.5 text-[13px] leading-snug text-slate-500">
           {planMetaLine}
         </p>
       </section>

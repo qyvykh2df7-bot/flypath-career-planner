@@ -55,7 +55,7 @@ export function StudyLogHistory({
       <div className="flex items-center justify-between gap-2">
         <div>
           <h3 className="text-[14px] font-semibold text-[#0f1a33]">Historial reciente</h3>
-          <p className="text-[11px] text-slate-500">{sorted.length} sesiones registradas</p>
+          <p className="text-[13px] text-slate-500">{sorted.length} sesiones registradas</p>
         </div>
         {hasMore ? (
           <button
@@ -90,7 +90,7 @@ export function StudyLogHistory({
                     <p className="text-[13px] font-semibold text-[#0f1a33]">{subjectName}</p>
                     <SessionTypeBadge type={session.type} />
                   </div>
-                  <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-600">
+                  <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-slate-600">
                     <span className="tabular-nums font-medium text-slate-700">
                       {formatShortDate(session.date)}
                     </span>
@@ -114,7 +114,7 @@ export function StudyLogHistory({
                     ) : null}
                   </p>
                   {session.notes ? (
-                    <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-slate-500">
+                    <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-slate-500">
                       {session.notes}
                     </p>
                   ) : null}

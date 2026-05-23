@@ -79,7 +79,6 @@ export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionH
       primaryAction: "start_session",
       focusPlannedSessionId: session.id,
       secondaryLink: "calendar",
-      showLogTodayLink: true,
     };
   }
 
@@ -97,7 +96,6 @@ export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionH
       primaryAction: followingSession ? "advance_session" : "view_calendar",
       focusPlannedSessionId: followingSession?.id,
       secondaryLink: "calendar",
-      showLogTodayLink: false,
     };
   }
 
@@ -111,8 +109,7 @@ export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionH
         "Puedes revisar errores, hacer banco extra o preparar la próxima semana.",
       ctaLabel: "Ver calendario",
       primaryAction: "view_calendar",
-      secondaryLink: "evaluation",
-      showLogTodayLink: false,
+      secondaryLink: "none",
     };
   }
 
@@ -126,7 +123,6 @@ export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionH
       ctaLabel: "Reorganizar semana",
       primaryAction: "reorganize_week",
       secondaryLink: "calendar",
-      showLogTodayLink: false,
     };
   }
 
@@ -138,6 +134,5 @@ export function buildDashboardHeroFromMetrics(metrics: PlannerMetrics): SessionH
     ctaLabel: "Ver calendario",
     primaryAction: "view_calendar",
     secondaryLink: "calendar",
-    showLogTodayLink: false,
   };
 }

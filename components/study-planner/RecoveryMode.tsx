@@ -268,12 +268,12 @@ export function RecoveryMode(props: RecoveryModeProps) {
               </h3>
               <div className="flex flex-wrap items-center gap-1.5">
                 {plan.variant === "lighter" ? (
-                  <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[#1e4a7a] ring-1 ring-[#3b6ea8]/15">
+                  <span className="rounded-full bg-white/90 px-2 py-0.5 text-[12px] font-semibold text-[#1e4a7a] ring-1 ring-[#3b6ea8]/15">
                     Versión con menos carga
                   </span>
                 ) : null}
                 <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1 ${weekLoadStyles(plan.riskLevel)}`}
+                  className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ring-1 ${weekLoadStyles(plan.riskLevel)}`}
                 >
                   {RECOVERY_WEEK_LOAD_LABELS[plan.riskLevel]}
                 </span>
@@ -282,7 +282,7 @@ export function RecoveryMode(props: RecoveryModeProps) {
           </div>
 
           <div className="space-y-3.5 p-3.5 sm:p-4">
-            <p className="text-[12px] leading-snug text-slate-500">
+            <p className="text-[13px] leading-snug text-slate-500">
               {formatRecoverySummaryForDisplay(plan.summary)}
             </p>
 
@@ -294,7 +294,7 @@ export function RecoveryMode(props: RecoveryModeProps) {
                     key={step.id}
                     className="flex gap-2.5 rounded-lg bg-slate-50/55 px-2.5 py-2 ring-1 ring-slate-100/80"
                   >
-                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg bg-[#0f1a33] text-[10px] font-bold text-white shadow-[0_1px_4px_rgba(15,26,51,0.2)]">
+                    <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg bg-[#0f1a33] text-[12px] font-bold text-white shadow-[0_1px_4px_rgba(15,26,51,0.2)]">
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1 pt-px">
@@ -306,13 +306,13 @@ export function RecoveryMode(props: RecoveryModeProps) {
                           {display.title}
                         </p>
                         {step.actionType ? (
-                          <span className="shrink-0 rounded-md bg-white px-1.5 py-px text-[9px] font-medium text-[#1e4a7a] ring-1 ring-[#3b6ea8]/15">
+                          <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 text-[12px] font-medium text-[#1e4a7a] ring-1 ring-[#3b6ea8]/15">
                             {RECOVERY_ACTION_LABELS[step.actionType]}
                           </span>
                         ) : null}
                       </div>
                       <p
-                        className="mt-1 line-clamp-2 text-[11px] leading-snug text-slate-400"
+                        className="mt-1 line-clamp-2 text-[13px] leading-snug text-slate-400"
                         title={step.description}
                       >
                         {display.description}
@@ -324,8 +324,8 @@ export function RecoveryMode(props: RecoveryModeProps) {
             </ol>
 
             <section className="rounded-lg bg-slate-50/50 px-2.5 py-2 ring-1 ring-slate-200/25">
-              <p className="text-[11px] font-semibold text-slate-500">Siguiente paso</p>
-              <p className="mt-0.5 text-[12px] text-slate-600">
+              <p className="text-[12px] font-semibold text-slate-500">Siguiente paso</p>
+              <p className="mt-0.5 text-[13px] text-slate-600">
                 Puedes aplicar esta propuesta a tu calendario o pedir una versión con menos carga.
               </p>
               <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap">
@@ -348,7 +348,7 @@ export function RecoveryMode(props: RecoveryModeProps) {
               </div>
               {actionNote ? (
                 <p
-                  className={`mt-2 rounded-md px-2 py-1.5 text-[11px] leading-relaxed ${
+                  className={`mt-2 rounded-md px-2 py-1.5 text-[12px] leading-relaxed ${
                     applySuccess
                       ? "bg-emerald-50/90 font-medium text-emerald-900"
                       : "bg-white/80 text-slate-600"
@@ -364,7 +364,7 @@ export function RecoveryMode(props: RecoveryModeProps) {
           {plan.cta ? (
             <section className="mx-3 mb-3 rounded-xl bg-gradient-to-br from-[#fff9ee] via-[#fffdf8] to-white p-3 ring-1 ring-[#c9a454]/28 sm:mx-3.5">
               <p className="text-[13px] font-semibold text-[#0f1a33]">¿Bloqueo concreto?</p>
-              <p className="mt-0.5 text-[12px] leading-snug text-slate-600">
+              <p className="mt-0.5 text-[13px] leading-snug text-slate-600">
                 Convierte una asignatura difícil en una acción concreta.
               </p>
               <button

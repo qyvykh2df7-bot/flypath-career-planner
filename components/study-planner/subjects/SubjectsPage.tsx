@@ -113,7 +113,7 @@ function SummaryChip({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ring-1 ${toneClass}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums ring-1 ${toneClass}`}
     >
       {label}
     </span>
@@ -240,7 +240,7 @@ export function SubjectsPage({
             role="tab"
             aria-selected={filter === id}
             onClick={() => setFilter(id)}
-            className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-[background-color,color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/30 ${
+            className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition-[background-color,color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/30 ${
               filter === id
                 ? "bg-white text-[#0f1a33] shadow-[0_1px_4px_-1px_rgba(15,26,51,0.1)]"
                 : "text-slate-600 hover:bg-white/60 hover:text-[#0f1a33]"
@@ -299,7 +299,7 @@ export function SubjectsPage({
                 <div className="flex items-start justify-between gap-2">
                   <p
                     className={`font-semibold leading-snug ${
-                      isNoData ? "text-[12px] text-slate-500" : "text-[13px] text-[#0f1a33]"
+                      isNoData ? "text-[13px] text-slate-500" : "text-[13px] text-[#0f1a33]"
                     }`}
                   >
                     {subject.name}
@@ -307,8 +307,8 @@ export function SubjectsPage({
                   <span
                     className={`shrink-0 rounded-full font-medium ${
                       isNoData
-                        ? `px-1.5 py-0 text-[9px] ${subjectNoDataBadgeClass()}`
-                        : `px-2 py-0.5 text-[10px] font-semibold ring-1 ${displayStatusStyles(displayStatus)}`
+                        ? `px-1.5 py-0 text-[12px] ${subjectNoDataBadgeClass()}`
+                        : `px-2 py-0.5 text-[12px] font-semibold ring-1 ${displayStatusStyles(displayStatus)}`
                     }`}
                   >
                     {badgeLabel}
@@ -317,8 +317,8 @@ export function SubjectsPage({
 
                 {isNoData ? (
                   <div className="mt-1 space-y-0.5">
-                    <p className="text-[10px] font-medium text-slate-400">Sin datos aún</p>
-                    <p className="text-[10px] leading-snug text-slate-400/90">
+                    <p className="text-[13px] font-medium text-slate-400">Sin datos aún</p>
+                    <p className="text-[13px] leading-snug text-slate-400/90">
                       Registra una sesión para calcular preparación
                     </p>
                   </div>
@@ -342,15 +342,15 @@ export function SubjectsPage({
                 ) : null}
 
                 {displayStatus === "passed" ? (
-                  <p className="mt-1.5 text-[10px] text-slate-500">
+                  <p className="mt-1.5 text-[13px] text-slate-500">
                     Aprobada · fuera del plan habitual
                   </p>
                 ) : null}
 
                 {!isNoData ? (
-                  <div className="mt-2 space-y-0.5 text-[10px] text-slate-500">
+                  <div className="mt-2 space-y-0.5 text-[13px] text-slate-500">
                     {readiness.isProvisional ? (
-                      <span className="inline-flex rounded bg-slate-100/70 px-1 py-px text-[9px] font-medium text-slate-500">
+                      <span className="inline-flex rounded bg-slate-100/70 px-1 py-0.5 text-[13px] font-medium text-slate-500">
                         Dato provisional
                       </span>
                     ) : null}

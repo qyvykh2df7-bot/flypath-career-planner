@@ -14,7 +14,7 @@ export function PulseLine({ parts, alert }: PulseLineProps) {
   return (
     <div className="space-y-1">
       {visible.length > 0 ? (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[13px] text-slate-500">
           {visible.map((part, i) => (
             <span key={`${part.label}-${i}`}>
               {i > 0 ? <span className="mx-1.5 text-slate-300">·</span> : null}
@@ -35,7 +35,7 @@ export function PulseLine({ parts, alert }: PulseLineProps) {
       ) : null}
       {alert ? (
         <p
-          className={`text-[11px] leading-snug ${
+          className={`text-[12px] leading-snug ${
             alert.severity === "risk" ? "text-red-700/90" : "text-amber-800/90"
           }`}
         >

@@ -41,7 +41,6 @@ describe("buildDashboardHeroFromMetrics", () => {
     expect(ctx.ctaLabel).toBe("Empezar sesión");
     expect(ctx.primaryAction).toBe("start_session");
     expect(ctx.focusPlannedSessionId).toBe("today-p");
-    expect(ctx.showLogTodayLink).toBe(true);
   });
 
   it("Caso B: hoy completado y semana pendiente → Día completado y Adelantar", () => {
@@ -56,7 +55,6 @@ describe("buildDashboardHeroFromMetrics", () => {
     expect(ctx.ctaLabel).toBe("Adelantar siguiente sesión");
     expect(ctx.primaryAction).toBe("advance_session");
     expect(ctx.focusPlannedSessionId).toBe("next");
-    expect(ctx.showLogTodayLink).toBe(false);
   });
 
   it("no muestra Siguiente bloque si hoy ya está completado", () => {
@@ -79,7 +77,7 @@ describe("buildDashboardHeroFromMetrics", () => {
     expect(ctx.title).toBe("Has cerrado tu semana de estudio");
     expect(ctx.ctaLabel).toBe("Ver calendario");
     expect(ctx.primaryAction).toBe("view_calendar");
-    expect(ctx.secondaryLink).toBe("evaluation");
+    expect(ctx.secondaryLink).toBe("none");
   });
 
   it("Caso D: sesiones saltadas sin pendientes", () => {

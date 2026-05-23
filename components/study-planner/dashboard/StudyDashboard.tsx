@@ -44,8 +44,6 @@ import {
 } from "@/lib/study-planner/calculations";
 import { resolveWeeklyAlertsDisplay } from "@/lib/study-planner/weekly-alerts-display";
 import { getSubjectById } from "@/lib/study-planner/subjects";
-import { buildEvaluationSummary } from "@/lib/study-planner/evaluation-page-logic";
-import { formatDashboardEvaluationVigilLine } from "@/lib/study-planner/dashboard-atpl-focus";
 import { formatNextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
 import { DashboardEvaluationVigil } from "./DashboardEvaluationVigil";
 import type {
@@ -186,30 +184,9 @@ export function StudyDashboard({
     today,
   });
 
-  const evaluationSummary = useMemo(
-    () =>
-      buildEvaluationSummary({
-        mockResults,
-        errorLogItems,
-        reviewItems,
-        subjectIds: subjects.map((s) => s.id),
-        examDates,
-        sessions,
-        today,
-      }),
-    [mockResults, errorLogItems, reviewItems, subjects, examDates, sessions, today],
-  );
   const nextExamHighlight = useMemo(
     () => formatNextExamHighlight(examDates, today),
     [examDates, today],
-  );
-  const evaluationVigilLine = useMemo(
-    () =>
-      formatDashboardEvaluationVigilLine({
-        pendingErrors: evaluationSummary.pendingErrors,
-        nextExam: nextExamHighlight,
-      }),
-    [evaluationSummary.pendingErrors, nextExamHighlight],
   );
   const nextExam = getNextUpcomingExam(examDates, today);
 
@@ -228,15 +205,19 @@ export function StudyDashboard({
     emptyHeroState?.variant === "fresh" ||
     (emptyHeroState?.variant === "study_no_plan" && !completion.hasLoggedStudyThisWeek);
 
-  const goToEvaluationDefault = onGoToEvaluation
-    ? () => onGoToEvaluation({ section: "mocks" })
-    : undefined;
-
   const openFocusSession = (session: PlannedStudySession | null) => {
     if (session) setFocusSession(session);
     else if (nextSession) setFocusSession(nextSession);
     else onGoToCalendar?.();
   };
+
+  const goToEvaluationDefault = onGoToEvaluation
+    ? () => onGoToEvaluation({ section: "mocks" })
+    : undefined;
+
+  const goToPrepareExam = onGoToSubjects
+    ? () => onGoToSubjects()
+    : goToEvaluationDefault;
 
   const isFreshEmpty = emptyHeroState?.variant === "fresh";
 
@@ -271,12 +252,11 @@ export function StudyDashboard({
           alerts={alertsDisplay.alerts}
           positiveMessage={alertsDisplay.positiveMessage}
           onOpenSession={setFocusSession}
-          onGoToLog={onGoToLog}
           onViewPlan={onGoToCalendar}
           onGoToSubjects={onGoToSubjects}
           onGoToEvaluation={onGoToEvaluation}
-          evaluationVigilLine={evaluationVigilLine}
-          onEvaluationVigilGo={goToEvaluationDefault}
+          nextExamHighlight={nextExamHighlight}
+          onPrepareExam={goToPrepareExam}
         />
         <StudySessionFocusSheet
           session={focusSession}
@@ -307,7 +287,6 @@ export function StudyDashboard({
         context={heroContext}
         coachTone={coachTone}
         onPrimaryAction={() => onGoToCalendar?.()}
-        onLogToday={onGoToLog}
         onViewPlan={onGoToCalendar}
       />
 
@@ -327,7 +306,7 @@ export function StudyDashboard({
 
       {topAlert ? (
         <p
-          className={`text-[11px] leading-snug ${
+          className={`text-[12px] leading-snug ${
             topAlert.severity === "risk" ? "text-red-700/90" : "text-amber-800/90"
           }`}
         >
@@ -336,8 +315,8 @@ export function StudyDashboard({
       ) : null}
 
       <DashboardEvaluationVigil
-        line={evaluationVigilLine}
-        onGoToEvaluation={goToEvaluationDefault}
+        nextExam={nextExamHighlight}
+        onPrepareExam={goToPrepareExam}
       />
     </div>
   );

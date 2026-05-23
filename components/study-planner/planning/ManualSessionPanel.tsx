@@ -46,7 +46,7 @@ export function ManualSessionPanel({
       </button>
       {open ? (
         <div className="border-t border-slate-100 px-3 pb-3 pt-1 sm:px-4">
-          <p className="mb-2 text-[12px] text-slate-500">
+          <p className="mb-2 text-[13px] text-slate-500">
             Añade bloques puntuales que no entren en el generador automático.
           </p>
           <PlannedSessionForm

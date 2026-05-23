@@ -12,13 +12,14 @@ describe("formatDashboardEvaluationVigilLine", () => {
     ).toBeNull();
   });
 
-  it("combines errors and next exam", () => {
+  it("formats next exam only", () => {
     const exams: ExamDate[] = [{ subjectId: "atpl-mass-balance", date: "2026-05-30" }];
     const nextExam = formatNextExamHighlight(exams, TODAY);
     const line = formatDashboardEvaluationVigilLine({
       pendingErrors: 1,
       nextExam,
     });
-    expect(line).toBe("Vigila: 1 error pendiente · próximo examen en 10 días");
+    expect(line).toContain("exam en");
+    expect(line).not.toContain("error");
   });
 });

@@ -42,7 +42,7 @@ export function SubjectSelector({ subjects, selectedIds, onChange }: SubjectSele
         >
           Quitar todas
         </button>
-        <span className="self-center text-[12px] text-slate-500">
+        <span className="self-center text-[13px] text-slate-500">
           {selectedIds.length} de {subjects.length} activas
         </span>
       </div>

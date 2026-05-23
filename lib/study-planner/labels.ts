@@ -6,7 +6,7 @@ export const SESSION_TYPE_OPTIONS: { value: StudySessionType; label: string }[] 
   { value: "mock", label: "Simulacro de examen" },
   { value: "review", label: "Repaso" },
   { value: "error_correction", label: "Corrección de errores" },
-  { value: "class", label: "Clase" },
+  { value: "class", label: "Clase particular" },
 ];
 
 export const SESSION_QUALITY_OPTIONS: { value: StudySessionQuality; label: string }[] = [
@@ -33,7 +33,7 @@ export function getSessionTypeShortLabel(type: StudySessionType): string {
     case "error_correction":
       return "Errores";
     case "class":
-      return "Clase";
+      return "Clase particular";
     default:
       return getSessionTypeLabel(type);
   }

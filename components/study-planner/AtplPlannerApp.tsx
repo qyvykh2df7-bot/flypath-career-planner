@@ -192,8 +192,9 @@ export function AtplPlannerApp() {
   const goToEvaluation = useCallback(
     (options?: GoToEvaluationOptions) => {
       const section = options?.section;
-      if (section) setEvaluationView(section);
-      else setEvaluationView("mocks");
+      if (section) {
+        setEvaluationView(section === "errors" ? "mocks" : section);
+      } else setEvaluationView("mocks");
       if (options?.focusMockForm) {
         setMockFormFocusKey((k) => k + 1);
       }
@@ -252,7 +253,7 @@ export function AtplPlannerApp() {
         {activeTab === "calendar" ? (
           <div className="space-y-3">
             <div>
-              <p className="text-[12px] font-medium text-slate-500">Planificación</p>
+              <p className="text-[13px] font-medium text-slate-500">Planificación</p>
               <h2 className="mt-0.5 text-[19px] font-semibold tracking-tight text-[#0f1a33] sm:text-[21px]">
                 Calendario de estudio
               </h2>

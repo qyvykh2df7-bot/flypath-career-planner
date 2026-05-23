@@ -23,6 +23,7 @@ import { getSessionTypeAccentClass } from "@/lib/study-planner/session-type-visu
 import { CalendarPeriodNav } from "./CalendarPeriodNav";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
+import { ClassBookingCta } from "./ClassBookingCta";
 import { SessionStatusBadge } from "./SessionStatusBadge";
 
 const LG_MEDIA_QUERY = "(min-width: 1024px)";
@@ -163,7 +164,7 @@ export function StudyWeekView({
       </div>
 
       {feedback ? (
-        <p className="rounded-lg bg-slate-50/90 px-3 py-1.5 text-[12px] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+        <p className="rounded-lg bg-slate-50/90 px-3 py-1.5 text-[13px] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           {feedback}
         </p>
       ) : null}
@@ -239,8 +240,29 @@ const WeekDayColumn = memo(function WeekDayColumn({
   const isHovered = isDragging && hoveredDate === date;
   const isInvalidHover = isHovered && !canDropHere;
 
+  const handleColumnClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canAdd || isDragging) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-planned-session-card]")) return;
+    if (target.closest("button")) return;
+    onAdd(date);
+  };
+
   return (
     <div
+      onClick={layout === "column" ? handleColumnClick : undefined}
+      onKeyDown={
+        layout === "column" && canAdd
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onAdd(date);
+              }
+            }
+          : undefined
+      }
+      role={layout === "column" && canAdd ? "button" : undefined}
+      tabIndex={layout === "column" && canAdd ? 0 : undefined}
       onDragOver={
         layout === "column"
           ? (event) => {
@@ -273,7 +295,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
         isToday
           ? "bg-[#fffdf8]/90 shadow-[0_2px_12px_-8px_rgba(201,164,84,0.2)] ring-1 ring-[#c9a454]/15"
           : "bg-slate-50/30 shadow-[0_1px_0_rgba(15,26,51,0.03)]"
-      } ${layout === "column" ? "min-h-[4.5rem]" : ""} ${
+      } ${layout === "column" ? "min-h-[4.5rem] cursor-pointer" : ""} ${
         isHovered && canDropHere ? "bg-[#fff8e8]/90 shadow-[0_4px_16px_-10px_rgba(201,164,84,0.25)] ring-1 ring-[#c9a454]/20" : ""
       } ${isInvalidHover ? "bg-slate-100/40" : ""}`}
     >
@@ -281,17 +303,17 @@ const WeekDayColumn = memo(function WeekDayColumn({
         <button
           type="button"
           onClick={() => onOpenDay(date)}
-          className="min-w-0 truncate text-left text-[11px] font-medium text-[#0f1a33] transition-colors duration-200 hover:text-[#3b6ea8] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25"
+          className="min-w-0 truncate text-left text-[12px] font-medium text-[#0f1a33] transition-colors duration-200 hover:text-[#3b6ea8] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25"
         >
           {getDayShortLabel(date)}
         </button>
         <div className="flex shrink-0 items-center gap-0.5">
           {isToday ? (
-            <span className="rounded-full bg-[#fff3d6]/90 px-1.5 py-px text-[10px] font-medium text-[#7a5a16]">
+            <span className="rounded-full bg-[#fff3d6]/90 px-1.5 py-0.5 text-[12px] font-medium text-[#7a5a16]">
               Hoy
             </span>
           ) : (
-            <span className="text-[10px] tabular-nums text-slate-400">{formatShortDate(date)}</span>
+            <span className="text-[12px] tabular-nums text-slate-400">{formatShortDate(date)}</span>
           )}
           {canAdd ? (
             <button
@@ -311,30 +333,41 @@ const WeekDayColumn = memo(function WeekDayColumn({
           <button
             type="button"
             onClick={() => onAdd(date)}
-            className="rounded-lg bg-white/60 py-2 text-[10px] font-medium text-slate-400 transition-[background-color,color] duration-200 hover:bg-white hover:text-[#7a5a16] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/20"
+            className="rounded-lg bg-white/60 py-2 text-[13px] font-medium text-slate-400 transition-[background-color,color] duration-200 hover:bg-white hover:text-[#7a5a16] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/20"
           >
             + Añadir sesión
           </button>
         ) : (
-          <p className="rounded-lg bg-slate-50/40 py-2 text-center text-[10px] font-medium text-slate-400">
+          <p className="rounded-lg bg-slate-50/40 py-2 text-center text-[13px] font-medium text-slate-400">
             Día pasado
           </p>
         )
       ) : (
-        <ul className="min-w-0 space-y-2.5 overflow-x-hidden">
-          {sessions.map((session) => (
-            <WeekSessionCard
-              key={session.id}
-              session={session}
-              today={today}
-              draggable={layout === "column"}
-              isDragging={draggingSession?.id === session.id}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-              onSelect={onSelect}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="min-w-0 space-y-2.5 overflow-x-hidden">
+            {sessions.map((session) => (
+              <WeekSessionCard
+                key={session.id}
+                session={session}
+                today={today}
+                draggable={layout === "column"}
+                isDragging={draggingSession?.id === session.id}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onSelect={onSelect}
+              />
+            ))}
+          </ul>
+          {canAdd ? (
+            <button
+              type="button"
+              onClick={() => onAdd(date)}
+              className="mt-1.5 w-full rounded-lg border border-dashed border-slate-200/80 py-1.5 text-[12px] font-medium text-slate-400 hover:border-[#c9a454]/35 hover:text-[#7a5a16]"
+            >
+              + Añadir bloque
+            </button>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -375,6 +408,7 @@ const WeekSessionCard = memo(function WeekSessionCard({
         }}
         onDragEnd={() => onDragEnd?.()}
         data-planned-session-id={session.id}
+        data-planned-session-card=""
         title={subjectName}
         className={`box-border w-full min-w-0 max-w-full overflow-hidden rounded-lg bg-white/95 px-3 py-2 text-left shadow-[0_1px_0_rgba(15,26,51,0.04)] ${getSessionTypeAccentClass(session.type)} transition-[box-shadow,background-color,opacity] duration-300 ease-out hover:bg-white hover:shadow-[0_6px_20px_-14px_rgba(15,26,51,0.14)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25 focus-visible:ring-offset-1 ${canDrag ? "cursor-grab active:cursor-grabbing" : ""} ${
           isDragging ? "z-[1] bg-white opacity-95 shadow-[0_8px_24px_-12px_rgba(15,26,51,0.18)] ring-1 ring-[#c9a454]/15" : ""
@@ -388,7 +422,7 @@ const WeekSessionCard = memo(function WeekSessionCard({
             <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" aria-hidden />
           ) : null}
         </div>
-        <p className="mt-1 min-w-0 text-[11px] font-medium tabular-nums leading-tight text-slate-600">
+        <p className="mt-1 min-w-0 text-[12px] font-medium tabular-nums leading-tight text-slate-600">
           {timePart} · {minutesToHoursLabel(session.plannedDurationMinutes)}
         </p>
         <div className="mt-1.5 w-full min-w-0 space-y-0.5">
@@ -400,13 +434,14 @@ const WeekSessionCard = memo(function WeekSessionCard({
             <SessionStatusBadge
               session={session}
               today={today}
-              className="max-w-full !normal-case px-1 py-px text-[7px] tracking-tight opacity-90 ring-0"
+              className="max-w-full !normal-case px-1 py-0.5 text-[7px] tracking-tight opacity-90 ring-0"
             />
           </div>
-          <span className="block text-[9px] font-normal text-slate-400/90">
+          <span className="block text-[12px] font-normal text-slate-400/90">
             {session.source === "manual" ? "Manual" : "Auto"}
           </span>
         </div>
+        {session.type === "class" ? <ClassBookingCta variant="card" /> : null}
       </button>
     </li>
   );

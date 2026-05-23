@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 import type {
   PlannedStudySession,
@@ -9,16 +10,13 @@ import type {
 } from "@/lib/study-planner/types";
 import { createPlannerId } from "@/lib/study-planner/calculations";
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
-import { getSessionTypeShortLabel } from "@/lib/study-planner/labels";
 import { plannerBtnGhost, plannerBtnPrimary } from "@/lib/study-planner/planner-ui";
-
-const PLANNER_SESSION_TYPES: StudySessionType[] = [
-  "theory",
-  "question_bank",
-  "review",
-  "mock",
-  "error_correction",
-];
+import {
+  CALENDAR_MANUAL_SESSION_TYPES,
+  CLASS_SESSION_FLYPATH_HINT,
+  CLASSES_BOOKING_PATH,
+  getCalendarSessionTypeLabel,
+} from "./calendar-session-types";
 
 const DURATION_PRESETS = [30, 45, 60, 90, 120] as const;
 
@@ -120,7 +118,7 @@ export function PlannedSessionDrawer({
 
   const fieldClass =
     "mt-1 w-full rounded-lg border border-slate-200/90 bg-white px-3 py-2.5 text-[14px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/20";
-  const labelClass = "text-[11px] font-semibold uppercase tracking-wide text-slate-500";
+  const labelClass = "text-[12px] font-semibold uppercase tracking-wide text-slate-500";
 
   return (
     <>
@@ -138,7 +136,7 @@ export function PlannedSessionDrawer({
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-100 bg-white/95 px-4 pb-3 pt-4 backdrop-blur-sm">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-[#7a5a16]">
               {mode === "edit" ? "Editar sesión" : "Nueva sesión"}
             </p>
             <h2 id="planned-session-drawer-title" className="mt-0.5 text-[18px] font-semibold text-[#0f1a33]">
@@ -188,7 +186,7 @@ export function PlannedSessionDrawer({
           <div>
             <span className={labelClass}>Tipo</span>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {PLANNER_SESSION_TYPES.map((t) => (
+              {CALENDAR_MANUAL_SESSION_TYPES.map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -199,10 +197,26 @@ export function PlannedSessionDrawer({
                       : "bg-white text-slate-600 ring-slate-200 hover:ring-slate-300"
                   }`}
                 >
-                  {getSessionTypeShortLabel(t)}
+                  {getCalendarSessionTypeLabel(t)}
                 </button>
               ))}
             </div>
+            {type === "mock" ? (
+              <p className="mt-2 text-[12px] leading-snug text-slate-500">
+                Al completarla en el calendario podrás registrar el resultado % para Evaluación.
+              </p>
+            ) : null}
+            {type === "class" ? (
+              <div className="mt-2 rounded-lg bg-slate-50/80 px-2.5 py-2 ring-1 ring-slate-200/30">
+                <p className="text-[12px] text-slate-600">{CLASS_SESSION_FLYPATH_HINT}</p>
+                <Link
+                  href={CLASSES_BOOKING_PATH}
+                  className="mt-1.5 inline-flex text-[12px] font-semibold text-[#3b6ea8] hover:underline"
+                >
+                  Reservar clase →
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <div>

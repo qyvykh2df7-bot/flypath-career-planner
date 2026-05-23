@@ -1,5 +1,24 @@
 /** Shared Tailwind class strings for ATPL Planner UI consistency */
 
+/** Tipografía base del planner (legibilidad móvil + jerarquía). */
+export const plannerType = {
+  /** Eyebrow / label uppercase */
+  eyebrow: "text-[11px] font-semibold uppercase tracking-wide text-slate-500",
+  /** Metadata, hints, timestamps */
+  meta: "text-[12px] leading-snug text-slate-500",
+  /** Secondary body */
+  bodySecondary: "text-[13px] leading-relaxed text-slate-600",
+  /** Card / list titles */
+  cardTitle: "text-[14px] font-semibold leading-snug text-[#0f1a33]",
+  /** Page section title */
+  sectionTitle: "text-[15px] font-semibold tracking-tight text-[#0f1a33] sm:text-[16px]",
+  /** Badge / chip compact */
+  badge:
+    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold leading-none ring-1",
+  /** Metric label under numbers */
+  metricLabel: "text-[12px] font-medium leading-snug text-slate-500",
+} as const;
+
 export const plannerPageBg = "min-h-screen bg-[#f6f7f9] text-[#0f1a33]";
 
 export const plannerBtnHero =
@@ -11,7 +30,7 @@ export const plannerFormCard =
 export const plannerFieldClass =
   "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25";
 
-export const plannerFieldLabel = "text-[12px] font-semibold text-slate-600";
+export const plannerFieldLabel = "text-[13px] font-semibold text-slate-600";
 
 export const plannerBtnPrimary =
   "inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[14px] font-semibold text-[#0f1a33] shadow-[0_6px_20px_rgba(201,164,84,0.28)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto w-full";
@@ -27,9 +46,9 @@ export const plannerEmptyState =
 
 export const plannerPanelTitle = "text-base font-semibold text-[#0f1a33] sm:text-[17px]";
 
-export const plannerPanelSubtitle = "mt-1 text-[13px] leading-relaxed text-slate-600";
+export const plannerPanelSubtitle = "mt-1 text-[14px] leading-relaxed text-slate-600";
 
-export const plannerSectionHeading = "text-[14px] font-semibold text-[#0f1a33]";
+export const plannerSectionHeading = "text-[15px] font-semibold text-[#0f1a33] sm:text-[16px]";
 
 export const plannerMetricCard =
   "rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm ring-1 ring-slate-100/80";

@@ -53,7 +53,7 @@ export function MomentumStrip({
   }
 
   return (
-    <p className="text-[11px] font-normal tracking-wide text-slate-400">
+    <p className="text-[12px] font-normal tracking-wide text-slate-400">
       {segments.map((seg, i) => (
         <span key={seg}>
           {i > 0 ? <span className="mx-2 text-slate-300/70">·</span> : null}

@@ -24,7 +24,7 @@ export function PlannerTopbar({ activeNavId, onOpenSettings }: PlannerTopbarProp
 
   return (
     <header className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-slate-200/40 bg-[#f6f7f9]/95 px-3 backdrop-blur-sm sm:px-5">
-      <p className="min-w-0 truncate text-[12px] leading-snug text-slate-500">
+      <p className="min-w-0 truncate text-[13px] leading-snug text-slate-500">
         <span className="font-semibold text-slate-700">{sectionLabel}</span>
         <span className="mx-1.5 text-slate-300/90" aria-hidden>
           ·
@@ -34,7 +34,7 @@ export function PlannerTopbar({ activeNavId, onOpenSettings }: PlannerTopbarProp
       <button
         type="button"
         onClick={onOpenSettings}
-        className="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-slate-500 transition-[background-color,color] duration-200 hover:bg-slate-200/50 hover:text-[#0f1a33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b6ea8]/30 md:inline-flex"
+        className="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-slate-500 transition-[background-color,color] duration-200 hover:bg-slate-200/50 hover:text-[#0f1a33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b6ea8]/30 md:inline-flex"
         aria-label="Abrir ajustes del planner"
       >
         <Settings2 className="h-4 w-4 shrink-0 opacity-70" aria-hidden />

@@ -80,19 +80,19 @@ export function SubjectReadinessCard({
         <h4 className="text-[14px] font-semibold leading-snug text-[#0f1a33]">{subject.name}</h4>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${styles.badge}`}
+            className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ${styles.badge}`}
           >
             {statusLabel}
           </span>
           {readiness.isProvisional ? (
-            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200/80">
+            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-slate-200/80">
               Dato provisional
             </span>
           ) : null}
         </div>
       </div>
 
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+      <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-slate-500">
         Nivel de preparación
       </p>
       <div className="mt-1 flex items-baseline gap-2">

@@ -44,14 +44,10 @@ const MOCK_PASS_DISPLAY = 75;
 
 /** Presentación: chip de estado global (no altera readiness). */
 export function getEvaluationReadinessChip(summary: EvaluationSummary): EvaluationReadinessChip {
-  if (summary.atRiskCount >= 2 || summary.pendingErrors >= 5) {
+  if (summary.atRiskCount >= 2) {
     return { label: "Semana crítica", tone: "critical" };
   }
-  if (
-    summary.atRiskCount > 0 ||
-    (summary.avgMockScore !== null && summary.avgMockScore < 70) ||
-    summary.pendingErrors > 2
-  ) {
+  if (summary.atRiskCount > 0 || (summary.avgMockScore !== null && summary.avgMockScore < 70)) {
     return { label: "Necesita refuerzo", tone: "refine" };
   }
   return { label: "Listo para seguir", tone: "ready" };
@@ -91,12 +87,10 @@ export function buildEvaluationPriorityGroups(params: {
       const examBit = exam
         ? ` · examen ${formatDaysRemaining(getDaysUntilDate(exam.date, today))}`
         : "";
-      const errBit =
-        pendingErrors > 0 ? ` · ${pendingErrors} error${pendingErrors === 1 ? "" : "es"} pendiente${pendingErrors === 1 ? "" : "s"}` : "";
       immediate.push({
         subjectId: r.subjectId,
         title: name,
-        detail: `Preparación ${r.score}%${examBit}${errBit}`.replace(/^ · /, ""),
+        detail: `Preparación ${r.score}%${examBit}`.replace(/^ · /, ""),
       });
       continue;
     }

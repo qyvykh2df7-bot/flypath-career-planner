@@ -75,7 +75,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
 
   const fieldClass =
     "mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-[#0f1a33] shadow-sm focus:border-[#c9a454]/50 focus:outline-none focus:ring-2 focus:ring-[#c9a454]/25";
-  const labelClass = "text-[11px] font-semibold text-slate-600";
+  const labelClass = "text-[12px] font-semibold text-slate-600";
 
   return (
     <form
@@ -127,7 +127,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
       <button
         type="button"
         onClick={() => setShowExtras((v) => !v)}
-        className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-200/90 bg-slate-50/60 px-2.5 py-1.5 text-left text-[12px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+        className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-200/90 bg-slate-50/60 px-2.5 py-1.5 text-left text-[13px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
         aria-expanded={showExtras}
       >
         Duración y notas (opcional)
@@ -143,7 +143,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
             <legend className={labelClass}>Duración</legend>
             <div className="mt-1 grid grid-cols-2 gap-2">
               <label className="block">
-                <span className="text-[11px] text-slate-500">Horas</span>
+                <span className="text-[13px] text-slate-500">Horas</span>
                 <input
                   type="number"
                   min={0}
@@ -154,7 +154,7 @@ export function MockResultForm({ subjects, onAddMockResult }: MockResultFormProp
                 />
               </label>
               <label className="block">
-                <span className="text-[11px] text-slate-500">Minutos</span>
+                <span className="text-[13px] text-slate-500">Minutos</span>
                 <input
                   type="number"
                   min={0}

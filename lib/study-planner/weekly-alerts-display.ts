@@ -13,7 +13,7 @@ const GRACE_SUPPRESSED_IDS = new Set([
   "logged-not-completed",
 ]);
 
-const POSITIVE_MESSAGE = "Tu semana está correctamente organizada.";
+const POSITIVE_MESSAGE = "Buen ritmo esta semana.";
 
 export type WeeklyAlertsDisplay = {
   alerts: WeeklyPlanAlert[];

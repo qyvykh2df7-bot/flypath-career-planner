@@ -68,7 +68,7 @@ function ReviewCard({
           <p className="mt-0.5 text-[13px] text-slate-600">{subjectName}</p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${statusBadgeClass(status)}`}
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ${statusBadgeClass(status)}`}
         >
           {REVIEW_STATUS_LABELS[status]}
         </span>
@@ -114,7 +114,7 @@ function ReviewCard({
 
       {showReschedule && !isCompleted ? (
         <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3">
-          <span className="w-full text-[12px] font-medium text-slate-500">Nueva fecha desde hoy:</span>
+          <span className="w-full text-[13px] font-medium text-slate-500">Nueva fecha desde hoy:</span>
           {RESCHEDULE_OPTIONS.map((opt) => (
             <button
               key={opt.days}

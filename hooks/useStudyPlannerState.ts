@@ -18,11 +18,6 @@ import {
   type StudySessionQuality,
 } from "@/lib/study-planner/types";
 
-export type CompletePlannedSessionOverrides = {
-  durationMinutes?: number;
-  quality?: StudySessionQuality;
-  notes?: string;
-};
 import { addDaysToDate, createPlannerId, getTodayDateString } from "@/lib/study-planner/calculations";
 import {
   buildDefaultInitialSubjectStates,
@@ -32,7 +27,10 @@ import { getWeekRange } from "@/lib/study-planner/date-utils";
 import {
   completePlannedSessionWithLog,
   deleteStudySessionWithPlannedSync,
+  type CompletePlannedOverrides,
 } from "@/lib/study-planner/planned-log-sync";
+
+export type CompletePlannedSessionOverrides = CompletePlannedOverrides;
 import { isPendingLikeStatus } from "@/lib/study-planner/planner-session-status";
 import type { ApplyPlanMode, WeeklyStudyPlan } from "@/lib/study-planner/planning/planning-types";
 import { markPlanActivated } from "@/lib/study-planner/plan-activation";
@@ -253,7 +251,14 @@ export function useStudyPlannerState() {
           overrides,
         );
         if (!result) return prev;
-        return { ...prev, ...result };
+        const { mockResult, ...rest } = result;
+        return {
+          ...prev,
+          ...rest,
+          mockResults: mockResult
+            ? [...prev.mockResults, mockResult]
+            : prev.mockResults,
+        };
       });
     },
     [],

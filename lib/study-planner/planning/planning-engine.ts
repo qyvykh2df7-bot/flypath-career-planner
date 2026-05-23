@@ -29,6 +29,10 @@ import type {
   WeeklyPlanPriority,
   WeeklyStudyPlan,
 } from "./planning-types";
+import {
+  computeWeeklyGoalProration,
+  MAX_PLANNED_MINUTES_PER_DAY,
+} from "./weekly-goal-proration";
 
 const BLOCK_SIZES = [90, 60, 45] as const;
 const MIN_BLOCK_MINUTES = 30;
@@ -251,16 +255,40 @@ type BlockDraft = {
   blockIndex: number;
 };
 
+function canPlaceBlockOnDay(
+  date: string,
+  blockMinutes: number,
+  dayCounts: Map<string, number>,
+  dayMinutes: Map<string, number>,
+): boolean {
+  if ((dayCounts.get(date) ?? 0) >= MAX_BLOCKS_PER_DAY) return false;
+  if ((dayMinutes.get(date) ?? 0) + blockMinutes > MAX_PLANNED_MINUTES_PER_DAY) {
+    return false;
+  }
+  return true;
+}
+
+type AssignBlocksResult = {
+  blocks: PlannedStudyBlock[];
+  skippedDraftCount: number;
+};
+
 function assignBlocksToDays(
   drafts: BlockDraft[],
   eligibleDates: string[],
   input: PlanningEngineInput,
   subjectMetaBase: ReturnType<typeof buildSubjectPlanningMetaMap>,
-): PlannedStudyBlock[] {
-  if (eligibleDates.length === 0) return [];
+): AssignBlocksResult {
+  if (eligibleDates.length === 0) {
+    return { blocks: [], skippedDraftCount: 0 };
+  }
 
   const dayCounts = new Map<string, number>();
-  for (const d of eligibleDates) dayCounts.set(d, 0);
+  const dayMinutes = new Map<string, number>();
+  for (const d of eligibleDates) {
+    dayCounts.set(d, 0);
+    dayMinutes.set(d, 0);
+  }
 
   const sortedDrafts = [...drafts].sort((a, b) => {
     const order = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -269,6 +297,7 @@ function assignBlocksToDays(
 
   const blocks: PlannedStudyBlock[] = [];
   let dayCursor = 0;
+  let skippedDraftCount = 0;
   const errorSlotUsed = new Set<string>();
   const reviewSlotUsed = new Set<string>();
   const mockSlotUsed = new Set<string>();
@@ -277,7 +306,7 @@ function assignBlocksToDays(
     let assignedDate: string | null = null;
     for (let attempt = 0; attempt < eligibleDates.length; attempt++) {
       const date = eligibleDates[(dayCursor + attempt) % eligibleDates.length]!;
-      if ((dayCounts.get(date) ?? 0) < MAX_BLOCKS_PER_DAY) {
+      if (canPlaceBlockOnDay(date, draft.plannedMinutes, dayCounts, dayMinutes)) {
         assignedDate = date;
         dayCursor = (dayCursor + attempt + 1) % eligibleDates.length;
         break;
@@ -285,13 +314,24 @@ function assignBlocksToDays(
     }
 
     if (!assignedDate) {
-      // Todos los días llenos: permitir un tercer bloque el día con menos carga
-      assignedDate = [...eligibleDates].sort(
-        (a, b) => (dayCounts.get(a) ?? 0) - (dayCounts.get(b) ?? 0),
-      )[0]!;
+      for (const date of eligibleDates) {
+        if (canPlaceBlockOnDay(date, draft.plannedMinutes, dayCounts, dayMinutes)) {
+          assignedDate = date;
+          break;
+        }
+      }
+    }
+
+    if (!assignedDate) {
+      skippedDraftCount += 1;
+      continue;
     }
 
     dayCounts.set(assignedDate, (dayCounts.get(assignedDate) ?? 0) + 1);
+    dayMinutes.set(
+      assignedDate,
+      (dayMinutes.get(assignedDate) ?? 0) + draft.plannedMinutes,
+    );
     const timeIndex = (dayCounts.get(assignedDate) ?? 1) - 1;
     const suggestedStartTime = SUGGESTED_TIMES[timeIndex % SUGGESTED_TIMES.length]!;
 
@@ -346,11 +386,14 @@ function assignBlocksToDays(
     });
   }
 
-  return blocks.sort((a, b) => {
-    const d = a.date.localeCompare(b.date);
-    if (d !== 0) return d;
-    return a.suggestedStartTime.localeCompare(b.suggestedStartTime);
-  });
+  return {
+    blocks: blocks.sort((a, b) => {
+      const d = a.date.localeCompare(b.date);
+      if (d !== 0) return d;
+      return a.suggestedStartTime.localeCompare(b.suggestedStartTime);
+    }),
+    skippedDraftCount,
+  };
 }
 
 export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineResult {
@@ -409,8 +452,25 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
     });
   }
 
+  const proration = computeWeeklyGoalProration({
+    weeklyGoalMinutes: input.weeklyGoalMinutes,
+    weekKind,
+    eligibleDayCount: eligibleDates.length,
+  });
+
+  if (proration.prorated) {
+    warnings.push({
+      code: "reduced_remaining_days",
+      message:
+        "Quedan pocos días esta semana. Hemos generado una versión reducida.",
+    });
+  }
+
   const ranked = rankSubjectsByPriority(input);
-  const minutesBySubject = distributeWeeklyMinutes(input, ranked);
+  const minutesBySubject = distributeWeeklyMinutes(
+    { ...input, weeklyGoalMinutes: proration.effectiveMinutes },
+    ranked,
+  );
 
   const drafts: BlockDraft[] = [];
   const subjectBlockIndex = new Map<string, number>();
@@ -464,7 +524,17 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
     input.activeSubjectIds,
   );
 
-  const blocks = assignBlocksToDays(drafts, eligibleDates, input, subjectMetaBase);
+  const assignment = assignBlocksToDays(drafts, eligibleDates, input, subjectMetaBase);
+  const blocks = assignment.blocks;
+
+  if (assignment.skippedDraftCount > 0) {
+    warnings.push({
+      code: "daily_minutes_cap",
+      message:
+        "No cabían todos los bloques respetando el máximo de 6 h por día. Hemos reducido la carga planificada.",
+    });
+  }
+
   const totalPlannedMinutes = blocks.reduce((s, b) => s + b.plannedMinutes, 0);
   const focusSubjectIds = ranked.slice(0, 3).map((r) => r.subjectId);
 
@@ -492,9 +562,19 @@ export function generateWeeklyPlan(input: PlanningEngineInput): PlanningEngineRe
   if (focusSubjectIds.length > 0) {
     summaryHints.push(`${focusSubjectIds.length} asignaturas con más foco esta semana.`);
   }
+  if (proration.prorated) {
+    summaryHints.push(
+      `Carga ajustada a ${eligibleDates.length} día${eligibleDates.length === 1 ? "" : "s"} restante${eligibleDates.length === 1 ? "" : "s"} (~${Math.round(proration.effectiveMinutes / 60)} h de ${Math.round(input.weeklyGoalMinutes / 60)} h semanales).`,
+    );
+  }
   summaryHints.push(
-    `Reparto en ${eligibleDates.length} día${eligibleDates.length === 1 ? "" : "s"} (máx. ${MAX_BLOCKS_PER_DAY} bloques/día).`,
+    `Reparto en ${eligibleDates.length} día${eligibleDates.length === 1 ? "" : "s"} (máx. ${MAX_BLOCKS_PER_DAY} bloques/día, ${MAX_PLANNED_MINUTES_PER_DAY / 60} h/día).`,
   );
+  if (assignment.skippedDraftCount > 0) {
+    summaryHints.push(
+      `${assignment.skippedDraftCount} bloque${assignment.skippedDraftCount === 1 ? "" : "s"} sin asignar por límite diario.`,
+    );
+  }
 
   return {
     plan: {

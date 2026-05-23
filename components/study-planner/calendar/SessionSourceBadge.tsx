@@ -11,7 +11,7 @@ export function SessionSourceBadge({ source, className = "" }: SessionSourceBadg
   const isManual = source === "manual";
   return (
     <span
-      className={`inline-flex shrink-0 rounded px-1 py-px text-[8px] font-medium tracking-normal ${
+      className={`inline-flex shrink-0 rounded px-1 py-0.5 text-[8px] font-medium tracking-normal ${
         isManual
           ? "bg-violet-50/80 text-violet-800/90"
           : "bg-slate-100/80 text-slate-500"

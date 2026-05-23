@@ -37,7 +37,7 @@ export function PlannerHero({ onGoToDashboard, onGoToRecovery }: PlannerHeroProp
 
       <div className="relative mx-auto max-w-7xl px-5 pb-6 pt-6 sm:px-6 sm:pb-7 sm:pt-7 lg:px-8">
         <div className="min-w-0 max-w-xl">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]">
             ATPL Planner
           </p>
           <h1 className="mt-2 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.65rem]">

@@ -32,7 +32,9 @@ export type PlanningGenerationWarningCode =
   | "no_active_subjects"
   | "no_eligible_days"
   | "low_weekly_minutes"
-  | "past_week";
+  | "past_week"
+  | "reduced_remaining_days"
+  | "daily_minutes_cap";
 
 export type PlanningGenerationWarning = {
   code: PlanningGenerationWarningCode;

@@ -34,12 +34,12 @@ export function PlanPreviewDayAccordion({
             {getDayShortLabel(date)} · {formatShortDate(date)}
           </span>
           {isToday ? (
-            <span className="rounded-full bg-[#fff8e8] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[#7a5a16]">
+            <span className="rounded-full bg-[#fff8e8] px-1.5 py-0.5 text-[12px] font-semibold uppercase text-[#7a5a16]">
               Hoy
             </span>
           ) : null}
         </span>
-        <span className="flex shrink-0 items-center gap-1.5 text-[12px] text-slate-500">
+        <span className="flex shrink-0 items-center gap-1.5 text-[13px] text-slate-500">
           {blocks.length} bloque{blocks.length === 1 ? "" : "s"}
           <ChevronDown
             className={`h-3.5 w-3.5 text-slate-400 transition ${open ? "rotate-180" : ""}`}

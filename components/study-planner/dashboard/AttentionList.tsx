@@ -15,7 +15,7 @@ export function AttentionList({ items, onSelectSubject }: AttentionListProps) {
 
   return (
     <section className="space-y-1">
-      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
+      <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-slate-400">
         Atención
       </p>
       <ul className="space-y-0">
@@ -39,7 +39,7 @@ export function AttentionList({ items, onSelectSubject }: AttentionListProps) {
               <span className="min-w-0 flex-1">
                 <span className="text-[13px] font-medium text-[#0f1a33]">{item.subjectName}</span>
                 <span className="text-slate-400"> — </span>
-                <span className="text-[12px] text-slate-500">{item.reason}</span>
+                <span className="text-[13px] text-slate-500">{item.reason}</span>
               </span>
               {onSelectSubject ? (
                 <ChevronRight

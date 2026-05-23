@@ -18,7 +18,6 @@ import {
   LayoutList,
   Lock,
   Mail,
-  Menu,
   MessagesSquare,
   Plane,
   Route,
@@ -32,8 +31,7 @@ import type { SchoolEntry } from "@/types/schools";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
 import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
-import { LandingPlatformModules } from "@/components/LandingPlatformModules";
-
+import { CareerPlannerDashboardShell } from "@/components/career-planner/CareerPlannerDashboardShell";
 type Screen = "landing" | "onboarding" | "dashboard";
 export type Tab = "route" | "cost" | "schools" | "report";
 type YesNoUnknown = "si" | "no" | "no_se";
@@ -712,6 +710,14 @@ function clamp(value: number, min = 0, max = 100) {
 
 function euro(value: number) {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value || 0);
+}
+
+/** Solo presentación: número grande + símbolo € separado en hero financiero. */
+function formatEuroHeroAmount(value: number) {
+  return {
+    amount: new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 }).format(value || 0),
+    symbol: "€",
+  };
 }
 
 /** Lectura humana para tiempo al ritmo actual; solo si > 36 meses. No altera cálculos. */
@@ -1805,7 +1811,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   // libremente con su toggle; no se reabre automáticamente al cambiar schools.length.
   const [manualFormOpen, setManualFormOpen] = useState(false);
   const manualFormInitializedRef = useRef(false);
-  const [dashboardMobileNavOpen, setDashboardMobileNavOpen] = useState(false);
   const [plannerSchoolsPremiumModalOpen, setPlannerSchoolsPremiumModalOpen] = useState(false);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [landingGuideCoverAvailable, setLandingGuideCoverAvailable] = useState(false);
@@ -1820,14 +1825,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     premiumUnlockedPlanner,
     qaPremiumMode,
   );
-
-  useEffect(() => {
-    if (screen !== "dashboard") setDashboardMobileNavOpen(false);
-  }, [screen]);
-
-  useEffect(() => {
-    setDashboardMobileNavOpen(false);
-  }, [tab]);
 
   useEffect(() => {
     if (tab !== "schools") setPlannerSchoolsPremiumModalOpen(false);
@@ -2399,13 +2396,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     setOnboardingStep((s) => Math.min(6, s + 1));
   };
 
-  const navItems: Array<{ id: Tab; label: string }> = [
-    { id: "route", label: "Planificador de ruta" },
-    { id: "cost", label: "Costes" },
-    { id: "schools", label: "Escuelas" },
-    { id: "report", label: "Informe final" },
-  ];
-
   const stepMeta: Record<number, { title: string; desc: string }> = {
     1: { title: "Perfil", desc: "Define tu punto de partida profesional." },
     2: { title: "Medical e inglés", desc: "Valida bloqueos operativos críticos." },
@@ -2606,8 +2596,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               </div>
             </div>
           </section>
-
-          <LandingPlatformModules />
 
           <section className="border-b border-slate-200/80 bg-[#f8fafc] py-12 lg:py-14">
             <div className="mx-auto max-w-7xl px-6 lg:px-10">
@@ -3065,7 +3053,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
 
   return (
     <>
-    <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
       <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
         <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
@@ -3073,91 +3060,16 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
           {toast}
         </motion.div>
       )}
-      {dashboardMobileNavOpen ? (
-        <button
-          type="button"
-          aria-label="Cerrar menú de navegación"
-          className="fixed inset-0 z-40 bg-[#0f1a33]/45 backdrop-blur-[1px] lg:hidden"
-          onClick={() => setDashboardMobileNavOpen(false)}
-        />
-      ) : null}
-      <div className="mx-auto flex min-w-0 max-w-[1600px]">
-        <aside
-          id="dashboard-sidebar-nav"
-          className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-1rem))] flex-col overflow-y-auto border-r border-[#1f2f55] bg-[#0f1a33] px-5 py-7 text-slate-100 shadow-[4px_0_24px_rgba(15,26,51,0.18)] transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:h-auto lg:min-h-full lg:w-72 lg:max-w-none lg:self-stretch lg:shrink-0 lg:translate-x-0 lg:overflow-y-auto lg:shadow-sm ${
-            dashboardMobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          }`}
-        >
-          <div className="mb-4 flex items-center justify-between lg:hidden">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">Navegación</span>
-            <button
-              type="button"
-              onClick={() => setDashboardMobileNavOpen(false)}
-              aria-label="Cerrar menú"
-              className="rounded-lg p-2 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-            >
-              <X className="h-5 w-5" aria-hidden />
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-[#c9a454]/20 p-2.5"><Plane className="h-5 w-5 text-[#f2ddaa]" /></div>
-            <div><p className="font-semibold text-white">FlyPath Career Planner</p><p className="text-[15px] text-slate-300">Planner de decisión</p></div>
-          </div>
-          <nav className="mt-9 space-y-1.5">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  goToDashboardTab(item.id);
-                  setDashboardMobileNavOpen(false);
-                }}
-                className={`w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-[15px] transition ${tab === item.id ? "bg-white/95 text-[#0f1a33] shadow-sm ring-1 ring-[#c9a454]/40" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
-          <div className="mt-8 space-y-2">
-            <button
-              onClick={() => {
-                setScreen("onboarding");
-                setOnboardingStep(1);
-                setDashboardMobileNavOpen(false);
-              }}
-              className="w-full cursor-pointer rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-[15px] transition hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-            >
-              Editar mis datos
-            </button>
-            <button
-              onClick={() => {
-                setScreen("landing");
-                setDashboardMobileNavOpen(false);
-              }}
-              className="w-full cursor-pointer rounded-lg border border-emerald-300/35 bg-emerald-400/12 px-3 py-2 text-[15px] font-semibold text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-emerald-200/60 hover:bg-emerald-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/35"
-            >
-              Volver al inicio
-            </button>
-          </div>
-        </aside>
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-          <div className="mb-5 flex items-center gap-3 lg:hidden">
-            <button
-              type="button"
-              onClick={() => setDashboardMobileNavOpen(true)}
-              aria-expanded={dashboardMobileNavOpen}
-              aria-controls="dashboard-sidebar-nav"
-              aria-label="Abrir menú de navegación"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#0f1a33] shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
-            >
-              <Menu className="h-5 w-5" strokeWidth={2} aria-hidden />
-            </button>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">Vista actual</p>
-              <p className="truncate text-base font-semibold text-[#0f1a33]">{navItems.find((i) => i.id === tab)?.label ?? "FlyPath"}</p>
-            </div>
-          </div>
+      <CareerPlannerDashboardShell
+        activeTab={tab}
+        onNavigate={goToDashboardTab}
+        onEditData={() => {
+          setScreen("onboarding");
+          setOnboardingStep(1);
+        }}
+      >
           {tab === "route" && (
-            <header className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-6 text-white shadow-sm">
+            <header className="relative overflow-hidden rounded-[24px] bg-[#0f1a33] p-5 text-white shadow-[0_8px_28px_rgba(15,26,51,0.1)] sm:p-6">
               {/* Card azul con relative: avión decorativo en hueco superior derecho (ver div absoluto siguiente). */}
               <div
                 className="pointer-events-none absolute top-[50px] right-[108px] z-0 hidden w-[158px] max-w-[calc(100%-2rem)] lg:block"
@@ -3182,45 +3094,41 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
               </div>
               <div className="relative z-10">
-              <div className="flex flex-wrap items-start justify-between gap-2.5">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
-                  <h1 className="mt-1.5 min-w-0 break-words text-2xl font-semibold text-white sm:text-3xl">Tu ruta más prudente ahora: {route.recommended}</h1>
-                  <p className="mt-2.5 max-w-3xl text-base leading-relaxed text-slate-200">
-                    Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
+                <h1 className="mt-1.5 min-w-0 break-words text-2xl font-semibold text-white sm:text-3xl">Tu ruta más prudente ahora: {route.recommended}</h1>
+                <p className="mt-2.5 max-w-3xl text-base leading-relaxed text-slate-200">
+                  Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
+                </p>
+              </div>
+              <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                <div className="flex min-h-[80px] flex-col rounded-2xl border border-[#c9a454]/22 bg-[#c9a454]/[0.07] p-3.5">
+                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/70" aria-hidden />
+                    Ruta recomendada
                   </p>
+                  <p className="mt-1.5 text-base font-semibold leading-snug text-white">{route.recommended}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => { setScreen("onboarding"); setOnboardingStep(1); }}
-                    className="cursor-pointer rounded-xl border border-[#c9a454]/45 bg-[#c9a454]/10 px-4 py-2 text-[15px] font-medium text-[#f2ddaa] transition hover:bg-[#c9a454]/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
-                  >
-                    Editar mis datos
-                  </button>
-                </div>
-              </div>
-              <div className="mt-3 grid gap-2.5 lg:grid-cols-2">
-                <div className="flex h-full min-h-[88px] flex-col rounded-2xl border border-[#c9a454]/30 bg-[#c9a454]/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/75" />Ruta recomendada</p>
-                    <Route className="h-4 w-4 text-[#f2ddaa]/55" />
-                  </div>
-                  <p className="mt-2 text-base font-semibold leading-snug text-white">{route.recommended}</p>
-                </div>
-                <div className={`flex h-full min-h-[88px] flex-col rounded-2xl border p-4 shadow-sm backdrop-blur ${route.principalBlock !== "Ningún bloqueo crítico" ? "border-[#c9a454]/25 bg-white/[0.07]" : "border-white/10 bg-white/[0.065]"}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-slate-300/50" />Bloqueo principal</p>
-                    <ShieldAlert className="h-4 w-4 text-slate-300/60" />
-                  </div>
-                  <p className="mt-2 text-base font-semibold leading-snug text-white">{route.principalBlock}</p>
+                <div
+                  className={`flex min-h-[80px] flex-col rounded-2xl border p-3.5 ${
+                    route.principalBlock !== "Ningún bloqueo crítico"
+                      ? "border-[#c9a454]/18 bg-white/[0.06]"
+                      : "border-white/10 bg-white/[0.05]"
+                  }`}
+                >
+                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300/45" aria-hidden />
+                    Bloqueo principal
+                  </p>
+                  <p className="mt-1.5 text-base font-semibold leading-snug text-white">{route.principalBlock}</p>
                 </div>
               </div>
-              <div className="mt-2.5 flex min-h-[76px] flex-col rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/75" />Siguiente paso prioritario</p>
-                  <ClipboardCheck className="h-4 w-4 text-[#f2ddaa]/55" />
-                </div>
-                <p className="mt-2 text-[15px] font-semibold leading-snug text-slate-100">
+              <div className="mt-2 flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.05] p-3.5">
+                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/70" aria-hidden />
+                  Siguiente paso prioritario
+                </p>
+                <p className="mt-1.5 text-[15px] font-semibold leading-snug text-slate-100">
                   {profile.class1 !== "si"
                     ? "Confirma tu Clase 1 antes de elegir escuela."
                     : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pide precio final, contrato, calendario de pagos y política de reembolso antes de transferir dinero."}
@@ -3239,46 +3147,46 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               </div>
             </header>
           )}
-          <section className={`${tab === "route" ? "mt-6" : "mt-0"} mx-auto w-full min-w-0 max-w-[1120px] space-y-8`}>
+          <section className={`${tab === "route" ? "mt-5" : "mt-0"} w-full space-y-6`}>
             {tab === "route" && (
-              <div className="space-y-5">
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Comparación de rutas</p>
-                  <p className="mb-4 text-[15px] text-slate-600">No es una probabilidad ni una promesa de resultado. Es una lectura prudente para ayudarte a priorizar la ruta con menos riesgo.</p>
-                  <div className="grid gap-4 lg:grid-cols-3">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
+                  <p className="mb-2 text-sm font-semibold text-slate-700">Comparación de rutas</p>
+                  <p className="mb-4 text-[15px] leading-relaxed text-slate-600">No es una probabilidad ni una promesa de resultado. Es una lectura prudente para ayudarte a priorizar la ruta con menos riesgo.</p>
+                  <div className="grid gap-x-3 gap-y-6 pt-2 lg:grid-cols-3">
                     <RouteOption title="Integrada" value={route.integrated} label={routePriorityLabels.Integrada} />
                     <RouteOption title="Modular" value={route.modular} label={routePriorityLabels.Modular} />
                     <RouteOption title="Preparación" value={route.prep} label={routePriorityLabels["Preparación"]} />
                   </div>
                 </div>
-                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-base font-semibold text-[#0f1a33]">Siguiente paso recomendado</p>
-                  <p className="mt-2 max-w-3xl text-2xl font-semibold text-[#0f1a33]">
+                <div className="rounded-2xl border border-slate-200/90 border-l-[3px] border-l-[#c9a454]/70 bg-gradient-to-r from-white to-[#fffdf6] p-5 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-6">
+                  <p className="text-sm font-semibold text-slate-700">Siguiente paso recomendado</p>
+                  <p className="mt-1.5 max-w-3xl text-xl font-semibold leading-snug text-[#0f1a33] sm:text-2xl">
                     {route.recommended === "Modular"
                       ? "Avanza por fases, pero valida costes antes de pagar."
                       : route.recommended === "Integrada"
                       ? "Valida que puedes asumir una ruta intensiva."
                       : "Resuelve bloqueos antes de elegir escuela."}
                   </p>
-                  <p className="mt-3 max-w-4xl text-base leading-relaxed text-slate-600">
+                  <p className="mt-2 max-w-4xl text-[15px] leading-relaxed text-slate-600">
                     {route.recommended === "Modular"
                       ? "Tu diagnóstico apunta a una ruta modular porque te permite controlar mejor el riesgo y la inversión por fases. El siguiente paso no es elegir escuela rápido, sino confirmar si el coste realista encaja con tu presupuesto y comparar escuelas con condiciones por escrito."
                       : route.recommended === "Integrada"
                       ? "Tu diagnóstico apunta a una ruta integrada, pero antes de pagar matrícula o depósito debes confirmar financiación, disponibilidad full-time, contrato, calendario de pagos y política de reembolso. La rapidez solo compensa si las condiciones están claras."
                       : "Tu diagnóstico indica que todavía conviene preparar mejor la decisión antes de comprometer pagos altos. Prioriza resolver el bloqueo principal, revisar costes y construir un plan antes de comparar escuelas en serio."}
                   </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                  <div className="mt-4 flex flex-wrap gap-2.5">
                     <button
                       type="button"
                       onClick={() => goToDashboardTab("cost")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                     >
                       Revisar costes
                     </button>
                     <button
                       type="button"
                       onClick={() => goToDashboardTab("schools")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-200/90 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
                     >
                       Comparar escuelas
                     </button>
@@ -3287,7 +3195,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               </div>
             )}
             {tab === "cost" && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
                   <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[105px] w-[190px] lg:flex items-center justify-end opacity-70">
                     <svg viewBox="0 0 260 150" className="h-full w-full">
@@ -3303,42 +3211,104 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <div className="relative z-10">
                   <div className="lg:max-w-[760px]">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico financiero</p>
-                    <p className="mt-2 text-3xl font-semibold">Coste realista estimado: {euro(costs.totalRealista)}</p>
-                    <p className="mt-3 max-w-3xl text-[15px] text-slate-200">
-                      {profile.costEstimateSource === "user_approx" ? (
-                        <>
-                          Estimación inicial basada en los importes aproximados que introdujiste.
-                          <br />
-                          Puedes afinar cada partida más abajo.
-                        </>
-                      ) : (
-                        <>
-                          Estimación inicial basada en valores base FlyPath de formación, extras y costes de vida.
-                          <br />
-                          Puedes ajustar cada partida más abajo.
-                        </>
-                      )}
+                    <p className="mt-3 text-lg font-semibold text-white sm:text-xl">Coste realista estimado</p>
+                    {(() => {
+                      const { amount, symbol } = formatEuroHeroAmount(costs.totalRealista);
+                      return (
+                        <div className="mt-3 flex items-baseline gap-2 tracking-tight">
+                          <span className="text-5xl font-bold leading-[0.95] text-white tabular-nums sm:text-6xl lg:text-7xl">
+                            {amount}
+                          </span>
+                          <span className="pb-1 text-2xl font-medium text-white/70 sm:text-3xl">{symbol}</span>
+                        </div>
+                      );
+                    })()}
+                    <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-300">
+                      Incluye formación, extras, costes de vida y margen de seguridad.
                     </p>
                   </div>
-                  <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
-                      <p className="text-[15px] text-slate-300">Dinero que falta</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{euro(costs.brechaFinanciacion)}</p>
+                  <div className="mt-6 grid items-stretch gap-3 lg:grid-cols-3">
+                    <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-[#c9a454]/40 bg-white/[0.09] p-5 shadow-[0_8px_28px_rgba(201,164,84,0.14)] ring-1 ring-[#c9a454]/20">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/85">Brecha pendiente</p>
+                      <p className="mt-0.5 text-[14px] font-medium text-slate-300">Dinero que falta</p>
+                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white tabular-nums sm:text-3xl">
+                        {euro(costs.brechaFinanciacion)}
+                      </p>
                     </div>
-                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
-                      <p className="text-[15px] text-slate-300">Presupuesto cubierto</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{costs.coverage}%</p>
+                    <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-white/12 bg-white/[0.06] p-5">
+                      <p className="text-[14px] font-medium text-slate-300">Presupuesto cubierto</p>
+                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white tabular-nums sm:text-[1.75rem]">
+                        {costs.coverage}%
+                      </p>
                     </div>
-                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
-                      <p className="text-[15px] text-slate-300">Riesgo financiero</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{costs.riesgoFinanciero}</p>
+                    <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-white/12 bg-white/[0.06] p-5">
+                      <p className="text-[14px] font-medium text-slate-300">Riesgo financiero</p>
+                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white sm:text-[1.75rem]">
+                        {costs.riesgoFinanciero}
+                      </p>
                     </div>
                   </div>
-                  <p className="mt-4 border-l-2 border-[#c9a454]/60 pl-3 text-[15px] text-slate-300">
-                    {costs.brechaFinanciacion > 0
-                      ? `Lectura rápida: tu presupuesto cubre aproximadamente ${costs.coverage}% del escenario realista. Antes de comprometer pagos, conviene cerrar la brecha o ajustar la ruta.`
-                      : "Lectura rápida: tu presupuesto cubre el escenario realista, pero conviene mantener margen para retrasos, repeticiones y costes no incluidos."}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
+                  <p className="text-sm font-semibold text-slate-700">Escenarios posibles</p>
+                  <p className="mt-1 text-[15px] text-slate-600">
+                    Tres lecturas del mismo plan: optimista, realista y conservador.
                   </p>
+                  <div className="mt-4 grid gap-x-3 gap-y-5 pt-1 md:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
+                      <p className="text-[14px] font-medium text-slate-500">Optimista</p>
+                      <p className="mt-1.5 text-lg font-semibold tabular-nums text-slate-700">{euro(costs.totalOptimista)}</p>
+                    </div>
+                    <div className="relative rounded-xl border border-[#c9a454]/35 bg-[#fffdf6] p-5 pt-6 shadow-[0_6px_22px_rgba(15,26,51,0.05)] ring-1 ring-[#c9a454]/12">
+                      <span className="absolute left-1/2 top-0 max-w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 truncate rounded-md border border-[#c9a454]/30 bg-[#fffdf6] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#7a5a16]">
+                        ESCENARIO RECOMENDADO
+                      </span>
+                      <p className="text-[14px] font-medium text-slate-600">Realista</p>
+                      <p className="mt-1.5 text-xl font-bold tabular-nums text-[#0f1a33]">{euro(costs.totalRealista)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
+                      <p className="text-[14px] font-medium text-slate-500">Conservador</p>
+                      <p className="mt-1.5 text-lg font-semibold tabular-nums text-slate-700">{euro(costs.totalConservador)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                  <p className="text-base font-semibold text-slate-700">Desglose estimado</p>
+                  <p className="mt-1 text-[15px] text-slate-600">Detalle por formación, extras, costes de vida y margen de seguridad. Usa este bloque para ajustar hipótesis sin perder la visión global.</p>
+                  <div className="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/50 p-5">
+                    <div className="space-y-5">
+                      {[
+                        { label: "Formación", value: costs.subtotalFormacion, tone: "bg-slate-500/55" },
+                        { label: "Extras", value: costs.subtotalExtras, tone: "bg-slate-400/50" },
+                        { label: "Costes de vida", value: costs.subtotalVida, tone: "bg-slate-400/40" },
+                        { label: "Margen de seguridad", value: costs.buffer, tone: "bg-[#c9a454]/50" },
+                      ].map((item) => {
+                        const pct = costs.totalRealista > 0 ? (item.value / costs.totalRealista) * 100 : 0;
+                        const widthPct = clamp(pct);
+                        return (
+                          <div key={item.label}>
+                            <div className="mb-2 flex items-baseline justify-between gap-4 text-[14px]">
+                              <p className="font-medium text-slate-700">{item.label}</p>
+                              <p className="shrink-0 text-right tabular-nums text-slate-500">
+                                <span className="font-medium text-slate-600">{euro(item.value)}</span>
+                                <span className="text-slate-400"> · {Math.round(pct)}%</span>
+                              </p>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-slate-200/70">
+                              <motion.div
+                                className={`h-full rounded-full ${item.tone}`}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${widthPct}%` }}
+                                transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -3413,82 +3383,18 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </details>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-base font-semibold text-slate-700">Desglose estimado</p>
-                  <p className="mt-1 text-[15px] text-slate-600">Detalle por formación, extras, costes de vida y margen de seguridad. Usa este bloque para ajustar hipótesis sin perder la visión global.</p>
-                  <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                    <div className="space-y-3">
-                      {[
-                        { label: "Formación", value: costs.subtotalFormacion, tone: "bg-[#1d3557]" },
-                        { label: "Extras", value: costs.subtotalExtras, tone: "bg-[#64748b]" },
-                        { label: "Costes de vida", value: costs.subtotalVida, tone: "bg-[#94a3b8]" },
-                        { label: "Margen de seguridad", value: costs.buffer, tone: "bg-[#c9a454]" },
-                      ].map((item) => {
-                        const pct = costs.totalRealista > 0 ? (item.value / costs.totalRealista) * 100 : 0;
-                        return (
-                          <div key={item.label}>
-                            <div className="mb-1 flex items-center justify-between text-[15px]">
-                              <p className="font-medium text-slate-700">{item.label}</p>
-                              <p className="text-slate-600">{euro(item.value)} · {Math.round(pct)}%</p>
-                            </div>
-                            <div className="h-2 rounded-full bg-slate-200">
-                              <div className={`h-2 rounded-full ${item.tone}`} style={{ width: `${clamp(pct)}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-7 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-base font-semibold text-slate-700">Resumen financiero</p>
-                  <p className="mt-2 max-w-3xl text-[15px] text-slate-600">
-                    Compara el escenario realista con tu dinero disponible y tu ritmo de ahorro actual.
+                <div className="rounded-2xl border border-slate-200/90 border-l-[3px] border-l-[#c9a454]/70 bg-gradient-to-r from-white to-[#fffdf6] p-6 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-7">
+                  <p className="text-sm font-semibold text-slate-700">Siguiente paso</p>
+                  <p className="mt-2 max-w-4xl text-[15px] leading-relaxed text-slate-600">
+                    Ya tienes una referencia financiera realista.
+                    <br className="hidden sm:block" />
+                    {" "}Ahora compara escuelas usando el mismo criterio: precio final, extras incluidos, contrato, reembolso y calendario de pagos.
                   </p>
-                  <div className="mt-5 space-y-5">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Escenarios posibles</p>
-                      <div className="mt-2.5 grid gap-3 md:grid-cols-3">
-                        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                          <p className="text-[15px] text-slate-500">Optimista</p>
-                          <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalOptimista)}</p>
-                        </div>
-                        <div className="rounded-2xl border border-[#c9a454]/35 bg-[#fffaf0] p-4">
-                          <p className="text-[15px] text-slate-500">Realista</p>
-                          <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalRealista)}</p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                          <p className="text-[15px] text-slate-500">Conservador</p>
-                          <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{euro(costs.totalConservador)}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Tu brecha actual</p>
-                      <div className="mt-2.5 grid gap-3 md:grid-cols-3">
-                        <SummaryCard label="Dinero disponible" value={euro(profile.dineroDisponible)} />
-                        <SummaryCard label="Dinero que falta" value={euro(costs.brechaFinanciacion)} />
-                        <SummaryCard
-                          label="Tiempo estimado al ritmo actual"
-                          value={`${costs.mesesCerrarBrecha} meses`}
-                          subValue={humanYearsFromBrechaMonths(costs.mesesCerrarBrecha) ?? undefined}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-base font-semibold text-[#0f1a33]">Siguiente paso</p>
-                  <p className="mt-2 max-w-4xl text-base leading-relaxed text-slate-600">
-                    Con una estimación realista, compara escuelas usando el mismo criterio: precio final, extras incluidos, contrato, reembolso y calendario de pagos.
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={() => goToDashboardTab("schools")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
+                      className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#d4b76a]"
                     >
                       Comparar escuelas
                     </button>
@@ -4972,9 +4878,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               </div>
             )}
           </section>
-        </main>
-      </div>
-    </div>
+      </CareerPlannerDashboardShell>
     {process.env.NODE_ENV === "development" && (
       <button
         type="button"
@@ -5011,18 +4915,18 @@ function RouteOption({ title, value, label }: { title: string; value: number; la
   const isPossible = label === "Ruta posible";
 
   const cardStyles = isRecommended
-    ? "border-[#c9a454]/60 bg-[#fffaf0] shadow-[0_12px_30px_rgba(15,26,51,0.08)]"
+    ? "border-[#c9a454]/40 bg-[#fffdf6] shadow-[0_6px_20px_rgba(15,26,51,0.05)] ring-1 ring-[#c9a454]/12"
     : isPossible
-    ? "border-[#1d4ed8]/20 bg-white"
-    : "border-slate-200 bg-white";
+    ? "border-slate-200/90 bg-white"
+    : "border-slate-200/80 bg-white";
 
-  const badgeStyles = isRecommended
-    ? "border-[#c9a454]/35 bg-[#c9a454]/15 text-[#7a5a16]"
+  const chipStyles = isRecommended
+    ? "border-[#c9a454]/45 bg-[#fffdf6] text-[#7a5a16]"
     : isPossible
-    ? "border-[#1d4ed8]/20 bg-[#1d4ed8]/10 text-[#1d4ed8]"
-    : "border-slate-200 bg-slate-100 text-slate-600";
+    ? "border-[#3b6ea8]/30 bg-white text-[#1d4ed8]"
+    : "border-slate-200/90 bg-white text-slate-600";
 
-  const accentTone = isRecommended ? "bg-[#c9a454]" : isPossible ? "bg-[#1d4ed8]" : "bg-slate-400";
+  const accentTone = isRecommended ? "bg-[#c9a454]/80" : isPossible ? "bg-[#3b6ea8]/45" : "bg-slate-200";
   const advisoryText =
     title === "Integrada"
       ? "Solo recomendable si tienes financiación sólida, disponibilidad y condiciones claras."
@@ -5031,15 +4935,17 @@ function RouteOption({ title, value, label }: { title: string; value: number; la
       : "Prioriza resolver bloqueos antes de comprometer pagos altos.";
 
   return (
-    <div className={`flex h-full min-h-[170px] flex-col justify-between rounded-2xl border p-5 transition ${cardStyles}`}>
-      <div>
-        <p className="text-lg font-semibold text-[#0f1a33]">{title}</p>
-        <p className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${badgeStyles}`}>
-          {label}
-        </p>
-        <p className="mt-4 text-base leading-relaxed text-slate-600">{advisoryText}</p>
-      </div>
-      <div className={`mt-5 h-0.5 rounded-full ${accentTone}`} />
+    <div
+      className={`relative flex h-full min-h-[156px] flex-col rounded-xl border px-4 pb-4 pt-7 transition sm:px-5 sm:pb-5 sm:pt-8 ${cardStyles}`}
+    >
+      <span
+        className={`absolute left-1/2 top-0 z-[1] max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 truncate rounded-lg border px-3.5 py-1.5 text-center text-[12px] font-semibold leading-snug tracking-[0.01em] shadow-[0_1px_3px_rgba(15,26,51,0.06)] sm:text-[13px] ${chipStyles}`}
+      >
+        {label}
+      </span>
+      <p className="text-base font-semibold text-[#0f1a33] sm:text-[17px]">{title}</p>
+      <p className="mt-2 flex-1 text-[15px] leading-relaxed text-slate-600">{advisoryText}</p>
+      <div className={`mt-4 h-0.5 shrink-0 rounded-full ${accentTone}`} aria-hidden />
     </div>
   );
 }

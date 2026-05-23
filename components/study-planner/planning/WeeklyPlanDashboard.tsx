@@ -108,7 +108,7 @@ export function WeekAlertsCompact({ alerts }: { alerts: WeeklyPlanAlert[] }) {
       {important.map((alert) => (
         <li
           key={alert.id}
-          className={`max-w-full rounded-full px-2.5 py-1 text-[11px] font-medium leading-snug ${
+          className={`max-w-full rounded-full px-2.5 py-1 text-[12px] font-medium leading-snug ${
             alert.severity === "risk"
               ? "bg-red-50 text-red-900 ring-1 ring-red-200/80"
               : "bg-amber-50 text-amber-950 ring-1 ring-amber-200/80"
@@ -137,7 +137,7 @@ function WeekMetrics({ completion, compact }: { completion: WeeklyPlanCompletion
             / {minutesToHoursLabel(target || completion.weeklyGoalMinutes)}
           </span>
         </p>
-        <div className="mt-1.5 flex flex-wrap gap-2 text-[11px] font-medium text-slate-500">
+        <div className="mt-1.5 flex flex-wrap gap-2 text-[13px] font-medium text-slate-500">
           <span>{completion.completionPercent}%</span>
           <span>·</span>
           <span>Objetivo hoy {completion.expectedProgressPercent}%</span>
@@ -150,7 +150,7 @@ function WeekMetrics({ completion, compact }: { completion: WeeklyPlanCompletion
         </div>
       </div>
       <span
-        className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${weeklyStatusTone(completion.weeklyStatus)}`}
+        className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${weeklyStatusTone(completion.weeklyStatus)}`}
       >
         {completion.statusMessage}
       </span>
@@ -206,7 +206,7 @@ export function WeeklyPlanDashboard({
         <WeekProgressBar completion={completion} />
       </div>
       {!hideNextSession && next ? (
-        <p className="mt-2 text-[12px] text-slate-600">
+        <p className="mt-2 text-[13px] text-slate-600">
           <span className="font-semibold text-[#0f1a33]">
             {formatNextSessionLine(next).subjectName}
           </span>{" "}

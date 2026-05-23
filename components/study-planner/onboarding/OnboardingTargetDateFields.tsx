@@ -52,7 +52,7 @@ export function OnboardingTargetDateFields({ value, onChange }: OnboardingTarget
         />
       </label>
 
-      <p className="text-[12px] leading-relaxed text-slate-500">
+      <p className="text-[13px] leading-relaxed text-slate-500">
         Usaremos esta fecha para calcular tu ritmo semanal y decirte si vas en tiempo.
       </p>
 
@@ -62,7 +62,7 @@ export function OnboardingTargetDateFields({ value, onChange }: OnboardingTarget
             key={label}
             type="button"
             onClick={() => onChange(addMonthsFromToday(months))}
-            className="rounded-full border border-slate-200/90 bg-slate-50/90 px-3 py-1.5 text-[12px] font-medium text-slate-600 transition-colors duration-150 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
+            className="rounded-full border border-slate-200/90 bg-slate-50/90 px-3 py-1.5 text-[13px] font-medium text-slate-600 transition-colors duration-150 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
           >
             {label}
           </button>
@@ -76,7 +76,7 @@ export function OnboardingTargetDateFields({ value, onChange }: OnboardingTarget
       ) : null}
 
       {showFarInfo ? (
-        <p className="text-[12px] leading-relaxed text-slate-500">
+        <p className="text-[13px] leading-relaxed text-slate-500">
           Puedes ajustar esta fecha más adelante desde configuración.
         </p>
       ) : null}

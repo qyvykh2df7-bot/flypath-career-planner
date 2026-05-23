@@ -7,7 +7,6 @@ import type {
   DashboardHeroEmptyState,
   HeroCoachTone,
 } from "@/lib/study-planner/calculations";
-import { REGISTER_STUDY_LINK_LABEL } from "@/lib/study-planner/study-log-form-logic";
 export type SessionHeroPrimaryAction =
   | "start_session"
   | "advance_session"
@@ -44,7 +43,6 @@ type SessionHeroCardProps = {
   coachTone: HeroCoachTone;
   suppressCoachHeader?: boolean;
   onPrimaryAction: () => void;
-  onLogToday?: () => void;
   onViewPlan?: () => void;
   onViewEvaluation?: () => void;
 };
@@ -138,14 +136,12 @@ export function SessionHeroCard({
   coachTone,
   suppressCoachHeader = false,
   onPrimaryAction,
-  onLogToday,
   onViewPlan,
   onViewEvaluation,
 }: SessionHeroCardProps) {
   const secondaryLink = context.secondaryLink ?? "calendar";
   const secondaryLabel =
     secondaryLink !== "none" ? SECONDARY_LINK_LABELS[secondaryLink] : null;
-  const showLogToday = context.showLogTodayLink ?? Boolean(onLogToday);
   const showSecondary =
     secondaryLabel &&
     (secondaryLink === "calendar" ? onViewPlan : onViewEvaluation);
@@ -169,7 +165,7 @@ export function SessionHeroCard({
               {coachTone.emotionalLine}
             </p>
             {coachTone.focusHint ? (
-              <p className="text-[12px] leading-snug text-slate-400">{coachTone.focusHint}</p>
+              <p className="text-[13px] leading-snug text-slate-400">{coachTone.focusHint}</p>
             ) : null}
           </div>
         ) : null}
@@ -178,7 +174,7 @@ export function SessionHeroCard({
           className={`flex-1 ${!suppressCoachHeader && coachTone.emotionalLine ? (showSectionLabel ? "mt-5" : "mt-4") : showSectionLabel ? "mt-1" : "mt-0"}`}
         >
           {showSectionLabel ? (
-            <p className="text-[11px] font-medium text-slate-500">{context.sectionLabel}</p>
+            <p className="text-[13px] font-medium text-slate-500">{context.sectionLabel}</p>
           ) : null}
           {showHeadline ? (
             <h2 className="mt-0.5 text-[20px] font-medium leading-[1.2] tracking-tight text-white">
@@ -195,7 +191,7 @@ export function SessionHeroCard({
             </h2>
           ) : null}
           {context.blockPositionLine ? (
-            <p className="mt-1 text-[10px] tabular-nums text-slate-600">
+            <p className="mt-1 text-[12px] tabular-nums text-slate-600">
               {context.blockPositionLine}
             </p>
           ) : null}
@@ -213,7 +209,7 @@ export function SessionHeroCard({
             </p>
           ) : null}
           {detailLines.length > 0 ? (
-            <p className="mt-2 text-[12px] text-slate-500">{detailLines.join(" · ")}</p>
+            <p className="mt-2 text-[13px] text-slate-500">{detailLines.join(" · ")}</p>
           ) : null}
         </div>
 
@@ -222,30 +218,19 @@ export function SessionHeroCard({
             {context.ctaLabel}
             <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
           </button>
-          {(showLogToday || showSecondary) && (
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[13px]">
-              {showLogToday && onLogToday ? (
-                <button
-                  type="button"
-                  onClick={onLogToday}
-                  className="font-medium text-slate-300 transition-[color] duration-200 hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ddb75c]/50"
-                >
-                  {REGISTER_STUDY_LINK_LABEL}
-                </button>
-              ) : null}
-              {showSecondary ? (
-                <button
-                  type="button"
-                  onClick={
-                    secondaryLink === "evaluation" ? onViewEvaluation : onViewPlan
-                  }
-                  className="font-medium text-slate-300 transition-[color] duration-200 hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ddb75c]/50"
-                >
-                  {secondaryLabel}
-                </button>
-              ) : null}
+          {showSecondary ? (
+            <div className="flex justify-center text-center text-[13px]">
+              <button
+                type="button"
+                onClick={
+                  secondaryLink === "evaluation" ? onViewEvaluation : onViewPlan
+                }
+                className="font-medium text-slate-300 transition-[color] duration-200 hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ddb75c]/50"
+              >
+                {secondaryLabel}
+              </button>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </section>

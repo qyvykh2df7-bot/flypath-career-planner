@@ -38,11 +38,11 @@ export function PlanPreviewSessionCard({ block }: PlanPreviewSessionCardProps) {
             {getSessionTypeLabel(block.sessionType)} · {block.plannedMinutes} min ·{" "}
             {block.suggestedStartTime}
           </p>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="mt-1 text-[13px] text-slate-500">
             <span className="font-medium text-slate-600">Motivo:</span> {block.reasonLabel}
           </p>
         </div>
-        <span className="shrink-0 rounded-full border border-[#c9a454]/35 bg-[#fff8e8] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7a5a16]">
+        <span className="shrink-0 rounded-full border border-[#c9a454]/35 bg-[#fff8e8] px-2 py-0.5 text-[12px] font-semibold uppercase tracking-wide text-[#7a5a16]">
           Pendiente
         </span>
       </div>

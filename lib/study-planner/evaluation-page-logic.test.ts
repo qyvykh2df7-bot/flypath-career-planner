@@ -35,7 +35,7 @@ describe("evaluation-page-logic", () => {
       sessions: [],
     });
     const line = formatEvaluationDashboardLine(summary, [], "2026-05-19");
-    expect(line).toBe("Simulacros de examen 99% · 0 errores pendientes · 0 repasos hoy");
+    expect(line).toBe("Simulacros de examen 99% · 0 repasos hoy");
   });
 
   it("coach recommends first mock when none", () => {
@@ -52,7 +52,7 @@ describe("evaluation-page-logic", () => {
     expect(coach.message).toMatch(/detectar tu nivel real/);
   });
 
-  it("coach prioritizes pending errors", () => {
+  it("coach prioritizes pending reviews over stored errors", () => {
     const mocks: MockResult[] = [{ id: "1", date: "2026-05-19", subjectId: "a", score: 85 }];
     const errors = [
       {
@@ -65,16 +65,27 @@ describe("evaluation-page-logic", () => {
         status: "pending" as const,
       },
     ];
+    const reviews = [
+      {
+        id: "r1",
+        subjectId: "a",
+        topic: "t",
+        createdAt: "2026-05-19",
+        dueDate: "2026-05-19",
+        intervalDays: 3,
+        status: "pending" as const,
+      },
+    ];
     const summary = buildEvaluationSummary({
       mockResults: mocks,
       errorLogItems: errors,
-      reviewItems: [],
+      reviewItems: reviews,
       subjectIds: ["a"],
       examDates: [],
       sessions: [],
     });
-    const coach = buildEvaluationCoachRecommendation(summary, errors, [], mocks);
-    expect(coach.ctaLabel).toBe("Ver errores");
+    const coach = buildEvaluationCoachRecommendation(summary, errors, reviews, mocks);
+    expect(coach.ctaLabel).toBe("Ver repasos");
   });
 
   it("trend label for single mock", () => {

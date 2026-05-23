@@ -26,15 +26,15 @@ function PriorityColumn({
 
   return (
     <div className="min-w-0 flex-1 rounded-lg bg-white/70 px-2.5 py-2 ring-1 ring-slate-200/30">
-      <p className={`text-[10px] font-semibold uppercase tracking-wide ${headClass}`}>{title}</p>
+      <p className={`text-[12px] font-semibold uppercase tracking-wide ${headClass}`}>{title}</p>
       {items.length === 0 ? (
-        <p className="mt-1.5 text-[11px] text-slate-400">{emptyLabel}</p>
+        <p className="mt-1.5 text-[13px] text-slate-400">{emptyLabel}</p>
       ) : (
         <ul className="mt-1.5 space-y-1.5">
           {items.map((item) => (
             <li key={`${title}-${item.title}`}>
               <p className="text-[12px] font-semibold text-[#0f1a33]">{item.title}</p>
-              <p className="text-[10px] leading-snug text-slate-500">{item.detail}</p>
+              <p className="text-[13px] leading-snug text-slate-500">{item.detail}</p>
             </li>
           ))}
         </ul>
