@@ -14,6 +14,7 @@ import {
   Compass,
   Copy,
   Download,
+  GraduationCap,
   Languages,
   LayoutList,
   Lock,
@@ -160,6 +161,125 @@ function informeHeroDecisionValueTextClass(decision: DecisionReadiness["decision
     default:
       return "text-[#f2ddaa]";
   }
+}
+
+type InformePreparacionNivel = "Bajo" | "Medio" | "Alto";
+
+/** Nivel cualitativo derivado de la decisión (solo copy del Informe final; no altera el score). */
+function informePreparacionNivel(decision: DecisionReadiness["decision"]): InformePreparacionNivel {
+  switch (decision) {
+    case "No estás listo para pagar":
+      return "Bajo";
+    case "Puedes seguir investigando, pero no pagar":
+      return "Medio";
+    case "Listo para decidir con condiciones":
+      return "Alto";
+    default:
+      return "Bajo";
+  }
+}
+
+function informePreparacionNivelTextClass(nivel: InformePreparacionNivel): string {
+  switch (nivel) {
+    case "Bajo":
+      return "text-[#f2ddaa]";
+    case "Medio":
+      return "text-sky-300";
+    case "Alto":
+      return "text-emerald-300";
+    default:
+      return "text-[#f2ddaa]";
+  }
+}
+
+function informeFinalHeroHeadline(decision: DecisionReadiness["decision"]): string {
+  switch (decision) {
+    case "No estás listo para pagar":
+      return "No estás listo para pagar todavía";
+    case "Puedes seguir investigando, pero no pagar":
+      return "Puedes investigar, pero no pagar todavía";
+    case "Listo para decidir con condiciones":
+      return "Puedes avanzar con validación prudente";
+    default:
+      return "No estás listo para pagar todavía";
+  }
+}
+
+function informeFinalHeroSubheadline(
+  route: RouteAnalysis,
+  riskDiagnosis: { label: string; nivel: string }[],
+): string {
+  const routeWord =
+    route.recommended === "Integrada"
+      ? "integrada"
+      : route.recommended === "Modular"
+        ? "modular"
+        : "de preparación";
+  const riskThemes = riskDiagnosis
+    .filter((r) => r.nivel === "Alto" || r.nivel === "Crítico")
+    .map((r) => {
+      if (r.label === "Riesgo financiero") return "financieros";
+      if (r.label === "Riesgo documental") return "documentales";
+      if (r.label === "Riesgo médico") return "médicos";
+      if (r.label === "Riesgo de inglés") return "de inglés";
+      if (r.label === "Riesgo de marketing/promesas") return "comerciales";
+      if (r.label === "Riesgo de timing") return "de calendario";
+      return null;
+    })
+    .filter((v) => v !== null);
+  const uniqueThemes = [...new Set(riskThemes)];
+  const riskPhrase =
+    uniqueThemes.length === 0
+      ? "puntos críticos sin validar por escrito"
+      : uniqueThemes.length === 1
+        ? `riesgos ${uniqueThemes[0]} sin validar`
+        : `riesgos ${uniqueThemes.slice(0, -1).join(", ")} y ${uniqueThemes[uniqueThemes.length - 1]} sin validar`;
+
+  return `Tu ruta más prudente ahora es ${routeWord} y todavía existen ${riskPhrase}.`;
+}
+
+function informeRiskChipLabel(label: string): string {
+  if (label === "Riesgo de marketing/promesas") return "Riesgo comercial";
+  if (label === "Riesgo de timing") return "Riesgo calendario";
+  if (label === "Riesgo de inglés") return "Riesgo inglés";
+  return label.replace(/^Riesgo de /i, "Riesgo ");
+}
+
+/** Si el hero ya comunica la decisión, la conclusión solo se muestra si aporta una acción concreta. */
+function informeConclusionUi(
+  decision: DecisionReadiness["decision"],
+  bloqueosCriticos: string[],
+  faltanDatos: string[],
+): { show: boolean; text: string } {
+  if (decision === "No estás listo para pagar") {
+    if (bloqueosCriticos.length > 0) {
+      return {
+        show: true,
+        text: `Próximo foco: ${bloqueosCriticos[0]}`,
+      };
+    }
+    return { show: false, text: "" };
+  }
+  if (decision === "Puedes seguir investigando, pero no pagar") {
+    return { show: false, text: "" };
+  }
+  if (faltanDatos.length > 0) {
+    return {
+      show: true,
+      text: "Antes de pagar, cierra por escrito: contrato, precio final, extras incluidos, reembolso y calendario de pagos.",
+    };
+  }
+  return {
+    show: true,
+    text: "Antes de transferir dinero, confirma contrato, precio final, extras, reembolso y calendario por escrito.",
+  };
+}
+
+function informeRiskNivelBadgeClass(nivel: string): string {
+  if (nivel === "Crítico") return "border-[#c9a454]/50 bg-[#c9a454]/20 text-[#7a5a16]";
+  if (nivel === "Alto") return "border-[#1d4ed8]/35 bg-[#1d4ed8]/12 text-[#1e40af]";
+  if (nivel === "Medio") return "border-amber-300/60 bg-amber-50 text-amber-900";
+  return "border-slate-300/80 bg-slate-100 text-slate-700";
 }
 
 const disclaimerText =
@@ -1476,16 +1596,149 @@ function riskLevelFromScore(score: number) {
   return "Bajo";
 }
 
-type FlyPathProductId = "guia" | "mentoria" | "ingles" | "atpl";
+type FlyPathPrimaryId = "guia" | "mentoria" | "ingles";
+type FlyPathProductId = FlyPathPrimaryId | "atpl" | "clases" | "escuelas";
 
-const FLYPATH_PRODUCT_TOAST = "Producto FlyPath próximamente";
+const FLYPATH_PRODUCT_HREF: Record<
+  Exclude<FlyPathProductId, "escuelas">,
+  string
+> = {
+  guia: "/guia-como-ser-piloto",
+  mentoria: "/mentorias",
+  ingles: "/ingles-aeronautico",
+  atpl: "/atpl-planner",
+  clases: "/clases-ppl-atpl",
+};
 
 const FLYPATH_PRIMARY_IMAGE: Record<FlyPathProductId, string> = {
   guia: "/como-ser-piloto-cover.jpeg",
   mentoria: "/mentoria-flypath.jpg",
   ingles: "/ingles-aeronautico.jpg",
   atpl: "/atpl-planner.jpg",
+  clases: "/clases.jpg",
+  escuelas: "/school-card-bg/cadet-airline.jpg",
 };
+
+const FLYPATH_SECONDARY_BY_PRIMARY: Record<FlyPathPrimaryId, [FlyPathProductId, FlyPathProductId]> = {
+  guia: ["mentoria", "ingles"],
+  mentoria: ["guia", "ingles"],
+  ingles: ["mentoria", "guia"],
+};
+
+function flyPathContextualSecondaries(opts: {
+  atplStudyReady: boolean;
+  academicSubjectBlock: boolean;
+}): [FlyPathProductId, FlyPathProductId] {
+  const picks: FlyPathProductId[] = [];
+  if (opts.academicSubjectBlock) picks.push("clases");
+  if (opts.atplStudyReady) picks.push("atpl");
+  const fill: FlyPathProductId[] = ["mentoria", "guia", "ingles"];
+  for (const id of fill) {
+    if (picks.length >= 2) break;
+    if (!picks.includes(id)) picks.push(id);
+  }
+  return [picks[0]!, picks[1]!];
+}
+
+function riskNivelIsHigh(nivel: string): boolean {
+  return nivel === "Alto" || nivel === "Crítico";
+}
+
+function hasHighDocumentOrCommercialRisk(
+  riskDiagnosis: { label: string; nivel: string }[],
+): boolean {
+  return riskDiagnosis.some(
+    (r) =>
+      (r.label === "Riesgo documental" || r.label === "Riesgo de marketing/promesas") &&
+      riskNivelIsHigh(r.nivel),
+  );
+}
+
+/** Solo Mentoría, Guía o Inglés como principal; ATPL/Clases solo secundarias contextuales. */
+function pickFlyPathNextSteps(input: {
+  profile: Profile;
+  route: { recommended: "Integrada" | "Modular" | "Preparación"; principalBlock: string };
+  decisionReadiness: { decision: string; faltanDatos: string[] };
+  schoolsCount: number;
+  verifiedSchoolsCount: number;
+  costInputs: { atplTheory: number };
+  costs: { riesgoFinanciero: string; coverage: number };
+  riskDiagnosis: { label: string; nivel: string }[];
+}): { primary: FlyPathPrimaryId; secondaryIds: [FlyPathProductId, FlyPathProductId]; reasons: string[] } {
+  const { profile, route, decisionReadiness, schoolsCount, verifiedSchoolsCount, costInputs, costs, riskDiagnosis } =
+    input;
+  const reasons: string[] = [];
+
+  const isInitial =
+    profile.class1 !== "si" ||
+    route.recommended === "Preparación" ||
+    profile.objetivo === "no_lo_se";
+  const totallyInitial = isInitial && schoolsCount === 0;
+
+  const schoolsInsufficient = schoolsCount < 2;
+  const schoolsUnverified = schoolsCount > 0 && verifiedSchoolsCount === 0;
+  const documentOrCommercialRisk = hasHighDocumentOrCommercialRisk(riskDiagnosis);
+  const notReadyToPay =
+    decisionReadiness.decision === "No estás listo para pagar" ||
+    decisionReadiness.decision === "Puedes seguir investigando, pero no pagar";
+  const financialPressure =
+    riskNivelIsHigh(costs.riesgoFinanciero) ||
+    (profile.financiacion !== "confirmada" && costs.coverage < 70);
+  const decisionBeforePay =
+    schoolsInsufficient ||
+    schoolsUnverified ||
+    documentOrCommercialRisk ||
+    notReadyToPay ||
+    decisionReadiness.faltanDatos.length >= 2 ||
+    financialPressure;
+
+  const faltanLower = decisionReadiness.faltanDatos.join(" ").toLowerCase();
+  const academicSubjectBlock =
+    /atpl|mcc|uprt|asignatur|skill test|repaso|examen|teoría|teoria/i.test(faltanLower);
+
+  const englishBlock =
+    profile.ingles === "bajo" || (profile.preocupacionIngles === "si" && !totallyInitial);
+
+  const atplStudyReady =
+    profile.class1 === "si" &&
+    profile.ingles !== "bajo" &&
+    costInputs.atplTheory > 0 &&
+    profile.objetivo !== "no_lo_se" &&
+    route.recommended !== "Preparación";
+
+  if (decisionBeforePay) {
+    reasons.push(
+      "Prioridad decisión/pago: escuelas, documentación o economía antes de organizar estudio ATPL",
+    );
+    return { primary: "mentoria", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.mentoria, reasons };
+  }
+
+  if (totallyInitial || (isInitial && schoolsCount === 0)) {
+    reasons.push("Perfil inicial: ruta, licencias y costes aún por aclarar");
+    return { primary: "guia", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.guia, reasons };
+  }
+
+  if (englishBlock) {
+    reasons.push("Bloqueo principal: inglés operativo o ICAO");
+    return { primary: "ingles", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.ingles, reasons };
+  }
+
+  if (isInitial) {
+    reasons.push("Perfil en preparación: entender ruta y marco antes de escuelas");
+    return { primary: "guia", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.guia, reasons };
+  }
+
+  const contextualSecondaries = flyPathContextualSecondaries({ atplStudyReady, academicSubjectBlock });
+  if (atplStudyReady || academicSubjectBlock) {
+    reasons.push(
+      "Contexto de estudio (ATPL/clases) como apoyo secundario; decisión sigue en Mentoría/Guía/Inglés",
+    );
+    return { primary: "guia", secondaryIds: contextualSecondaries, reasons };
+  }
+
+  reasons.push("Fallback: guía como base de decisión");
+  return { primary: "guia", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.guia, reasons };
+}
 
 function FlyPathPrimaryProductVisual({ productId }: { productId: FlyPathProductId }) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -1497,7 +1750,11 @@ function FlyPathPrimaryProductVisual({ productId }: { productId: FlyPathProductI
         ? MessagesSquare
         : productId === "ingles"
           ? Languages
-          : LayoutList;
+          : productId === "clases"
+            ? GraduationCap
+            : productId === "escuelas"
+              ? ClipboardList
+              : LayoutList;
 
   if (imgFailed) {
     return (
@@ -1528,15 +1785,25 @@ function FlyPathNextStepsPanel({
   decisionReadiness,
   schools,
   costInputs,
-  onProductCta,
+  costs,
+  riskDiagnosis,
+  verifiedSchoolsCount,
 }: {
   profile: Profile;
   route: { recommended: "Integrada" | "Modular" | "Preparación"; principalBlock: string };
   decisionReadiness: { decision: string; faltanDatos: string[] };
   schools: { length: number };
   costInputs: { atplTheory: number };
-  onProductCta: () => void;
+  costs: { riesgoFinanciero: string; coverage: number };
+  riskDiagnosis: { label: string; nivel: string }[];
+  verifiedSchoolsCount: number;
 }) {
+  const router = useRouter();
+
+  const navigateToProduct = (id: FlyPathProductId) => {
+    if (id === "escuelas") return;
+    router.push(FLYPATH_PRODUCT_HREF[id]);
+  };
   const products: Record<
     FlyPathProductId,
     { title: string; body: string; cta: string }
@@ -1554,120 +1821,55 @@ function FlyPathNextStepsPanel({
     ingles: {
       title: "Inglés aeronáutico",
       body: "Trabaja inglés operativo, comunicaciones y confianza antes de avanzar a fases críticas.",
-      cta: "Ver clases de inglés",
+      cta: "Ver inglés aeronáutico",
     },
     atpl: {
       title: "ATPL Planner",
       body: "Organiza asignaturas, horas semanales, repasos y exámenes con un plan realista.",
       cta: "Ver ATPL Planner",
     },
+    clases: {
+      title: "Clases PPL/ATPL",
+      body: "Refuerza teoría y práctica por asignatura con sesiones enfocadas a tu ritmo y objetivo.",
+      cta: "Ver clases",
+    },
+    escuelas: {
+      title: "Comparador de escuelas",
+      body: "Explora la base FlyPath, compara opciones reales y valida condiciones antes de pagar.",
+      cta: "Explorar escuelas",
+    },
   };
 
-  /**
-   * Prioridad explícita para el producto principal (sin puntuaciones numéricas).
-   * Logs: quitar `DEBUG_FLYPATH_NEXT_STEPS` y el `console.log` cuando ya no hagan falta.
-   */
   const DEBUG_FLYPATH_NEXT_STEPS = process.env.NODE_ENV === "development";
 
-  const isInitial =
-    profile.class1 !== "si" ||
-    route.recommended === "Preparación" ||
-    profile.objetivo === "no_lo_se";
-
-  const totallyInitial = isInitial && schools.length === 0;
-
-  const englishFirst =
-    profile.ingles === "bajo" ||
-    (profile.preocupacionIngles === "si" && !totallyInitial);
-
-  const sigSchools = schools.length > 0;
-  const sigUrgent = profile.urgencia === "alta";
-  const sigMoney = profile.dineroDisponible >= 45000;
-  const sigInv = profile.inversionMaxima >= 90000;
-  const sigData = decisionReadiness.faltanDatos.length >= 2;
-  const sigInvestigateWithSchools =
-    decisionReadiness.decision === "Puedes seguir investigando, pero no pagar" && sigSchools;
-
-  const mentoriaSignalCount = [
-    sigSchools,
-    sigUrgent,
-    sigMoney,
-    sigInv,
-    sigData,
-    sigInvestigateWithSchools,
-  ].filter(Boolean).length;
-
-  const mentoriaWins = !isInitial && sigSchools && mentoriaSignalCount >= 2;
-
-  const atplCandidate =
-    profile.class1 === "si" &&
-    profile.ingles !== "bajo" &&
-    costInputs.atplTheory > 0 &&
-    profile.objetivo !== "no_lo_se" &&
-    route.recommended !== "Preparación";
-
-  const strongPaymentBlock =
-    sigSchools &&
-    decisionReadiness.decision === "No estás listo para pagar" &&
-    (sigData || mentoriaSignalCount >= 3);
-
-  let primary: FlyPathProductId;
-  const primaryReasons: string[] = [];
-
-  if (englishFirst) {
-    primary = "ingles";
-    primaryReasons.push(
-      "PRIORIDAD 1 inglés: bajo, o preocupación fuera de fase totalmente inicial (sin Clase 1 / Preparación / objetivo no claro y sin escuelas)",
-    );
-  } else if (mentoriaWins) {
-    primary = "mentoria";
-    primaryReasons.push(
-      `PRIORIDAD 3 mentoría: perfil no inicial, hay escuelas y ${mentoriaSignalCount}/6 señales de decisión o pago cercano (la decisión de readiness no cuenta como señal)`,
-    );
-  } else if (atplCandidate && !strongPaymentBlock) {
-    primary = "atpl";
-    primaryReasons.push(
-      "PRIORIDAD 4 ATPL: Clase 1, inglés suficiente, teoría ATPL en costes, ruta no solo preparación, sin bloqueo fuerte de pago con escuelas",
-    );
-  } else if (isInitial || schools.length === 0) {
-    primary = "guia";
-    primaryReasons.push(
-      "PRIORIDAD 2 guía: perfil inicial (Clase 1 pendiente, Preparación u objetivo no claro) o aún sin escuelas candidatas",
-    );
-  } else {
-    primary = "guia";
-    primaryReasons.push("Fallback: guía (sin señal clara de inglés, mentoría ni ATPL)");
-  }
+  const { primary, secondaryIds, reasons: primaryReasons } = pickFlyPathNextSteps({
+    profile,
+    route,
+    decisionReadiness,
+    schoolsCount: schools.length,
+    verifiedSchoolsCount,
+    costInputs,
+    costs,
+    riskDiagnosis,
+  });
 
   if (DEBUG_FLYPATH_NEXT_STEPS) {
     console.log("[FlyPath siguiente paso]", {
       primary,
+      secondaryIds,
       motivos: primaryReasons,
       class1: profile.class1,
       objetivo: profile.objetivo,
       ingles: profile.ingles,
-      preocupacionIngles: profile.preocupacionIngles,
       routeRecommended: route.recommended,
       schoolsCount: schools.length,
+      verifiedSchoolsCount,
       readiness: decisionReadiness.decision,
-      urgencia: profile.urgencia,
-      inversionMaxima: profile.inversionMaxima,
-      dineroDisponible: profile.dineroDisponible,
+      faltanDatos: decisionReadiness.faltanDatos.length,
+      riesgoFinanciero: costs.riesgoFinanciero,
       atplTheory: costInputs.atplTheory,
-      isInitial,
-      totallyInitial,
-      englishFirst,
-      mentoriaSignalCount,
-      mentoriaWins,
-      atplCandidate,
-      strongPaymentBlock,
     });
   }
-
-  const fallbackOrder: FlyPathProductId[] = ["guia", "mentoria", "ingles", "atpl"];
-  const orderedFull: FlyPathProductId[] = [primary, ...fallbackOrder.filter((id) => id !== primary)];
-  const ordered = orderedFull.slice(0, 4);
-  const secondaryIds = ordered.slice(1);
 
   const primaryCtaClass =
     "inline-flex min-h-[40px] w-full min-w-0 max-w-[min(100%,22rem)] cursor-pointer items-center justify-center self-stretch rounded-xl bg-[#c9a454] px-5 py-2.5 text-base font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:min-w-[13.5rem] sm:w-auto sm:self-start sm:px-7";
@@ -1698,7 +1900,7 @@ function FlyPathNextStepsPanel({
               <div className="mt-2.5 flex justify-center lg:hidden">
                 <FlyPathPrimaryProductVisual productId={id} />
               </div>
-              <button type="button" onClick={onProductCta} className={`${primaryCtaClass} mt-3`}>
+              <button type="button" onClick={() => navigateToProduct(id)} className={`${primaryCtaClass} mt-3`}>
                 {p.cta}
               </button>
             </div>
@@ -1710,7 +1912,7 @@ function FlyPathNextStepsPanel({
           <div className={`flex min-h-0 flex-1 flex-col ${!isPrimary ? "min-h-[156px]" : ""}`}>
             <p className="text-[15px] font-semibold leading-snug text-[#f2ddaa]">{p.title}</p>
             <p className="mt-1.5 flex-1 text-[15px] leading-relaxed text-slate-300">{p.body}</p>
-            <button type="button" onClick={onProductCta} className={`${secondaryCtaClass} mt-auto shrink-0 pt-3`}>
+            <button type="button" onClick={() => navigateToProduct(id)} className={`${secondaryCtaClass} mt-auto shrink-0 pt-3`}>
               {p.cta}
             </button>
           </div>
@@ -1720,17 +1922,17 @@ function FlyPathNextStepsPanel({
   };
 
   return (
-    <section className="rounded-3xl border border-[#c9a454]/35 bg-gradient-to-br from-[#0f1a33] via-[#121f3d] to-[#152547] px-5 py-5 text-white shadow-[0_12px_36px_rgba(15,26,51,0.16)] ring-1 ring-[#c9a454]/20 sm:px-6 sm:py-6">
+    <section className="rounded-[28px] border border-[#c9a454]/35 bg-gradient-to-br from-[#0f1a33] via-[#121f3d] to-[#152547] px-5 py-6 text-white shadow-[0_14px_40px_rgba(15,26,51,0.18)] ring-1 ring-[#c9a454]/20 sm:px-7 sm:py-7">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/90 sm:text-[11px]">Profundiza con FlyPath</p>
         <h2 className="mt-1.5 text-lg font-semibold tracking-tight text-white sm:text-xl">Tu siguiente paso FlyPath</h2>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-200/95">
-          El diagnóstico te da una dirección. Ahora elige el siguiente paso según lo que más te está bloqueando.
+          Una recomendación principal y dos alternativas según lo que más te está bloqueando ahora.
         </p>
       </div>
-      <div className="mt-5 space-y-3 sm:mt-6 sm:space-y-3.5">
+      <div className="mt-6 space-y-4">
         {renderCard(primary, true)}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 lg:gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
           {secondaryIds.map((id) => (
             <div key={id} className="flex h-full min-h-0">
               {renderCard(id, false)}
@@ -1746,6 +1948,87 @@ type FlyPathAppProps = {
   reviewMode?: boolean;
   initialTab?: Tab;
 };
+
+function PlannerSchoolsPremiumModal({
+  open,
+  onClose,
+  onUnlockClick,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onUnlockClick: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6">
+      <button
+        type="button"
+        aria-label="Cerrar ventana"
+        className="absolute inset-0 bg-[#071226]/65 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="planner-schools-premium-title"
+        aria-describedby="planner-schools-premium-desc"
+        className="relative z-[1] w-full max-w-[32rem] rounded-3xl border border-[#c9a454]/35 bg-[#0f1a33] px-6 py-7 text-white shadow-2xl sm:px-7 sm:py-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="absolute right-5 top-5 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-2 pr-12">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#c9a454]/15 ring-1 ring-[#c9a454]/35">
+            <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
+          </span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
+            ANÁLISIS PREMIUM FLYPATH
+          </span>
+        </div>
+        <h3
+          id="planner-schools-premium-title"
+          className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl"
+        >
+          Descubre qué escuela encaja mejor contigo
+        </h3>
+        <p id="planner-schools-premium-desc" className="mt-2 text-[15px] leading-relaxed text-slate-300">
+          Compara tus escuelas con tu perfil, presupuesto y riesgo antes de comprometer una matrícula.
+        </p>
+        <ul className="mt-4 space-y-2 text-[15px] text-slate-200">
+          {[
+            "Recomendación FlyPath aplicada a tu perfil",
+            "Comparación personalizada entre tus escuelas",
+            "Informe premium de decisión",
+            "Próximos pasos adaptados a tu caso",
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-2.5 leading-relaxed">
+              <span
+                aria-hidden
+                className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
+              />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          onClick={onUnlockClick}
+          className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:text-base"
+        >
+          Desbloquear análisis premium
+        </button>
+        <p className="mt-3 text-center text-[12px] text-slate-400">Pago seguro. Acceso inmediato al análisis.</p>
+      </div>
+    </div>
+  );
+}
 
 export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPathAppProps) {
   const router = useRouter();
@@ -1827,12 +2110,14 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   );
 
   useEffect(() => {
-    if (tab !== "schools") setPlannerSchoolsPremiumModalOpen(false);
-  }, [tab]);
-
-  useEffect(() => {
     if (schools.length < 2) setPlannerSchoolsPremiumModalOpen(false);
   }, [schools.length]);
+
+  const openPlannerSchoolsPremiumModal = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    e?.preventDefault();
+    setPlannerSchoolsPremiumModalOpen(true);
+  };
 
   useEffect(() => {
     if (!plannerSchoolsPremiumModalOpen) return;
@@ -1869,7 +2154,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     } catch {
       count = 0;
     }
-    setManualFormOpen(count === 0);
+    setManualFormOpen(false);
   }, [reviewMode]);
 
   useEffect(() => {
@@ -3216,10 +3501,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       const { amount, symbol } = formatEuroHeroAmount(costs.totalRealista);
                       return (
                         <div className="mt-3 flex items-baseline gap-2 tracking-tight">
-                          <span className="text-5xl font-bold leading-[0.95] text-white tabular-nums sm:text-6xl lg:text-7xl">
+                          <span className="text-3xl font-bold leading-[0.95] text-white tabular-nums sm:text-4xl lg:text-5xl">
                             {amount}
                           </span>
-                          <span className="pb-1 text-2xl font-medium text-white/70 sm:text-3xl">{symbol}</span>
+                          <span className="pb-1 text-xl font-medium text-white/70 sm:text-2xl">{symbol}</span>
                         </div>
                       );
                     })()}
@@ -3237,13 +3522,13 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </div>
                     <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-white/12 bg-white/[0.06] p-5">
                       <p className="text-[14px] font-medium text-slate-300">Presupuesto cubierto</p>
-                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white tabular-nums sm:text-[1.75rem]">
+                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white tabular-nums sm:text-3xl">
                         {costs.coverage}%
                       </p>
                     </div>
                     <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-white/12 bg-white/[0.06] p-5">
                       <p className="text-[14px] font-medium text-slate-300">Riesgo financiero</p>
-                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white sm:text-[1.75rem]">
+                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white sm:text-3xl">
                         {costs.riesgoFinanciero}
                       </p>
                     </div>
@@ -3436,7 +3721,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setPlannerSchoolsPremiumModalOpen(true)}
+                          onClick={openPlannerSchoolsPremiumModal}
                           className="mt-1 inline-flex cursor-pointer border-none bg-transparent p-0 text-left text-lg font-bold leading-snug text-[#f2ddaa] underline-offset-2 transition hover:underline hover:opacity-90 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/45"
                         >
                           Desbloquear análisis premium
@@ -3446,329 +3731,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
                   </div>
                 </div>
-                {plannerSchoolsPremiumModalOpen ? (
-                  <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6">
-                    <button
-                      type="button"
-                      aria-label="Cerrar ventana"
-                      className="absolute inset-0 bg-[#071226]/65 backdrop-blur-sm"
-                      onClick={() => setPlannerSchoolsPremiumModalOpen(false)}
-                    />
-                    <div
-                      role="dialog"
-                      aria-modal="true"
-                      aria-labelledby="planner-schools-premium-title"
-                      aria-describedby="planner-schools-premium-desc"
-                      className="relative z-[1] w-full max-w-[32rem] rounded-3xl border border-[#c9a454]/35 bg-[#0f1a33] px-6 py-7 text-white shadow-2xl sm:px-7 sm:py-8"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setPlannerSchoolsPremiumModalOpen(false)}
-                        aria-label="Cerrar"
-                        className="absolute right-5 top-5 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                      <div className="flex items-center gap-2 pr-12">
-                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#c9a454]/15 ring-1 ring-[#c9a454]/35">
-                          <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
-                        </span>
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
-                          ANÁLISIS PREMIUM FLYPATH
-                        </span>
-                      </div>
-                      <h3
-                        id="planner-schools-premium-title"
-                        className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl"
-                      >
-                        Descubre qué escuela encaja mejor contigo
-                      </h3>
-                      <p
-                        id="planner-schools-premium-desc"
-                        className="mt-2 text-[15px] leading-relaxed text-slate-300"
-                      >
-                        Compara tus escuelas con tu perfil, presupuesto y riesgo antes de comprometer una matrícula.
-                      </p>
-                      <ul className="mt-4 space-y-2 text-[15px] text-slate-200">
-                        {[
-                          "Recomendación FlyPath aplicada a tu perfil",
-                          "Comparación personalizada entre tus escuelas",
-                          "Informe premium de decisión",
-                          "Próximos pasos adaptados a tu caso",
-                        ].map((item) => (
-                          <li key={item} className="flex items-start gap-2.5 leading-relaxed">
-                            <span
-                              aria-hidden
-                              className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
-                            />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <button
-                        type="button"
-                        onClick={() => showToast("Pago FlyPath próximamente")}
-                        className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:text-base"
-                      >
-                        Desbloquear análisis premium
-                      </button>
-                      <p className="mt-3 text-center text-[12px] text-slate-400">
-                        Pago seguro. Acceso inmediato al análisis.
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-                <div className="order-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Cómo añadir escuelas
-                  </p>
-                  <h3 className="mt-1.5 text-lg font-semibold text-[#0f1a33] sm:text-xl">
-                    Elige cómo quieres añadir escuelas
-                  </h3>
-                  <p className="mt-1.5 max-w-3xl text-base leading-relaxed text-slate-600">
-                    Puedes usar la base de datos FlyPath o introducir una escuela manualmente si ya tienes información propia.
-                  </p>
-                </div>
-                {(() => {
-                  const importedFromComparator = schools.filter((s) =>
-                    s.enlaceReferencia.startsWith("comparador:"),
-                  );
-                  const ctaShellClass =
-                    "order-3 relative isolate overflow-hidden rounded-3xl border border-[#c9a454]/30 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)]";
-                  // Imagen local reutilizada de las cards del comparador para dar un acabado más
-                  // visual al CTA sin descargar nuevos assets. Overlay azul oscuro fuerte para
-                  // mantener legibilidad y look premium.
-                  const ctaBackdrop = (
-                    <>
-                      <Image
-                        src="/school-card-bg/cadet-airline.jpg"
-                        alt=""
-                        fill
-                        sizes="(min-width: 1024px) 768px, 100vw"
-                        className="object-cover"
-                        aria-hidden
-                        priority
-                      />
-                      <div
-                        className="absolute inset-0 bg-gradient-to-br from-[#0a1228]/88 via-[#0f1a33]/74 to-[#152545]/64"
-                        aria-hidden
-                      />
-                    </>
-                  );
-                  if (importedFromComparator.length > 0) {
-                    return (
-                      <div className={ctaShellClass}>
-                        {ctaBackdrop}
-                        <div className="relative p-5 sm:p-7">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">ESCUELAS IMPORTADAS</p>
-                          <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
-                            Ya tienes {importedFromComparator.length}{" "}
-                            {importedFromComparator.length === 1 ? "escuela" : "escuelas"} del comparador en tu Planner
-                          </h3>
-                          <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
-                            Estas escuelas se usarán en tu informe final para cruzarlas con tu perfil, presupuesto, Clase 1, inglés y disponibilidad.
-                          </p>
-                          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-                            {importedFromComparator.map((s) => (
-                              <li
-                                key={s.id}
-                                className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-[15px] font-semibold text-white backdrop-blur-sm"
-                              >
-                                {s.nombre}
-                              </li>
-                            ))}
-                          </ul>
-                          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                            <button
-                              type="button"
-                              onClick={() => goToDashboardTab("report")}
-                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
-                            >
-                              Ver informe final
-                              <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => router.push("/schools?from=planner")}
-                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-white/30 bg-white/[0.06] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
-                            >
-                              Cambiar escuelas
-                            </button>
-                          </div>
-                          <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
-                            Puedes cambiarlas en cualquier momento volviendo al comparador.
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className={ctaShellClass}>
-                      {ctaBackdrop}
-                      <div className="relative p-5 sm:p-7">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">COMPARADOR FLYPATH</p>
-                        <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
-                          ¿Todavía no sabes qué escuelas comparar?
-                        </h3>
-                        <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
-                          Explora la base de datos FlyPath y trae 2 opciones reales al Planner para analizarlas con tu perfil.
-                        </p>
-                        <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-400">
-                          La búsqueda y comparación básica son gratuitas. El análisis personalizado está disponible como opción premium.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => router.push("/schools?from=planner")}
-                          className="mt-5 inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
-                        >
-                          Explorar base de datos FlyPath
-                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
-                <div className="order-6 flex flex-col gap-6">
-                {schoolStats.analyzed.map(({ school, analysis }) => (
-                  <div key={school.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${flypathSchoolRecommendation.school?.id === school.id ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
-                    <div className="grid gap-4 lg:grid-cols-3">
-                      <div className="lg:col-span-2">
-                        <p className="text-xl font-semibold text-[#0f1a33]">{school.nombre}</p>
-                        <p className="mt-1 text-[15px] text-slate-600">{school.ciudad}, {school.pais} · Programa {school.programa} · {euro(school.precioAnunciado)}</p>
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                          <SchoolTextMetricCard
-                            label="Estado de verificación"
-                            value={estadoVerificacionLabel(school.estadoVerificacion)}
-                            secondary={school.estadoVerificacion === "pendiente" ? "Falta validar datos" : undefined}
-                          />
-                          <SchoolMetricCard label="Solidez general" score={analysis.encajeGeneral} reading={solidezGeneralReading(analysis.encajeGeneral)} />
-                          <SchoolMetricCard label="Claridad del coste" score={analysis.claridadCoste} reading={claridadCosteReading(analysis.claridadCoste)} />
-                          <SchoolMetricCard label="Transparencia documental" score={analysis.transparencia} reading={transparenciaDocumentalReading(analysis.transparencia)} />
-                          <SchoolFinancialRiskCard value={analysis.riesgoFinanciero} />
-                          <SchoolTextMetricCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {plannerPremiumContentVisible ? (
-                          <button
-                            type="button"
-                            className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
-                            onClick={() => {
-                              const pending = getSchoolEmailMissingData(school);
-                              setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
-                              setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
-                              setGeneratedEmailKey(school.id);
-                              if (typeof window !== "undefined") {
-                                window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
-                              }
-                              showToast("Email generado");
-                            }}
-                          >
-                            {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Mail className="mr-2 h-4 w-4" />}
-                            {generatedEmailKey === school.id ? "Email generado" : "Generar email a escuela"}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setPlannerSchoolsPremiumModalOpen(true)}
-                            aria-label="Email personalizado disponible con análisis premium"
-                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border-2 border-[#c9a454] bg-[#fffaf0] px-4 py-2 text-[15px] font-semibold text-[#7b5e1f] transition hover:bg-[#fff5e6] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
-                          >
-                            <Lock className="mr-2 h-4 w-4" aria-hidden />
-                            Email personalizado · Premium
-                          </button>
-                        )}
-                        {plannerPremiumContentVisible && (
-                          <button
-                            type="button"
-                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
-                            onClick={async () => {
-                              const draft = emailDrafts[school.id] || buildSchoolEmail(school, profile.nombre);
-                              if (!emailDrafts[school.id]) {
-                                const pending = getSchoolEmailMissingData(school);
-                                setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
-                                setEmailDrafts((d) => ({ ...d, [school.id]: draft }));
-                              }
-                              const ok = await copyText(draft);
-                              if (ok) markCopied(`email-${school.id}`);
-                              showToast(ok ? "Email copiado" : "No se pudo copiar el email");
-                            }}
-                          >
-                            {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
-                            {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className={`w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-medium transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
-                            schoolEditActiveId === school.id
-                              ? "border-[#c9a454]/55 bg-[#fffaf0] text-[#3d3418] shadow-sm hover:bg-[#fff5e6] focus-visible:ring-[#c9a454]/35"
-                              : "border-slate-300 bg-white text-[#0f1a33] hover:bg-slate-50 focus-visible:ring-slate-300/60"
-                          }`}
-                          onClick={() => {
-                            if (schoolEditActiveId === school.id) {
-                              setSchoolEditActiveId(null);
-                              setNewSchool(createEmptySchool());
-                              const el = schoolFormDetailsRef.current;
-                              if (el) el.open = false;
-                              return;
-                            }
-                            setNewSchool({ ...school });
-                            setSchoolEditActiveId(school.id);
-                            requestAnimationFrame(() => {
-                              const el = schoolFormDetailsRef.current;
-                              if (el) {
-                                el.open = true;
-                                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                              }
-                            });
-                          }}
-                        >
-                          {schoolEditActiveId === school.id ? "Ocultar edición" : "Editar datos"}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <InfoList title="Red flags" items={analysis.redFlags.slice(0, 3)} empty="Sin red flags críticos con los datos actuales." />
-                      <InfoList title="Datos pendientes" items={analysis.preguntasPendientes.slice(0, 4)} empty="Sin datos críticos pendientes." />
-                    </div>
-                    {plannerPremiumContentVisible && emailDrafts[school.id] && (
-                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <InfoList
-                          title="Este email se ha adaptado porque faltan estos datos:"
-                          items={emailPendingBySchool[school.id] || []}
-                          empty="No faltan datos críticos detectados para esta escuela."
-                        />
-                        <p className="mb-2 mt-3 text-[15px] font-medium text-emerald-700">Email listo para copiar</p>
-                        <pre className="whitespace-pre-wrap text-[15px] text-slate-700">{emailDrafts[school.id]}</pre>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                </div>
-
-                {schools.length > 0 ? (
-                  <div className="order-5 flex justify-start">
-                    <button
-                      onClick={() => {
-                        if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
-                        setSchools([]);
-                        setNewSchool(createEmptySchool());
-                        setSchoolEditActiveId(null);
-                        if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
-                        showToast("Escuelas eliminadas");
-                      }}
-                      className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/40"
-                    >
-                      Eliminar todas las escuelas y empezar desde cero
-                    </button>
-                  </div>
-                ) : null}
-
                 <details
                   ref={schoolFormDetailsRef}
                   open={manualFormOpen}
-                  className="order-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                  className="order-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                   onToggle={(e) => {
                     const el = e.currentTarget;
                     setManualFormOpen(el.open);
@@ -3779,10 +3745,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   }}
                 >
                   <summary className="cursor-pointer marker:text-slate-400">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Opción manual
-                    </span>
-                    <span className="mt-1 block text-base font-semibold text-[#0f1a33]">
+                    <span className="text-base font-semibold text-[#0f1a33]">
                       {schoolEditActiveId !== null
                         ? `Editando escuela: ${newSchool.nombre.trim() || "—"}`
                         : "Añadir escuela manualmente"}
@@ -4041,27 +4004,329 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
                 </details>
 
-                <div className="order-7 rounded-3xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-base font-semibold text-[#0f1a33]">Siguiente paso</p>
-                  <p className="mt-2 max-w-4xl text-base leading-relaxed text-slate-600">
-                    Cuando tengas al menos dos escuelas con precio final, contrato, reembolso y calendario de pagos claros, revisa si estás listo para pagar.
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                {(() => {
+                  const importedFromComparator = schools.filter((s) =>
+                    s.enlaceReferencia.startsWith("comparador:"),
+                  );
+                  const ctaShellClass =
+                    "order-4 relative isolate overflow-hidden rounded-3xl border border-[#c9a454]/30 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)]";
+                  // Imagen local reutilizada de las cards del comparador para dar un acabado más
+                  // visual al CTA sin descargar nuevos assets. Overlay azul oscuro fuerte para
+                  // mantener legibilidad y look premium.
+                  const ctaBackdrop = (
+                    <>
+                      <Image
+                        src="/school-card-bg/cadet-airline.jpg"
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 768px, 100vw"
+                        className="object-cover"
+                        aria-hidden
+                        priority
+                      />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-br from-[#0a1228]/88 via-[#0f1a33]/74 to-[#152545]/64"
+                        aria-hidden
+                      />
+                    </>
+                  );
+                  if (importedFromComparator.length > 0) {
+                    return (
+                      <div className={ctaShellClass}>
+                        {ctaBackdrop}
+                        <div className="relative p-5 sm:p-7">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">ESCUELAS IMPORTADAS</p>
+                          <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
+                            Ya tienes {importedFromComparator.length}{" "}
+                            {importedFromComparator.length === 1 ? "escuela" : "escuelas"} del comparador en tu Planner
+                          </h3>
+                          <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
+                            Estas escuelas se usarán en tu informe final para cruzarlas con tu perfil, presupuesto, Clase 1, inglés y disponibilidad.
+                          </p>
+                          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                            {importedFromComparator.map((s) => (
+                              <li
+                                key={s.id}
+                                className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-[15px] font-semibold text-white backdrop-blur-sm"
+                              >
+                                {s.nombre}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                            <button
+                              type="button"
+                              onClick={() => goToDashboardTab("report")}
+                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                            >
+                              Ver informe final
+                              <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => router.push("/schools?from=planner")}
+                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-white/30 bg-white/[0.06] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                            >
+                              Cambiar escuelas
+                            </button>
+                          </div>
+                          <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
+                            Puedes cambiarlas en cualquier momento volviendo al comparador.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className={ctaShellClass}>
+                      {ctaBackdrop}
+                      <div className="relative p-5 sm:p-7">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">COMPARADOR FLYPATH</p>
+                        <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
+                          ¿Todavía no sabes qué escuelas comparar?
+                        </h3>
+                        <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
+                          Explora la base de datos FlyPath y trae 2 opciones reales al Planner para analizarlas con tu perfil.
+                        </p>
+                        <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-400">
+                          La búsqueda y comparación básica son gratuitas. El análisis personalizado está disponible como opción premium.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => router.push("/schools?from=planner")}
+                          className="mt-5 inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
+                        >
+                          Explorar base de datos FlyPath
+                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="order-5 rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-6">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Antes de comparar, confirma:</p>
+                  <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      "precio final",
+                      "extras incluidos",
+                      "contrato",
+                      "política de reembolso",
+                      "calendario de pagos",
+                    ].map((item) => (
+                      <li
+                        key={item}
+                        className="flex items-center gap-2.5 rounded-lg border border-slate-200/70 bg-white/90 px-3 py-2.5 text-[14px] font-medium capitalize text-slate-700"
+                      >
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/75" aria-hidden />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="order-3 flex flex-col gap-6">
+                {schoolStats.analyzed.map(({ school, analysis }) => (
+                  <div key={school.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${flypathSchoolRecommendation.school?.id === school.id ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <div className="lg:col-span-2">
+                        <p className="text-xl font-semibold text-[#0f1a33]">{school.nombre}</p>
+                        <p className="mt-1 text-[15px] text-slate-600">{school.ciudad}, {school.pais} · Programa {school.programa} · {euro(school.precioAnunciado)}</p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          <SchoolTextMetricCard
+                            label="Estado de verificación"
+                            value={estadoVerificacionLabel(school.estadoVerificacion)}
+                            secondary={school.estadoVerificacion === "pendiente" ? "Falta validar datos" : undefined}
+                          />
+                          <SchoolMetricCard label="Solidez general" score={analysis.encajeGeneral} reading={solidezGeneralReading(analysis.encajeGeneral)} />
+                          <SchoolMetricCard label="Claridad del coste" score={analysis.claridadCoste} reading={claridadCosteReading(analysis.claridadCoste)} />
+                          <SchoolMetricCard label="Transparencia documental" score={analysis.transparencia} reading={transparenciaDocumentalReading(analysis.transparencia)} />
+                          <SchoolFinancialRiskCard value={analysis.riesgoFinanciero} />
+                          <SchoolTextMetricCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {plannerPremiumContentVisible ? (
+                          <button
+                            type="button"
+                            className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
+                            onClick={() => {
+                              const pending = getSchoolEmailMissingData(school);
+                              setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
+                              setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
+                              setGeneratedEmailKey(school.id);
+                              if (typeof window !== "undefined") {
+                                window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
+                              }
+                              showToast("Email generado");
+                            }}
+                          >
+                            {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Mail className="mr-2 h-4 w-4" />}
+                            {generatedEmailKey === school.id ? "Email generado" : "Generar email a escuela"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={openPlannerSchoolsPremiumModal}
+                            aria-label="Email personalizado disponible con análisis premium"
+                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border-2 border-[#c9a454] bg-[#fffaf0] px-4 py-2 text-[15px] font-semibold text-[#7b5e1f] transition hover:bg-[#fff5e6] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
+                          >
+                            <Lock className="mr-2 h-4 w-4" aria-hidden />
+                            Email personalizado · Premium
+                          </button>
+                        )}
+                        {plannerPremiumContentVisible && (
+                          <button
+                            type="button"
+                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                            onClick={async () => {
+                              const draft = emailDrafts[school.id] || buildSchoolEmail(school, profile.nombre);
+                              if (!emailDrafts[school.id]) {
+                                const pending = getSchoolEmailMissingData(school);
+                                setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
+                                setEmailDrafts((d) => ({ ...d, [school.id]: draft }));
+                              }
+                              const ok = await copyText(draft);
+                              if (ok) markCopied(`email-${school.id}`);
+                              showToast(ok ? "Email copiado" : "No se pudo copiar el email");
+                            }}
+                          >
+                            {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
+                            {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className={`w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-medium transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
+                            schoolEditActiveId === school.id
+                              ? "border-[#c9a454]/55 bg-[#fffaf0] text-[#3d3418] shadow-sm hover:bg-[#fff5e6] focus-visible:ring-[#c9a454]/35"
+                              : "border-slate-300 bg-white text-[#0f1a33] hover:bg-slate-50 focus-visible:ring-slate-300/60"
+                          }`}
+                          onClick={() => {
+                            if (schoolEditActiveId === school.id) {
+                              setSchoolEditActiveId(null);
+                              setNewSchool(createEmptySchool());
+                              const el = schoolFormDetailsRef.current;
+                              if (el) el.open = false;
+                              return;
+                            }
+                            setNewSchool({ ...school });
+                            setSchoolEditActiveId(school.id);
+                            requestAnimationFrame(() => {
+                              const el = schoolFormDetailsRef.current;
+                              if (el) {
+                                el.open = true;
+                                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                              }
+                            });
+                          }}
+                        >
+                          {schoolEditActiveId === school.id ? "Ocultar edición" : "Editar datos"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <InfoList title="Red flags" items={analysis.redFlags.slice(0, 3)} empty="Sin red flags críticos con los datos actuales." />
+                      <InfoList title="Datos pendientes" items={analysis.preguntasPendientes.slice(0, 4)} empty="Sin datos críticos pendientes." />
+                    </div>
+                    {plannerPremiumContentVisible && emailDrafts[school.id] && (
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <InfoList
+                          title="Este email se ha adaptado porque faltan estos datos:"
+                          items={emailPendingBySchool[school.id] || []}
+                          empty="No faltan datos críticos detectados para esta escuela."
+                        />
+                        <p className="mb-2 mt-3 text-[15px] font-medium text-emerald-700">Email listo para copiar</p>
+                        <pre className="whitespace-pre-wrap text-[15px] text-slate-700">{emailDrafts[school.id]}</pre>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                </div>
+
+                {schools.length > 0 ? (
+                  <div className="order-3 flex justify-start">
                     <button
-                      type="button"
-                      onClick={() => goToDashboardTab("report")}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
+                      onClick={() => {
+                        if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
+                        setSchools([]);
+                        setNewSchool(createEmptySchool());
+                        setSchoolEditActiveId(null);
+                        if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
+                        showToast("Escuelas eliminadas");
+                      }}
+                      className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/40"
                     >
-                      Ver informe final
+                      Eliminar todas las escuelas y empezar desde cero
                     </button>
                   </div>
+                ) : null}
+
+                <div className="order-7 rounded-2xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-5 shadow-sm sm:p-6">
+                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
+                  {schools.length >= 2 ? (
+                    <>
+                      <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-600">
+                        Cuando tengas precio final, contrato, reembolso y calendario de pagos claros en ambas escuelas, pasa al informe final.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => goToDashboardTab("report")}
+                          className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                        >
+                          Ver informe final
+                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-600">
+                        Añade al menos 2 escuelas para generar una comparación útil.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => router.push("/schools?from=planner")}
+                          className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                        >
+                          Explorar escuelas
+                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManualFormOpen(true);
+                            requestAnimationFrame(() => {
+                              const el = schoolFormDetailsRef.current;
+                              if (el) {
+                                el.open = true;
+                                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                              }
+                            });
+                          }}
+                          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
+                        >
+                          Añadir manualmente
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
               </div>
             )}
-            {tab === "report" && (
-              <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
+            {tab === "report" && (() => {
+              const preparacionNivel = informePreparacionNivel(decisionReadiness.decision);
+              const conclusionUi = informeConclusionUi(
+                decisionReadiness.decision,
+                criticalBlockersForConclusion,
+                decisionReadiness.faltanDatos,
+              );
+              return (
+              <div className="space-y-7">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-[0_12px_40px_rgba(15,26,51,0.22)] sm:p-7">
                   <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[100px] w-[180px] lg:flex items-center justify-end opacity-70">
                     <svg viewBox="0 0 220 120" className="h-full w-full">
                       <rect x="42" y="16" width="136" height="92" rx="10" fill="rgba(255,255,255,0.16)" stroke="rgba(201,164,84,0.45)" strokeWidth="1.5" />
@@ -4073,14 +4338,16 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                     </svg>
                   </div>
                   <div className="relative z-10">
-                  <div className="lg:max-w-[760px]">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Informe final FlyPath</p>
-                    <h2 className="mt-2 min-w-0 break-words text-2xl font-semibold sm:text-3xl">Tu resumen de decisión</h2>
-                    <p className="mt-2 max-w-4xl text-[15px] text-slate-200">
-                      Resumen de tu ruta, costes, riesgos y próximos pasos antes de tomar una decisión económica.
+                  <div className="lg:max-w-[820px]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/95">Informe final FlyPath</p>
+                    <h2 className="mt-3 min-w-0 break-words text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem] lg:text-3xl">
+                      {informeFinalHeroHeadline(decisionReadiness.decision)}
+                    </h2>
+                    <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-slate-200 sm:text-base">
+                      {informeFinalHeroSubheadline(route, riskDiagnosis)}
                     </p>
                   </div>
-                  <div className="mt-5 grid gap-3 lg:grid-cols-4">
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
                       <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Ruta recomendada</p>
                       <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#f2ddaa] sm:text-2xl">{route.recommended}</p>
@@ -4097,97 +4364,85 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Coste realista</p>
                       <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#f2ddaa] sm:text-2xl">{euro(costs.totalRealista)}</p>
                     </div>
-                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
-                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Score de decisión</p>
-                      <p className="mt-1.5 break-words tabular-nums text-xl font-bold leading-tight text-[#f0c96b] sm:text-2xl">{decisionReadiness.score}/100</p>
+                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3.5 text-center sm:px-4">
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-300">Nivel de preparación</p>
+                      <p className={`mt-1.5 text-2xl font-bold leading-none tracking-tight sm:text-3xl ${informePreparacionNivelTextClass(preparacionNivel)}`}>
+                        {preparacionNivel}
+                      </p>
                     </div>
                   </div>
                   </div>
                 </div>
 
-                {/* Card unificada: "Conclusión ejecutiva" como bloque principal + "Lectura
-                    rápida" como subbloque dentro de la misma tarjeta, separados por una
-                    línea suave. Reemplaza las dos cards anteriores (Conclusión ejecutiva +
-                    Lectura ejecutiva). El contenido y la fuente de cada bullet se mantienen
-                    1:1; solo se unifica el contenedor visual. La conclusión sigue usando
-                    `conclusionEjecutivaInformeFinal(...)` con los 3 argumentos correctos. */}
-                <div className="rounded-3xl border border-slate-200/95 border-l-[3px] border-l-[#c9a454]/75 bg-gradient-to-br from-white via-white to-[#fafbfd] px-5 py-5 shadow-[0_10px_28px_rgba(15,26,51,0.07)]">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    <p className="text-base font-semibold text-[#0f1a33]">Conclusión ejecutiva</p>
+                <div className="rounded-2xl border-2 border-[#c9a454]/35 bg-gradient-to-br from-[#fffdf8] via-white to-[#f8fafc] p-5 shadow-[0_8px_28px_rgba(15,26,51,0.06)] sm:p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-base font-semibold text-[#0f1a33]">Datos pendientes antes de pagar</p>
+                    <span className="inline-flex rounded-full border border-[#c9a454]/40 bg-[#c9a454]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#7a5e16]">
+                      Prioridad
+                    </span>
                   </div>
-                  <p className="mt-2 text-base leading-relaxed text-slate-600">
-                    {conclusionEjecutivaInformeFinal(
-                      decisionReadiness.decision,
-                      criticalBlockersForConclusion,
-                      decisionReadiness.faltanDatos,
-                    )}
-                  </p>
-                  <div className="mt-5 border-t border-slate-200/70 pt-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Lectura rápida</p>
-                    <ul className="mt-3 list-none space-y-3 text-base leading-relaxed text-slate-700">
-                      <li className="flex gap-3">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
-                        <span>
-                          <span className="font-semibold text-slate-800">Ruta recomendada:</span> {route.recommended}. {route.reason}
-                        </span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
-                        <span>
-                          <span className="font-semibold text-slate-800">Bloqueo principal:</span>{" "}
-                          {decisionReadiness.bloqueosCriticos.length > 0
-                            ? decisionReadiness.bloqueosCriticos[0]
-                            : decisionReadiness.faltanDatos.length > 0
-                              ? "Datos pendientes antes de pagar."
-                              : "Ningún bloqueo crítico."}
-                        </span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/80" aria-hidden />
-                        <span>
-                          <span className="font-semibold text-slate-800">Siguiente paso:</span>{" "}
-                          {actionPlan.sevenDays[0] ?? "Resolver bloqueos críticos y completar datos antes de pagar."}
-                        </span>
-                      </li>
+                  {decisionReadiness.faltanDatos.length > 0 ? (
+                    <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-start gap-2.5 rounded-xl border border-slate-200/80 bg-white px-3.5 py-3 text-[15px] text-slate-700"
+                        >
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" aria-hidden />
+                          <span className="leading-snug">{item}</span>
+                        </li>
+                      ))}
                     </ul>
-                  </div>
+                  ) : (
+                    <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                      No hay datos críticos pendientes detectados, pero conserva toda la documentación por escrito.
+                    </p>
+                  )}
                 </div>
 
-                {/* "Riesgos principales": compactado ligeramente para reducir altura y
-                    no competir con el "Plan resumido". Cambios solo de espaciado:
-                    contenedor p-6 → p-5; mt-4 → mt-3; cards internas p-4 → px-4 py-3;
-                    separación entre párrafos mt-2 → mt-1.5. Mismo grid, mismos textos,
-                    mismos riesgos, misma legibilidad. */}
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                {conclusionUi.show ? (
+                  <p className="rounded-xl border border-[#c9a454]/25 bg-[#fffdf8] px-4 py-3 text-[15px] font-medium leading-snug text-[#3d3418]">
+                    <span className="text-[#7a5e16]">→ </span>
+                    {conclusionUi.text}
+                  </p>
+                ) : null}
+
+                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
                   <p className="text-base font-semibold text-[#0f1a33]">Riesgos principales</p>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <p className="mt-1 text-[14px] text-slate-500">Lo que más puede afectar tu decisión antes de pagar.</p>
+                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {riskDiagnosis.slice(0, 6).map((risk) => {
-                      const visualLabel =
-                        risk.label === "Riesgo de marketing/promesas"
-                          ? "Riesgo comercial"
-                          : risk.label === "Riesgo de timing"
-                          ? "Riesgo de calendario"
-                          : risk.label;
                       const visualAction =
                         risk.accion === "Pedir por escrito alcance real de career support y límites."
-                          ? "Pedir por escrito el alcance real del apoyo laboral y cualquier promesa comercial."
-                          : risk.accion;
-                      const badgeStyles =
-                        risk.nivel === "Crítico"
-                          ? "border-[#c9a454]/35 bg-[#c9a454]/15 text-[#7a5a16]"
-                          : risk.nivel === "Alto"
-                          ? "border-[#1d4ed8]/25 bg-[#1d4ed8]/10 text-[#1d4ed8]"
-                          : "border-slate-300 bg-slate-100 text-slate-600";
+                          ? "Exige contrato y desglose por escrito"
+                          : risk.accion === "Confirmar Clase 1 antes de firmar o transferir dinero."
+                            ? "Confirma Clase 1 antes de pagar"
+                            : risk.accion === "Exigir confirmación documental de costes y condiciones."
+                              ? "Exige contrato y desglose por escrito"
+                              : risk.accion === "Reducir brecha, confirmar financiación y mantener un margen de seguridad financiero."
+                                ? "Cierra brecha y financiación antes de pagar"
+                                : risk.accion;
                       return (
-                        <div key={risk.label} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-base font-semibold text-[#0f1a33]">{visualLabel}</p>
-                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${badgeStyles}`}>{risk.nivel}</span>
+                        <div
+                          key={risk.label}
+                          className="flex flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_12px_rgba(15,26,51,0.04)]"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-semibold text-[#0f1a33]">
+                              {informeRiskChipLabel(risk.label)}
+                            </span>
+                            <span
+                              className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${informeRiskNivelBadgeClass(risk.nivel)}`}
+                            >
+                              {risk.nivel}
+                            </span>
                           </div>
-                          <p className="mt-1.5 text-base leading-relaxed text-slate-600">{risk.explicacion}</p>
-                          <p className="mt-1.5 text-[15px] text-slate-700">
-                            <span className="font-semibold">Acción:</span> {visualAction}
+                          <p className="mt-3 text-[15px] font-medium leading-snug text-slate-800">{risk.explicacion}</p>
+                          <p className="mt-2.5 text-[14px] leading-snug text-slate-600">
+                            <span className="font-semibold text-[#7a5e16]" aria-hidden>
+                              →{" "}
+                            </span>
+                            {visualAction}
                           </p>
                         </div>
                       );
@@ -4195,241 +4450,89 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-base font-semibold text-[#0f1a33]">Datos pendientes antes de pagar</p>
-                  {decisionReadiness.faltanDatos.length > 0 ? (
-                    <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
-                      {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
-                        <li key={item} className="flex items-start gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                          <span className="leading-relaxed">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-[15px] text-slate-600">No hay datos críticos pendientes detectados, pero conserva toda la documentación por escrito.</p>
-                  )}
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
+                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
                   <p className="text-base font-semibold text-[#0f1a33]">Plan resumido</p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  <p className="mt-1 text-[14px] text-slate-500">Roadmap prudente para avanzar sin comprometer dinero demasiado pronto.</p>
+                  <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {[
-                      { title: "Próximos 7 días", items: actionPlan.sevenDays.slice(0, 3) },
-                      { title: "Próximos 30 días", items: actionPlan.thirtyDays.slice(0, 3) },
-                      { title: "Próximos 90 días", items: actionPlan.ninetyDays.slice(0, 3) },
+                      { title: "Próximos 7 días", items: actionPlan.sevenDays.slice(0, 3), accent: "border-[#c9a454]/50" },
+                      { title: "Próximos 30 días", items: actionPlan.thirtyDays.slice(0, 3), accent: "border-slate-300/80" },
+                      { title: "Próximos 90 días", items: actionPlan.ninetyDays.slice(0, 3), accent: "border-slate-300/60" },
                     ].map((block) => (
-                      <div key={block.title} className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5">
-                        <p className="text-base font-semibold text-slate-700">{block.title}</p>
+                      <div
+                        key={block.title}
+                        className={`rounded-2xl border-l-[3px] ${block.accent} border border-slate-200/80 bg-white p-5 shadow-sm`}
+                      >
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{block.title}</p>
                         {block.items.length > 0 ? (
-                          <ol className="mt-3 space-y-2 text-base leading-relaxed text-slate-700">
+                          <ol className="mt-4 space-y-3">
                             {block.items.map((task, idx) => (
-                              <li key={task} className="flex items-start gap-2.5">
-                                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-600">{idx + 1}</span>
-                                <span>{task}</span>
+                              <li key={task} className="flex items-start gap-3">
+                                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#c9a454]/45 bg-[#fffaf0] text-xs font-bold tabular-nums text-[#7a5e16]">
+                                  {idx + 1}
+                                </span>
+                                <span className="pt-0.5 text-[15px] leading-snug text-slate-700">{task}</span>
                               </li>
                             ))}
                           </ol>
                         ) : (
-                          <p className="mt-2 text-[15px] text-slate-500">Sin acciones clave en este bloque.</p>
+                          <p className="mt-3 text-[15px] text-slate-500">Sin acciones clave en este bloque.</p>
                         )}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-r-4 border-slate-200 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-7 shadow-sm">
-                  <p className="text-base font-semibold text-[#0f1a33]">
-                    {plannerPremiumContentVisible
-                      ? "Guardar o compartir informe premium"
-                      : "Guardar o compartir informe"}
-                  </p>
-                  <p className="mt-2 max-w-4xl text-base leading-relaxed text-slate-600">
-                    {plannerPremiumContentVisible
-                      ? "Descarga tu informe premium con análisis de escuelas, recomendación FlyPath y próximos pasos personalizados."
-                      : "Descarga tu informe gratuito o compártelo con tu familia antes de tomar una decisión."}
-                  </p>
-                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (plannerPremiumContentVisible) {
-                          // TODO: conectar descarga real del informe premium cuando exista el PDF premium.
-                          showToast("Informe premium próximamente");
-                          return;
-                        }
-                        try {
-                          const { downloadFlyPathInformePdf, getFlyPathPrimaryProductForPdf } = await import("@/lib/flypathReportPdf");
-                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
-                            dateStyle: "long",
-                            timeStyle: "short",
-                          }).format(new Date());
-                          const nextPrimary = getFlyPathPrimaryProductForPdf({
-                            class1: profile.class1,
-                            ingles: profile.ingles,
-                            preocupacionIngles: profile.preocupacionIngles,
-                            objetivo: profile.objetivo,
-                            urgencia: profile.urgencia,
-                            dineroDisponible: profile.dineroDisponible,
-                            inversionMaxima: profile.inversionMaxima,
-                            routeRecommended: route.recommended,
-                            schoolsLength: schools.length,
-                            decision: decisionReadiness.decision,
-                            faltanDatosLength: decisionReadiness.faltanDatos.length,
-                            atplTheory: costInputs.atplTheory,
-                          });
-                          const schoolSummaries = schools.slice(0, 6).map((s, i) => {
-                            const pend = getSchoolEmailMissingData(s);
-                            return {
-                              id: `school-${s.id}-${i}`,
-                              nombre: s.nombre,
-                              pais: s.pais,
-                              ciudad: s.ciudad,
-                              precio: euro(s.precioAnunciado),
-                              estado: s.estadoVerificacion.replace(/_/g, " "),
-                              pendientes: pend.length ? pend.slice(0, 8).join(", ") : "Sin pendientes destacados en el checklist.",
-                            };
-                          });
-                          const payload: FlyPathInformePdfInput = {
-                            generatedAt,
-                            nombre: profile.nombre.trim(),
-                            routeRecommended: route.recommended,
-                            routeReason: route.reason,
-                            principalBlock: route.principalBlock,
-                            decision: decisionReadiness.decision,
-                            score: decisionReadiness.score,
-                            shouldPayNow,
-                            conclusionEjecutiva: conclusionEjecutivaInformeFinal(
-                              decisionReadiness.decision,
-                              criticalBlockersForConclusion,
-                              decisionReadiness.faltanDatos,
-                            ),
-                            totalOptimista: euro(costs.totalOptimista),
-                            totalRealista: euro(costs.totalRealista),
-                            totalConservador: euro(costs.totalConservador),
-                            dineroDisponible: euro(profile.dineroDisponible),
-                            brecha: euro(costs.brechaFinanciacion),
-                            coverage: `${costs.coverage}% del coste realista`,
-                            mesesCerrarBrecha: costs.mesesCerrarBrecha,
-                            costEstimateNote: costEstimateNoteForPdf(profile.costEstimateSource),
-                            riskRows: mapRiskRowsForInformePdf(riskDiagnosis),
-                            faltanDatos: [...decisionReadiness.faltanDatos],
-                            proximosPasos: [...decisionReadiness.proximosPasos],
-                            sevenDays: [...actionPlan.sevenDays],
-                            thirtyDays: [...actionPlan.thirtyDays],
-                            ninetyDays: [...actionPlan.ninetyDays],
-                            schoolsCount: schools.length,
-                            verifiedCount: schoolStats.verifiedCount,
-                            pendingCount: schoolStats.pendingCount,
-                            schoolSummaries,
-                            nextPrimary,
-                            disclaimer: disclaimerText,
-                          };
-                          await downloadFlyPathInformePdf(payload);
-                          showToast("Informe descargado");
-                        } catch (e) {
-                          if (process.env.NODE_ENV === "development") {
-                            console.error("[FlyPath] Error generando PDF del informe:", e);
-                          } else {
-                            console.error("[FlyPath] PDF informe fallido");
-                          }
-                          showToast("No se pudo generar el informe. Inténtalo de nuevo.");
-                        }
-                      }}
-                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
-                    >
-                      <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                      {plannerPremiumContentVisible ? "Descargar informe premium" : "Descargar informe gratuito"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const { downloadFlyPathResumenPadresPdf } = await import("@/lib/flypathReportPdf");
-                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
-                            dateStyle: "long",
-                            timeStyle: "short",
-                          }).format(new Date());
-                          const padresPayload: FlyPathResumenPadresPdfInput = {
-                            generatedAt,
-                            nombre: profile.nombre.trim(),
-                            routeRecommended: route.recommended,
-                            decision: decisionReadiness.decision,
-                            shouldPayNow,
-                            totalRealista: euro(costs.totalRealista),
-                            brecha: euro(costs.brechaFinanciacion),
-                            riesgosSimple: riesgosSimpleParaPadresPdf(riskDiagnosis),
-                            faltanDatos: [...decisionReadiness.faltanDatos],
-                            sevenDays: [...actionPlan.sevenDays],
-                            thirtyDays: [...actionPlan.thirtyDays],
-                            ninetyDays: [...actionPlan.ninetyDays],
-                            disclaimer: disclaimerText,
-                          };
-                          await downloadFlyPathResumenPadresPdf(padresPayload);
-                          showToast("Resumen para padres descargado");
-                        } catch (e) {
-                          if (process.env.NODE_ENV === "development") {
-                            console.error("[FlyPath] Error generando PDF resumen para padres:", e);
-                          } else {
-                            console.error("[FlyPath] PDF resumen padres fallido");
-                          }
-                          showToast("No se pudo generar el resumen para padres. Inténtalo de nuevo.");
-                        }
-                      }}
-                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
-                    >
-                      <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                      Descargar resumen para padres
-                    </button>
-                  </div>
-                </div>
-
-                {/* Bloque premium del Informe final. Reordenado: aparece DESPUÉS de "Guardar o
-                    compartir informe" y ANTES de "Tu siguiente paso FlyPath". No bloquea el
-                    informe gratuito. Reusa `setPlannerSchoolsPremiumModalOpen` (no nuevo modal).
-                    En modo gratis: card oscura con CTA. En modo premium: usa la misma recomendación
-                    que el minibadge Recomendación FlyPath (`flypathSchoolRecommendation`). */}
+                {/* Bloque premium del Informe final: antes de documentación y "Tu siguiente paso FlyPath". */}
                 {(() => {
                   const totalSchools = schools.length;
                   if (!plannerPremiumContentVisible) {
                     return (
-                      <div className="rounded-3xl border border-[#c9a454]/35 bg-[#0f1a33] p-6 text-white shadow-[0_10px_30px_rgba(15,26,51,0.18)] sm:p-7">
-                        <div className="flex items-center gap-2">
-                          <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
-                            ANÁLISIS PREMIUM
-                          </span>
+                      <div className="relative overflow-hidden rounded-[28px] border-2 border-[#c9a454]/45 bg-gradient-to-br from-[#071226] via-[#0f1a33] to-[#152547] p-7 text-white shadow-[0_20px_56px_rgba(15,26,51,0.28)] ring-1 ring-[#c9a454]/25 sm:p-8">
+                        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[#c9a454]/10 blur-2xl" aria-hidden />
+                        <div className="relative grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-6">
+                          <div className="lg:col-start-1 lg:row-start-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]">
+                                ANÁLISIS PREMIUM
+                              </span>
+                              <span className="ml-auto inline-flex rounded-full border border-[#c9a454]/40 bg-[#c9a454]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#f2ddaa]">
+                                Exclusivo
+                              </span>
+                            </div>
+                            <h3 className="mt-3 text-xl font-semibold leading-tight text-white sm:text-2xl">
+                              Desbloquea el análisis premium de escuelas
+                            </h3>
+                            <p className="mt-3 text-[15px] leading-relaxed text-slate-300">
+                              El informe gratuito te orienta si puedes avanzar. El premium cruza tu perfil con las escuelas comparadas para decidir con más criterio antes de pagar matrícula o depósito.
+                            </p>
+                          </div>
+                          <ul className="space-y-0.5 text-[15px] leading-relaxed text-slate-200 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
+                            {[
+                              "Recomendación FlyPath para tu perfil",
+                              "Riesgo económico y documental por escuela",
+                              "Comparación según tu presupuesto real",
+                              "Preguntas clave antes de pagar matrícula",
+                              "Próximos pasos adaptados a tu situación",
+                            ].map((item) => (
+                              <li key={item} className="flex items-start gap-3 py-1.5">
+                                <span
+                                  aria-hidden
+                                  className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
+                                />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <button
+                            type="button"
+                            onClick={openPlannerSchoolsPremiumModal}
+                            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_8px_24px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:w-auto lg:col-start-1 lg:row-start-2 lg:justify-self-start"
+                          >
+                            Desbloquear análisis premium
+                          </button>
                         </div>
-                        <h3 className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl">
-                          Desbloquea el análisis premium de escuelas
-                        </h3>
-                        <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-300">
-                          El informe gratuito te ayuda a saber si estás preparado para avanzar. El análisis premium cruza tu perfil con las escuelas que has comparado para ayudarte a decidir cuál tiene más sentido antes de pagar matrícula o depósito.
-                        </p>
-                        <ul className="mt-4 space-y-2 text-[15px] text-slate-200">
-                          {[
-                            "Escuela con mejor encaje FlyPath",
-                            "Riesgo económico y documental por escuela",
-                            "Comparación personalizada según tu presupuesto y perfil",
-                            "Qué preguntar a cada escuela antes de pagar",
-                            "Próximos pasos específicos para tu decisión",
-                          ].map((item) => (
-                            <li key={item} className="flex items-start gap-2.5 leading-relaxed">
-                              <span
-                                aria-hidden
-                                className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
-                              />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <button
-                          type="button"
-                          onClick={() => setPlannerSchoolsPremiumModalOpen(true)}
-                          className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
-                        >
-                          Desbloquear análisis premium
-                        </button>
                       </div>
                     );
                   }
@@ -4862,13 +4965,162 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   );
                 })()}
 
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-7">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Documentación</p>
+                  <p className="mt-1 text-base font-semibold text-[#0f1a33]">
+                    {plannerPremiumContentVisible
+                      ? "Guardar o compartir informe premium"
+                      : "Guardar o compartir informe"}
+                  </p>
+                  <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-600">
+                    {plannerPremiumContentVisible
+                      ? "Descarga tu informe premium con análisis de escuelas, recomendación FlyPath y próximos pasos personalizados."
+                      : "Descarga tu informe gratuito o compártelo con tu familia antes de tomar una decisión."}
+                  </p>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (plannerPremiumContentVisible) {
+                          // TODO: conectar descarga real del informe premium cuando exista el PDF premium.
+                          showToast("Informe premium próximamente");
+                          return;
+                        }
+                        try {
+                          const { downloadFlyPathInformePdf, getFlyPathPrimaryProductForPdf } = await import("@/lib/flypathReportPdf");
+                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
+                            dateStyle: "long",
+                            timeStyle: "short",
+                          }).format(new Date());
+                          const nextPrimary = getFlyPathPrimaryProductForPdf({
+                            class1: profile.class1,
+                            ingles: profile.ingles,
+                            preocupacionIngles: profile.preocupacionIngles,
+                            objetivo: profile.objetivo,
+                            urgencia: profile.urgencia,
+                            dineroDisponible: profile.dineroDisponible,
+                            inversionMaxima: profile.inversionMaxima,
+                            routeRecommended: route.recommended,
+                            schoolsLength: schools.length,
+                            decision: decisionReadiness.decision,
+                            faltanDatosLength: decisionReadiness.faltanDatos.length,
+                            atplTheory: costInputs.atplTheory,
+                          });
+                          const schoolSummaries = schools.slice(0, 6).map((s, i) => {
+                            const pend = getSchoolEmailMissingData(s);
+                            return {
+                              id: `school-${s.id}-${i}`,
+                              nombre: s.nombre,
+                              pais: s.pais,
+                              ciudad: s.ciudad,
+                              precio: euro(s.precioAnunciado),
+                              estado: s.estadoVerificacion.replace(/_/g, " "),
+                              pendientes: pend.length ? pend.slice(0, 8).join(", ") : "Sin pendientes destacados en el checklist.",
+                            };
+                          });
+                          const payload: FlyPathInformePdfInput = {
+                            generatedAt,
+                            nombre: profile.nombre.trim(),
+                            routeRecommended: route.recommended,
+                            routeReason: route.reason,
+                            principalBlock: route.principalBlock,
+                            decision: decisionReadiness.decision,
+                            score: decisionReadiness.score,
+                            shouldPayNow,
+                            conclusionEjecutiva: conclusionEjecutivaInformeFinal(
+                              decisionReadiness.decision,
+                              criticalBlockersForConclusion,
+                              decisionReadiness.faltanDatos,
+                            ),
+                            totalOptimista: euro(costs.totalOptimista),
+                            totalRealista: euro(costs.totalRealista),
+                            totalConservador: euro(costs.totalConservador),
+                            dineroDisponible: euro(profile.dineroDisponible),
+                            brecha: euro(costs.brechaFinanciacion),
+                            coverage: `${costs.coverage}% del coste realista`,
+                            mesesCerrarBrecha: costs.mesesCerrarBrecha,
+                            costEstimateNote: costEstimateNoteForPdf(profile.costEstimateSource),
+                            riskRows: mapRiskRowsForInformePdf(riskDiagnosis),
+                            faltanDatos: [...decisionReadiness.faltanDatos],
+                            proximosPasos: [...decisionReadiness.proximosPasos],
+                            sevenDays: [...actionPlan.sevenDays],
+                            thirtyDays: [...actionPlan.thirtyDays],
+                            ninetyDays: [...actionPlan.ninetyDays],
+                            schoolsCount: schools.length,
+                            verifiedCount: schoolStats.verifiedCount,
+                            pendingCount: schoolStats.pendingCount,
+                            schoolSummaries,
+                            nextPrimary,
+                            disclaimer: disclaimerText,
+                          };
+                          await downloadFlyPathInformePdf(payload);
+                          showToast("Informe descargado");
+                        } catch (e) {
+                          if (process.env.NODE_ENV === "development") {
+                            console.error("[FlyPath] Error generando PDF del informe:", e);
+                          } else {
+                            console.error("[FlyPath] PDF informe fallido");
+                          }
+                          showToast("No se pudo generar el informe. Inténtalo de nuevo.");
+                        }
+                      }}
+                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
+                    >
+                      <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                      {plannerPremiumContentVisible ? "Descargar informe premium" : "Descargar informe gratuito"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const { downloadFlyPathResumenPadresPdf } = await import("@/lib/flypathReportPdf");
+                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
+                            dateStyle: "long",
+                            timeStyle: "short",
+                          }).format(new Date());
+                          const padresPayload: FlyPathResumenPadresPdfInput = {
+                            generatedAt,
+                            nombre: profile.nombre.trim(),
+                            routeRecommended: route.recommended,
+                            decision: decisionReadiness.decision,
+                            shouldPayNow,
+                            totalRealista: euro(costs.totalRealista),
+                            brecha: euro(costs.brechaFinanciacion),
+                            riesgosSimple: riesgosSimpleParaPadresPdf(riskDiagnosis),
+                            faltanDatos: [...decisionReadiness.faltanDatos],
+                            sevenDays: [...actionPlan.sevenDays],
+                            thirtyDays: [...actionPlan.thirtyDays],
+                            ninetyDays: [...actionPlan.ninetyDays],
+                            disclaimer: disclaimerText,
+                          };
+                          await downloadFlyPathResumenPadresPdf(padresPayload);
+                          showToast("Resumen para padres descargado");
+                        } catch (e) {
+                          if (process.env.NODE_ENV === "development") {
+                            console.error("[FlyPath] Error generando PDF resumen para padres:", e);
+                          } else {
+                            console.error("[FlyPath] PDF resumen padres fallido");
+                          }
+                          showToast("No se pudo generar el resumen para padres. Inténtalo de nuevo.");
+                        }
+                      }}
+                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
+                    >
+                      <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
+                      Descargar resumen para padres
+                    </button>
+                  </div>
+                </div>
+
                 <FlyPathNextStepsPanel
                   profile={profile}
                   route={route}
                   decisionReadiness={decisionReadiness}
                   schools={schools}
                   costInputs={costInputs}
-                  onProductCta={() => showToast(FLYPATH_PRODUCT_TOAST)}
+                  costs={costs}
+                  riskDiagnosis={riskDiagnosis}
+                  verifiedSchoolsCount={schoolStats.verifiedCount}
                 />
 
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
@@ -4876,9 +5128,15 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <p className="mt-1 text-[15px] text-slate-600">{disclaimerText}</p>
                 </div>
               </div>
-            )}
+              );
+            })()}
           </section>
       </CareerPlannerDashboardShell>
+      <PlannerSchoolsPremiumModal
+        open={plannerSchoolsPremiumModalOpen}
+        onClose={() => setPlannerSchoolsPremiumModalOpen(false)}
+        onUnlockClick={() => showToast("Pago FlyPath próximamente")}
+      />
     {process.env.NODE_ENV === "development" && (
       <button
         type="button"
