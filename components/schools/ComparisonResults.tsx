@@ -2556,20 +2556,64 @@ function formatPriceLabel(value: number, pendingLabel = PENDING_PRICE_LABEL): st
   return value > 0 ? euro(value) : pendingLabel;
 }
 
-function getLiveAnnouncedText(school: SchoolEntry, routeProfile: RouteProfile | null): string {
-  if (school.advertisedPriceEUR > 0) return formatPriceLabel(school.advertisedPriceEUR);
-  const profileValue = routeProfile?.announcedValue ?? 0;
-  if (profileValue > 0) return formatPriceLabel(profileValue);
-  if (routeProfile?.announcedText) return routeProfile.announcedText;
-  return formatPriceLabel(0);
-}
+type LiveComparisonPricing = {
+  liveAnnouncedValue: number;
+  liveEstimatedValue: number;
+  liveAnnouncedText: string;
+  liveEstimatedText: string;
+  liveGapText: string;
+  hasAnnounced: boolean;
+  hasEstimated: boolean;
+  hasComparableCosts: boolean;
+  announcedPct: number;
+  estimatedPct: number;
+};
 
-function getLiveEstimatedText(school: SchoolEntry, routeProfile: RouteProfile | null): string {
-  if (school.flypathEstimatedRealCostEUR > 0) return formatPriceLabel(school.flypathEstimatedRealCostEUR);
-  const profileValue = routeProfile?.estimatedValue ?? 0;
-  if (profileValue > 0) return formatPriceLabel(profileValue);
-  if (routeProfile?.estimatedText) return routeProfile.estimatedText;
-  return formatPriceLabel(0);
+/** Precios visibles del comparador: SchoolEntry primero; routeProfile solo como fallback numérico o copy no monetario. */
+function resolveLiveComparisonPricing(
+  school: SchoolEntry,
+  routeProfile: RouteProfile | null,
+  maxComparableCost: number,
+): LiveComparisonPricing {
+  const liveAnnouncedValue = getLiveAnnouncedValue(school, routeProfile);
+  const liveEstimatedValue = getLiveEstimatedValue(school, routeProfile);
+  const hasAnnounced = liveAnnouncedValue > 0;
+  const hasEstimated = liveEstimatedValue > 0;
+  const hasComparableCosts = hasAnnounced && hasEstimated;
+
+  const liveAnnouncedText =
+    liveAnnouncedValue > 0
+      ? formatPriceLabel(liveAnnouncedValue)
+      : routeProfile?.announcedText?.trim() || formatPriceLabel(0);
+  const liveEstimatedText =
+    liveEstimatedValue > 0
+      ? formatPriceLabel(liveEstimatedValue)
+      : routeProfile?.estimatedText?.trim() || formatPriceLabel(0);
+  const liveGapText = hasComparableCosts
+    ? euro(liveEstimatedValue - liveAnnouncedValue)
+    : routeProfile?.gapText?.trim() || PENDING_PRICE_LABEL;
+
+  const announcedPct =
+    hasComparableCosts && maxComparableCost > 0
+      ? Math.min(100, Math.max(6, Math.round((liveAnnouncedValue / maxComparableCost) * 100)))
+      : 0;
+  const estimatedPct =
+    hasComparableCosts && maxComparableCost > 0
+      ? Math.min(100, Math.max(8, Math.round((liveEstimatedValue / maxComparableCost) * 100)))
+      : 0;
+
+  return {
+    liveAnnouncedValue,
+    liveEstimatedValue,
+    liveAnnouncedText,
+    liveEstimatedText,
+    liveGapText,
+    hasAnnounced,
+    hasEstimated,
+    hasComparableCosts,
+    announcedPct,
+    estimatedPct,
+  };
 }
 
 function flypathReading(school: SchoolEntry, gap: number): string {
@@ -2813,29 +2857,38 @@ export function ComparisonResults({ schools }: Props) {
                                                         ? getLeapDualLicenceProfile()
                                                         : getLeapSingleLicenceProfile()
                                                       : null;
-          const activeAnnouncedValue = getLiveAnnouncedValue(school, routeProfile);
-          const activeEstimatedValue = getLiveEstimatedValue(school, routeProfile);
-          const hasAnnounced = activeAnnouncedValue > 0;
-          const hasEstimated = activeEstimatedValue > 0;
-          const hasComparableCosts = hasAnnounced && hasEstimated;
-          const announcedPct =
-            hasComparableCosts && maxComparableCost > 0
-              ? Math.min(100, Math.max(6, Math.round((activeAnnouncedValue / maxComparableCost) * 100)))
-              : 0;
-          const estimatedPct =
-            hasComparableCosts && maxComparableCost > 0
-              ? Math.min(100, Math.max(8, Math.round((activeEstimatedValue / maxComparableCost) * 100)))
-              : 0;
+          const {
+            liveAnnouncedValue,
+            liveEstimatedValue,
+            liveAnnouncedText,
+            liveEstimatedText,
+            liveGapText,
+            hasComparableCosts,
+            announcedPct,
+            estimatedPct,
+          } = resolveLiveComparisonPricing(school, routeProfile, maxComparableCost);
+
+          if (process.env.NODE_ENV !== "production" && isAdventia && !isAdventiaUniversity) {
+            const profileAnnounced = routeProfile?.announcedValue ?? 0;
+            if (
+              school.advertisedPriceEUR > 0 &&
+              profileAnnounced > 0 &&
+              school.advertisedPriceEUR !== profileAnnounced
+            ) {
+              console.warn("[FlyPath DEV] Adventia comparador: precio vivo desde SchoolEntry", {
+                schoolAdvertisedPriceEUR: school.advertisedPriceEUR,
+                routeProfileAnnouncedValue: profileAnnounced,
+                liveAnnouncedValue,
+                liveAnnouncedText,
+              });
+            }
+          }
+
           // Nota: los bloques "Lectura FlyPath", "E. Riesgos / Red flags" y "F. Preguntas clave" se han retirado
           // de las columnas del comparador para evitar duplicación con el nuevo bloque global "Conclusión FlyPath".
           // Los datos siguen disponibles en el dataset y en las fichas individuales /schools/[slug].
           const schoolDisplayName = isAdventia ? "Adventia" : school.name;
           const initials = getSchoolInitials(school.name);
-          const announcedText = getLiveAnnouncedText(school, routeProfile);
-          const estimatedText = getLiveEstimatedText(school, routeProfile);
-          const gapText = hasComparableCosts
-            ? euro(activeEstimatedValue - activeAnnouncedValue)
-            : routeProfile?.gapText ?? PENDING_PRICE_LABEL;
           const scheduleSummary = routeProfile
             ? routeProfile.scheduleSummary
             : shortScheduleSummary(school.paymentScheduleSummary);
@@ -3752,17 +3805,17 @@ export function ComparisonResults({ schools }: Props) {
                     <p>
                       <span className="font-semibold text-[#0f1a33]">Precio anunciado:</span>{" "}
                       <span className="text-[17px] font-bold leading-none text-[#0f1a33]">
-                        {announcedText}
+                        {liveAnnouncedText}
                       </span>
                     </p>
                     <p>
                       <span className="font-semibold text-[#0f1a33]">Coste real estimado FlyPath:</span>{" "}
-                      <span className="text-[17px] font-bold leading-none text-[#0f1a33]">{estimatedText}</span>
+                      <span className="text-[17px] font-bold leading-none text-[#0f1a33]">{liveEstimatedText}</span>
                     </p>
                     <p className="flex flex-wrap items-center gap-1.5">
                       <span className="font-semibold text-slate-700">Brecha estimada:</span>
                       <span className="inline-flex rounded-full border border-[#c9a454]/45 bg-[#fff8e8] px-2 py-0.5 text-sm font-semibold text-[#7a5a16]">
-                        {gapText}
+                        {liveGapText}
                       </span>
                       <span className="group relative inline-flex shrink-0">
                         <button
