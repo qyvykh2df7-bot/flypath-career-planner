@@ -418,6 +418,11 @@ export function mapSupabaseProfileToSchoolEntry(profile: FullSchoolProfile): Sch
   const dataConfidenceScore =
     scoresFromDb?.dataConfidenceScore ?? fallbackDataConfidenceScore;
 
+  const advertisedPriceEUR = priceToSchoolEntryField(mainProgram?.advertised_price_eur ?? null);
+  const flypathEstimatedRealCostEUR = priceToSchoolEntryField(
+    mainProgram?.estimated_real_cost_eur ?? null,
+  );
+
   return {
     id: school.legacy_entry_id?.trim() || school.school_id,
     slug: resolveEntrySlug(school.slug),
@@ -439,8 +444,8 @@ export function mapSupabaseProfileToSchoolEntry(profile: FullSchoolProfile): Sch
     dataConfidence:
       storedDataConfidence ?? dataConfidenceFromScore(dataConfidenceScore),
 
-    advertisedPriceEUR: priceToSchoolEntryField(mainProgram?.advertised_price_eur ?? null),
-    flypathEstimatedRealCostEUR: priceToSchoolEntryField(mainProgram?.estimated_real_cost_eur ?? null),
+    advertisedPriceEUR,
+    flypathEstimatedRealCostEUR,
     depositOrEnrollmentFeeEUR: priceToSchoolEntryField(costs?.deposit_or_enrollment_fee_eur ?? null),
     paymentScheduleSummary: costs?.payment_schedule_summary?.trim() ?? "",
     refundPolicySummary: costs?.refund_policy_summary?.trim() ?? "",

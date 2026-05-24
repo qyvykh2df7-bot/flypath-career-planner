@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   confidenceLabel,
   dataStatusLabel,
-  getPriceGap,
   getSchoolInitials,
   summarizeComparison,
 } from "@/lib/schools/schoolUtils";
@@ -2541,8 +2540,36 @@ function euro(value: number): string {
   return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 }
 
-function priceDisplay(value: number, pendingLabel: string): string {
+const PENDING_PRICE_LABEL = "Pendiente de validar";
+
+function getLiveAnnouncedValue(school: SchoolEntry, routeProfile: RouteProfile | null): number {
+  if (school.advertisedPriceEUR > 0) return school.advertisedPriceEUR;
+  return routeProfile?.announcedValue ?? 0;
+}
+
+function getLiveEstimatedValue(school: SchoolEntry, routeProfile: RouteProfile | null): number {
+  if (school.flypathEstimatedRealCostEUR > 0) return school.flypathEstimatedRealCostEUR;
+  return routeProfile?.estimatedValue ?? 0;
+}
+
+function formatPriceLabel(value: number, pendingLabel = PENDING_PRICE_LABEL): string {
   return value > 0 ? euro(value) : pendingLabel;
+}
+
+function getLiveAnnouncedText(school: SchoolEntry, routeProfile: RouteProfile | null): string {
+  if (school.advertisedPriceEUR > 0) return formatPriceLabel(school.advertisedPriceEUR);
+  const profileValue = routeProfile?.announcedValue ?? 0;
+  if (profileValue > 0) return formatPriceLabel(profileValue);
+  if (routeProfile?.announcedText) return routeProfile.announcedText;
+  return formatPriceLabel(0);
+}
+
+function getLiveEstimatedText(school: SchoolEntry, routeProfile: RouteProfile | null): string {
+  if (school.flypathEstimatedRealCostEUR > 0) return formatPriceLabel(school.flypathEstimatedRealCostEUR);
+  const profileValue = routeProfile?.estimatedValue ?? 0;
+  if (profileValue > 0) return formatPriceLabel(profileValue);
+  if (routeProfile?.estimatedText) return routeProfile.estimatedText;
+  return formatPriceLabel(0);
 }
 
 function flypathReading(school: SchoolEntry, gap: number): string {
@@ -2786,13 +2813,8 @@ export function ComparisonResults({ schools }: Props) {
                                                         ? getLeapDualLicenceProfile()
                                                         : getLeapSingleLicenceProfile()
                                                       : null;
-          const gap = getPriceGap(school);
-          const activeAnnouncedValue = routeProfile
-            ? routeProfile.announcedValue ?? 0
-            : school.advertisedPriceEUR;
-          const activeEstimatedValue = routeProfile
-            ? routeProfile.estimatedValue ?? 0
-            : school.flypathEstimatedRealCostEUR;
+          const activeAnnouncedValue = getLiveAnnouncedValue(school, routeProfile);
+          const activeEstimatedValue = getLiveEstimatedValue(school, routeProfile);
           const hasAnnounced = activeAnnouncedValue > 0;
           const hasEstimated = activeEstimatedValue > 0;
           const hasComparableCosts = hasAnnounced && hasEstimated;
@@ -2809,17 +2831,11 @@ export function ComparisonResults({ schools }: Props) {
           // Los datos siguen disponibles en el dataset y en las fichas individuales /schools/[slug].
           const schoolDisplayName = isAdventia ? "Adventia" : school.name;
           const initials = getSchoolInitials(school.name);
-          const announcedText = routeProfile
-            ? routeProfile.announcedText
-            : priceDisplay(school.advertisedPriceEUR, "No publicado");
-          const estimatedText = routeProfile
-            ? routeProfile.estimatedText
-            : priceDisplay(school.flypathEstimatedRealCostEUR, "Pendiente");
-          const gapText = routeProfile
-            ? routeProfile.gapText
-            : hasComparableCosts
-              ? euro(activeEstimatedValue - activeAnnouncedValue)
-              : "Pendiente";
+          const announcedText = getLiveAnnouncedText(school, routeProfile);
+          const estimatedText = getLiveEstimatedText(school, routeProfile);
+          const gapText = hasComparableCosts
+            ? euro(activeEstimatedValue - activeAnnouncedValue)
+            : routeProfile?.gapText ?? PENDING_PRICE_LABEL;
           const scheduleSummary = routeProfile
             ? routeProfile.scheduleSummary
             : shortScheduleSummary(school.paymentScheduleSummary);

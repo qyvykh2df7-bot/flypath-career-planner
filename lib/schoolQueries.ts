@@ -246,11 +246,61 @@ const RISK_FLAG_FIELDS =
 const SOURCE_FIELDS =
   "source_id, school_id, program_id, source_type, source_title, source_url, accessed_at, published_date, notes, reliability";
 
-function pickMainProgram(programs: SupabaseProgramRow[]): SupabaseProgramRow | null {
-  if (programs.length === 0) return null;
-  const flagged = programs.find((p) => p.is_main_program === true);
-  if (flagged) return flagged;
-  return programs[0] ?? null;
+/** Orden estable para elegir programa principal: main primero, luego nombre. */
+export function sortProgramsForMainPick(programs: SupabaseProgramRow[]): SupabaseProgramRow[] {
+  return [...programs].sort((a, b) => {
+    const mainA = a.is_main_program === true ? 1 : 0;
+    const mainB = b.is_main_program === true ? 1 : 0;
+    if (mainB !== mainA) return mainB - mainA;
+    return (a.program_name ?? "").localeCompare(b.program_name ?? "", "es", { sensitivity: "base" });
+  });
+}
+
+function isIntegratedRouteType(routeType: string | null | undefined): boolean {
+  const rt = (routeType ?? "").trim().toLowerCase();
+  return rt === "integrated" || rt === "integrated_modular";
+}
+
+/**
+ * Elige el programa principal entre filas ya filtradas por `status = active` y ordenadas
+ * con {@link sortProgramsForMainPick}.
+ */
+export function pickMainProgram(programs: SupabaseProgramRow[]): SupabaseProgramRow | null {
+  const sorted = sortProgramsForMainPick(programs);
+  if (sorted.length === 0) return null;
+
+  const flagged = sorted.filter((p) => p.is_main_program === true);
+
+  if (flagged.length === 1) return flagged[0]!;
+
+  if (flagged.length === 0) {
+    const fallback = sorted[0]!;
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[FlyPath] pickMainProgram: sin is_main_program; usando primer programa activo",
+        {
+          program_id: fallback.program_id,
+          program_name: fallback.program_name ?? "",
+        },
+      );
+    }
+    return fallback;
+  }
+
+  const integrated = flagged.filter((p) => isIntegratedRouteType(p.route_type));
+  const chosen = integrated[0] ?? flagged[0]!;
+  if (process.env.NODE_ENV === "development") {
+    console.warn(
+      "[FlyPath] pickMainProgram: varios is_main_program; priorizando integrado si existe",
+      {
+        main_program_count: flagged.length,
+        program_id: chosen.program_id,
+        program_name: chosen.program_name ?? "",
+        route_type: chosen.route_type ?? "",
+      },
+    );
+  }
+  return chosen;
 }
 
 /**
@@ -281,7 +331,9 @@ export async function getComparableSchoolsFromSupabase(): Promise<SupabaseSchool
     .from("programs")
     .select(PROGRAM_FIELDS)
     .in("school_id", schoolIds)
-    .eq("status", "active");
+    .eq("status", "active")
+    .order("is_main_program", { ascending: false })
+    .order("program_name", { ascending: true });
 
   if (programsError) {
     throw new Error(`Supabase programs error: ${programsError.message}`);
@@ -293,12 +345,16 @@ export async function getComparableSchoolsFromSupabase(): Promise<SupabaseSchool
     existing.push(program);
     programsBySchool.set(program.school_id, existing);
   }
+  for (const [schoolId, programs] of programsBySchool) {
+    programsBySchool.set(schoolId, sortProgramsForMainPick(programs));
+  }
 
   return schools.map((school) => {
     const programs = programsBySchool.get(school.school_id) ?? [];
+    const mainProgram = pickMainProgram(programs);
     return {
       school,
-      mainProgram: pickMainProgram(programs),
+      mainProgram,
       programs,
     };
   });
@@ -324,20 +380,12 @@ export async function getSchoolBySlug(slug: string): Promise<SupabaseSchoolWithM
 
   const school = schools[0];
 
-  const { data: programsData, error: programsError } = await supabase
-    .from("programs")
-    .select(PROGRAM_FIELDS)
-    .eq("school_id", school.school_id)
-    .eq("status", "active");
-
-  if (programsError) {
-    throw new Error(`Supabase getSchoolBySlug (programs) error: ${programsError.message}`);
-  }
-  const programs = (programsData ?? []) as SupabaseProgramRow[];
+  const programs = await getProgramsBySchoolId(school.school_id);
+  const mainProgram = pickMainProgram(programs);
 
   return {
     school,
-    mainProgram: pickMainProgram(programs),
+    mainProgram,
     programs,
   };
 }
@@ -348,10 +396,12 @@ export async function getProgramsBySchoolId(schoolId: string): Promise<SupabaseP
     .from("programs")
     .select(PROGRAM_FIELDS)
     .eq("school_id", schoolId)
-    .eq("status", "active");
+    .eq("status", "active")
+    .order("is_main_program", { ascending: false })
+    .order("program_name", { ascending: true });
 
   if (error) throw new Error(`Supabase getProgramsBySchoolId error: ${error.message}`);
-  return (data ?? []) as SupabaseProgramRow[];
+  return sortProgramsForMainPick((data ?? []) as SupabaseProgramRow[]);
 }
 
 /** Devuelve los módulos de un programa, ordenados por `module_order`. */

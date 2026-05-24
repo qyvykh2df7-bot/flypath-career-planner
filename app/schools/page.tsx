@@ -82,7 +82,8 @@ function SchoolsPageContent() {
     if (!isSupabaseSchoolsEnabled()) return;
     let cancelled = false;
     void loadComparableSchoolsForComparator().then((entries) => {
-      if (!cancelled) setSchoolsDataset(entries);
+      if (cancelled) return;
+      setSchoolsDataset(entries);
     });
     return () => {
       cancelled = true;

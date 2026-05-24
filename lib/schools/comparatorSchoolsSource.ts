@@ -7,12 +7,6 @@ import {
 } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
 
-/** Diagnóstico local/preview: no loguear en Production ni imprimir secretos. */
-function logSchoolsSource(source: "Supabase" | "schoolsSpain fallback"): void {
-  if (process.env.NODE_ENV === "production") return;
-  console.info(`Schools source: ${source}`);
-}
-
 /** `true` cuando /schools debe intentar cargar escuelas desde Supabase. */
 export function isSupabaseSchoolsEnabled(): boolean {
   return process.env.NEXT_PUBLIC_USE_SUPABASE_SCHOOLS === "true";
@@ -35,20 +29,16 @@ export async function loadComparableSchoolsForComparator(): Promise<SchoolEntry[
   const legacy = getComparableSchools();
 
   if (!isSupabaseSchoolsEnabled()) {
-    logSchoolsSource("schoolsSpain fallback");
     return legacy;
   }
 
   try {
     const entries = await getSupabaseSchoolEntries();
-    const comparable = entries.filter(isSchoolComparable);
-    logSchoolsSource("Supabase");
-    return comparable;
+    return entries.filter(isSchoolComparable);
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
       console.warn("[FlyPath] Supabase schools load failed", error);
     }
-    logSchoolsSource("schoolsSpain fallback");
     return legacy;
   }
 }
@@ -64,7 +54,6 @@ export async function loadComparableSchoolBySlug(
   const legacy = getComparableSchoolBySlug(slug);
 
   if (!isSupabaseSchoolsEnabled()) {
-    logSchoolsSource("schoolsSpain fallback");
     return legacy;
   }
 
@@ -85,10 +74,8 @@ export async function loadComparableSchoolBySlug(
     if (profile) {
       const entry = mapSupabaseProfileToSchoolEntry(profile);
       if (!isSchoolComparable(entry)) {
-        logSchoolsSource("schoolsSpain fallback");
         return legacy;
       }
-      logSchoolsSource("Supabase");
       return entry.slug === slug ? entry : { ...entry, slug };
     }
 
@@ -96,13 +83,11 @@ export async function loadComparableSchoolBySlug(
       console.warn(`[FlyPath] /schools/${slug} not found in Supabase`);
     }
 
-    logSchoolsSource("schoolsSpain fallback");
     return legacy;
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(`[FlyPath] /schools/${slug} Supabase load failed`, error);
     }
-    logSchoolsSource("schoolsSpain fallback");
     return legacy;
   }
 }
