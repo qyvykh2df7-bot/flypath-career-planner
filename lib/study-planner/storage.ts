@@ -1,3 +1,4 @@
+import { parseBankArea } from "./atpl-bank-areas";
 import {
   DEFAULT_ATPL_PLANNER_STATE,
   type AtplPlannerState,
@@ -149,6 +150,10 @@ function parsePlannedSession(raw: unknown): PlannedStudySession | null {
   }
   if (typeof p.completedSessionId === "string" && p.completedSessionId.length > 0) {
     planned.completedSessionId = p.completedSessionId;
+  }
+  const bankArea = parseBankArea(p.bankArea);
+  if (bankArea) {
+    planned.bankArea = bankArea;
   }
   return planned;
 }

@@ -21,6 +21,8 @@ type ExamDatesPanelProps = {
   onAddExamDate: (exam: ExamDate) => void;
   onDeleteExamDate: (id: string) => void;
   openFormRequestKey?: number;
+  /** Oculta la franja «Próximo examen» (p. ej. en la página Asignaturas con gráfico). */
+  hideNextExamHighlight?: boolean;
 };
 
 export function ExamDatesPanel({
@@ -29,6 +31,7 @@ export function ExamDatesPanel({
   onAddExamDate,
   onDeleteExamDate,
   openFormRequestKey = 0,
+  hideNextExamHighlight = false,
 }: ExamDatesPanelProps) {
   const today = getTodayDateString();
   const panelRef = useRef<HTMLElement>(null);
@@ -60,8 +63,15 @@ export function ExamDatesPanel({
   const upcoming = sorted.filter((e) => e.date >= today);
   const next = getNextUpcomingExam(examDates, today);
   const restUpcoming = next ? upcoming.filter((e) => e.id !== next.id) : upcoming;
-  const listToShow = listExpanded ? restUpcoming : restUpcoming.slice(0, 2);
-  const hiddenCount = Math.max(0, restUpcoming.length - listToShow.length);
+  const listSource = hideNextExamHighlight ? upcoming : restUpcoming;
+  const listToShow = hideNextExamHighlight
+    ? listSource
+    : listExpanded
+      ? restUpcoming
+      : restUpcoming.slice(0, 2);
+  const hiddenCount = hideNextExamHighlight
+    ? 0
+    : Math.max(0, restUpcoming.length - listToShow.length);
 
   const fieldClass =
     "h-8 w-full min-w-0 rounded-md bg-white/90 px-2 text-[12px] text-[#0f1a33] ring-1 ring-slate-200/50 focus:ring-[#c9a454]/30 focus:outline-none";
@@ -91,7 +101,9 @@ export function ExamDatesPanel({
     >
       <div className="px-2.5 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          {next ? (
+          {hideNextExamHighlight ? (
+            <p className="min-w-0 flex-1 text-[13px] font-medium text-[#0f1a33]">Fechas de examen</p>
+          ) : next ? (
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-gradient-to-r from-[#fff9ee]/90 to-transparent px-2 py-1 ring-1 ring-[#c9a454]/12">
               <span className="shrink-0 text-[12px] font-semibold uppercase tracking-wide text-[#7a5a16]/90">
                 Próximo examen
@@ -178,9 +190,47 @@ export function ExamDatesPanel({
             </form>
           </div>
         </div>
+
+        {hideNextExamHighlight ? (
+          <div className="mt-2 border-t border-slate-100/80 pt-1.5">
+            {upcoming.length > 0 ? (
+              <ul className="space-y-0.5">
+                {upcoming.map((exam) => {
+                  const name = getSubjectById(exam.subjectId)?.name ?? exam.subjectId;
+                  const days = getDaysUntilDate(exam.date, today);
+                  return (
+                    <li
+                      key={exam.id}
+                      className="flex items-center justify-between gap-2 rounded-md px-1.5 py-0.5 text-[12px] hover:bg-slate-50/70"
+                    >
+                      <span className="min-w-0 truncate text-slate-600">
+                        <span className="font-medium text-slate-700">{name}</span>
+                        <span className="text-slate-400">
+                          {" "}
+                          · {formatExamDisplayDate(exam.date)} · {formatDaysRemaining(days)}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteExamDate(exam.id)}
+                        className={`${plannerBtnGhost} shrink-0 px-1 py-0.5 text-[12px]`}
+                      >
+                        Quitar
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="px-1.5 py-1 text-[12px] text-slate-500">
+                Sin fechas de examen configuradas
+              </p>
+            )}
+          </div>
+        ) : null}
       </div>
 
-      {restUpcoming.length > 0 ? (
+      {!hideNextExamHighlight && restUpcoming.length > 0 ? (
         <div className="border-t border-slate-100/80 px-2 pb-1.5 pt-0.5">
           <ul className="space-y-0.5">
             {listToShow.map((exam) => {

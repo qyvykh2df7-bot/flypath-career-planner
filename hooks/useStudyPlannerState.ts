@@ -41,6 +41,7 @@ import {
 } from "@/lib/study-planner/recovery-apply";
 import { sumPendingPlannedMinutesForWeek } from "@/lib/study-planner/recovery-load";
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
+import { clearEvaluationStudyData } from "@/lib/study-planner/clear-evaluation-study-data";
 import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
 import {
   filterErrorLogItemsByMode,
@@ -290,9 +291,17 @@ export function useStudyPlannerState() {
       }
       setState((prev) => ({
         ...prev,
-        plannedSessions: prev.plannedSessions.map((p) =>
-          p.id === plannedId ? { ...p, ...patch } : p,
-        ),
+        plannedSessions: prev.plannedSessions.map((p) => {
+          if (p.id !== plannedId) return p;
+          const next: PlannedStudySession = { ...p, ...patch };
+          if (patch.type !== undefined && patch.type !== "question_bank") {
+            delete next.bankArea;
+          }
+          if (patch.bankArea === undefined && "bankArea" in patch) {
+            delete next.bankArea;
+          }
+          return next;
+        }),
       }));
     },
     [],
@@ -495,6 +504,10 @@ export function useStudyPlannerState() {
     [],
   );
 
+  const clearEvaluationData = useCallback(() => {
+    setState((prev) => clearEvaluationStudyData(prev));
+  }, []);
+
   return {
     hydrated,
     onboardingCompleted: onboardingCompleted === true,
@@ -539,5 +552,6 @@ export function useStudyPlannerState() {
     applyGeneratedWeeklyPlan,
     clearVisibleWeekPendingPlanned,
     applyRecoveryPlanToCalendar,
+    clearEvaluationData,
   };
 }

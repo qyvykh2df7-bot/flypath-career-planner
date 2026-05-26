@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { findBankAreaByCode, type AtplBankArea } from "@/lib/study-planner/atpl-bank-areas";
 import type { PlannedStudySession, StudySessionType, StudySubject } from "@/lib/study-planner/types";
+import { BankAreaField } from "./BankAreaField";
 import { createPlannerId, formatDateLocal, getTodayDateString } from "@/lib/study-planner/calculations";
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
 import { SESSION_TYPE_OPTIONS } from "@/lib/study-planner/labels";
@@ -21,6 +23,7 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
   const [hours, setHours] = useState("1");
   const [minutes, setMinutes] = useState("0");
   const [goal, setGoal] = useState("");
+  const [bankArea, setBankArea] = useState<AtplBankArea | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +32,16 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
       setSubjectId("");
     }
   }, [subjects, subjectId]);
+
+  useEffect(() => {
+    if (type !== "question_bank") {
+      setBankArea(null);
+      return;
+    }
+    if (bankArea && !findBankAreaByCode(subjectId, bankArea.code)) {
+      setBankArea(null);
+    }
+  }, [type, subjectId, bankArea]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +68,7 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
       return;
     }
 
-    onAddPlannedSession({
+    const planned: PlannedStudySession = {
       id: createPlannerId(),
       date,
       startTime: startTime.trim() || undefined,
@@ -65,9 +78,14 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
       goal: goal.trim() || undefined,
       status: "pending",
       source: "manual",
-    });
+    };
+    if (type === "question_bank" && bankArea) {
+      planned.bankArea = bankArea;
+    }
+    onAddPlannedSession(planned);
 
     setGoal("");
+    setBankArea(null);
     setStartTime("");
     setHours("1");
     setMinutes("0");
@@ -122,6 +140,17 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
             ))}
           </select>
         </label>
+        {type === "question_bank" ? (
+          <div className="sm:col-span-2">
+            <BankAreaField
+              subjectId={subjectId}
+              value={bankArea}
+              onChange={setBankArea}
+              labelClass={labelClass}
+              fieldClass={fieldClass}
+            />
+          </div>
+        ) : null}
         <fieldset className="sm:col-span-2">
           <legend className={labelClass}>Duración prevista</legend>
           <div className="mt-1.5 grid grid-cols-2 gap-3">

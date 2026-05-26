@@ -2,7 +2,9 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Plus } from "lucide-react";
-import type { PlannedStudySession } from "@/lib/study-planner/types";
+import type { ExamDate, PlannedStudySession } from "@/lib/study-planner/types";
+import { getExamsForDate } from "@/lib/study-planner/calendar/exams-by-date";
+import { CalendarExamChip } from "./CalendarExamChip";
 import {
   comparePlannedByStartTime,
   formatShortDate,
@@ -21,8 +23,13 @@ import { canSchedulePlannedSessionOnDate } from "@/lib/study-planner/planned-ses
 import { canMovePlannedSessionToDate } from "@/lib/study-planner/planned-session-move";
 import { getSessionTypeAccentClass } from "@/lib/study-planner/session-type-visual";
 import { CalendarPeriodNav } from "./CalendarPeriodNav";
+import {
+  WeekViewManagementBar,
+  type WeekManagementActions,
+} from "./WeekViewManagementBar";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
+import { SessionBankAreaLine } from "../SessionBankAreaLine";
 import { ClassBookingCta } from "./ClassBookingCta";
 import { SessionStatusBadge } from "./SessionStatusBadge";
 
@@ -30,6 +37,7 @@ const LG_MEDIA_QUERY = "(min-width: 1024px)";
 
 type StudyWeekViewProps = {
   plannedSessions: PlannedStudySession[];
+  examDates?: ExamDate[];
   visibleWeekStartDate: string;
   onVisibleWeekStartChange: (weekStart: string) => void;
   onSelectSession: (session: PlannedStudySession) => void;
@@ -39,6 +47,8 @@ type StudyWeekViewProps = {
     sessionId: string,
     targetDate: string,
   ) => { ok: true; message: string } | { ok: false; message: string };
+  onSelectExam?: (exam: ExamDate) => void;
+  weekManagement?: WeekManagementActions | null;
 };
 
 function useIsLgViewport(): boolean | null {
@@ -75,12 +85,15 @@ function buildSessionsByDate(
 
 export function StudyWeekView({
   plannedSessions,
+  examDates = [],
   visibleWeekStartDate,
   onVisibleWeekStartChange,
   onSelectSession,
   onOpenDay,
   onAddSessionOnDate,
   onMoveSessionOnDate,
+  onSelectExam,
+  weekManagement = null,
 }: StudyWeekViewProps) {
   const today = getTodayDateString();
   const currentWeekStart = getCurrentWeekStart(today);
@@ -146,22 +159,31 @@ export function StudyWeekView({
 
   return (
     <div className="space-y-2.5 sm:space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[16px] font-medium tracking-tight text-[#0f1a33] sm:text-[17px]">
-            {formatWeekRange(visibleWeekStartDate)}
-          </p>
-        </div>
-        <CalendarPeriodNav
-          onPrev={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, -1))}
-          onNext={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, 1))}
-          onJumpToCurrent={() => onVisibleWeekStartChange(currentWeekStart)}
-          currentLabel="Esta semana"
-          currentDisabled={isCurrentWeek}
-          prevAriaLabel="Semana anterior"
-          nextAriaLabel="Semana siguiente"
+      {weekManagement ? (
+        <WeekViewManagementBar
+          visibleWeekStartDate={visibleWeekStartDate}
+          weekPlanned={weekPlanned}
+          onVisibleWeekStartChange={onVisibleWeekStartChange}
+          weekManagement={weekManagement}
         />
-      </div>
+      ) : (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[16px] font-medium tracking-tight text-[#0f1a33] sm:text-[17px]">
+              {formatWeekRange(visibleWeekStartDate)}
+            </p>
+          </div>
+          <CalendarPeriodNav
+            onPrev={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, -1))}
+            onNext={() => onVisibleWeekStartChange(addWeeks(visibleWeekStartDate, 1))}
+            onJumpToCurrent={() => onVisibleWeekStartChange(currentWeekStart)}
+            currentLabel="Esta semana"
+            currentDisabled={isCurrentWeek}
+            prevAriaLabel="Semana anterior"
+            nextAriaLabel="Semana siguiente"
+          />
+        </div>
+      )}
 
       {feedback ? (
         <p className="rounded-lg bg-slate-50/90 px-3 py-1.5 text-[13px] text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
@@ -176,9 +198,11 @@ export function StudyWeekView({
             date={date}
             today={today}
             sessions={sessionsByDate[date] ?? []}
+            exams={getExamsForDate(examDates, date)}
             onSelect={onSelectSession}
             onOpenDay={onOpenDay}
             onAdd={onAddSessionOnDate}
+            onSelectExam={onSelectExam}
             layout={weekLayout}
             draggingSession={draggingSession}
             isDragging={isDragging}
@@ -204,9 +228,11 @@ const WeekDayColumn = memo(function WeekDayColumn({
   date,
   today,
   sessions,
+  exams = [],
   onSelect,
   onOpenDay,
   onAdd,
+  onSelectExam,
   layout = "column",
   draggingSession,
   isDragging = false,
@@ -219,9 +245,11 @@ const WeekDayColumn = memo(function WeekDayColumn({
   date: string;
   today: string;
   sessions: PlannedStudySession[];
+  exams?: ExamDate[];
   onSelect: (session: PlannedStudySession) => void;
   onOpenDay: (date: string) => void;
   onAdd: (date: string) => void;
+  onSelectExam?: (exam: ExamDate) => void;
   layout?: "column" | "list";
   draggingSession?: PlannedStudySession | null;
   isDragging?: boolean;
@@ -293,23 +321,33 @@ const WeekDayColumn = memo(function WeekDayColumn({
       }
       className={`flex min-w-0 flex-col overflow-x-hidden rounded-xl px-2 py-2 transition-[background-color,box-shadow] duration-300 ease-out ${
         isToday
-          ? "bg-[#fffdf8]/90 shadow-[0_2px_12px_-8px_rgba(201,164,84,0.2)] ring-1 ring-[#c9a454]/15"
+          ? "bg-[#fff8e8]/75 shadow-[0_2px_16px_-8px_rgba(201,164,84,0.35)] ring-1 ring-[#c9a454]/45"
           : "bg-slate-50/30 shadow-[0_1px_0_rgba(15,26,51,0.03)]"
       } ${layout === "column" ? "min-h-[4.5rem] cursor-pointer" : ""} ${
-        isHovered && canDropHere ? "bg-[#fff8e8]/90 shadow-[0_4px_16px_-10px_rgba(201,164,84,0.25)] ring-1 ring-[#c9a454]/20" : ""
-      } ${isInvalidHover ? "bg-slate-100/40" : ""}`}
+        isToday && canAdd && !isHovered
+          ? "hover:bg-[#fff8e8]/90 hover:shadow-[0_4px_20px_-8px_rgba(201,164,84,0.38)]"
+          : ""
+      } ${
+        isHovered && canDropHere
+          ? "bg-[#fff8e8]/90 shadow-[0_4px_16px_-10px_rgba(201,164,84,0.25)] ring-1 ring-[#c9a454]/30"
+          : ""
+      } ${isInvalidHover ? "bg-slate-100/40 ring-0" : ""}`}
     >
       <div className="mb-2 flex items-center justify-between gap-1 pb-1.5">
         <button
           type="button"
           onClick={() => onOpenDay(date)}
-          className="min-w-0 truncate text-left text-[12px] font-medium text-[#0f1a33] transition-colors duration-200 hover:text-[#3b6ea8] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25"
+          className={`min-w-0 truncate text-left text-[12px] font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25 ${
+            isToday
+              ? "text-[#7a5a16]"
+              : "text-[#0f1a33] hover:text-[#3b6ea8] hover:underline"
+          }`}
         >
           {getDayShortLabel(date)}
         </button>
         <div className="flex shrink-0 items-center gap-0.5">
           {isToday ? (
-            <span className="rounded-full bg-[#fff3d6]/90 px-1.5 py-0.5 text-[12px] font-medium text-[#7a5a16]">
+            <span className="rounded-md bg-[#c9a454]/18 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#7a5a16] ring-1 ring-[#c9a454]/25">
               Hoy
             </span>
           ) : (
@@ -328,6 +366,14 @@ const WeekDayColumn = memo(function WeekDayColumn({
         </div>
       </div>
 
+      {exams.length > 0 ? (
+        <div className="mb-2 space-y-1">
+          {exams.map((exam) => (
+            <CalendarExamChip key={exam.id} exam={exam} onSelect={onSelectExam} />
+          ))}
+        </div>
+      ) : null}
+
       {sessions.length === 0 ? (
         canAdd ? (
           <button
@@ -339,7 +385,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
           </button>
         ) : (
           <p className="rounded-lg bg-slate-50/40 py-2 text-center text-[13px] font-medium text-slate-400">
-            Día pasado
+            {exams.length > 0 ? "Solo examen este día" : "Día pasado"}
           </p>
         )
       ) : (
@@ -437,6 +483,7 @@ const WeekSessionCard = memo(function WeekSessionCard({
               className="max-w-full !normal-case px-1 py-0.5 text-[7px] tracking-tight opacity-90 ring-0"
             />
           </div>
+          <SessionBankAreaLine session={session} className="mt-0.5" />
           <span className="block text-[12px] font-normal text-slate-400/90">
             {session.source === "manual" ? "Manual" : "Auto"}
           </span>

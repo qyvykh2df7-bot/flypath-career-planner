@@ -2,7 +2,8 @@
 
 import type { MouseEvent } from "react";
 import { Check, Plus } from "lucide-react";
-import type { PlannedStudySession } from "@/lib/study-planner/types";
+import type { ExamDate, PlannedStudySession } from "@/lib/study-planner/types";
+import { CalendarExamChip } from "./CalendarExamChip";
 import {
   calculateCompletedPlannedMinutes,
   calculatePlannedMinutes,
@@ -19,6 +20,7 @@ import { CalendarPeriodNav } from "./CalendarPeriodNav";
 import { getSessionTypeAccentClass } from "@/lib/study-planner/session-type-visual";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
+import { SessionBankAreaLine } from "../SessionBankAreaLine";
 import { ClassBookingCta } from "./ClassBookingCta";
 import { SessionSourceBadge } from "./SessionSourceBadge";
 import { SessionStatusBadge } from "./SessionStatusBadge";
@@ -26,9 +28,11 @@ import { SessionStatusBadge } from "./SessionStatusBadge";
 type StudyDayViewProps = {
   focusDate: string;
   sessions: PlannedStudySession[];
+  exams?: ExamDate[];
   selectedSessionId?: string | null;
   onFocusDateChange: (date: string) => void;
   onSelectSession: (session: PlannedStudySession) => void;
+  onSelectExam?: (exam: ExamDate) => void;
   onAddSession: () => void;
   canAddSession?: boolean;
 };
@@ -36,9 +40,11 @@ type StudyDayViewProps = {
 export function StudyDayView({
   focusDate,
   sessions,
+  exams = [],
   selectedSessionId,
   onFocusDateChange,
   onSelectSession,
+  onSelectExam,
   onAddSession,
   canAddSession = true,
 }: StudyDayViewProps) {
@@ -101,6 +107,19 @@ export function StudyDayView({
         </div>
       </section>
 
+      {exams.length > 0 ? (
+        <section className="space-y-2 rounded-xl border border-[#b45353]/20 bg-[#7a2e2e]/[0.04] px-3 py-2.5">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-[#7a2e2e]">
+            Exámenes este día
+          </p>
+          <div className="space-y-1.5">
+            {exams.map((exam) => (
+              <CalendarExamChip key={exam.id} exam={exam} onSelect={onSelectExam} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <div className="flex items-center justify-between gap-2 pt-0.5">
         <p className="text-[13px] font-medium text-slate-600">Agenda del día</p>
         {canAddSession ? (
@@ -134,7 +153,9 @@ export function StudyDayView({
             canAddSession ? "cursor-pointer hover:bg-slate-50/70" : ""
           }`}
         >
-          <p className="text-[15px] font-medium text-slate-700">Sin sesiones este día</p>
+          <p className="text-[15px] font-medium text-slate-700">
+            {exams.length > 0 ? "Sin sesiones de estudio este día" : "Sin sesiones este día"}
+          </p>
           <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">
             Pulsa aquí o usa el botón para añadir un bloque manual.
           </p>
@@ -173,8 +194,6 @@ export function StudyDayView({
               const time = session.startTime ?? "—";
               const isActive = selectedSessionId === session.id;
               const isDone = session.status === "completed";
-              const isSkipped = session.status === "skipped";
-
               return (
                 <li key={session.id} className="relative" data-planned-session-id={session.id}>
                   <span
@@ -199,9 +218,7 @@ export function StudyDayView({
                         ? "shadow-[0_6px_22px_-14px_rgba(15,26,51,0.14)] ring-1 ring-[#c9a454]/15"
                         : isDone
                           ? "bg-emerald-50/20 opacity-95 hover:bg-emerald-50/30"
-                          : isSkipped
-                            ? "bg-slate-50/50 opacity-85"
-                            : "hover:bg-white hover:shadow-[0_6px_20px_-14px_rgba(15,26,51,0.12)]"
+                          : "hover:bg-white hover:shadow-[0_6px_20px_-14px_rgba(15,26,51,0.12)]"
                     } focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3b6ea8]/25 focus-visible:ring-offset-1`}
                   >
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -231,6 +248,7 @@ export function StudyDayView({
                         className="!normal-case text-[8px] tracking-normal ring-0"
                       />
                     </p>
+                    <SessionBankAreaLine session={session} className="mt-0.5 px-0.5" />
                     {session.type === "class" ? <ClassBookingCta variant="card" /> : null}
                   </button>
                 </li>

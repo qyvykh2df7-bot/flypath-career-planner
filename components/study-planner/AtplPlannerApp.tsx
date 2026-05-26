@@ -26,7 +26,6 @@ import {
   getTodayDateString,
   getTodayPendingPlannedSessions,
 } from "@/lib/study-planner/calculations";
-import { ActivatedWeekPanel } from "./planning/ActivatedWeekPanel";
 
 export function AtplPlannerApp() {
   const {
@@ -52,7 +51,6 @@ export function AtplPlannerApp() {
     deleteSession,
     addPlannedSession,
     completePlannedSession,
-    skipPlannedSession,
     deletePlannedSession,
     updatePlannedSession,
     addMockResult,
@@ -66,6 +64,7 @@ export function AtplPlannerApp() {
     deleteErrorLogItem,
     addExamDate,
     deleteExamDate,
+    clearEvaluationData,
     applyGeneratedWeeklyPlan,
     clearVisibleWeekPendingPlanned,
     applyRecoveryPlanToCalendar,
@@ -184,11 +183,6 @@ export function AtplPlannerApp() {
     [applyRecoveryPlanToCalendar, today, goToCalendar, scrollToWeeklyCalendar],
   );
 
-  const openManualSessionDrawer = useCallback(() => {
-    setExternalCreateNonce((n) => n + 1);
-    scrollToWeeklyCalendar();
-  }, [scrollToWeeklyCalendar]);
-
   const goToEvaluation = useCallback(
     (options?: GoToEvaluationOptions) => {
       const section = options?.section;
@@ -245,7 +239,6 @@ export function AtplPlannerApp() {
             onGoToSubjects={goToSubjects}
             onGoToEvaluation={goToEvaluation}
             onCompletePlannedSession={completePlannedSession}
-            onSkipPlannedSession={skipPlannedSession}
             onAddStudySession={addSession}
           />
         ) : null}
@@ -253,26 +246,15 @@ export function AtplPlannerApp() {
         {activeTab === "calendar" ? (
           <div className="space-y-3">
             <div>
-              <p className="text-[13px] font-medium text-slate-500">Planificación</p>
-              <h2 className="mt-0.5 text-[19px] font-semibold tracking-tight text-[#0f1a33] sm:text-[21px]">
+              <h2 className="text-[19px] font-semibold tracking-tight text-[#0f1a33] sm:text-[21px]">
                 Calendario de estudio
               </h2>
-              <p className="mt-0.5 text-[13px] leading-snug text-slate-500">
-                {hasActiveWeek
-                  ? "Gestiona la semana activa y navega por día, semana o mes en el panel inferior."
-                  : "Genera tu semana automáticamente o crea sesiones manualmente desde el calendario."}
-              </p>
+              {!hasActiveWeek ? (
+                <p className="mt-1 text-[13px] leading-snug text-slate-500">
+                  Genera tu semana automáticamente o crea sesiones manualmente desde el calendario.
+                </p>
+              ) : null}
             </div>
-
-            {hasActiveWeek && !regenerateOpen ? (
-              <ActivatedWeekPanel
-                visibleWeekStartDate={visibleWeekStartDate}
-                weekPlanned={visibleWeekPlanned}
-                onRegenerate={() => setRegenerateOpen(true)}
-                onAddManual={openManualSessionDrawer}
-                onClearWeek={() => clearVisibleWeekPendingPlanned(visibleWeekStartDate)}
-              />
-            ) : null}
 
             {showPlanGenerator ? (
             <WeeklyPlanGenerator
@@ -302,8 +284,10 @@ export function AtplPlannerApp() {
             <div ref={weeklyCalendarRef} id="weekly-calendar" className="scroll-mt-4">
               <StudyPlannerCalendar
                 plannedSessions={modePlannedSessions}
+                examDates={modeExamDates}
                 studySessions={modeSessions}
                 mockResults={modeMockResults}
+                onDeleteExamDate={deleteExamDate}
                 weeklyGoalMinutes={weeklyGoalMinutes}
                 subjects={activeSubjects}
                 visibleWeekStartDate={visibleWeekStartDate}
@@ -312,10 +296,17 @@ export function AtplPlannerApp() {
                 onUpdatePlannedSession={updatePlannedSession}
                 onDeletePlannedSession={deletePlannedSession}
                 onCompletePlannedSession={completePlannedSession}
-                onSkipPlannedSession={skipPlannedSession}
                 onAddStudySession={addSession}
                 externalCreateNonce={externalCreateNonce}
                 externalCreateDate={today}
+                weekManagement={
+                  hasActiveWeek && !regenerateOpen
+                    ? {
+                        onRegenerate: () => setRegenerateOpen(true),
+                        onClearWeek: () => clearVisibleWeekPendingPlanned(visibleWeekStartDate),
+                      }
+                    : null
+                }
               />
             </div>
           </div>
@@ -357,6 +348,7 @@ export function AtplPlannerApp() {
             mode={mode}
             subjects={activeSubjects}
             sessions={modeSessions}
+            plannedSessions={modePlannedSessions}
             mockResults={modeMockResults}
             reviewItems={modeReviewItems}
             errorLogItems={modeErrorLogItems}
@@ -374,6 +366,7 @@ export function AtplPlannerApp() {
             onDeleteErrorLogItem={deleteErrorLogItem}
             onGoToCalendar={goToCalendar}
             onGoToSubjects={goToSubjects}
+            onClearEvaluationData={clearEvaluationData}
           />
         ) : null}
 

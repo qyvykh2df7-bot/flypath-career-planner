@@ -7,7 +7,7 @@ export function getSessionDisplayStatus(
   today: string,
 ): SessionDisplayStatus {
   if (session.status === "completed") return "completed";
-  if (session.status === "skipped") return "skipped";
+  if (session.status === "skipped") return "pending";
   if (session.status === "in_progress") return "in_progress";
   if (session.date === today && session.status === "pending") return "in_progress";
   return "pending";

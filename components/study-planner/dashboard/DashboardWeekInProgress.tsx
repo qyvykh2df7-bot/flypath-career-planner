@@ -58,15 +58,14 @@ function TodayTimelineItem({
   const time = session.startTime ?? "—";
   const status = normalizePlannedSessionStatus(session.status) ?? "pending";
   const isDone = status === "completed";
-  const isSkipped = status === "skipped";
   const isInProgress = status === "in_progress";
-  const isPending = isPendingLikeStatus(status);
+  const isPending = isPendingLikeStatus(status) || status === "skipped";
 
   const typeLabel = getSessionTypeShortLabel(session.type);
 
   const subjectClass = isDone
     ? "text-emerald-900 line-through decoration-emerald-300/80"
-    : isSkipped || isDimmed
+    : isDimmed
       ? "text-slate-500"
       : "text-[#0f1a33]";
 
@@ -74,10 +73,6 @@ function TodayTimelineItem({
     isNextUp && isPending ? (
       <span className="rounded-full bg-[#c9a454] px-2 py-0.5 text-[12px] font-bold uppercase leading-none tracking-wide text-[#0f1a33]">
         Ahora
-      </span>
-    ) : isSkipped ? (
-      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[12px] font-semibold leading-none text-amber-900">
-        Saltada
       </span>
     ) : isInProgress ? (
       <span className="rounded-full bg-[#e8eef8] px-2 py-0.5 text-[12px] font-semibold leading-none text-[#0f1a33]">
@@ -93,9 +88,7 @@ function TodayTimelineItem({
         className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-[background-color,box-shadow,ring-color] duration-200 ${
           isDone
             ? "bg-emerald-50/60"
-            : isSkipped
-              ? "bg-amber-50/30"
-              : isNextUp
+            : isNextUp
                 ? "bg-[#fffdf8] shadow-[0_4px_14px_-8px_rgba(201,164,84,0.38)] ring-2 ring-[#c9a454]/45"
                 : isInProgress
                   ? "bg-[#fffdf8]/95 ring-1 ring-[#c9a454]/25"
@@ -106,9 +99,7 @@ function TodayTimelineItem({
           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ring-1 ${
             isDone
               ? "bg-emerald-600 text-white ring-emerald-600"
-              : isSkipped
-                ? "bg-amber-100 text-amber-800 ring-amber-200/80"
-                : isNextUp
+              : isNextUp
                   ? "bg-[#c9a454] text-white ring-[#c9a454]"
                   : isInProgress
                     ? "bg-[#c9a454]/25 text-[#7a5a16] ring-[#c9a454]/40"
@@ -192,7 +183,7 @@ export function DashboardWeekInProgress({
     for (const s of todaySessions) {
       const status = normalizePlannedSessionStatus(s.status) ?? "pending";
       if (status === "completed") done += 1;
-      else if (status !== "skipped") pending += 1;
+      else pending += 1;
     }
     return { done, pending };
   }, [todaySessions]);
@@ -267,9 +258,8 @@ export function DashboardWeekInProgress({
               const isDimmed =
                 !isDone &&
                 !isNextUp &&
-                status !== "skipped" &&
                 status !== "in_progress" &&
-                isPendingLikeStatus(status);
+                (isPendingLikeStatus(status) || status === "skipped");
 
               return (
                 <TodayTimelineItem

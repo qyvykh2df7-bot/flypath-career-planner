@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type {
   ErrorLogItem,
   ExamDate,
   MockResult,
+  PlannedStudySession,
   ReviewItem,
   StudySession,
   StudySubject,
@@ -20,6 +21,8 @@ import {
   formatPriorityContextLine,
   getEvaluationReadinessChip,
 } from "@/lib/study-planner/evaluation-presentation";
+import { hasSubjectChartDataSource } from "@/lib/study-planner/subject-chart-data-sources";
+import { plannerBtnGhost } from "@/lib/study-planner/planner-ui";
 
 const CHIP_CLASS = {
   ready: "bg-emerald-50/90 text-emerald-800 ring-emerald-200/45",
@@ -31,24 +34,29 @@ type EvaluationHeroProps = {
   subjects: StudySubject[];
   sessions: StudySession[];
   mockResults: MockResult[];
+  plannedSessions: PlannedStudySession[];
   errorLogItems: ErrorLogItem[];
   reviewItems: ReviewItem[];
   examDates: ExamDate[];
   summary: EvaluationSummary;
   coach: EvaluationCoachRecommendation;
+  onClearEvaluationData?: () => void;
 };
 
 export function EvaluationHero({
   subjects,
   sessions,
   mockResults,
+  plannedSessions,
   errorLogItems,
   reviewItems: _reviewItems,
   examDates,
   summary,
   coach,
+  onClearEvaluationData,
 }: EvaluationHeroProps) {
   const today = getTodayDateString();
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const readiness = useMemo(
     () =>
@@ -56,15 +64,25 @@ export function EvaluationHero({
         subjectIds: subjects.map((s) => s.id),
         sessions,
         mockResults,
+        errorLogItems,
+        reviewItems: _reviewItems,
       }),
-    [subjects, sessions, mockResults],
+    [subjects, sessions, mockResults, errorLogItems, _reviewItems],
   );
 
   const avgReadiness = useMemo(() => {
-    const withData = readiness.filter((r) => r.level !== "no_data");
-    if (withData.length === 0) return null;
-    return Math.round(withData.reduce((sum, r) => sum + r.score, 0) / withData.length);
-  }, [readiness]);
+    const scored = readiness.filter((r) =>
+      hasSubjectChartDataSource({
+        subjectId: r.subjectId,
+        sessions,
+        mockResults,
+        plannedSessions,
+        examDates,
+      }),
+    );
+    if (scored.length === 0) return null;
+    return Math.round(scored.reduce((sum, r) => sum + r.score, 0) / scored.length);
+  }, [readiness, sessions, mockResults, plannedSessions, examDates]);
 
   const chip = getEvaluationReadinessChip(summary);
 
@@ -73,27 +91,40 @@ export function EvaluationHero({
       buildEvaluationPriorityGroups({
         subjects,
         readiness,
+        sessions,
         mockResults,
         errorLogItems,
         examDates,
+        plannedSessions,
         today,
       }),
-    [subjects, readiness, mockResults, errorLogItems, examDates, today],
+    [subjects, readiness, sessions, mockResults, errorLogItems, examDates, plannedSessions, today],
   );
 
-  const contextLine =
-    formatPriorityContextLine(priorityGroups) ?? coach.message;
+  const contextLine = summary.hasMeaningfulStudyData
+    ? formatPriorityContextLine(priorityGroups, true) ?? coach.message
+    : "Sin datos suficientes todavía. Registra sesiones en bitácora o simulacros para ver un diagnóstico fiable.";
+
+  const handleClear = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      return;
+    }
+    onClearEvaluationData?.();
+    setConfirmClear(false);
+  };
 
   if (!summary.hasEnoughData) {
     return (
       <section className="rounded-xl bg-gradient-to-br from-[#fff9ee]/80 via-white to-white px-4 py-3.5 ring-1 ring-[#c9a454]/15">
         <p className="text-[12px] font-medium text-[#7a5a16]">Preparación general</p>
         <p className="mt-1 text-[14px] font-medium text-[#0f1a33]">
-          Completa un simulacro en el calendario para ver tu diagnóstico
+          Sin datos suficientes todavía
         </p>
         <p className="mt-1 text-[13px] text-slate-600">
-          Aquí verás preparación, riesgos y prioridades cuando haya datos.
+          Registra un simulacro o sesiones en bitácora para ver preparación, riesgos y prioridades.
         </p>
+        <p className="mt-2 text-[12px] leading-snug text-slate-500">{summary.dataSourceLine}</p>
       </section>
     );
   }
@@ -107,9 +138,9 @@ export function EvaluationHero({
           </p>
           <p className="mt-0.5 flex items-baseline gap-1 tabular-nums">
             <span className="text-[32px] font-semibold leading-none text-[#0f1a33]">
-              {avgReadiness ?? "—"}
+              {summary.hasMeaningfulStudyData ? (avgReadiness ?? "—") : "—"}
             </span>
-            {avgReadiness !== null ? (
+            {summary.hasMeaningfulStudyData && avgReadiness !== null ? (
               <span className="text-[16px] font-medium text-slate-400">%</span>
             ) : null}
           </p>
@@ -122,6 +153,11 @@ export function EvaluationHero({
       </div>
 
       <p className="mt-2 max-w-xl text-[13px] leading-snug text-slate-600">{contextLine}</p>
+
+      <p className="mt-2 rounded-md bg-slate-50/80 px-2.5 py-1.5 text-[12px] leading-snug text-slate-600 ring-1 ring-slate-200/30">
+        <span className="font-medium text-slate-500">Fuente de datos: </span>
+        {summary.dataSourceLine.replace(/^Calculado con: /, "")}
+      </p>
 
       <div className="mt-2.5 flex flex-wrap gap-2">
         <div className="rounded-md bg-white/80 px-2 py-1 ring-1 ring-slate-200/35">
@@ -153,6 +189,24 @@ export function EvaluationHero({
           </p>
         </div>
       </div>
+
+      {onClearEvaluationData ? (
+        <div className="mt-3 border-t border-slate-100/80 pt-2.5">
+          <button
+            type="button"
+            onClick={handleClear}
+            className={`${plannerBtnGhost} text-[12px] text-slate-500 hover:text-[#7a2e2e]`}
+          >
+            {confirmClear ? "Confirmar: limpiar bitácora y simulacros" : "Limpiar datos de evaluación"}
+          </button>
+          {confirmClear ? (
+            <p className="mt-1 text-[11px] text-slate-500">
+              Se borrarán sesiones de bitácora, simulacros, repasos y errores. El calendario y las
+              fechas de examen no se modifican.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

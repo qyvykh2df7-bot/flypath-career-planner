@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 import type { PlannedStudySession } from "@/lib/study-planner/types";
 import {
-  PLANNED_STATUS_LABELS,
   formatShortDate,
   getDayShortLabel,
   minutesToHoursLabel,
 } from "@/lib/study-planner/calculations";
+import { getPlannedStatusDisplayLabel } from "@/lib/study-planner/planner-session-status";
 import { getSessionTypeLabel } from "@/lib/study-planner/labels";
 import { plannerBtnGhost, plannerBtnPrimary } from "@/lib/study-planner/planner-ui";
 import { getSubjectById } from "@/lib/study-planner/subjects";
@@ -17,7 +17,6 @@ type PlannedSessionActionDrawerProps = {
   session: PlannedStudySession | null;
   onClose: () => void;
   onComplete: (id: string) => void;
-  onSkip: (id: string) => void;
   onDelete: (id: string) => void;
 };
 
@@ -25,7 +24,6 @@ export function PlannedSessionActionDrawer({
   session,
   onClose,
   onComplete,
-  onSkip,
   onDelete,
 }: PlannedSessionActionDrawerProps) {
   useEffect(() => {
@@ -40,15 +38,13 @@ export function PlannedSessionActionDrawer({
   if (!session) return null;
 
   const subjectName = getSubjectById(session.subjectId)?.name ?? session.subjectId;
-  const isPending = session.status === "pending" || session.status === "in_progress";
+  const isPending =
+    session.status === "pending" ||
+    session.status === "in_progress" ||
+    session.status === "skipped";
 
   const handleComplete = () => {
     onComplete(session.id);
-    onClose();
-  };
-
-  const handleSkip = () => {
-    onSkip(session.id);
     onClose();
   };
 
@@ -84,7 +80,7 @@ export function PlannedSessionActionDrawer({
               {minutesToHoursLabel(session.plannedDurationMinutes)} · {getSessionTypeLabel(session.type)}
             </p>
             <p className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-semibold uppercase text-slate-600">
-              {PLANNED_STATUS_LABELS[session.status]}
+              {getPlannedStatusDisplayLabel(session.status)}
             </p>
           </div>
           <button
@@ -105,14 +101,9 @@ export function PlannedSessionActionDrawer({
 
         <div className="flex flex-col gap-2">
           {isPending ? (
-            <>
-              <button type="button" onClick={handleComplete} className={plannerBtnPrimary}>
-                Completar sesión
-              </button>
-              <button type="button" onClick={handleSkip} className={plannerBtnGhost}>
-                Saltar sesión
-              </button>
-            </>
+            <button type="button" onClick={handleComplete} className={plannerBtnPrimary}>
+              Completar sesión
+            </button>
           ) : null}
           <button
             type="button"

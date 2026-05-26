@@ -67,7 +67,6 @@ type StudyDashboardProps = {
   onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
   onGoToEvaluation?: (options?: GoToEvaluationOptions) => void;
   onCompletePlannedSession: (id: string) => void;
-  onSkipPlannedSession: (id: string) => void;
   onAddStudySession: (session: StudySession) => void;
 };
 
@@ -87,7 +86,6 @@ export function StudyDashboard({
   onGoToSubjects,
   onGoToEvaluation,
   onCompletePlannedSession,
-  onSkipPlannedSession,
   onAddStudySession,
 }: StudyDashboardProps) {
   const today = getTodayDateString();
@@ -262,7 +260,6 @@ export function StudyDashboard({
           session={focusSession}
           onClose={() => setFocusSession(null)}
           onComplete={onCompletePlannedSession}
-          onSkip={onSkipPlannedSession}
           onLogStudy={onAddStudySession}
         />
       </div>

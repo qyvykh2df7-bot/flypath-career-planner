@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
+  ExamDate,
   MockResult,
   PlannedStudySession,
   StudySession,
   StudySubject,
 } from "@/lib/study-planner/types";
+import { getExamsForDate } from "@/lib/study-planner/calendar/exams-by-date";
 import { formatShortDate, getTodayDateString } from "@/lib/study-planner/calculations";
 import {
   getDayCalendarInsight,
@@ -31,6 +33,8 @@ import { PlannedSessionDrawer, type PlannedSessionDrawerMode } from "./PlannedSe
 import { StudyDayView } from "./StudyDayView";
 import { StudyMonthView } from "./StudyMonthView";
 import { StudyWeekView } from "./StudyWeekView";
+import { ExamDateInfoSheet } from "./ExamDateInfoSheet";
+import type { WeekManagementActions } from "./WeekViewManagementBar";
 import {
   CALENDAR_VIEW_STORAGE_KEY,
   DEFAULT_CALENDAR_VIEW,
@@ -39,20 +43,22 @@ import {
 
 type StudyPlannerCalendarProps = {
   plannedSessions: PlannedStudySession[];
+  examDates?: ExamDate[];
   studySessions?: StudySession[];
   mockResults?: MockResult[];
   weeklyGoalMinutes?: number;
   subjects: StudySubject[];
+  onDeleteExamDate?: (id: string) => void;
   visibleWeekStartDate: string;
   onVisibleWeekStartChange: (weekStart: string) => void;
   onAddPlannedSession: (session: PlannedStudySession) => void;
   onUpdatePlannedSession: (id: string, patch: Partial<Omit<PlannedStudySession, "id">>) => void;
   onDeletePlannedSession: (id: string) => void;
   onCompletePlannedSession: (plannedId: string, overrides?: CompletePlannedOverrides) => void;
-  onSkipPlannedSession: (plannedId: string) => void;
   onAddStudySession: (session: StudySession) => void;
   externalCreateNonce?: number;
   externalCreateDate?: string;
+  weekManagement?: WeekManagementActions | null;
 };
 
 type MoveSessionResult = { ok: true; message: string } | { ok: false; message: string };
@@ -66,20 +72,22 @@ function loadStoredView(): CalendarViewMode {
 
 export function StudyPlannerCalendar({
   plannedSessions,
+  examDates = [],
   studySessions = [],
   mockResults = [],
   weeklyGoalMinutes = 0,
   subjects,
+  onDeleteExamDate,
   visibleWeekStartDate,
   onVisibleWeekStartChange,
   onAddPlannedSession,
   onUpdatePlannedSession,
   onDeletePlannedSession,
   onCompletePlannedSession,
-  onSkipPlannedSession,
   onAddStudySession,
   externalCreateNonce = 0,
   externalCreateDate,
+  weekManagement = null,
 }: StudyPlannerCalendarProps) {
   const today = getTodayDateString();
 
@@ -92,6 +100,7 @@ export function StudyPlannerCalendar({
   const [drawerMode, setDrawerMode] = useState<PlannedSessionDrawerMode>("create");
   const [drawerDate, setDrawerDate] = useState(today);
   const [editingSession, setEditingSession] = useState<PlannedStudySession | null>(null);
+  const [selectedExam, setSelectedExam] = useState<ExamDate | null>(null);
 
   useEffect(() => {
     setViewMode(loadStoredView());
@@ -107,6 +116,11 @@ export function StudyPlannerCalendar({
   const daySessions = useMemo(
     () => getPlannedSessionsForDate(plannedSessions, focusDate),
     [plannedSessions, focusDate],
+  );
+
+  const dayExams = useMemo(
+    () => getExamsForDate(examDates, focusDate),
+    [examDates, focusDate],
   );
 
   const weekInsight = useMemo(
@@ -194,6 +208,7 @@ export function StudyPlannerCalendar({
           type: session.type,
           plannedDurationMinutes: session.plannedDurationMinutes,
           goal: session.goal,
+          bankArea: session.bankArea,
         });
       } else {
         onAddPlannedSession(session);
@@ -265,9 +280,11 @@ export function StudyPlannerCalendar({
         <StudyDayView
           focusDate={focusDate}
           sessions={daySessions}
+          exams={dayExams}
           selectedSessionId={selectedSession?.id}
           onFocusDateChange={handleFocusDateChange}
           onSelectSession={setSelectedSession}
+          onSelectExam={setSelectedExam}
           onAddSession={() => openCreateDrawer(focusDate)}
           canAddSession={canSchedulePlannedSessionOnDate(focusDate, today)}
         />
@@ -276,6 +293,7 @@ export function StudyPlannerCalendar({
       {viewMode === "week" ? (
         <StudyWeekView
           plannedSessions={plannedSessions}
+          examDates={examDates}
           visibleWeekStartDate={visibleWeekStartDate}
           onVisibleWeekStartChange={(ws) => {
             onVisibleWeekStartChange(ws);
@@ -286,17 +304,21 @@ export function StudyPlannerCalendar({
           onOpenDay={handleOpenDayFromWeek}
           onAddSessionOnDate={openCreateDrawer}
           onMoveSessionOnDate={handleMoveSessionInWeek}
+          onSelectExam={setSelectedExam}
+          weekManagement={weekManagement}
         />
       ) : null}
 
       {viewMode === "month" ? (
         <StudyMonthView
           plannedSessions={plannedSessions}
+          examDates={examDates}
           visibleMonthStart={visibleMonthStart}
           today={today}
           onVisibleMonthStartChange={setVisibleMonthStart}
           onCreateSessionOnDate={openCreateDrawer}
           onOpenDay={handleOpenDayFromMonth}
+          onSelectExam={setSelectedExam}
         />
       ) : null}
 
@@ -305,7 +327,6 @@ export function StudyPlannerCalendar({
         focusContext={focusContext}
         onClose={() => setSelectedSession(null)}
         onComplete={onCompletePlannedSession}
-        onSkip={onSkipPlannedSession}
         onLogStudy={onAddStudySession}
         onEdit={openEditDrawer}
         onDelete={handleDeleteFromFocus}
@@ -321,6 +342,12 @@ export function StudyPlannerCalendar({
         session={editingSession}
         onClose={() => setDrawerOpen(false)}
         onSave={handleDrawerSave}
+      />
+
+      <ExamDateInfoSheet
+        exam={selectedExam}
+        onClose={() => setSelectedExam(null)}
+        onDelete={onDeleteExamDate}
       />
     </section>
   );

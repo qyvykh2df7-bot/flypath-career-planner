@@ -30,6 +30,19 @@ function metrics(plannedSessions: PlannedStudySession[]) {
 }
 
 describe("planned-log-sync", () => {
+  it("completing a bank session can persist bankArea on the planned block", () => {
+    const plannedSessions = [
+      planned({ id: "p-bank", status: "pending", type: "question_bank", subjectId: "atpl-meteorology" }),
+    ];
+    const result = completePlannedSessionWithLog(plannedSessions, [], "p-bank", {
+      bankArea: { code: "050-04", title: "Clouds and Fog" },
+    });
+    expect(result?.plannedSessions[0]?.bankArea).toEqual({
+      code: "050-04",
+      title: "Clouds and Fog",
+    });
+  });
+
   it("1. completing a planned session marks completed and raises metrics", () => {
     const plannedSessions = [planned({ id: "p1", status: "pending" })];
     const result = completePlannedSessionWithLog(plannedSessions, [], "p1");

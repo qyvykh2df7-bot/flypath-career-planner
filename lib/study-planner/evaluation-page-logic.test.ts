@@ -19,6 +19,8 @@ describe("evaluation-page-logic", () => {
       sessions: [],
     });
     expect(summary.hasEnoughData).toBe(false);
+    expect(summary.hasMeaningfulStudyData).toBe(false);
+    expect(summary.dataSourceLine).toMatch(/Sin registros/);
     expect(formatEvaluationDashboardLine(summary)).toBeNull();
   });
 

@@ -105,6 +105,7 @@ describe("subjects-page-logic", () => {
         score: 85,
         pedagogicalLabel: "Preparación sólida",
         confidence: "high",
+        isProvisional: false,
         totalStudyMinutes: 500,
         mockCount: 3,
         daysSinceLastSession: 1,

@@ -185,14 +185,6 @@ export function buildWeeklyPlanAlerts(params: {
     });
   }
 
-  if (completion.skippedCount >= 2) {
-    alerts.push({
-      id: "skipped-sessions",
-      severity: "warn",
-      message: `Has saltado ${completion.skippedCount} sesiones esta semana.`,
-    });
-  }
-
   if (
     !allStillPending &&
     isBehindSchedule &&

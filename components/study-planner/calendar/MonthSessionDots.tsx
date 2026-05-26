@@ -15,17 +15,17 @@ export function MonthSessionDots({ sessions }: MonthSessionDotsProps) {
   const overflow = sessions.length - sorted.length;
 
   return (
-    <div className="mt-0.5 flex flex-wrap items-center gap-px" aria-hidden>
+    <div className="mt-1 flex flex-wrap items-center gap-1" aria-hidden>
       {sorted.map((s) => (
         <span
           key={s.id}
-          className={`h-1 w-1 rounded-full ${getSessionTypeDotClass(s.type)} ${
-            s.status === "completed" ? "opacity-40" : "opacity-90"
+          className={`h-2 w-2 shrink-0 rounded-full ${getSessionTypeDotClass(s.type)} ${
+            s.status === "completed" ? "opacity-45" : "opacity-95"
           }`}
         />
       ))}
       {overflow > 0 ? (
-        <span className="text-[8px] font-medium text-slate-400">+{overflow}</span>
+        <span className="text-[9px] font-semibold text-slate-500">+{overflow}</span>
       ) : null}
     </div>
   );

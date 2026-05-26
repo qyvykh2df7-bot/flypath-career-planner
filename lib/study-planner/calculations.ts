@@ -16,6 +16,7 @@ import {
   formatDateLocal,
   getCurrentWeekStart,
   getExpectedProgressPercentForDate,
+  getPlannedSessionsForWeek,
   getWeekDates,
   getWeekRange,
 } from "./date-utils";
@@ -49,8 +50,11 @@ export function getCurrentWeekRange(): { start: string; end: string } {
   return getWeekRange(getCurrentWeekStart());
 }
 
-export function getSessionsForCurrentWeek(sessions: StudySession[]): StudySession[] {
-  const { start, end } = getCurrentWeekRange();
+export function getSessionsForCurrentWeek(
+  sessions: StudySession[],
+  today: string = getTodayDateString(),
+): StudySession[] {
+  const { start, end } = getWeekRange(getCurrentWeekStart(today));
   return sessions.filter((s) => s.date >= start && s.date <= end);
 }
 
@@ -770,8 +774,9 @@ export function calculateWeeklyPlanCompletion(
   weeklyGoalMinutes: number = 0,
   today: string = getTodayDateString(),
 ): WeeklyPlanCompletion {
-  const weekSessions = getCurrentWeekPlannedSessions(plannedSessions);
-  const weekLoggedSessions = getSessionsForCurrentWeek(studySessions);
+  const weekStart = getCurrentWeekStart(today);
+  const weekSessions = getPlannedSessionsForWeek(plannedSessions, weekStart);
+  const weekLoggedSessions = getSessionsForCurrentWeek(studySessions, today);
   const actualLoggedMinutes = calculateTotalStudyMinutes(weekLoggedSessions);
   const hasPlan = weekSessions.length > 0;
   const hasLoggedStudyThisWeek = actualLoggedMinutes > 0;
@@ -794,7 +799,6 @@ export function calculateWeeklyPlanCompletion(
     });
   }
 
-  const weekStart = getCurrentWeekStart(today);
   const metrics = getPlannerMetrics(plannedSessions, {
     today,
     weekStartDate: weekStart,

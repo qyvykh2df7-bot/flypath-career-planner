@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, Clock, X } from "lucide-react";
+import { ChevronDown, Clock, X } from "lucide-react";
+import type { AtplBankArea } from "@/lib/study-planner/atpl-bank-areas";
+import { formatBankAreaLabel } from "@/lib/study-planner/atpl-bank-areas";
 import type {
   PlannedStudySession,
   StudySession,
@@ -27,13 +29,13 @@ import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "./SessionTypeBadge";
 import { SessionSourceBadge } from "./calendar/SessionSourceBadge";
 import { SessionStatusBadge } from "./calendar/SessionStatusBadge";
+import { BankAreaField } from "./BankAreaField";
 
 type StudySessionFocusSheetProps = {
   session: PlannedStudySession | null;
   focusContext?: SessionFocusContext | null;
   onClose: () => void;
   onComplete: (id: string, overrides?: CompletePlannedOverrides) => void;
-  onSkip: (id: string) => void;
   /** Reservado: registrar en bitácora sin completar la sesión planificada (UI oculta hasta implementar). */
   onLogStudy?: (session: StudySession) => void;
   onEdit?: (session: PlannedStudySession) => void;
@@ -65,7 +67,6 @@ export function StudySessionFocusSheet({
   focusContext,
   onClose,
   onComplete,
-  onSkip,
   onLogStudy: _onLogStudy,
   onEdit,
   onDelete,
@@ -78,6 +79,7 @@ export function StudySessionFocusSheet({
   const [quality, setQuality] = useState<StudySessionQuality>("good");
   const [completionNotes, setCompletionNotes] = useState("");
   const [mockScore, setMockScore] = useState("");
+  const [bankArea, setBankArea] = useState<AtplBankArea | null>(null);
 
   useEffect(() => {
     if (!session) {
@@ -90,6 +92,7 @@ export function StudySessionFocusSheet({
     setQuality("good");
     setCompletionNotes(session.goal ?? "");
     setMockScore("");
+    setBankArea(session.bankArea ?? null);
     setTimerRunning(false);
     setElapsedSec(0);
     setTimerOpen(false);
@@ -113,7 +116,10 @@ export function StudySessionFocusSheet({
   if (!session) return null;
 
   const subjectName = getSubjectById(session.subjectId)?.name ?? session.subjectId;
-  const isPending = session.status === "pending" || session.status === "in_progress";
+  const isPending =
+    session.status === "pending" ||
+    session.status === "in_progress" ||
+    session.status === "skipped";
   const plannedLabel = minutesToHoursLabel(session.plannedDurationMinutes);
 
   const handleComplete = () => {
@@ -128,12 +134,10 @@ export function StudySessionFocusSheet({
         overrides.mockScore = score;
       }
     }
+    if (session.type === "question_bank" && bankArea) {
+      overrides.bankArea = bankArea;
+    }
     onComplete(session.id, overrides);
-    onClose();
-  };
-
-  const handleSkip = () => {
-    onSkip(session.id);
     onClose();
   };
 
@@ -217,29 +221,6 @@ export function StudySessionFocusSheet({
                 </div>
               </div>
 
-              {focusContext.relatedSessions.length > 0 ? (
-                <div className="mt-3 border-t border-slate-200/80 pt-2.5">
-                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">
-                    Próximas de {subjectName}
-                  </p>
-                  <ul className="mt-1.5 space-y-1">
-                    {focusContext.relatedSessions.map((rel) => (
-                      <li key={rel.id}>
-                        <button
-                          type="button"
-                          onClick={() => onSelectRelated?.(rel)}
-                          className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-[13px] text-slate-700 hover:bg-white"
-                        >
-                          <span>
-                            {getDayShortLabel(rel.date)} · {getSessionTypeShortLabel(rel.type)}
-                          </span>
-                          <ChevronRight className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
             </section>
           ) : null}
 
@@ -248,6 +229,14 @@ export function StudySessionFocusSheet({
               <dt className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Tipo</dt>
               <dd className="mt-0.5 font-medium text-[#0f1a33]">{getSessionTypeLabel(session.type)}</dd>
             </div>
+            {session.type === "question_bank" && session.bankArea ? (
+              <div className="col-span-2">
+                <dt className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Área</dt>
+                <dd className="mt-0.5 font-medium text-[#0f1a33]">
+                  {formatBankAreaLabel(session.bankArea)}
+                </dd>
+              </div>
+            ) : null}
             <div>
               <dt className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Origen</dt>
               <dd className="mt-0.5 font-medium text-[#0f1a33]">
@@ -301,7 +290,7 @@ export function StudySessionFocusSheet({
                 />
               </label>
               <div>
-                <span className="text-[12px] font-medium text-slate-500">Calidad</span>
+                <span className="text-[12px] font-medium text-slate-500">Calidad de la sesión</span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {SESSION_QUALITY_OPTIONS.map((opt) => (
                     <button
@@ -319,6 +308,15 @@ export function StudySessionFocusSheet({
                   ))}
                 </div>
               </div>
+              {session.type === "question_bank" ? (
+                <BankAreaField
+                  subjectId={session.subjectId}
+                  value={bankArea}
+                  onChange={setBankArea}
+                  labelClass="text-[12px] font-medium text-slate-500"
+                  fieldClass="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[14px]"
+                />
+              ) : null}
               {session.type === "mock" ? (
                 <label className="block text-[12px]">
                   <span className="font-medium text-slate-500">Resultado simulacro (%)</span>
@@ -348,14 +346,9 @@ export function StudySessionFocusSheet({
 
           <div className="flex flex-col gap-2">
             {isPending ? (
-              <>
-                <button type="button" onClick={handleComplete} className={plannerBtnPrimary}>
-                  Marcar completada
-                </button>
-                <button type="button" onClick={handleSkip} className={plannerBtnGhost}>
-                  Saltar sesión
-                </button>
-              </>
+              <button type="button" onClick={handleComplete} className={plannerBtnPrimary}>
+                Marcar completada
+              </button>
             ) : null}
             {onEdit ? (
               <button type="button" onClick={() => onEdit(session)} className={plannerBtnGhost}>

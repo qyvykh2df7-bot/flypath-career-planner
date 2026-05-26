@@ -130,11 +130,10 @@ export function hasRealStudyDataFromStats(stats: Pick<SubjectStudyStats, "sessio
 }
 
 export function hasRealStudyDataFromReadiness(readiness: SubjectReadiness): boolean {
-  const { factors, level } = readiness;
+  const { factors } = readiness;
   if (factors.totalStudyMinutes > 0) return true;
   if (factors.mockCount > 0) return true;
-  if (factors.daysSinceLastSession !== null) return true;
-  return level !== "no_data";
+  return false;
 }
 
 export function defaultProgressForDeclaredStage(stage: DeclaredSubjectStage): number {

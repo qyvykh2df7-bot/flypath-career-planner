@@ -23,6 +23,12 @@ export function isPendingLikeStatus(status: PlannedStudySessionStatus): boolean 
   return status === "pending" || status === "in_progress";
 }
 
+/** Etiqueta de estado para UI (legacy `skipped` se muestra como pendiente). */
+export function getPlannedStatusDisplayLabel(status: PlannedStudySessionStatus): string {
+  if (status === "skipped") return PLANNED_STATUS_LABELS.pending;
+  return PLANNED_STATUS_LABELS[status];
+}
+
 export function isCountableAsCompleted(status: PlannedStudySessionStatus): boolean {
   return status === "completed";
 }

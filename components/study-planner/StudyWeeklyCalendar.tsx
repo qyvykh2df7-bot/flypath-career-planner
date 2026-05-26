@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import type { PlannedStudySession, StudySession } from "@/lib/study-planner/types";
 import {
-  PLANNED_STATUS_LABELS,
   calculateCompletedPlannedMinutes,
   calculatePlannedMinutes,
   comparePlannedByStartTime,
@@ -22,6 +21,7 @@ import {
   getWeekKind,
   type WeekKind,
 } from "@/lib/study-planner/date-utils";
+import { getPlannedStatusDisplayLabel } from "@/lib/study-planner/planner-session-status";
 import { plannerBtnGhost } from "@/lib/study-planner/planner-ui";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { getSessionTypeAccentClass } from "@/lib/study-planner/session-type-visual";
@@ -33,7 +33,6 @@ type StudyWeeklyCalendarProps = {
   visibleWeekStartDate: string;
   onVisibleWeekStartChange: (weekStart: string) => void;
   onCompletePlannedSession: (plannedId: string) => void;
-  onSkipPlannedSession: (plannedId: string) => void;
   onAddStudySession: (session: StudySession) => void;
 };
 
@@ -63,8 +62,6 @@ function accentBorder(status: PlannedStudySession["status"]): string {
   switch (status) {
     case "completed":
       return "border-l-emerald-500";
-    case "skipped":
-      return "border-l-slate-300";
     default:
       return "border-l-[#c9a454]";
   }
@@ -74,8 +71,6 @@ function statusBadgeClass(status: PlannedStudySession["status"]): string {
   switch (status) {
     case "completed":
       return "bg-emerald-50 text-emerald-800";
-    case "skipped":
-      return "bg-slate-100 text-slate-500";
     default:
       return "bg-slate-100 text-slate-600";
   }
@@ -86,7 +81,6 @@ export function StudyWeeklyCalendar({
   visibleWeekStartDate,
   onVisibleWeekStartChange,
   onCompletePlannedSession,
-  onSkipPlannedSession,
   onAddStudySession,
 }: StudyWeeklyCalendarProps) {
   const today = getTodayDateString();
@@ -190,7 +184,6 @@ export function StudyWeeklyCalendar({
         session={selectedSession}
         onClose={() => setSelectedSession(null)}
         onComplete={onCompletePlannedSession}
-        onSkip={onSkipPlannedSession}
         onLogStudy={onAddStudySession}
       />
     </>
@@ -274,7 +267,7 @@ function CompactSessionCard({
             {session.status === "completed" ? (
               <Check className="mr-0.5 inline h-2 w-2" aria-hidden />
             ) : null}
-            {PLANNED_STATUS_LABELS[session.status]}
+            {getPlannedStatusDisplayLabel(session.status)}
           </span>
         </div>
         <p className="mt-1 flex flex-wrap items-center gap-1 text-[12px] tabular-nums text-slate-500">

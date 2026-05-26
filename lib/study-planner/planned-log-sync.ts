@@ -1,3 +1,4 @@
+import type { AtplBankArea } from "./atpl-bank-areas";
 import type {
   MockResult,
   PlannedStudySession,
@@ -13,6 +14,8 @@ export type CompletePlannedOverrides = {
   notes?: string;
   /** Si la sesión es simulacro de examen, registra resultado en Evaluación. */
   mockScore?: number;
+  /** Área de banco al completar (sesiones question_bank). */
+  bankArea?: AtplBankArea;
 };
 
 export function buildMockResultFromPlannedCompletion(
@@ -42,6 +45,7 @@ export function clearPlannedCompletion(planned: PlannedStudySession): PlannedStu
   };
   if (planned.startTime) next.startTime = planned.startTime;
   if (planned.goal) next.goal = planned.goal;
+  if (planned.bankArea) next.bankArea = planned.bankArea;
   return next;
 }
 
@@ -67,12 +71,17 @@ export function buildStudySessionForPlannedCompletion(
 export function applyPlannedCompletion(
   planned: PlannedStudySession,
   studySession: StudySession,
+  bankArea?: AtplBankArea,
 ): PlannedStudySession {
-  return {
+  const next: PlannedStudySession = {
     ...planned,
     status: "completed",
     completedSessionId: studySession.id,
   };
+  if (bankArea) {
+    next.bankArea = bankArea;
+  }
+  return next;
 }
 
 function findPlannedIdForDeletedSession(
@@ -137,8 +146,9 @@ export function completePlannedSessionWithLog(
     return null;
   }
 
-  const { mockScore, ...sessionOverrides } = overrides;
-  const studySession = buildStudySessionForPlannedCompletion(planned, sessionOverrides);
+  const { mockScore, bankArea, ...sessionOverrides } = overrides;
+  const plannedForLog = bankArea ? { ...planned, bankArea } : planned;
+  const studySession = buildStudySessionForPlannedCompletion(plannedForLog, sessionOverrides);
   let mockResult: MockResult | undefined;
   if (
     planned.type === "mock" &&
@@ -151,7 +161,7 @@ export function completePlannedSessionWithLog(
   return {
     sessions: [...sessions, studySession],
     plannedSessions: plannedSessions.map((p) =>
-      p.id === plannedId ? applyPlannedCompletion(p, studySession) : p,
+      p.id === plannedId ? applyPlannedCompletion(p, studySession, bankArea ?? p.bankArea) : p,
     ),
     mockResult,
   };

@@ -2,6 +2,8 @@ import type {
   ErrorLogItem,
   ExamDate,
   MockResult,
+  PlannedStudySession,
+  StudySession,
   SubjectReadiness,
   StudySubject,
 } from "./types";
@@ -18,6 +20,7 @@ import {
   formatSubjectMockTrendLabel,
   type EvaluationSummary,
 } from "./evaluation-page-logic";
+import { hasSubjectChartDataSource } from "./subject-chart-data-sources";
 import {
   getExamForSubject,
   resolveSubjectDisplayStatus,
@@ -44,6 +47,9 @@ const MOCK_PASS_DISPLAY = 75;
 
 /** Presentación: chip de estado global (no altera readiness). */
 export function getEvaluationReadinessChip(summary: EvaluationSummary): EvaluationReadinessChip {
+  if (!summary.hasMeaningfulStudyData) {
+    return { label: "Sin datos suficientes", tone: "refine" };
+  }
   if (summary.atRiskCount >= 2) {
     return { label: "Semana crítica", tone: "critical" };
   }
@@ -60,9 +66,11 @@ export function mockPassesDisplay(score: number): boolean {
 export function buildEvaluationPriorityGroups(params: {
   subjects: StudySubject[];
   readiness: SubjectReadiness[];
+  sessions: StudySession[];
   mockResults: MockResult[];
   errorLogItems: ErrorLogItem[];
   examDates: ExamDate[];
+  plannedSessions?: PlannedStudySession[];
   today?: string;
 }): EvaluationPriorityGroups {
   const today = params.today ?? getTodayDateString();
@@ -72,6 +80,17 @@ export function buildEvaluationPriorityGroups(params: {
   const bySubject = getMocksBySubject(params.mockResults);
 
   for (const r of params.readiness) {
+    const hasData = hasSubjectChartDataSource({
+      subjectId: r.subjectId,
+      sessions: params.sessions,
+      mockResults: params.mockResults,
+      plannedSessions: params.plannedSessions ?? [],
+      examDates: params.examDates,
+    });
+    if (!hasData) {
+      continue;
+    }
+
     const name = getSubjectById(r.subjectId)?.name ?? r.subjectId;
     const pendingErrors = params.errorLogItems.filter(
       (e) => e.subjectId === r.subjectId && e.status === "pending",
@@ -140,7 +159,14 @@ export function buildEvaluationPriorityGroups(params: {
   };
 }
 
-export function formatPriorityContextLine(groups: EvaluationPriorityGroups): string | null {
+export function formatPriorityContextLine(
+  groups: EvaluationPriorityGroups,
+  hasMeaningfulStudyData: boolean,
+): string | null {
+  if (!hasMeaningfulStudyData) {
+    return null;
+  }
+
   const names = groups.immediate.map((i) => i.title);
   if (names.length >= 2) {
     return `${names[0]} y ${names[1]} necesitan más consistencia.`;

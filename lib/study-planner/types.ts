@@ -29,7 +29,9 @@ export type StudySession = {
   linkedPlannedSessionId?: string;
 };
 
+import type { AtplBankArea } from "./atpl-bank-areas";
 import type { PlannedStudySessionStatus } from "./planner-session-status";
+export type { AtplBankArea } from "./atpl-bank-areas";
 export type { PlannedStudySessionStatus } from "./planner-session-status";
 
 /** Origen de la sesión planificada (generador vs usuario). */
@@ -47,6 +49,8 @@ export type PlannedStudySession = {
   completedSessionId?: string;
   /** Por defecto en datos antiguos: auto. */
   source: PlannedSessionSource;
+  /** Área de banco ATPL (solo sesiones tipo question_bank). */
+  bankArea?: AtplBankArea;
 };
 
 export type SubjectReadinessLevel = "no_data" | "low" | "medium" | "high" | "solid";

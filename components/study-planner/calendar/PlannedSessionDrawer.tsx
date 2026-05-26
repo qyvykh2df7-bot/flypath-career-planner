@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
+import { findBankAreaByCode, type AtplBankArea } from "@/lib/study-planner/atpl-bank-areas";
 import type {
   PlannedStudySession,
   StudySessionType,
   StudySubject,
 } from "@/lib/study-planner/types";
+import { BankAreaField } from "../BankAreaField";
 import { createPlannerId } from "@/lib/study-planner/calculations";
+import { normalizePlannedSessionStartTime } from "@/lib/study-planner/planned-session-time-options";
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
+import { PlannedSessionTimeSelect } from "../PlannedSessionTimeSelect";
 import { plannerBtnGhost, plannerBtnPrimary } from "@/lib/study-planner/planner-ui";
 import {
   CALENDAR_MANUAL_SESSION_TYPES,
@@ -49,17 +53,19 @@ export function PlannedSessionDrawer({
   const [type, setType] = useState<StudySessionType>("theory");
   const [duration, setDuration] = useState(60);
   const [goal, setGoal] = useState("");
+  const [bankArea, setBankArea] = useState<AtplBankArea | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     if (mode === "edit" && session) {
       setDate(session.date);
-      setStartTime(session.startTime ?? "09:00");
+      setStartTime(normalizePlannedSessionStartTime(session.startTime));
       setSubjectId(session.subjectId);
       setType(session.type);
       setDuration(session.plannedDurationMinutes);
       setGoal(session.goal ?? "");
+      setBankArea(session.bankArea ?? null);
     } else {
       setDate(initialDate);
       setStartTime("09:00");
@@ -67,9 +73,20 @@ export function PlannedSessionDrawer({
       setType("theory");
       setDuration(60);
       setGoal("");
+      setBankArea(null);
     }
     setError(null);
   }, [open, mode, session, initialDate, subjects]);
+
+  useEffect(() => {
+    if (type !== "question_bank") {
+      setBankArea(null);
+      return;
+    }
+    if (bankArea && !findBankAreaByCode(subjectId, bankArea.code)) {
+      setBankArea(null);
+    }
+  }, [type, subjectId, bankArea]);
 
   useEffect(() => {
     if (!open) return;
@@ -102,7 +119,7 @@ export function PlannedSessionDrawer({
     const payload: PlannedStudySession = {
       id: mode === "edit" && session ? session.id : createPlannerId(),
       date,
-      startTime: startTime.trim() || undefined,
+      startTime: normalizePlannedSessionStartTime(startTime),
       subjectId,
       type,
       plannedDurationMinutes: duration,
@@ -111,6 +128,9 @@ export function PlannedSessionDrawer({
       completedSessionId: session?.completedSessionId,
       source: mode === "edit" && session ? session.source : "manual",
     };
+    if (type === "question_bank" && bankArea) {
+      payload.bankArea = bankArea;
+    }
 
     onSave(payload);
     onClose();
@@ -168,7 +188,11 @@ export function PlannedSessionDrawer({
 
           <label className="block">
             <span className={labelClass}>Hora</span>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={fieldClass} />
+            <PlannedSessionTimeSelect
+              value={startTime}
+              onChange={setStartTime}
+              className={fieldClass}
+            />
           </label>
 
           <label className="block">
@@ -218,6 +242,16 @@ export function PlannedSessionDrawer({
               </div>
             ) : null}
           </div>
+
+          {type === "question_bank" ? (
+            <BankAreaField
+              subjectId={subjectId}
+              value={bankArea}
+              onChange={setBankArea}
+              labelClass={labelClass}
+              fieldClass={fieldClass}
+            />
+          ) : null}
 
           <div>
             <span className={labelClass}>Duración</span>

@@ -17,10 +17,16 @@ import {
   sortMocksByDateDesc,
 } from "./calculations";
 import {
+  formatEvaluationDataSourceLine,
+  hasEvaluationMeaningfulData,
+  summarizeEvaluationDataSources,
+} from "./evaluation-data-sources";
+import {
   buildSubjectsPageSummary,
   resolveSubjectDisplayStatus,
 } from "./subjects-page-logic";
 import { getSubjectById } from "./subjects";
+import type { PlannedStudySession } from "./types";
 
 export type EvaluationView = "mocks" | "reviews";
 
@@ -37,6 +43,8 @@ export type EvaluationSummary = {
   pendingReviews: number;
   atRiskCount: number;
   hasEnoughData: boolean;
+  hasMeaningfulStudyData: boolean;
+  dataSourceLine: string;
 };
 
 export type EvaluationCoachAction =
@@ -85,6 +93,7 @@ export function buildEvaluationSummary(params: {
   subjectIds: string[];
   examDates: ExamDate[];
   sessions: StudySession[];
+  plannedSessions?: PlannedStudySession[];
   today?: string;
 }): EvaluationSummary {
   const today = params.today ?? getTodayDateString();
@@ -109,8 +118,16 @@ export function buildEvaluationSummary(params: {
     today,
   );
 
+  const sourceCounts = summarizeEvaluationDataSources({
+    sessions: params.sessions,
+    mockResults: params.mockResults,
+    plannedSessions: params.plannedSessions ?? [],
+    errorLogItems: params.errorLogItems,
+    reviewItems: params.reviewItems,
+  });
+  const hasMeaningfulStudyData = hasEvaluationMeaningfulData(sourceCounts);
   const hasEnoughData =
-    mockCount > 0 || pendingErrors > 0 || pendingReviews > 0 || params.sessions.length > 0;
+    hasMeaningfulStudyData || pendingErrors > 0 || pendingReviews > 0;
 
   return {
     avgMockScore,
@@ -119,6 +136,8 @@ export function buildEvaluationSummary(params: {
     pendingReviews,
     atRiskCount: summary.atRiskCount,
     hasEnoughData,
+    hasMeaningfulStudyData,
+    dataSourceLine: formatEvaluationDataSourceLine(sourceCounts),
   };
 }
 

@@ -6,6 +6,7 @@ import type {
   StudyMode,
   StudySubject,
   MockResult,
+  PlannedStudySession,
   ReviewItem,
   ErrorLogItem,
   StudySession,
@@ -40,6 +41,7 @@ type EvaluationSectionProps = {
   mode: StudyMode;
   subjects: StudySubject[];
   sessions: StudySession[];
+  plannedSessions: PlannedStudySession[];
   mockResults: MockResult[];
   reviewItems: ReviewItem[];
   errorLogItems: ErrorLogItem[];
@@ -58,11 +60,13 @@ type EvaluationSectionProps = {
   onDeleteErrorLogItem: (id: string) => void;
   onGoToCalendar?: () => void;
   onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
+  onClearEvaluationData?: () => void;
 };
 
 export function EvaluationSection({
   subjects,
   sessions,
+  plannedSessions,
   mockResults,
   reviewItems,
   errorLogItems,
@@ -80,6 +84,7 @@ export function EvaluationSection({
   focusMockFormRequestKey = 0,
   onGoToCalendar,
   onGoToSubjects,
+  onClearEvaluationData,
 }: EvaluationSectionProps) {
   const today = getTodayDateString();
   const [view, setView] = useState<EvaluationView>(() => normalizeEvaluationView(initialView));
@@ -121,8 +126,9 @@ export function EvaluationSection({
         subjectIds: subjects.map((s) => s.id),
         examDates,
         sessions,
+        plannedSessions,
       }),
-    [mockResults, errorLogItems, reviewItems, subjects, examDates, sessions],
+    [mockResults, errorLogItems, reviewItems, subjects, examDates, sessions, plannedSessions],
   );
 
   const coach = useMemo(
@@ -145,12 +151,14 @@ export function EvaluationSection({
       buildEvaluationPriorityGroups({
         subjects,
         readiness,
+        sessions,
         mockResults,
         errorLogItems,
         examDates,
+        plannedSessions,
         today,
       }),
-    [subjects, readiness, mockResults, errorLogItems, examDates, today],
+    [subjects, readiness, sessions, mockResults, errorLogItems, examDates, plannedSessions, today],
   );
 
   useEffect(() => {
@@ -212,12 +220,14 @@ export function EvaluationSection({
       <EvaluationHero
         subjects={subjects}
         sessions={sessions}
+        plannedSessions={plannedSessions}
         mockResults={mockResults}
         errorLogItems={errorLogItems}
         reviewItems={reviewItems}
         examDates={examDates}
         summary={summary}
         coach={coach}
+        onClearEvaluationData={onClearEvaluationData}
       />
 
       <EvaluationPriorityPanel groups={priorityGroups} />
