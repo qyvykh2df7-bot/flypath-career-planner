@@ -323,7 +323,9 @@ export function buildSubjectsPageSummary(
 }
 
 export type NextExamHighlight = {
+  subjectId: string;
   subjectName: string;
+  daysUntil: number;
   daysLabel: string;
 };
 
@@ -335,11 +337,11 @@ export function formatNextExamHighlight(
   if (!next) return null;
 
   const subjectName = getSubjectById(next.subjectId)?.name ?? next.subjectId;
-  const days = getDaysUntilDate(next.date, today);
+  const daysUntil = getDaysUntilDate(next.date, today);
   const daysLabel =
-    days === 0 ? "hoy" : days === 1 ? "en 1 día" : `en ${days} días`;
+    daysUntil === 0 ? "hoy" : daysUntil === 1 ? "en 1 día" : `en ${daysUntil} días`;
 
-  return { subjectName, daysLabel };
+  return { subjectId: next.subjectId, subjectName, daysUntil, daysLabel };
 }
 
 export function formatSubjectsSummaryLine(summary: SubjectsPageSummary): string {

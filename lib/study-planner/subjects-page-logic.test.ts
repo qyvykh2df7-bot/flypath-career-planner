@@ -143,6 +143,8 @@ describe("subjects-page-logic", () => {
     const exams: ExamDate[] = [{ id: "e1", subjectId: "atpl-air-law", date: "2026-05-31" }];
     const highlight = formatNextExamHighlight(exams, TODAY);
     expect(highlight?.subjectName).toMatch(/Air Law/);
+    expect(highlight?.subjectId).toBe("atpl-air-law");
+    expect(highlight?.daysUntil).toBe(12);
     expect(highlight?.daysLabel).toMatch(/^en \d+ días$/);
   });
 });

@@ -1,27 +1,17 @@
 import type { MockResult, PlannedStudySession, StudySession } from "./types";
-import {
-  formatDaysRemaining,
-  getDaysSinceDate,
-  getDaysUntilDate,
-  getLatestSessionDateForSubject,
-  getTodayDateString,
-} from "./calculations";
+import { getDaysSinceDate, getLatestSessionDateForSubject, getTodayDateString } from "./calculations";
 import type { ExamDate, InitialSubjectState, SubjectReadiness } from "./types";
 import {
   getInitialStateForSubject,
   isSubjectDeclaredPassed,
 } from "./initial-subject-state";
 import {
-  formatSubjectChartDataSourceLine,
+  formatSubjectChartActivityBullets,
   hasSubjectChartDataSource,
+  summarizeSubjectChartActivity,
 } from "./subject-chart-data-sources";
 import { getSubjectById } from "./subjects";
-import {
-  getExamForSubject,
-  getSubjectDisplayLabel,
-  resolveSubjectDisplayStatus,
-  type SubjectDisplayStatus,
-} from "./subjects-page-logic";
+import { resolveSubjectDisplayStatus, type SubjectDisplayStatus } from "./subjects-page-logic";
 
 export const SUBJECT_CHART_BAR_COLORS = [
   "#3b6ea8",
@@ -40,6 +30,13 @@ export const SUBJECT_CHART_BAR_COLORS = [
   "#b088c8",
 ] as const;
 
+export type SubjectChartTooltip = {
+  percentLine: string;
+  activityBullets: string[];
+  lastActivity: string | null;
+  isProvisional: boolean;
+};
+
 export type SubjectChartItem = {
   subjectId: string;
   name: string;
@@ -47,7 +44,9 @@ export type SubjectChartItem = {
   percent: number;
   color: string;
   tooltipTitle: string;
+  /** @deprecated Usar tooltip compacto */
   tooltipLines: string[];
+  tooltip: SubjectChartTooltip;
 };
 
 export function abbreviateSubjectName(name: string, maxLen = 10): string {
@@ -94,53 +93,36 @@ export function resolveSubjectChartPercent(
   return Math.min(100, Math.max(0, Math.round(readiness.score)));
 }
 
-function formatLastSessionTooltipLine(
+function formatLastActivityLine(
   sessions: StudySession[],
   subjectId: string,
 ): string | null {
   const last = getLatestSessionDateForSubject(sessions, subjectId);
   if (!last) return null;
   const days = getDaysSinceDate(last);
-  if (days === 0) return "Última sesión: hoy";
-  if (days === 1) return "Última sesión: hace 1 día";
-  return `Última sesión: hace ${days} días`;
+  if (days === 0) return "Última actividad: hoy";
+  if (days === 1) return "Última actividad: hace 1 día";
+  return `Última actividad: hace ${days} días`;
 }
 
-export function buildSubjectChartTooltipLines(params: {
-  subjectName: string;
+export function buildSubjectChartTooltip(params: {
   percent: number;
-  statusLabel: string;
   displayStatus: SubjectDisplayStatus;
   readiness: SubjectReadiness;
-  lastSessionLine: string | null;
-  examLine: string | null;
-  dataSourceLine: string | null;
-}): string[] {
-  const {
-    subjectName,
-    percent,
-    statusLabel,
-    displayStatus,
-    readiness,
-    lastSessionLine,
-    examLine,
-    dataSourceLine,
-  } = params;
+  activityBullets: string[];
+  lastActivity: string | null;
+}): SubjectChartTooltip {
+  const percentLine =
+    params.displayStatus === "no_data"
+      ? "Sin datos de preparación"
+      : `${params.percent}% preparación estimada`;
 
-  if (displayStatus === "no_data") {
-    const lines = [subjectName, "Sin datos de preparación", statusLabel];
-    if (examLine) lines.push(examLine);
-    lines.push("Registra sesiones en bitácora o simulacros para estimar el nivel.");
-    return lines;
-  }
-
-  const lines = [subjectName, `${percent}% de preparación estimada`, statusLabel];
-  if (dataSourceLine) lines.push(`Fuente: ${dataSourceLine}`);
-  if (lastSessionLine) lines.push(lastSessionLine);
-  if (examLine) lines.push(examLine);
-  if (readiness.isProvisional) lines.push("Dato provisional");
-  else if (readiness.message.trim()) lines.push(readiness.message.trim());
-  return lines;
+  return {
+    percentLine,
+    activityBullets: params.displayStatus === "no_data" ? [] : params.activityBullets,
+    lastActivity: params.lastActivity,
+    isProvisional: params.readiness.isProvisional,
+  };
 }
 
 export function buildSubjectChartItems(params: {
@@ -179,33 +161,21 @@ export function buildSubjectChartItems(params: {
       initial,
       hasChartData,
     );
-    const statusLabel =
-      displayStatus === "no_data"
-        ? "Sin datos"
-        : getSubjectDisplayLabel(displayStatus, readiness, initial);
     const percent = resolveSubjectChartPercent(readiness, displayStatus, hasChartData);
 
-    const exam = getExamForSubject(readiness.subjectId, params.examDates, today);
-    const examLine = exam
-      ? `Examen ${formatDaysRemaining(getDaysUntilDate(exam.date, today))}`
-      : null;
-
-    const tooltipLines = buildSubjectChartTooltipLines({
-      subjectName: name,
+    const activity = summarizeSubjectChartActivity({
+      subjectId: readiness.subjectId,
+      sessions: params.sessions,
+      mockResults: params.mockResults,
+      plannedSessions: params.plannedSessions,
+    });
+    const activityBullets = formatSubjectChartActivityBullets(activity);
+    const tooltip = buildSubjectChartTooltip({
       percent,
-      statusLabel,
       displayStatus,
       readiness,
-      lastSessionLine: formatLastSessionTooltipLine(params.sessions, readiness.subjectId),
-      examLine,
-      dataSourceLine: hasChartData
-        ? formatSubjectChartDataSourceLine({
-            subjectId: readiness.subjectId,
-            sessions: params.sessions,
-            mockResults: params.mockResults,
-            plannedSessions: params.plannedSessions,
-          })
-        : null,
+      activityBullets,
+      lastActivity: formatLastActivityLine(params.sessions, readiness.subjectId),
     });
 
     return {
@@ -215,7 +185,8 @@ export function buildSubjectChartItems(params: {
       percent,
       color: SUBJECT_CHART_BAR_COLORS[index % SUBJECT_CHART_BAR_COLORS.length]!,
       tooltipTitle: name,
-      tooltipLines,
+      tooltipLines: [name, tooltip.percentLine, ...tooltip.activityBullets],
+      tooltip,
     };
   });
 }

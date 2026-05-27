@@ -46,6 +46,8 @@ export function clearPlannedCompletion(planned: PlannedStudySession): PlannedStu
   if (planned.startTime) next.startTime = planned.startTime;
   if (planned.goal) next.goal = planned.goal;
   if (planned.bankArea) next.bankArea = planned.bankArea;
+  if (planned.classTrainingType) next.classTrainingType = planned.classTrainingType;
+  if (planned.classSubtopic) next.classSubtopic = planned.classSubtopic;
   return next;
 }
 
@@ -64,6 +66,8 @@ export function buildStudySessionForPlannedCompletion(
     linkedPlannedSessionId: planned.id,
     ...(overrides.quality ? { quality: overrides.quality } : {}),
     ...(noteText ? { notes: noteText } : planned.goal ? { notes: planned.goal } : {}),
+    ...(planned.classTrainingType ? { classTrainingType: planned.classTrainingType } : {}),
+    ...(planned.classSubtopic ? { classSubtopic: planned.classSubtopic } : {}),
   };
 }
 

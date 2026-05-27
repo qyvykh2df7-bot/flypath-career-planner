@@ -64,15 +64,15 @@ describe("subject-readiness — preparación estimada 60/30/10", () => {
     expect(qualifiesAsPrepared({ subjectId: SUBJECT, ...metrics })).toBe(false);
   });
 
-  it("1. 1 mock 89% + poca actividad: ~35–45%, confianza baja, etiqueta provisional", () => {
+  it("1. 1 mock 89% sin base: <35%, confianza baja, etiqueta provisional", () => {
     const metrics = computeSubjectReadinessMetrics({
       subjectId: SUBJECT,
       sessions: [],
       mockResults: [mock(89)],
     });
 
-    expect(metrics.score).toBeGreaterThanOrEqual(35);
-    expect(metrics.score).toBeLessThanOrEqual(45);
+    expect(metrics.score).toBeGreaterThan(0);
+    expect(metrics.score).toBeLessThan(35);
     expect(metrics.confidence).toBe("low");
     expect(metrics.isProvisional).toBe(true);
     expect(metrics.pedagogicalLabel).toBe(PROVISIONAL_ESTIMATE_LABEL);
@@ -80,15 +80,15 @@ describe("subject-readiness — preparación estimada 60/30/10", () => {
     expect(metrics.pedagogicalLabel).not.toBe("Muy preparado");
   });
 
-  it("2. 1 mock 89% + 1 sesión teoría: no supera 50–55%", () => {
+  it("2. 1 mock 89% + 1 sesión teoría: cap por una sola sesión (≤12%)", () => {
     const metrics = computeSubjectReadinessMetrics({
       subjectId: SUBJECT,
       sessions: [theorySession()],
       mockResults: [mock(89)],
     });
 
-    expect(metrics.score).toBeGreaterThanOrEqual(35);
-    expect(metrics.score).toBeLessThanOrEqual(55);
+    expect(metrics.score).toBeGreaterThan(0);
+    expect(metrics.score).toBeLessThanOrEqual(12);
     expect(metrics.confidence).toBe("low");
     expect(metrics.isProvisional).toBe(true);
 
@@ -146,7 +146,7 @@ describe("subject-readiness — preparación estimada 60/30/10", () => {
       mockResults: mocks,
     });
 
-    expect(metrics.score).toBeGreaterThan(85);
+    expect(metrics.score).toBeGreaterThanOrEqual(85);
     expect(qualifiesAsPrepared({ subjectId: SUBJECT, ...metrics })).toBe(true);
   });
 
@@ -171,9 +171,11 @@ describe("subject-readiness — preparación estimada 60/30/10", () => {
 
   it("simulacro bajo penaliza frente a simulacros altos", () => {
     const sessions = [
-      theorySession({ durationMinutes: 90 }),
-      bankSession(60),
-      bankSession(90, "b2"),
+      theorySession({ id: "t1", date: "2026-05-01", durationMinutes: 120 }),
+      theorySession({ id: "t2", date: "2026-05-05", durationMinutes: 90 }),
+      bankSession(120, "b1", "2026-05-08"),
+      bankSession(120, "b2", "2026-05-12"),
+      reviewSession(60, "r1", "2026-05-15"),
     ];
     const low = computeSubjectReadinessMetrics({
       subjectId: SUBJECT,
@@ -189,7 +191,13 @@ describe("subject-readiness — preparación estimada 60/30/10", () => {
   });
 
   it("errores pendientes penalizan el score", () => {
-    const sessions = [theorySession(), bankSession(90)];
+    const sessions = [
+      theorySession({ id: "t1", date: "2026-05-01", durationMinutes: 120 }),
+      theorySession({ id: "t2", date: "2026-05-06", durationMinutes: 90 }),
+      bankSession(120, "b1", "2026-05-10"),
+      bankSession(90, "b2", "2026-05-14"),
+      reviewSession(60, "r1", "2026-05-17"),
+    ];
     const mocks = [mock(85), mock(82)];
     const errors: ErrorLogItem[] = [
       {
@@ -234,14 +242,43 @@ describe("subject-readiness — preparación estimada 60/30/10", () => {
     expect(scoreToPedagogicalLabel(92)).toBe("Muy preparado");
   });
 
+  it("1 sesión aislada: máximo 12%", () => {
+    const metrics = computeSubjectReadinessMetrics({
+      subjectId: SUBJECT,
+      sessions: [theorySession({ durationMinutes: 90 })],
+      mockResults: [],
+    });
+    expect(metrics.score).toBeGreaterThan(0);
+    expect(metrics.score).toBeLessThanOrEqual(12);
+  });
+
+  it("2 sesiones: máximo 20%", () => {
+    const metrics = computeSubjectReadinessMetrics({
+      subjectId: SUBJECT,
+      sessions: [
+        theorySession({ id: "t1", date: "2026-05-17", durationMinutes: 60 }),
+        theorySession({ id: "t2", date: "2026-05-18", durationMinutes: 60 }),
+      ],
+      mockResults: [],
+    });
+    expect(metrics.score).toBeGreaterThan(0);
+    expect(metrics.score).toBeLessThanOrEqual(20);
+  });
+
   it("confianza media con 2 simulacros y banco moderado", () => {
     const b = buildReadinessBreakdown({
       subjectId: SUBJECT,
-      sessions: [theorySession(), bankSession(120)],
+      sessions: [
+        theorySession({ id: "t1", date: "2026-05-01", durationMinutes: 120 }),
+        theorySession({ id: "t2", date: "2026-05-06", durationMinutes: 90 }),
+        bankSession(120, "b1", "2026-05-10"),
+        bankSession(90, "b2", "2026-05-14"),
+      ],
       mockResults: [mock(80), mock(84)],
     });
     expect(computeReadinessConfidence(b)).toBe("medium");
     const score = computeReadinessScore(b, "medium");
-    expect(score).toBeGreaterThanOrEqual(50);
+    expect(score).toBeGreaterThanOrEqual(45);
+    expect(score).toBeLessThanOrEqual(80);
   });
 });

@@ -16,6 +16,7 @@ import {
   type StudySession,
   type RecoveryPlan,
   type StudySessionQuality,
+  type TeacherFollowUpComment,
 } from "@/lib/study-planner/types";
 
 import { addDaysToDate, createPlannerId, getTodayDateString } from "@/lib/study-planner/calculations";
@@ -43,6 +44,10 @@ import { sumPendingPlannedMinutesForWeek } from "@/lib/study-planner/recovery-lo
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
 import { clearEvaluationStudyData } from "@/lib/study-planner/clear-evaluation-study-data";
 import { loadStudyPlannerState, saveStudyPlannerState } from "@/lib/study-planner/storage";
+import {
+  filterFollowUpCommentsByMode,
+  getLatestFollowUpComment,
+} from "@/lib/study-planner/teacher-follow-up";
 import {
   filterErrorLogItemsByMode,
   filterExamDatesByMode,
@@ -83,6 +88,8 @@ export function useStudyPlannerState() {
     reviewItems,
     errorLogItems,
     examDates,
+    teacherFollowUpComments = [],
+    lastSeenFollowUpCommentByMode,
   } = state;
 
   const catalogSubjects = useMemo(() => getSubjectsByMode(mode), [mode]);
@@ -112,6 +119,12 @@ export function useStudyPlannerState() {
     () => filterExamDatesByMode(examDates, mode),
     [examDates, mode],
   );
+  const modeFollowUpComments = useMemo(
+    () => filterFollowUpCommentsByMode(teacherFollowUpComments, mode),
+    [teacherFollowUpComments, mode],
+  );
+
+  const lastSeenFollowUpCommentId = lastSeenFollowUpCommentByMode?.[mode];
 
   const setMode = useCallback((next: StudyMode) => {
     setState((prev) => {
@@ -299,6 +312,16 @@ export function useStudyPlannerState() {
           }
           if (patch.bankArea === undefined && "bankArea" in patch) {
             delete next.bankArea;
+          }
+          if (patch.type !== undefined && patch.type !== "class") {
+            delete next.classTrainingType;
+            delete next.classSubtopic;
+          }
+          if (patch.classTrainingType === undefined && "classTrainingType" in patch) {
+            delete next.classTrainingType;
+          }
+          if (patch.classSubtopic === undefined && "classSubtopic" in patch) {
+            delete next.classSubtopic;
           }
           return next;
         }),
@@ -508,6 +531,38 @@ export function useStudyPlannerState() {
     setState((prev) => clearEvaluationStudyData(prev));
   }, []);
 
+  const addFollowUpComment = useCallback((comment: TeacherFollowUpComment) => {
+    setState((prev) => ({
+      ...prev,
+      teacherFollowUpComments: [...(prev.teacherFollowUpComments ?? []), comment],
+    }));
+  }, []);
+
+  const deleteFollowUpComment = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      teacherFollowUpComments: (prev.teacherFollowUpComments ?? []).filter((c) => c.id !== id),
+    }));
+  }, []);
+
+  const markFollowUpCommentsSeen = useCallback((forMode: StudyMode) => {
+    setState((prev) => {
+      const modeComments = filterFollowUpCommentsByMode(
+        prev.teacherFollowUpComments ?? [],
+        forMode,
+      );
+      const latest = getLatestFollowUpComment(modeComments);
+      if (!latest) return prev;
+      return {
+        ...prev,
+        lastSeenFollowUpCommentByMode: {
+          ...prev.lastSeenFollowUpCommentByMode,
+          [forMode]: latest.id,
+        },
+      };
+    });
+  }, []);
+
   return {
     hydrated,
     onboardingCompleted: onboardingCompleted === true,
@@ -526,6 +581,8 @@ export function useStudyPlannerState() {
     modeReviewItems,
     modeErrorLogItems,
     modeExamDates,
+    modeFollowUpComments,
+    lastSeenFollowUpCommentId,
     setMode,
     completeOnboarding,
     setActiveSubjectIds,
@@ -553,5 +610,8 @@ export function useStudyPlannerState() {
     clearVisibleWeekPendingPlanned,
     applyRecoveryPlanToCalendar,
     clearEvaluationData,
+    addFollowUpComment,
+    deleteFollowUpComment,
+    markFollowUpCommentsSeen,
   };
 }

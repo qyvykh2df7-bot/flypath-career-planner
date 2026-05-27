@@ -198,6 +198,53 @@ describe("planned-log-sync", () => {
     expect(result?.mockResult?.subjectId).toBe("air-law");
   });
 
+  it("completar clase conserva trainingType y subtema", () => {
+    const plannedSessions = [
+      planned({
+        id: "c1",
+        status: "pending",
+        type: "class",
+        subjectId: "ppl-navigation",
+        classTrainingType: "ppl",
+        classSubtopic: "GNSS",
+      }),
+    ];
+    const result = completePlannedSessionWithLog(plannedSessions, [], "c1");
+    expect(result?.sessions[0]?.classTrainingType).toBe("ppl");
+    expect(result?.sessions[0]?.classSubtopic).toBe("GNSS");
+    expect(result?.plannedSessions[0]?.classTrainingType).toBe("ppl");
+    expect(result?.plannedSessions[0]?.classSubtopic).toBe("GNSS");
+  });
+
+  it("localStorage legado sin trainingType en clase asume ATPL", () => {
+    const raw = {
+      mode: "atpl",
+      weeklyGoalMinutes: 600,
+      activeSubjectIds: ["atpl-air-law"],
+      onboardingCompleted: true,
+      sessions: [],
+      plannedSessions: [
+        {
+          id: "pc1",
+          date: WEEK_START,
+          subjectId: "atpl-air-law",
+          type: "class",
+          plannedDurationMinutes: 60,
+          status: "pending",
+          source: "manual",
+          classSubtopic: "International Law: Conventions, Agreements and Organisations",
+        },
+      ],
+      mockResults: [],
+      reviewItems: [],
+      errorLogItems: [],
+      examDates: [],
+    };
+    const state = normalizeStudyPlannerState(raw);
+    expect(state.plannedSessions[0]?.classTrainingType).toBe("atpl");
+    expect(state.plannedSessions[0]?.classSubtopic).toContain("International Law");
+  });
+
   it("legacy completedSessionId link is reverted on delete without linkedPlannedSessionId", () => {
     const log = buildStudySessionForPlannedCompletion(
       planned({ id: "p1", status: "pending" }),

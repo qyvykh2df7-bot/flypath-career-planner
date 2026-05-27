@@ -6,7 +6,14 @@ import type { SubjectChartItem } from "@/lib/study-planner/subjects-chart-data";
 const Y_TICKS = [100, 75, 50, 25, 0] as const;
 const CHART_HEIGHT_PX = 220;
 const MIN_BAR_WIDTH_PX = 44;
-const TOOLTIP_GAP_PX = 10;
+const TOOLTIP_GAP_PX = 8;
+const TOOLTIP_WIDTH_PX = 228;
+
+type TooltipPlacement = {
+  x: number;
+  y: number;
+  align: "center" | "left" | "right";
+};
 
 type SubjectsProgressBarChartProps = {
   items: SubjectChartItem[];
@@ -18,12 +25,13 @@ export function SubjectsProgressBarChart({
   onSelectSubject,
 }: SubjectsProgressBarChartProps) {
   const chartTitleId = useId();
+  const tooltipId = `${chartTitleId}-tooltip`;
   const chartPlotRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const barRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipPlacement, setTooltipPlacement] = useState<TooltipPlacement | null>(null);
 
   const minInnerWidth = Math.max(items.length * MIN_BAR_WIDTH_PX, 280);
   const activeItem = activeId ? items.find((item) => item.subjectId === activeId) : null;
@@ -32,24 +40,36 @@ export function SubjectsProgressBarChart({
     const bar = barRefs.current[subjectId];
     const plot = chartPlotRef.current;
     if (!bar || !plot) {
-      setTooltipPos(null);
+      setTooltipPlacement(null);
       return;
     }
 
     const barRect = bar.getBoundingClientRect();
     const plotRect = plot.getBoundingClientRect();
     const centerX = barRect.left - plotRect.left + barRect.width / 2;
-    const clampedX = Math.min(Math.max(12, centerX), plotRect.width - 12);
+    const edgePad = 6;
+    const half = TOOLTIP_WIDTH_PX / 2;
 
-    setTooltipPos({
-      x: clampedX,
+    let align: TooltipPlacement["align"] = "center";
+    let x = centerX;
+    if (centerX < half + edgePad) {
+      align = "left";
+      x = edgePad;
+    } else if (centerX > plotRect.width - half - edgePad) {
+      align = "right";
+      x = plotRect.width - edgePad;
+    }
+
+    setTooltipPlacement({
+      x,
       y: barRect.top - plotRect.top - TOOLTIP_GAP_PX,
+      align,
     });
   }, []);
 
   useEffect(() => {
     if (!activeId) {
-      setTooltipPos(null);
+      setTooltipPlacement(null);
       return;
     }
     updateTooltipPosition(activeId);
@@ -80,6 +100,13 @@ export function SubjectsProgressBarChart({
     barRefs.current[subjectId] = node;
   }, []);
 
+  const tooltipTransform =
+    tooltipPlacement?.align === "left"
+      ? "translate(0, -100%)"
+      : tooltipPlacement?.align === "right"
+        ? "translate(-100%, -100%)"
+        : "translate(-50%, -100%)";
+
   if (items.length === 0) {
     return (
       <p className="rounded-xl bg-slate-50/60 px-4 py-8 text-center text-[13px] text-slate-600 ring-1 ring-slate-200/25">
@@ -98,34 +125,54 @@ export function SubjectsProgressBarChart({
           Preparación estimada por asignatura
         </h3>
         <p className="text-[13px] leading-snug text-slate-500">
-          Basado en estudio registrado, sesiones completadas, simulacros y consistencia.
+          Estimación basada en actividad de estudio, simulacros y continuidad.
         </p>
         <p className="text-[12px] leading-snug text-slate-400">
-          Solo cuenta bitácora, simulacros y bloques completados registrados — no sesiones pendientes del
-          calendario.
+          No representa el porcentaje oficial del temario.
         </p>
       </header>
 
       <div ref={chartPlotRef} className="relative overflow-visible">
-        {activeItem && tooltipPos ? (
+        {activeItem && tooltipPlacement ? (
           <div
-            className="pointer-events-none absolute z-50 w-max max-w-[min(18rem,calc(100vw-2.5rem))] -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 text-left shadow-[0_10px_28px_-8px_rgba(15,26,51,0.22)]"
-            style={{ left: tooltipPos.x, top: tooltipPos.y }}
+            id={tooltipId}
+            className="pointer-events-none absolute z-50 rounded-lg border border-slate-200/80 bg-white px-3 py-2 text-left shadow-[0_4px_14px_-4px_rgba(15,26,51,0.18)]"
+            style={{
+              left: tooltipPlacement.x,
+              top: tooltipPlacement.y,
+              width: TOOLTIP_WIDTH_PX,
+              transform: tooltipTransform,
+            }}
             role="tooltip"
           >
-            <p className="text-[12px] font-semibold text-[#0f1a33]">{activeItem.tooltipTitle}</p>
-            <ul className="mt-1 space-y-0.5">
-              {activeItem.tooltipLines.slice(1).map((line) => (
-                <li
-                  key={line}
-                  className={`text-[11px] leading-snug ${
-                    line === "Dato provisional" ? "font-medium text-amber-800" : "text-slate-600"
-                  }`}
-                >
-                  {line}
-                </li>
-              ))}
-            </ul>
+            <p className="truncate text-[12px] font-semibold leading-snug text-[#0f1a33]">
+              {activeItem.tooltipTitle}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-slate-600">
+              {activeItem.tooltip.percentLine}
+            </p>
+            {activeItem.tooltip.activityBullets.length > 0 ? (
+              <div className="mt-1.5 space-y-0.5">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                  Actividad registrada
+                </p>
+                {activeItem.tooltip.activityBullets.map((line) => (
+                  <p key={line} className="text-[11px] leading-snug text-slate-600">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            {activeItem.tooltip.lastActivity ? (
+              <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
+                {activeItem.tooltip.lastActivity}
+              </p>
+            ) : null}
+            {activeItem.tooltip.isProvisional ? (
+              <p className="mt-1 text-[11px] font-medium leading-snug text-amber-800">
+                Dato provisional
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -196,7 +243,7 @@ export function SubjectsProgressBarChart({
                           className="group flex w-full max-w-[2rem] flex-col items-center justify-end focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40 focus-visible:ring-offset-1"
                           aria-label={`${item.name}, ${item.percent} por ciento`}
                           aria-describedby={
-                            activeId === item.subjectId ? `${chartTitleId}-tooltip` : undefined
+                            activeId === item.subjectId ? tooltipId : undefined
                           }
                         >
                           <span

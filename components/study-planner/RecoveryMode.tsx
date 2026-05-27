@@ -25,6 +25,7 @@ import type {
   StudySubject,
 } from "@/lib/study-planner/types";
 import type { RecoveryApplyResult } from "@/lib/study-planner/recovery-apply";
+import { plannerPageTitle } from "@/lib/study-planner/planner-ui";
 import {
   formatRecoveryStepForDisplay,
   formatRecoverySummaryForDisplay,
@@ -196,12 +197,8 @@ export function RecoveryMode(props: RecoveryModeProps) {
         </p>
       ) : null}
 
-      <header className="space-y-1">
-        <h2 className="text-[18px] font-semibold tracking-tight text-[#0f1a33]">Recuperación</h2>
-        <p className="max-w-2xl text-[13px] leading-relaxed text-slate-600">
-          Cuando vas perdido, saturado o atrasado, marca lo que te pasa. Te proponemos un plan de 7
-          días para reorganizar la semana con pasos concretos, sin juzgarte.
-        </p>
+      <header>
+        <h2 className={plannerPageTitle}>Recuperación</h2>
       </header>
 
       <section className="space-y-2">

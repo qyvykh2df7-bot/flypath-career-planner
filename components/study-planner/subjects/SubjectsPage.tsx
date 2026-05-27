@@ -18,6 +18,7 @@ import {
   sortReadinessForDisplay,
 } from "@/lib/study-planner/calculations";
 import { buildSubjectChartItems } from "@/lib/study-planner/subjects-chart-data";
+import { plannerBtnGhost, plannerPageTitle } from "@/lib/study-planner/planner-ui";
 import type { SubjectFilterId } from "@/lib/study-planner/subjects-page-logic";
 import { ExamDatesPanel } from "./ExamDatesPanel";
 import { SubjectDetailDrawer } from "./SubjectDetailDrawer";
@@ -37,6 +38,7 @@ type SubjectsPageProps = {
   examDatesFormRequestKey?: number;
   /** Conservado por compatibilidad con navegación desde Evaluación. */
   initialFilter?: SubjectFilterId;
+  onGoToCalendar?: () => void;
 };
 
 export function SubjectsPage({
@@ -51,6 +53,7 @@ export function SubjectsPage({
   onAddExamDate,
   onDeleteExamDate,
   examDatesFormRequestKey = 0,
+  onGoToCalendar,
 }: SubjectsPageProps) {
   const today = getTodayDateString();
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
@@ -105,13 +108,13 @@ export function SubjectsPage({
   const selectedReadiness =
     readinessList.find((r) => r.subjectId === selectedSubjectId) ?? null;
 
+  const showEstimationCta =
+    sessions.length + mockResults.length < 2 && typeof onGoToCalendar === "function";
+
   return (
     <div className="space-y-3 pb-2">
-      <header className="space-y-0.5">
-        <h2 className="text-[17px] font-medium tracking-tight text-[#0f1a33]">Asignaturas</h2>
-        <p className="max-w-xl text-[13px] leading-relaxed text-slate-600">
-          Avance por materia y prioridad de estudio.
-        </p>
+      <header>
+        <h2 className={plannerPageTitle}>Asignaturas</h2>
       </header>
 
       <ExamDatesPanel
@@ -123,10 +126,27 @@ export function SubjectsPage({
         hideNextExamHighlight
       />
 
-      <SubjectsProgressBarChart
-        items={chartItems}
-        onSelectSubject={setSelectedSubjectId}
-      />
+      <div className="space-y-2">
+        <SubjectsProgressBarChart
+          items={chartItems}
+          onSelectSubject={setSelectedSubjectId}
+        />
+
+        {showEstimationCta ? (
+          <div className="flex flex-col gap-2.5 px-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <p className="text-[12px] leading-snug text-slate-500">
+              Registra sesiones o simulacros para mejorar esta estimación.
+            </p>
+            <button
+              type="button"
+              onClick={onGoToCalendar}
+              className={`${plannerBtnGhost} shrink-0 self-start sm:self-auto`}
+            >
+              Ir al calendario
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       <SubjectDetailDrawer
         subject={selectedSubject}

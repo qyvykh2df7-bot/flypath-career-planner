@@ -209,6 +209,8 @@ export function StudyPlannerCalendar({
           plannedDurationMinutes: session.plannedDurationMinutes,
           goal: session.goal,
           bankArea: session.bankArea,
+          classTrainingType: session.classTrainingType,
+          classSubtopic: session.classSubtopic,
         });
       } else {
         onAddPlannedSession(session);

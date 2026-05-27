@@ -21,6 +21,10 @@ export const plannerType = {
 
 export const plannerPageBg = "min-h-screen bg-[#f6f7f9] text-[#0f1a33]";
 
+/** Título principal de pestaña (Calendario, Asignaturas, Evaluación, etc.). */
+export const plannerPageTitle =
+  "text-[19px] font-semibold tracking-tight text-[#0f1a33] sm:text-[21px]";
+
 export const plannerBtnHero =
   "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl border border-[#ddb75c] bg-[#c9a454] px-6 py-3.5 text-[16px] font-semibold tracking-tight text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.42)] transition-all duration-200 hover:bg-[#ddb75c] hover:shadow-[0_14px_40px_rgba(201,164,84,0.5)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1a33]";
 
@@ -44,7 +48,7 @@ export const plannerBtnDanger =
 export const plannerEmptyState =
   "rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-[14px] font-medium text-slate-600";
 
-export const plannerPanelTitle = "text-base font-semibold text-[#0f1a33] sm:text-[17px]";
+export const plannerPanelTitle = plannerPageTitle;
 
 export const plannerPanelSubtitle = "mt-1 text-[14px] leading-relaxed text-slate-600";
 

@@ -184,15 +184,21 @@ export function studyBaseComponentScore(b: ReadinessBreakdown): number {
   if (b.sessionCount === 0 && minutes === 0) return 0;
 
   const minutesRatio = Math.min(1, minutes / 720);
-  const minutesScore = 48 * Math.pow(minutesRatio, 0.72);
-  const sessionScore = Math.min(26, (b.sessionCount / 10) * 26);
+  const minutesScore =
+    36 * Math.pow(minutesRatio, 0.92) +
+    (minutes >= 300 ? 12 * Math.pow(Math.min(1, (minutes - 300) / 420), 0.85) : 0);
+  const sessionCap = b.sessionCount >= 8 ? 22 : b.sessionCount >= 5 ? 18 : 14;
+  const sessionScore = Math.min(
+    sessionCap,
+    Math.pow(Math.max(1, b.sessionCount), 1.2) * 4.5,
+  );
   const variety = sessionTypeVarietyCount(b);
-  const varietyScore = variety >= 3 ? 16 : variety === 2 ? 11 : variety === 1 ? 4 : 0;
+  const varietyScore = variety >= 3 ? 14 : variety === 2 ? 8 : variety === 1 ? 2 : 0;
   const crossTraining =
-    b.theorySessions >= 1 && b.bankSessions >= 1
+    b.sessionCount >= 4 && b.theorySessions >= 1 && b.bankSessions >= 1
       ? b.reviewMinutes > 0
-        ? 10
-        : 6
+        ? 8
+        : 5
       : 0;
 
   return Math.min(100, minutesScore + sessionScore + varietyScore + crossTraining);
@@ -224,26 +230,29 @@ export function mockComponentScore(b: ReadinessBreakdown): number {
   return Math.min(100, Math.max(0, score));
 }
 
-/** Bloque 0–100: consistencia (peso 10 %; recencia suave). */
+/** Bloque 0–100: consistencia (peso 10 %; recencia muy suave al inicio). */
 export function consistencyComponentScore(b: ReadinessBreakdown): number {
   if (b.sessionCount === 0) return 0;
 
-  const daySpread = Math.min(
-    45,
-    (b.uniqueStudyDays / Math.max(1, Math.min(b.sessionCount, 10))) * 45,
+  const minutes = totalStudyMinutes(b);
+  const depthFactor = Math.min(1, b.sessionCount / 8);
+  const dayFactor = Math.min(
+    1,
+    b.uniqueStudyDays / Math.max(2, Math.min(b.sessionCount, 10)),
   );
-  const sessionDepth =
-    b.sessionCount >= 8 ? 35 : b.sessionCount >= 5 ? 28 : b.sessionCount >= 3 ? 20 : 10;
+  const daySpread = 18 * dayFactor * depthFactor;
+  const sessionDepth = 6 * depthFactor;
 
-  let recency = 12;
-  if (b.daysSinceLastSession !== null) {
-    if (b.daysSinceLastSession <= 14) recency = 20;
-    else if (b.daysSinceLastSession <= 30) recency = 16;
-    else if (b.daysSinceLastSession <= 45) recency = 13;
-    else recency = 10;
+  let recency = 4;
+  if (b.daysSinceLastSession !== null && b.sessionCount >= 4 && minutes >= 240) {
+    if (b.daysSinceLastSession <= 14) recency = 10;
+    else if (b.daysSinceLastSession <= 30) recency = 8;
+    else recency = 6;
   }
 
-  return Math.min(100, daySpread + sessionDepth + recency);
+  const raw = daySpread + sessionDepth + recency;
+  const earlyCap = b.sessionCount <= 3 || minutes < 240 ? 32 : 72;
+  return Math.min(earlyCap, raw);
 }
 
 export function applyReadinessScoreCaps(
@@ -262,12 +271,16 @@ export function applyReadinessScoreCaps(
     score = Math.min(score, 65);
   }
 
-  if (hasStudy && minutes < 120) {
-    score = Math.min(score, 50);
+  if (b.sessionCount === 1) {
+    score = Math.min(score, 12);
+  } else if (b.sessionCount <= 3 && minutes < 360) {
+    score = Math.min(score, 20);
+  } else if (b.sessionCount <= 4 && minutes < 240) {
+    score = Math.min(score, 28);
   }
 
-  if (b.sessionCount <= 2 && minutes < 360) {
-    score = Math.min(score, 60);
+  if (hasStudy && minutes < 180 && b.sessionCount <= 3) {
+    score = Math.min(score, 22);
   }
 
   if (b.mockCount === 0) {
@@ -348,18 +361,11 @@ export function computeReadinessScore(
   const studyBase = studyBaseComponentScore(b);
   const mocks = mockComponentScore(b);
   const consistency = consistencyComponentScore(b);
-  const thinStudyBase = studyBase < 40;
 
-  let raw = thinStudyBase
-    ? studyBase * 0.5 + mocks * 0.35 + consistency * 0.15
-    : studyBase * READINESS_SCORE_WEIGHTS.studyBase +
-      mocks * READINESS_SCORE_WEIGHTS.mocks +
-      consistency * READINESS_SCORE_WEIGHTS.consistency;
-
-  if (thinStudyBase && b.mockCount > 0) {
-    const mockSignal = mocks * 0.42 + consistency * 0.08;
-    raw = Math.max(raw, Math.min(50, 13 + mockSignal));
-  }
+  let raw =
+    studyBase * READINESS_SCORE_WEIGHTS.studyBase +
+    mocks * READINESS_SCORE_WEIGHTS.mocks +
+    consistency * READINESS_SCORE_WEIGHTS.consistency;
 
   if (b.pendingErrors > 0) {
     raw -= Math.min(12, 4 + b.pendingErrors * 2);

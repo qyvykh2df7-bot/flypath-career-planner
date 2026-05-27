@@ -11,10 +11,15 @@ import type {
 } from "@/lib/study-planner/types";
 import { BankAreaField } from "../BankAreaField";
 import { createPlannerId } from "@/lib/study-planner/calculations";
+import type { PlannedSessionCreatePreset } from "@/lib/study-planner/dashboard-navigation";
 import { normalizePlannedSessionStartTime } from "@/lib/study-planner/planned-session-time-options";
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
 import { PlannedSessionTimeSelect } from "../PlannedSessionTimeSelect";
 import { plannerBtnGhost, plannerBtnPrimary } from "@/lib/study-planner/planner-ui";
+import {
+  getClassSubtopicsForSubject,
+  normalizeClassTrainingType,
+} from "@/lib/study-planner/class-session-subtopics";
 import {
   CALENDAR_MANUAL_SESSION_TYPES,
   CLASS_SESSION_FLYPATH_HINT,
@@ -33,6 +38,8 @@ type PlannedSessionDrawerProps = {
   today: string;
   subjects: StudySubject[];
   session?: PlannedStudySession | null;
+  /** Solo en modo create: asignatura y tipo preseleccionados (p. ej. desde Hoy). */
+  createPreset?: PlannedSessionCreatePreset | null;
   onClose: () => void;
   onSave: (session: PlannedStudySession) => void;
 };
@@ -44,6 +51,7 @@ export function PlannedSessionDrawer({
   today,
   subjects,
   session,
+  createPreset = null,
   onClose,
   onSave,
 }: PlannedSessionDrawerProps) {
@@ -54,6 +62,8 @@ export function PlannedSessionDrawer({
   const [duration, setDuration] = useState(60);
   const [goal, setGoal] = useState("");
   const [bankArea, setBankArea] = useState<AtplBankArea | null>(null);
+  const [classTrainingType, setClassTrainingType] = useState<"atpl" | "ppl">("atpl");
+  const [classSubtopic, setClassSubtopic] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,17 +76,42 @@ export function PlannedSessionDrawer({
       setDuration(session.plannedDurationMinutes);
       setGoal(session.goal ?? "");
       setBankArea(session.bankArea ?? null);
+      setClassTrainingType(normalizeClassTrainingType(session.classTrainingType));
+      setClassSubtopic(session.classSubtopic ?? "");
     } else {
+      let presetSubject = "";
+      if (createPreset?.leaveSubjectEmpty) {
+        if (
+          createPreset.subjectId &&
+          subjects.some((s) => s.id === createPreset.subjectId)
+        ) {
+          presetSubject = createPreset.subjectId;
+        }
+      } else if (
+        createPreset?.subjectId &&
+        subjects.some((s) => s.id === createPreset.subjectId)
+      ) {
+        presetSubject = createPreset.subjectId;
+      } else {
+        presetSubject = subjects[0]?.id ?? "";
+      }
+      const presetType = createPreset?.type ?? "theory";
       setDate(initialDate);
       setStartTime("09:00");
-      setSubjectId(subjects[0]?.id ?? "");
-      setType("theory");
+      setSubjectId(presetSubject);
+      setType(presetType);
       setDuration(60);
       setGoal("");
       setBankArea(null);
+      setClassTrainingType(
+        normalizeClassTrainingType(
+          subjects.find((s) => s.id === presetSubject)?.mode ?? subjects[0]?.mode,
+        ),
+      );
+      setClassSubtopic("");
     }
     setError(null);
-  }, [open, mode, session, initialDate, subjects]);
+  }, [open, mode, session, initialDate, subjects, createPreset]);
 
   useEffect(() => {
     if (type !== "question_bank") {
@@ -89,6 +124,24 @@ export function PlannedSessionDrawer({
   }, [type, subjectId, bankArea]);
 
   useEffect(() => {
+    if (type !== "class") {
+      setClassSubtopic("");
+      return;
+    }
+    const options = getClassSubtopicsForSubject({
+      mode: classTrainingType,
+      subjectId,
+    });
+    if (options.length === 0) {
+      setClassSubtopic("");
+      return;
+    }
+    if (!classSubtopic || !options.includes(classSubtopic)) {
+      setClassSubtopic(options[0] ?? "");
+    }
+  }, [type, classTrainingType, subjectId, classSubtopic]);
+
+  useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -99,6 +152,11 @@ export function PlannedSessionDrawer({
 
   if (!open) return null;
 
+  const classSubtopicOptions =
+    type === "class"
+      ? getClassSubtopicsForSubject({ mode: classTrainingType, subjectId })
+      : [];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!subjectId) {
@@ -107,6 +165,10 @@ export function PlannedSessionDrawer({
     }
     if (duration <= 0) {
       setError("La duración debe ser mayor que cero.");
+      return;
+    }
+    if (type === "class" && classSubtopicOptions.length > 0 && !classSubtopic.trim()) {
+      setError("Elige un subtema para la clase.");
       return;
     }
 
@@ -130,6 +192,12 @@ export function PlannedSessionDrawer({
     };
     if (type === "question_bank" && bankArea) {
       payload.bankArea = bankArea;
+    }
+    if (type === "class") {
+      payload.classTrainingType = classTrainingType;
+      if (classSubtopic.trim()) {
+        payload.classSubtopic = classSubtopic.trim();
+      }
     }
 
     onSave(payload);
@@ -233,6 +301,24 @@ export function PlannedSessionDrawer({
             {type === "class" ? (
               <div className="mt-2 rounded-lg bg-slate-50/80 px-2.5 py-2 ring-1 ring-slate-200/30">
                 <p className="text-[12px] text-slate-600">{CLASS_SESSION_FLYPATH_HINT}</p>
+                {classSubtopicOptions.length > 0 ? (
+                  <label className="mt-2 block">
+                    <span className={labelClass}>Subtema de clase</span>
+                    <select
+                      value={classSubtopic}
+                      onChange={(e) => setClassSubtopic(e.target.value)}
+                      className={fieldClass}
+                      required
+                    >
+                      <option value="">Seleccionar…</option>
+                      {classSubtopicOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
                 <Link
                   href={CLASSES_BOOKING_PATH}
                   className="mt-1.5 inline-flex text-[12px] font-semibold text-[#3b6ea8] hover:underline"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import type { PlannedStudySession, StudyMode, StudySubject } from "@/lib/study-planner/types";
 import {
@@ -8,6 +8,7 @@ import {
   normalizePlannedSessionStatus,
 } from "@/lib/study-planner/planner-session-status";
 import {
+  addDaysToDate,
   comparePlannedByStartTime,
   getPlannerMetrics,
   getTodayDateString,
@@ -20,12 +21,7 @@ import { getSubjectById } from "@/lib/study-planner/subjects";
 import { SessionTypeBadge } from "../SessionTypeBadge";
 import { SessionHeroCard, type SessionHeroPrimaryAction } from "./SessionHeroCard";
 import { WeekAlertsCompact } from "../planning/WeeklyPlanDashboard";
-import { DashboardEvaluationVigil } from "./DashboardEvaluationVigil";
-import type { NextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
-import type {
-  GoToEvaluationOptions,
-  GoToSubjectsOptions,
-} from "@/lib/study-planner/dashboard-navigation";
+import type { GoToSubjectsOptions } from "@/lib/study-planner/dashboard-navigation";
 
 type DashboardWeekInProgressProps = {
   mode: StudyMode;
@@ -34,13 +30,12 @@ type DashboardWeekInProgressProps = {
   nextSession: PlannedStudySession | null;
   nextSessionSubjectName?: string;
   alerts: WeeklyPlanAlert[];
-  positiveMessage: string | null;
   onOpenSession: (session: PlannedStudySession) => void;
   onViewPlan?: () => void;
   onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
-  onGoToEvaluation?: (options?: GoToEvaluationOptions) => void;
-  nextExamHighlight?: NextExamHighlight | null;
-  onPrepareExam?: () => void;
+  onGoToEvaluation?: () => void;
+  followUpNoticeCard?: ReactNode;
+  upcomingExamCard?: ReactNode;
 };
 
 function TodayTimelineItem({
@@ -160,14 +155,14 @@ export function DashboardWeekInProgress({
   nextSession,
   nextSessionSubjectName: _nextSessionSubjectName,
   alerts,
-  positiveMessage,
   onOpenSession,
   onViewPlan,
   onGoToEvaluation,
-  nextExamHighlight = null,
-  onPrepareExam,
+  followUpNoticeCard = null,
+  upcomingExamCard = null,
 }: DashboardWeekInProgressProps) {
   const today = getTodayDateString();
+  const tomorrow = addDaysToDate(today, 1);
 
   const todaySessions = useMemo(
     () =>
@@ -187,6 +182,25 @@ export function DashboardWeekInProgress({
     }
     return { done, pending };
   }, [todaySessions]);
+
+  const tomorrowSessions = useMemo(
+    () =>
+      completion.weekSessions
+        .filter((p) => p.date === tomorrow && isPendingLikeStatus(p.status))
+        .sort(comparePlannedByStartTime),
+    [completion.weekSessions, tomorrow],
+  );
+
+  const todayCompletedSessions = useMemo(
+    () =>
+      todaySessions.filter((session) => {
+        const status = normalizePlannedSessionStatus(session.status) ?? "pending";
+        return status === "completed";
+      }),
+    [todaySessions],
+  );
+
+  const showDayDonePanel = todaySummary.done > 0 && todaySummary.pending === 0;
 
   const metrics = useMemo(
     () =>
@@ -236,42 +250,82 @@ export function DashboardWeekInProgress({
       />
 
       <section className="rounded-xl bg-white px-3.5 py-3 shadow-[0_2px_14px_-12px_rgba(15,26,51,0.08)] ring-1 ring-slate-200/30">
-        <div className="mb-2 flex items-baseline justify-between gap-2">
-          <p className="text-[13px] font-semibold text-[#0f1a33]">Hoy</p>
-          {todaySessions.length > 0 ? (
-            <p className="text-[12px] font-medium tabular-nums text-slate-500">
-              {todaySummary.done} hecho{todaySummary.done === 1 ? "" : "s"}
-              {todaySummary.pending > 0
-                ? ` · ${todaySummary.pending} pendiente${todaySummary.pending === 1 ? "" : "s"}`
-                : ""}
-            </p>
-          ) : null}
-        </div>
-        {todaySessions.length === 0 ? (
-          <p className="text-[13px] text-slate-500">No tienes bloques planificados para hoy.</p>
-        ) : (
-          <ul className="space-y-2">
-            {todaySessions.map((session) => {
-              const status = normalizePlannedSessionStatus(session.status) ?? "pending";
-              const isDone = status === "completed";
-              const isNextUp = session.id === nextUpSessionId;
-              const isDimmed =
-                !isDone &&
-                !isNextUp &&
-                status !== "in_progress" &&
-                (isPendingLikeStatus(status) || status === "skipped");
+        {showDayDonePanel ? (
+          <div className="space-y-3">
+            <div>
+              <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Mañana</p>
+              {tomorrowSessions.length === 0 ? (
+                <p className="text-[13px] text-slate-500">No tienes bloques planificados para mañana.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {tomorrowSessions.map((session) => (
+                    <TodayTimelineItem
+                      key={session.id}
+                      session={session}
+                      onOpen={onOpenSession}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
 
-              return (
-                <TodayTimelineItem
-                  key={session.id}
-                  session={session}
-                  onOpen={onOpenSession}
-                  isNextUp={isNextUp}
-                  isDimmed={isDimmed}
-                />
-              );
-            })}
-          </ul>
+            <div>
+              <p className="mb-2 text-[13px] font-semibold text-[#0f1a33]">Hoy completado</p>
+              {todayCompletedSessions.length === 0 ? (
+                <p className="text-[13px] text-slate-500">Sin sesiones completadas hoy.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {todayCompletedSessions.map((session) => (
+                    <TodayTimelineItem
+                      key={session.id}
+                      session={session}
+                      onOpen={onOpenSession}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <p className="text-[13px] font-semibold text-[#0f1a33]">Hoy</p>
+              {todaySessions.length > 0 ? (
+                <p className="text-[12px] font-medium tabular-nums text-slate-500">
+                  {todaySummary.done} hecho{todaySummary.done === 1 ? "" : "s"}
+                  {todaySummary.pending > 0
+                    ? ` · ${todaySummary.pending} pendiente${todaySummary.pending === 1 ? "" : "s"}`
+                    : ""}
+                </p>
+              ) : null}
+            </div>
+            {todaySessions.length === 0 ? (
+              <p className="text-[13px] text-slate-500">No tienes bloques planificados para hoy.</p>
+            ) : (
+              <ul className="space-y-2">
+                {todaySessions.map((session) => {
+                  const status = normalizePlannedSessionStatus(session.status) ?? "pending";
+                  const isDone = status === "completed";
+                  const isNextUp = session.id === nextUpSessionId;
+                  const isDimmed =
+                    !isDone &&
+                    !isNextUp &&
+                    status !== "in_progress" &&
+                    (isPendingLikeStatus(status) || status === "skipped");
+
+                  return (
+                    <TodayTimelineItem
+                      key={session.id}
+                      session={session}
+                      onOpen={onOpenSession}
+                      isNextUp={isNextUp}
+                      isDimmed={isDimmed}
+                    />
+                  );
+                })}
+              </ul>
+            )}
+          </>
         )}
       </section>
 
@@ -279,16 +333,10 @@ export function DashboardWeekInProgress({
         <div className="rounded-lg border border-amber-200/50 bg-amber-50/35 px-3 py-2">
           <WeekAlertsCompact alerts={alerts} />
         </div>
-      ) : positiveMessage ? (
-        <div className="rounded-lg border border-emerald-200/60 bg-emerald-50/45 px-3 py-2 text-[12px] font-medium text-emerald-900">
-          {positiveMessage}
-        </div>
       ) : null}
 
-      <DashboardEvaluationVigil
-        nextExam={nextExamHighlight}
-        onPrepareExam={onPrepareExam}
-      />
+      {followUpNoticeCard}
+      {upcomingExamCard}
     </div>
   );
 }

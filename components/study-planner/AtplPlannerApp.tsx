@@ -13,15 +13,13 @@ import { RecoveryMode } from "./RecoveryMode";
 import { PlannerOnboarding } from "./onboarding/PlannerOnboarding";
 import { WeeklyPlanGenerator } from "./planning/WeeklyPlanGenerator";
 import { PlannerSettingsPanel } from "./settings/PlannerSettingsPanel";
-import { EvaluationSection, type EvaluationView } from "./EvaluationSection";
+import { EvaluationSection } from "./EvaluationSection";
 import type { PlannerPlanSettingsPayload, RecoveryPlan } from "@/lib/study-planner/types";
 import type { RecoveryApplyResult } from "@/lib/study-planner/recovery-apply";
 import type { SubjectFilterId } from "@/lib/study-planner/subjects-page-logic";
-import type {
-  GoToEvaluationOptions,
-  GoToSubjectsOptions,
-} from "@/lib/study-planner/dashboard-navigation";
+import type { GoToSubjectsOptions } from "@/lib/study-planner/dashboard-navigation";
 import { getCurrentWeekStart, getPlannedSessionsForWeek } from "@/lib/study-planner/date-utils";
+import { plannerPageTitle } from "@/lib/study-planner/planner-ui";
 import {
   getTodayDateString,
   getTodayPendingPlannedSessions,
@@ -64,7 +62,11 @@ export function AtplPlannerApp() {
     deleteErrorLogItem,
     addExamDate,
     deleteExamDate,
-    clearEvaluationData,
+    modeFollowUpComments,
+    addFollowUpComment,
+    deleteFollowUpComment,
+    lastSeenFollowUpCommentId,
+    markFollowUpCommentsSeen,
     applyGeneratedWeeklyPlan,
     clearVisibleWeekPendingPlanned,
     applyRecoveryPlanToCalendar,
@@ -72,14 +74,11 @@ export function AtplPlannerApp() {
 
   const [activeTab, setActiveTab] = useState<PlannerNavId>("dashboard");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [evaluationView, setEvaluationView] = useState<EvaluationView>("mocks");
-  const [mockFormFocusKey, setMockFormFocusKey] = useState(0);
   const [examDatesFormKey, setExamDatesFormKey] = useState(0);
   const [subjectsFilter, setSubjectsFilter] = useState<SubjectFilterId>("all");
   const [visibleWeekStartDate, setVisibleWeekStartDate] = useState(() =>
     getCurrentWeekStart(getTodayDateString()),
   );
-  const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [externalCreateNonce, setExternalCreateNonce] = useState(0);
   const [logIntent, setLogIntent] = useState<StudyLogIntent | null>(null);
   const weeklyCalendarRef = useRef<HTMLDivElement>(null);
@@ -90,11 +89,7 @@ export function AtplPlannerApp() {
     [modePlannedSessions, visibleWeekStartDate],
   );
   const hasActiveWeek = visibleWeekPlanned.length > 0;
-  const showPlanGenerator = !hasActiveWeek || regenerateOpen;
-
-  useEffect(() => {
-    setRegenerateOpen(false);
-  }, [visibleWeekStartDate]);
+  const showPlanGenerator = !hasActiveWeek;
 
   const planSettingsInitial = useMemo<PlannerPlanSettingsPayload>(
     () => ({
@@ -174,7 +169,6 @@ export function AtplPlannerApp() {
       setVisibleWeekStartDate(weekStart);
       const result = applyRecoveryPlanToCalendar(plan, weekStart);
       if (result.applied) {
-        setRegenerateOpen(false);
         goToCalendar();
         scrollToWeeklyCalendar();
       }
@@ -183,19 +177,17 @@ export function AtplPlannerApp() {
     [applyRecoveryPlanToCalendar, today, goToCalendar, scrollToWeeklyCalendar],
   );
 
-  const goToEvaluation = useCallback(
-    (options?: GoToEvaluationOptions) => {
-      const section = options?.section;
-      if (section) {
-        setEvaluationView(section === "errors" ? "mocks" : section);
-      } else setEvaluationView("mocks");
-      if (options?.focusMockForm) {
-        setMockFormFocusKey((k) => k + 1);
-      }
-      navigate("evaluation");
-    },
-    [navigate],
-  );
+  const goToEvaluation = useCallback(() => {
+    markFollowUpCommentsSeen(mode);
+    navigate("evaluation");
+  }, [markFollowUpCommentsSeen, mode, navigate]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (activeTab === "evaluation" && !settingsOpen) {
+      markFollowUpCommentsSeen(mode);
+    }
+  }, [hydrated, activeTab, settingsOpen, mode, markFollowUpCommentsSeen]);
 
   const shellNavId: PlannerNavId = settingsOpen ? "settings" : activeTab;
 
@@ -240,15 +232,16 @@ export function AtplPlannerApp() {
             onGoToEvaluation={goToEvaluation}
             onCompletePlannedSession={completePlannedSession}
             onAddStudySession={addSession}
+            onAddPlannedSession={addPlannedSession}
+            followUpComments={modeFollowUpComments}
+            lastSeenFollowUpCommentId={lastSeenFollowUpCommentId}
           />
         ) : null}
 
         {activeTab === "calendar" ? (
           <div className="space-y-3">
             <div>
-              <h2 className="text-[19px] font-semibold tracking-tight text-[#0f1a33] sm:text-[21px]">
-                Calendario de estudio
-              </h2>
+              <h2 className={plannerPageTitle}>Calendario de estudio</h2>
               {!hasActiveWeek ? (
                 <p className="mt-1 text-[13px] leading-snug text-slate-500">
                   Genera tu semana automáticamente o crea sesiones manualmente desde el calendario.
@@ -273,11 +266,8 @@ export function AtplPlannerApp() {
               plannedSessions={modePlannedSessions}
               onApply={applyGeneratedWeeklyPlan}
               onPlanActivated={() => {
-                setRegenerateOpen(false);
                 scrollToWeeklyCalendar();
               }}
-              regenerateMode={hasActiveWeek}
-              onCancelRegenerate={() => setRegenerateOpen(false)}
             />
             ) : null}
 
@@ -300,9 +290,8 @@ export function AtplPlannerApp() {
                 externalCreateNonce={externalCreateNonce}
                 externalCreateDate={today}
                 weekManagement={
-                  hasActiveWeek && !regenerateOpen
+                  hasActiveWeek
                     ? {
-                        onRegenerate: () => setRegenerateOpen(true),
                         onClearWeek: () => clearVisibleWeekPendingPlanned(visibleWeekStartDate),
                       }
                     : null
@@ -326,6 +315,7 @@ export function AtplPlannerApp() {
             onDeleteExamDate={deleteExamDate}
             examDatesFormRequestKey={examDatesFormKey}
             initialFilter={subjectsFilter}
+            onGoToCalendar={goToCalendar}
           />
         ) : null}
 
@@ -347,26 +337,11 @@ export function AtplPlannerApp() {
           <EvaluationSection
             mode={mode}
             subjects={activeSubjects}
-            sessions={modeSessions}
             plannedSessions={modePlannedSessions}
-            mockResults={modeMockResults}
-            reviewItems={modeReviewItems}
-            errorLogItems={modeErrorLogItems}
-            examDates={modeExamDates}
-            initialView={evaluationView}
-            focusMockFormRequestKey={mockFormFocusKey}
-            onAddMockResult={addMockResult}
-            onDeleteMockResult={deleteMockResult}
-            onAddReviewItem={addReviewItem}
-            onCompleteReviewItem={completeReviewItem}
-            onRescheduleReviewItem={rescheduleReviewItem}
-            onDeleteReviewItem={deleteReviewItem}
-            onAddErrorLogItem={addErrorLogItem}
-            onSetErrorLogStatus={setErrorLogStatus}
-            onDeleteErrorLogItem={deleteErrorLogItem}
-            onGoToCalendar={goToCalendar}
-            onGoToSubjects={goToSubjects}
-            onClearEvaluationData={clearEvaluationData}
+            followUpComments={modeFollowUpComments}
+            onAddFollowUpComment={addFollowUpComment}
+            onDeleteFollowUpComment={deleteFollowUpComment}
+            onAddPlannedSession={addPlannedSession}
           />
         ) : null}
 

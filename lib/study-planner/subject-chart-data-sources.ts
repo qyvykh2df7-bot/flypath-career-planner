@@ -9,8 +9,8 @@ import { isSubjectDeclaredPassed } from "./initial-subject-state";
 import { normalizePlannedSessionStatus } from "./planner-session-status";
 
 /**
- * Señales reales que habilitan mostrar % de preparación en el gráfico.
- * No incluye etapas declaradas en onboarding sin actividad registrada.
+ * Señales que habilitan mostrar % en el gráfico.
+ * Los bloques completados del calendario solo habilitan visibilidad, no influyen en el score.
  */
 export function hasSubjectChartDataSource(params: {
   subjectId: string;
@@ -44,30 +44,48 @@ export function hasSubjectChartDataSource(params: {
   return false;
 }
 
-export function formatSubjectChartDataSourceLine(params: {
+export type SubjectChartActivitySummary = {
+  sessionCount: number;
+  mockCount: number;
+  completedBlockCount: number;
+};
+
+export function summarizeSubjectChartActivity(params: {
   subjectId: string;
   sessions: StudySession[];
   mockResults: MockResult[];
   plannedSessions: PlannedStudySession[];
-}): string | null {
-  const sessionCount = params.sessions.filter((s) => s.subjectId === params.subjectId).length;
-  const mockCount = params.mockResults.filter((m) => m.subjectId === params.subjectId).length;
-  const completedPlanned = params.plannedSessions.filter(
-    (p) =>
-      p.subjectId === params.subjectId &&
-      normalizePlannedSessionStatus(p.status) === "completed",
-  ).length;
+}): SubjectChartActivitySummary {
+  return {
+    sessionCount: params.sessions.filter((s) => s.subjectId === params.subjectId).length,
+    mockCount: params.mockResults.filter((m) => m.subjectId === params.subjectId).length,
+    completedBlockCount: params.plannedSessions.filter(
+      (p) =>
+        p.subjectId === params.subjectId &&
+        normalizePlannedSessionStatus(p.status) === "completed",
+    ).length,
+  };
+}
 
-  const parts: string[] = [];
-  if (sessionCount > 0) {
-    parts.push(`${sessionCount} sesión${sessionCount === 1 ? "" : "es"} en bitácora`);
+/** Viñetas cortas para tooltip (sin “bitácora”). */
+export function formatSubjectChartActivityBullets(
+  summary: SubjectChartActivitySummary,
+): string[] {
+  const bullets: string[] = [];
+  if (summary.sessionCount > 0) {
+    bullets.push(
+      `• ${summary.sessionCount} sesión${summary.sessionCount === 1 ? "" : "es"} registrada${summary.sessionCount === 1 ? "" : "s"}`,
+    );
   }
-  if (mockCount > 0) {
-    parts.push(`${mockCount} simulacro${mockCount === 1 ? "" : "s"}`);
+  if (summary.mockCount > 0) {
+    bullets.push(
+      `• ${summary.mockCount} simulacro${summary.mockCount === 1 ? "" : "s"}`,
+    );
   }
-  if (completedPlanned > 0) {
-    parts.push(`${completedPlanned} bloque${completedPlanned === 1 ? "" : "s"} completado${completedPlanned === 1 ? "" : "s"} en calendario`);
+  if (summary.completedBlockCount > 0) {
+    bullets.push(
+      `• ${summary.completedBlockCount} bloque${summary.completedBlockCount === 1 ? "" : "s"} completado${summary.completedBlockCount === 1 ? "" : "s"}`,
+    );
   }
-  if (parts.length === 0) return null;
-  return parts.join(" · ");
+  return bullets;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type {
   ExamDate,
   MockResult,
@@ -9,7 +9,9 @@ import type {
   ReviewItem,
   StudyMode,
   StudySession,
+  StudySessionType,
   StudySubject,
+  TeacherFollowUpComment,
 } from "@/lib/study-planner/types";
 import type { StudyLogIntent } from "@/lib/study-planner/study-log-intent";
 import {
@@ -45,11 +47,12 @@ import {
 import { resolveWeeklyAlertsDisplay } from "@/lib/study-planner/weekly-alerts-display";
 import { getSubjectById } from "@/lib/study-planner/subjects";
 import { formatNextExamHighlight } from "@/lib/study-planner/subjects-page-logic";
-import { DashboardEvaluationVigil } from "./DashboardEvaluationVigil";
-import type {
-  GoToEvaluationOptions,
-  GoToSubjectsOptions,
-} from "@/lib/study-planner/dashboard-navigation";
+import { buildUpcomingExamSessionPreset } from "@/lib/study-planner/dashboard-upcoming-exam";
+import type { PlannedSessionCreatePreset } from "@/lib/study-planner/dashboard-navigation";
+import { PlannedSessionDrawer } from "../calendar/PlannedSessionDrawer";
+import { DashboardUpcomingExamCard } from "./DashboardUpcomingExamCard";
+import { DashboardFollowUpNotice } from "./DashboardFollowUpNotice";
+import type { GoToSubjectsOptions } from "@/lib/study-planner/dashboard-navigation";
 
 type StudyDashboardProps = {
   mode: StudyMode;
@@ -65,9 +68,12 @@ type StudyDashboardProps = {
   onGoToCalendar?: () => void;
   onGoToLog?: (intent?: StudyLogIntent) => void;
   onGoToSubjects?: (options?: GoToSubjectsOptions) => void;
-  onGoToEvaluation?: (options?: GoToEvaluationOptions) => void;
+  onGoToEvaluation?: () => void;
   onCompletePlannedSession: (id: string) => void;
   onAddStudySession: (session: StudySession) => void;
+  onAddPlannedSession: (planned: PlannedStudySession) => void;
+  followUpComments?: TeacherFollowUpComment[];
+  lastSeenFollowUpCommentId?: string | null;
 };
 
 export function StudyDashboard({
@@ -87,10 +93,15 @@ export function StudyDashboard({
   onGoToEvaluation,
   onCompletePlannedSession,
   onAddStudySession,
+  onAddPlannedSession,
+  followUpComments = [],
+  lastSeenFollowUpCommentId = null,
 }: StudyDashboardProps) {
   const today = getTodayDateString();
   const studiedToday = hasStudiedOnDate(sessions, today);
   const [focusSession, setFocusSession] = useState<PlannedStudySession | null>(null);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
+  const [createPreset, setCreatePreset] = useState<PlannedSessionCreatePreset | null>(null);
 
   const { completion, alerts } = useWeeklyDashboardData(
     plannedSessions,
@@ -209,13 +220,52 @@ export function StudyDashboard({
     else onGoToCalendar?.();
   };
 
-  const goToEvaluationDefault = onGoToEvaluation
-    ? () => onGoToEvaluation({ section: "mocks" })
-    : undefined;
+  const openExamQuickSession = useCallback(
+    (type: StudySessionType) => {
+      const preset = buildUpcomingExamSessionPreset(examDates, type, today);
+      if (!preset) return;
+      setCreatePreset(preset);
+      setCreateDrawerOpen(true);
+    },
+    [examDates, today],
+  );
 
-  const goToPrepareExam = onGoToSubjects
-    ? () => onGoToSubjects()
-    : goToEvaluationDefault;
+  const followUpNoticeCard = (
+    <DashboardFollowUpNotice
+      comments={followUpComments}
+      lastSeenCommentId={lastSeenFollowUpCommentId}
+      onViewEvaluation={onGoToEvaluation}
+    />
+  );
+
+  const upcomingExamCard = (
+    <DashboardUpcomingExamCard
+      nextExam={nextExamHighlight}
+      onQuickMock={() => openExamQuickSession("mock")}
+      onQuickBank={() => openExamQuickSession("question_bank")}
+      onQuickReview={() => openExamQuickSession("review")}
+    />
+  );
+
+  const plannedSessionDrawer = (
+    <PlannedSessionDrawer
+      open={createDrawerOpen}
+      mode="create"
+      initialDate={createPreset?.date ?? today}
+      today={today}
+      subjects={subjects}
+      createPreset={createPreset}
+      onClose={() => {
+        setCreateDrawerOpen(false);
+        setCreatePreset(null);
+      }}
+      onSave={(session) => {
+        onAddPlannedSession(session);
+        setCreateDrawerOpen(false);
+        setCreatePreset(null);
+      }}
+    />
+  );
 
   const isFreshEmpty = emptyHeroState?.variant === "fresh";
 
@@ -248,14 +298,14 @@ export function StudyDashboard({
           nextSession={nextSession}
           nextSessionSubjectName={nextSessionInfo?.subjectName ?? focusSubjectName}
           alerts={alertsDisplay.alerts}
-          positiveMessage={alertsDisplay.positiveMessage}
           onOpenSession={setFocusSession}
           onViewPlan={onGoToCalendar}
           onGoToSubjects={onGoToSubjects}
           onGoToEvaluation={onGoToEvaluation}
-          nextExamHighlight={nextExamHighlight}
-          onPrepareExam={goToPrepareExam}
+          followUpNoticeCard={followUpNoticeCard}
+          upcomingExamCard={upcomingExamCard}
         />
+        {plannedSessionDrawer}
         <StudySessionFocusSheet
           session={focusSession}
           onClose={() => setFocusSession(null)}
@@ -311,10 +361,9 @@ export function StudyDashboard({
         </p>
       ) : null}
 
-      <DashboardEvaluationVigil
-        nextExam={nextExamHighlight}
-        onPrepareExam={goToPrepareExam}
-      />
+      {followUpNoticeCard}
+      {upcomingExamCard}
+      {plannedSessionDrawer}
     </div>
   );
 }

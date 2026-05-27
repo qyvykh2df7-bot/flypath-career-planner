@@ -229,6 +229,12 @@ export function StudySessionFocusSheet({
               <dt className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Tipo</dt>
               <dd className="mt-0.5 font-medium text-[#0f1a33]">{getSessionTypeLabel(session.type)}</dd>
             </div>
+            {session.type === "class" && session.classSubtopic ? (
+              <div className="col-span-2">
+                <dt className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Subtema</dt>
+                <dd className="mt-0.5 font-medium text-[#0f1a33]">{session.classSubtopic}</dd>
+              </div>
+            ) : null}
             {session.type === "question_bank" && session.bankArea ? (
               <div className="col-span-2">
                 <dt className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Área</dt>

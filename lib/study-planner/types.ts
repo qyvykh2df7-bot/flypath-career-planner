@@ -27,6 +27,10 @@ export type StudySession = {
   notes?: string;
   /** Bloque planificado del calendario que originó este registro (vínculo explícito). */
   linkedPlannedSessionId?: string;
+  /** Sesiones de clase: tipo de formación del catálogo de subtemas. */
+  classTrainingType?: StudyMode;
+  /** Sesiones de clase: subtema seleccionado. */
+  classSubtopic?: string;
 };
 
 import type { AtplBankArea } from "./atpl-bank-areas";
@@ -51,6 +55,10 @@ export type PlannedStudySession = {
   source: PlannedSessionSource;
   /** Área de banco ATPL (solo sesiones tipo question_bank). */
   bankArea?: AtplBankArea;
+  /** Sesiones de clase: tipo de formación del catálogo de subtemas. */
+  classTrainingType?: StudyMode;
+  /** Sesiones de clase: subtema seleccionado. */
+  classSubtopic?: string;
 };
 
 export type SubjectReadinessLevel = "no_data" | "low" | "medium" | "high" | "solid";
@@ -190,6 +198,23 @@ export type RecoveryPlan = {
   };
 };
 
+/** Categoría de un comentario de seguimiento (clase FlyPath / estudio propio). */
+export type TeacherFollowUpCategory = "class" | "study" | "mock" | "general";
+
+/** Origen del comentario; preparado para sync con profesor en Supabase. */
+export type TeacherFollowUpCreatedBy = "student" | "teacher" | "local";
+
+/** Comentario de seguimiento manual (Evaluación → seguimiento FlyPath). */
+export type TeacherFollowUpComment = {
+  id: string;
+  date: string;
+  subjectId?: string;
+  category: TeacherFollowUpCategory;
+  comment: string;
+  nextTask?: string;
+  createdBy?: TeacherFollowUpCreatedBy;
+};
+
 export type InitialStudyContext =
   | "from_zero"
   | "started_some_subjects"
@@ -233,6 +258,10 @@ export type AtplPlannerState = {
   reviewItems: ReviewItem[];
   errorLogItems: ErrorLogItem[];
   examDates: ExamDate[];
+  /** Comentarios de seguimiento (Evaluación); opcional para compatibilidad con datos antiguos. */
+  teacherFollowUpComments?: TeacherFollowUpComment[];
+  /** Último comentario visto en Evaluación por modo (id del comentario más reciente al visitar). */
+  lastSeenFollowUpCommentByMode?: Partial<Record<StudyMode, string>>;
 };
 
 export const DEFAULT_ATPL_PLANNER_STATE: AtplPlannerState = {

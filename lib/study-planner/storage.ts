@@ -1,4 +1,5 @@
 import { parseBankArea } from "./atpl-bank-areas";
+import { normalizeClassTrainingType } from "./class-session-subtopics";
 import {
   DEFAULT_ATPL_PLANNER_STATE,
   type AtplPlannerState,
@@ -14,6 +15,9 @@ import {
   type StudySession,
   type StudySessionQuality,
   type StudySessionType,
+  type TeacherFollowUpCategory,
+  type TeacherFollowUpComment,
+  type TeacherFollowUpCreatedBy,
 } from "./types";
 import { reconcilePlannedAndStudyLogs } from "./planned-log-sync";
 import {
@@ -116,6 +120,12 @@ function parseSession(raw: unknown): StudySession | null {
   if (typeof s.linkedPlannedSessionId === "string" && s.linkedPlannedSessionId.length > 0) {
     session.linkedPlannedSessionId = s.linkedPlannedSessionId;
   }
+  if (session.type === "class") {
+    session.classTrainingType = normalizeClassTrainingType(s.classTrainingType);
+    if (typeof s.classSubtopic === "string" && s.classSubtopic.trim().length > 0) {
+      session.classSubtopic = s.classSubtopic.trim();
+    }
+  }
   return session;
 }
 
@@ -154,6 +164,12 @@ function parsePlannedSession(raw: unknown): PlannedStudySession | null {
   const bankArea = parseBankArea(p.bankArea);
   if (bankArea) {
     planned.bankArea = bankArea;
+  }
+  if (planned.type === "class") {
+    planned.classTrainingType = normalizeClassTrainingType(p.classTrainingType);
+    if (typeof p.classSubtopic === "string" && p.classSubtopic.trim().length > 0) {
+      planned.classSubtopic = p.classSubtopic.trim();
+    }
   }
   return planned;
 }
@@ -254,6 +270,63 @@ function parseErrorLogItem(raw: unknown): ErrorLogItem | null {
   return item;
 }
 
+const FOLLOW_UP_CATEGORIES: TeacherFollowUpCategory[] = [
+  "class",
+  "study",
+  "mock",
+  "general",
+];
+
+const FOLLOW_UP_CREATED_BY: TeacherFollowUpCreatedBy[] = ["student", "teacher", "local"];
+
+function isFollowUpCategory(v: unknown): v is TeacherFollowUpCategory {
+  return typeof v === "string" && FOLLOW_UP_CATEGORIES.includes(v as TeacherFollowUpCategory);
+}
+
+function isFollowUpCreatedBy(v: unknown): v is TeacherFollowUpCreatedBy {
+  return typeof v === "string" && FOLLOW_UP_CREATED_BY.includes(v as TeacherFollowUpCreatedBy);
+}
+
+function parseTeacherFollowUpComment(raw: unknown): TeacherFollowUpComment | null {
+  if (!raw || typeof raw !== "object") return null;
+  const c = raw as Record<string, unknown>;
+  if (typeof c.id !== "string" || typeof c.date !== "string" || typeof c.comment !== "string") {
+    return null;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.date)) return null;
+  if (!isFollowUpCategory(c.category)) return null;
+  const commentText = c.comment.trim();
+  if (!commentText) return null;
+
+  const item: TeacherFollowUpComment = {
+    id: c.id,
+    date: c.date,
+    category: c.category,
+    comment: commentText,
+  };
+  if (typeof c.subjectId === "string" && c.subjectId.length > 0) {
+    item.subjectId = c.subjectId;
+  }
+  if (typeof c.nextTask === "string" && c.nextTask.trim().length > 0) {
+    item.nextTask = c.nextTask.trim();
+  }
+  if (isFollowUpCreatedBy(c.createdBy)) {
+    item.createdBy = c.createdBy;
+  }
+  return item;
+}
+
+function parseLastSeenFollowUpCommentByMode(
+  raw: unknown,
+): Partial<Record<StudyMode, string>> | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  const result: Partial<Record<StudyMode, string>> = {};
+  if (typeof o.atpl === "string" && o.atpl.length > 0) result.atpl = o.atpl;
+  if (typeof o.ppl === "string" && o.ppl.length > 0) result.ppl = o.ppl;
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
 function parseExamDate(raw: unknown): ExamDate | null {
   if (!raw || typeof raw !== "object") return null;
   const e = raw as Record<string, unknown>;
@@ -308,6 +381,13 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
 
   const examsRaw = Array.isArray(o.examDates) ? o.examDates : [];
   const examDates = examsRaw.map(parseExamDate).filter((e): e is ExamDate => e !== null);
+
+  const followUpRaw = Array.isArray(o.teacherFollowUpComments)
+    ? o.teacherFollowUpComments
+    : [];
+  const teacherFollowUpComments = followUpRaw
+    .map(parseTeacherFollowUpComment)
+    .filter((c): c is TeacherFollowUpComment => c !== null);
 
   const modeSubjectIds = getSubjectsByMode(mode).map((s) => s.id);
   const modeSubjectSet = new Set(modeSubjectIds);
@@ -396,6 +476,11 @@ export function normalizeStudyPlannerState(raw: unknown): AtplPlannerState {
     reviewItems,
     errorLogItems,
     examDates,
+    teacherFollowUpComments:
+      teacherFollowUpComments.length > 0 ? teacherFollowUpComments : undefined,
+    lastSeenFollowUpCommentByMode: parseLastSeenFollowUpCommentByMode(
+      o.lastSeenFollowUpCommentByMode,
+    ),
   };
 }
 

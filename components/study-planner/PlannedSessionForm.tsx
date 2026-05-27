@@ -7,6 +7,10 @@ import { BankAreaField } from "./BankAreaField";
 import { createPlannerId, formatDateLocal, getTodayDateString } from "@/lib/study-planner/calculations";
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
 import { SESSION_TYPE_OPTIONS } from "@/lib/study-planner/labels";
+import {
+  getClassSubtopicsForSubject,
+  normalizeClassTrainingType,
+} from "@/lib/study-planner/class-session-subtopics";
 
 type PlannedSessionFormProps = {
   subjects: StudySubject[];
@@ -24,6 +28,8 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
   const [minutes, setMinutes] = useState("0");
   const [goal, setGoal] = useState("");
   const [bankArea, setBankArea] = useState<AtplBankArea | null>(null);
+  const [classTrainingType, setClassTrainingType] = useState<"atpl" | "ppl">("atpl");
+  const [classSubtopic, setClassSubtopic] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +49,21 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
     }
   }, [type, subjectId, bankArea]);
 
+  useEffect(() => {
+    setClassTrainingType(normalizeClassTrainingType(subjects[0]?.mode));
+  }, [subjects]);
+
+  useEffect(() => {
+    if (type !== "class") {
+      setClassSubtopic("");
+      return;
+    }
+    const options = getClassSubtopicsForSubject({ mode: classTrainingType, subjectId });
+    if (!options.includes(classSubtopic)) {
+      setClassSubtopic(options[0] ?? "");
+    }
+  }, [type, classTrainingType, subjectId, classSubtopic]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -59,6 +80,15 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
 
     if (plannedDurationMinutes <= 0) {
       setError("La duración debe ser mayor que cero.");
+      return;
+    }
+
+    const classSubtopicOptions = getClassSubtopicsForSubject({
+      mode: classTrainingType,
+      subjectId,
+    });
+    if (type === "class" && classSubtopicOptions.length > 0 && !classSubtopic.trim()) {
+      setError("Selecciona un subtema para la clase.");
       return;
     }
 
@@ -81,6 +111,12 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
     };
     if (type === "question_bank" && bankArea) {
       planned.bankArea = bankArea;
+    }
+    if (type === "class") {
+      planned.classTrainingType = classTrainingType;
+      if (classSubtopic.trim()) {
+        planned.classSubtopic = classSubtopic.trim();
+      }
     }
     onAddPlannedSession(planned);
 
@@ -150,6 +186,24 @@ export function PlannedSessionForm({ subjects, onAddPlannedSession, onAdded }: P
               fieldClass={fieldClass}
             />
           </div>
+        ) : null}
+        {type === "class" ? (
+          <label className="block sm:col-span-2">
+            <span className={labelClass}>Subtema de clase</span>
+            <select
+              value={classSubtopic}
+              onChange={(e) => setClassSubtopic(e.target.value)}
+              className={fieldClass}
+              required
+            >
+              <option value="">Seleccionar…</option>
+              {getClassSubtopicsForSubject({ mode: classTrainingType, subjectId }).map((subtopic) => (
+                <option key={subtopic} value={subtopic}>
+                  {subtopic}
+                </option>
+              ))}
+            </select>
+          </label>
         ) : null}
         <fieldset className="sm:col-span-2">
           <legend className={labelClass}>Duración prevista</legend>

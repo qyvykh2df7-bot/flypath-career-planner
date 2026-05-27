@@ -4,6 +4,7 @@ import type { ExamDate, PlannedStudySession, StudySession, StudySubject } from "
 import type { CompletePlannedSessionOverrides } from "@/hooks/useStudyPlannerState";
 import { getTodayDateString } from "@/lib/study-planner/calculations";
 import type { StudyLogIntent } from "@/lib/study-planner/study-log-intent";
+import { plannerPageTitle } from "@/lib/study-planner/planner-ui";
 import { StudyLogForm, type StudyLogSavePayload } from "./study-log-form";
 import { StudyLogHistory } from "./study-log-history";
 
@@ -50,13 +51,8 @@ export function StudyLogSection({
 
   return (
     <div className="space-y-4 pb-2">
-      <header className="space-y-0.5">
-        <h2 className="text-[17px] font-medium tracking-tight text-[#0f1a33]">
-          Registro de estudio
-        </h2>
-        <p className="max-w-xl text-[13px] text-slate-600">
-          Registra sesiones en segundos y alimenta tu progreso.
-        </p>
+      <header>
+        <h2 className={plannerPageTitle}>Registro de estudio</h2>
       </header>
 
       <StudyLogForm

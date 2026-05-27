@@ -58,15 +58,8 @@ describe("subjects-chart-data", () => {
     expect(items[0]?.tooltipLines.some((l) => l.includes("Sin datos"))).toBe(true);
   });
 
-  it("includes exam line when exam exists", () => {
-    const r = readiness("atpl-air-law", 37);
-    const status = resolveSubjectDisplayStatus(
-      r,
-      [{ id: "e1", subjectId: "atpl-air-law", date: "2026-05-23" }],
-      0,
-      "2026-05-19",
-    );
-    expect(status).toBe("at_risk");
+  it("tooltip compacto con actividad y última sesión", () => {
+    const r = readiness("atpl-air-law", 10);
     const items = buildSubjectChartItems({
       readinessList: [r],
       sessions: [
@@ -81,11 +74,12 @@ describe("subjects-chart-data", () => {
       ],
       mockResults: [],
       plannedSessions: [],
-      examDates: [{ id: "e1", subjectId: "atpl-air-law", date: "2026-05-23" }],
+      examDates: [],
       pendingErrorsBySubject: {},
       today: "2026-05-19",
     });
-    expect(items[0]?.tooltipLines.some((l) => l.startsWith("Examen"))).toBe(true);
-    expect(items[0]?.tooltipLines.some((l) => l.startsWith("Fuente:"))).toBe(true);
+    expect(items[0]?.tooltip.percentLine).toContain("preparación estimada");
+    expect(items[0]?.tooltip.activityBullets.some((l) => l.includes("sesión"))).toBe(true);
+    expect(items[0]?.tooltip.lastActivity).toContain("Última actividad");
   });
 });

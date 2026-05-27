@@ -2,6 +2,7 @@
 
 import type { StudyMode } from "@/lib/study-planner/types";
 import { minutesToHoursLabel, type WeeklyPlanCompletion } from "@/lib/study-planner/calculations";
+import { plannerPageTitle } from "@/lib/study-planner/planner-ui";
 import { DashboardWeeklyProgress } from "./DashboardWeeklyProgress";
 
 type DashboardStudyCenterProps = {
@@ -48,9 +49,7 @@ export function DashboardStudyCenter({
 
   return (
     <header className="space-y-2">
-      <h2 className="text-[17px] font-medium tracking-tight text-[#0f1a33]">
-        Centro de estudio {modeLabel}
-      </h2>
+      <h2 className={plannerPageTitle}>Centro de estudio {modeLabel}</h2>
 
       {hasActivePlan && completion ? (
         <DashboardWeeklyProgress completion={completion} planMetaLine={planMetaLine} />

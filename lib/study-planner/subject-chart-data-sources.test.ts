@@ -4,7 +4,11 @@ import {
   buildSubjectChartItems,
   resolveSubjectChartPercent,
 } from "./subjects-chart-data";
-import { hasSubjectChartDataSource } from "./subject-chart-data-sources";
+import {
+  formatSubjectChartActivityBullets,
+  hasSubjectChartDataSource,
+  summarizeSubjectChartActivity,
+} from "./subject-chart-data-sources";
 import type { InitialSubjectState, MockResult, PlannedStudySession, StudySession } from "./types";
 
 const SUBJECT = "atpl-air-law";
@@ -103,6 +107,30 @@ describe("subject-chart-data-sources", () => {
         examDates: [],
       }),
     ).toBe(true);
+  });
+
+  it("formatea viñetas sin mencionar bitácora", () => {
+    const bullets = formatSubjectChartActivityBullets(
+      summarizeSubjectChartActivity({
+        subjectId: SUBJECT,
+        sessions: [{ id: "s1", date: "2026-05-19", subjectId: SUBJECT, type: "theory", durationMinutes: 60 }],
+        mockResults: [],
+        plannedSessions: [
+          {
+            id: "p1",
+            date: "2026-05-18",
+            subjectId: SUBJECT,
+            type: "theory",
+            plannedDurationMinutes: 60,
+            status: "completed",
+            source: "manual",
+          },
+        ],
+      }),
+    );
+    expect(bullets.join(" ")).not.toMatch(/bitácora/i);
+    expect(bullets.some((l) => l.includes("sesión"))).toBe(true);
+    expect(bullets.some((l) => l.includes("bloque"))).toBe(true);
   });
 
   it("resolveSubjectChartPercent devuelve 0 sin fuente", () => {
