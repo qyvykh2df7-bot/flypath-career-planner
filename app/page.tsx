@@ -33,121 +33,38 @@ import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
 import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { CareerPlannerDashboardShell } from "@/components/career-planner/CareerPlannerDashboardShell";
+import { buildReportSnapshot } from "@/lib/reporting/mappers/build-report-snapshot";
+import { buildRiskDiagnosis, mapRiskRowsForInformePdf, riesgosSimpleParaPadresPdf } from "@/lib/reporting/domain/risk-engine";
+import { buildActionPlan } from "@/lib/reporting/domain/roadmap-engine";
+import { computeRoute } from "@/lib/reporting/domain/route-engine";
+import { computeCosts } from "@/lib/reporting/domain/cost-engine";
+import { computeDecisionReadiness } from "@/lib/reporting/domain/readiness-engine";
+import {
+  computeFlypathSchoolRecommendation,
+  computeSchoolStats,
+  getSchoolEmailMissingData,
+} from "@/lib/reporting/domain/school-engine";
+import {
+  FLYPATH_PRIMARY_IMAGE,
+  FLYPATH_PRODUCT_HREF,
+  FLYPATH_PRODUCTS,
+  pickFlyPathNextSteps,
+} from "@/lib/reporting/domain/flypath-next-step-engine";
+import type {
+  CostInputs,
+  FlyPathProductId,
+  FlyPathNextStepRecommendation,
+  Profile,
+  ReadinessResult,
+  RiskItem,
+  RouteRecommendation,
+  School,
+  YesNoUnknown,
+} from "@/lib/reporting/types/shared";
 type Screen = "landing" | "onboarding" | "dashboard";
 export type Tab = "route" | "cost" | "schools" | "report";
-type YesNoUnknown = "si" | "no" | "no_se";
-
-type Profile = {
-  nombre: string;
-  edad: number;
-  pais: string;
-  situacionLaboral: "estudiante" | "trabajando" | "desempleado" | "otro";
-  objetivo: "aerolinea" | "ejecutivo" | "instructor" | "no_lo_se";
-  class1: "si" | "no" | "reservado";
-  class2: "si" | "no";
-  ingles: "bajo" | "medio" | "alto";
-  icaoLevel: "0" | "4" | "5" | "6" | "no_lo_se";
-  preocupacionIngles: "si" | "no";
-  dineroDisponible: number;
-  ahorroMensual: number;
-  financiacion: "confirmada" | "posible" | "no";
-  apoyoFamiliar: "si" | "no" | "parcial";
-  inversionMaxima: number;
-  toleranciaRiesgo: "baja" | "media" | "alta";
-  disponibilidad: "full-time" | "part-time";
-  horasSemana: number;
-  necesitaTrabajar: "si" | "no";
-  movilidad: "solo_espana" | "europa" | "mundial";
-  urgencia: "baja" | "media" | "alta";
-  /** Origen de la estimación de costes en onboarding; condiciona copy en tab Costes. */
-  costEstimateSource: "flypath_base" | "user_approx";
-};
-
-type CostInputs = {
-  ppl: number;
-  nightRating: number;
-  atplTheory: number;
-  hourBuilding: number;
-  cpl: number;
-  mep: number;
-  ir: number;
-  mccJoc: number;
-  advancedUprt: number;
-  class1Medical: number;
-  tasasExamenes: number;
-  skillTests: number;
-  equipo: number;
-  headset: number;
-  ipadAppsCartas: number;
-  uniformeMaterial: number;
-  repeticiones: number;
-  typeRatingOpcional: number;
-  alojamiento: number;
-  transporte: number;
-  comida: number;
-  otrosGastosVida: number;
-  bufferPct: number;
-};
-
-type School = {
-  id: number;
-  isExample?: boolean;
-  nombre: string;
-  pais: string;
-  ciudad: string;
-  programa: "integrado" | "modular" | "cadet" | "no_lo_se";
-  precioAnunciado: number;
-  duracionMeses: number;
-  depositoRequerido: number;
-  calendarioPagosClaro: YesNoUnknown;
-  mccIncluido: YesNoUnknown;
-  uprtIncluido: YesNoUnknown;
-  tasasIncluidas: YesNoUnknown;
-  skillTestsIncluidos: YesNoUnknown;
-  alojamientoIncluido: YesNoUnknown;
-  reembolsoClaro: YesNoUnknown;
-  contratoAntesPagar: YesNoUnknown;
-  flotaExplicada: YesNoUnknown;
-  mantenimientoExplicado: YesNoUnknown;
-  ratioAlumnoAvionConocido: YesNoUnknown;
-  permiteHablarAlumnos: YesNoUnknown;
-  careerSupport: YesNoUnknown;
-  promesasEmpleo: "ninguna" | "vagas" | "claras_no_garantizadas" | "garantia_contractual" | "no_se";
-  fuentePrecio:
-    | "web_oficial"
-    | "email_escuela"
-    | "llamada"
-    | "folleto"
-    | "alumno"
-    | "redes"
-    | "usuario"
-    | "no_verificado";
-  fechaActualizacion: string;
-  estadoVerificacion: "verificado" | "parcialmente_verificado" | "no_verificado" | "pendiente";
-  enlaceReferencia: string;
-  notas: string;
-};
-
-type RouteAnalysis = {
-  integrated: number;
-  modular: number;
-  prep: number;
-  recommended: "Integrada" | "Modular" | "Preparación";
-  reason: string;
-  warnings: string[];
-  conflicts: string[];
-  principalBlock: string;
-};
-
-type DecisionReadiness = {
-  score: number;
-  decision: "No estás listo para pagar" | "Puedes seguir investigando, pero no pagar" | "Listo para decidir con condiciones";
-  explanation: string;
-  bloqueosCriticos: string[];
-  faltanDatos: string[];
-  proximosPasos: string[];
-  showNoPaguesBadge: boolean;
-};
+type RouteAnalysis = RouteRecommendation;
+type DecisionReadiness = ReadinessResult;
 
 /** Color del valor visible del badge "Decisión de pago" en el hero del Informe final (solo UI). */
 function informeHeroDecisionValueTextClass(decision: DecisionReadiness["decision"]): string {
@@ -285,24 +202,6 @@ function informeRiskNivelBadgeClass(nivel: string): string {
 const disclaimerText =
   "FlyPath Career Planner ofrece orientación educativa y herramientas de planificación basadas en los datos introducidos por el usuario. No sustituye asesoramiento financiero, médico, legal ni información oficial de escuelas, autoridades o aerolíneas. Los costes son estimaciones y pueden variar.";
 
-function mapRiskRowsForInformePdf(
-  riskDiagnosis: { label: string; nivel: string; explicacion: string; accion: string }[]
-): FlyPathInformePdfInput["riskRows"] {
-  return riskDiagnosis.map((risk) => {
-    const label =
-      risk.label === "Riesgo de marketing/promesas"
-        ? "Riesgo comercial/marketing"
-        : risk.label === "Riesgo de timing"
-          ? "Riesgo de calendario"
-          : risk.label;
-    const accion =
-      risk.accion === "Pedir por escrito alcance real de career support y límites."
-        ? "Pedir por escrito el alcance real del apoyo laboral y cualquier promesa comercial."
-        : risk.accion;
-    return { label, nivel: risk.nivel, explicacion: risk.explicacion, accion };
-  });
-}
-
 /**
  * Texto de la "Conclusión ejecutiva" del Informe final.
  *
@@ -333,26 +232,6 @@ function conclusionEjecutivaInformeFinal(
     return "Puedes seguir comparando escuelas y completando información, pero todavía no hay base suficiente para comprometer dinero.";
   }
   return "La decisión parece más sólida, pero solo deberías avanzar si tienes contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito.";
-}
-
-function riesgosSimpleParaPadresPdf(
-  riskDiagnosis: { label: string; nivel: string; explicacion: string }[]
-): string {
-  const altos = riskDiagnosis.filter((r) => r.nivel === "Alto" || r.nivel === "Crítico");
-  if (altos.length === 0) {
-    return "No hay riesgos marcados como altos o críticos en este escenario. Aun así, conviene validar por escrito contrato, precio final, extras incluidos y política de reembolso antes de pagar.";
-  }
-  return altos
-    .map((r) => {
-      const label =
-        r.label === "Riesgo de marketing/promesas"
-          ? "Comercial o promesas exageradas"
-          : r.label === "Riesgo de timing"
-            ? "Calendario y plazos"
-            : r.label;
-      return `${label} (${r.nivel.toLowerCase()}): ${r.explicacion}`;
-    })
-    .join(" ");
 }
 
 function costEstimateNoteForPdf(source: Profile["costEstimateSource"]): string {
@@ -874,644 +753,6 @@ function estadoVerificacionLabel(value: School["estadoVerificacion"]): string {
   return "Pendiente";
 }
 
-function computeRoute(profile: Profile): RouteAnalysis {
-  let integrated = 35;
-  let modular = 40;
-  let prep = 25;
-  const warnings: string[] = [];
-  const conflicts: string[] = [];
-
-  if (profile.edad < 18) {
-    prep += 40;
-    warnings.push("Perfil menor de edad: priorizar preparación y madurez operativa.");
-  }
-  if (profile.class1 !== "si") {
-    prep += 45;
-    integrated -= 20;
-    warnings.push("Prioridad: confirma Clase 1 antes de comparar escuelas.");
-  }
-  if (profile.ingles === "bajo") {
-    prep += 25;
-    modular += 8;
-    integrated -= 10;
-    warnings.push("Inglés bajo: requiere preparación previa o ruta modular con condición.");
-  }
-  if (profile.dineroDisponible < 30000 && profile.financiacion === "no") {
-    prep += 35;
-    integrated -= 20;
-    warnings.push("Presupuesto bajo y sin financiación confirmada.");
-  }
-  if (profile.necesitaTrabajar === "si") {
-    modular += 20;
-    integrated -= 20;
-  }
-  if (
-    profile.dineroDisponible >= 70000 &&
-    profile.class1 === "si" &&
-    profile.ingles === "alto" &&
-    profile.disponibilidad === "full-time"
-  ) {
-    integrated += 35;
-  }
-  if (profile.urgencia === "alta" && profile.necesitaTrabajar === "si") {
-    conflicts.push("Quieres rapidez alta, pero necesitas trabajar durante la formación.");
-  }
-  if (profile.edad > 30 && profile.dineroDisponible >= 50000) {
-    warnings.push("No se penaliza la edad; enfoca la decisión en coste de oportunidad.");
-    integrated += 5;
-  }
-  if (profile.disponibilidad === "part-time") {
-    modular += 8;
-  } else {
-    integrated += 8;
-  }
-
-  integrated = clamp(integrated);
-  modular = clamp(modular);
-  prep = clamp(prep);
-
-  const ordered = [
-    { key: "Integrada", score: integrated },
-    { key: "Modular", score: modular },
-    { key: "Preparación", score: prep },
-  ].sort((a, b) => b.score - a.score);
-
-  const recommended = ordered[0].key as RouteAnalysis["recommended"];
-  const reasonMap: Record<RouteAnalysis["recommended"], string> = {
-    Integrada: "Encaja por capacidad financiera y disponibilidad full-time.",
-    Modular: "Encaja por flexibilidad y control de caja por fases.",
-    "Preparación": "Ayuda a reducir riesgo antes de comprometer pagos altos.",
-  };
-
-  const principalBlock =
-    profile.class1 !== "si"
-      ? "Clase 1 no confirmada"
-      : profile.ingles === "bajo"
-      ? "Inglés operativo insuficiente"
-      : profile.financiacion === "no" && profile.dineroDisponible < 30000
-      ? "Brecha financiera crítica"
-      : "Ningún bloqueo crítico";
-
-  return { integrated, modular, prep, recommended, reason: reasonMap[recommended], warnings, conflicts, principalBlock };
-}
-
-function computeCosts(costs: CostInputs, profile: Profile) {
-  const subtotalFormacion =
-    costs.ppl + (costs.nightRating ?? 3000) + costs.atplTheory + costs.hourBuilding + costs.cpl + costs.mep + costs.ir + costs.mccJoc + costs.advancedUprt;
-  const subtotalExtras =
-    costs.class1Medical +
-    costs.tasasExamenes +
-    costs.skillTests +
-    costs.headset +
-    costs.ipadAppsCartas +
-    costs.uniformeMaterial +
-    costs.repeticiones +
-    costs.typeRatingOpcional;
-  const subtotalVida = costs.alojamiento + costs.transporte + costs.comida + costs.otrosGastosVida;
-  const subtotalBase = subtotalFormacion + subtotalExtras + subtotalVida;
-  const buffer = Math.round((subtotalBase * costs.bufferPct) / 100);
-
-  const totalOptimista = Math.round(subtotalBase * 0.9);
-  const totalRealista = subtotalBase + buffer;
-  const totalConservador = Math.round(subtotalBase * 1.2);
-  const brechaFinanciacion = Math.max(0, totalRealista - profile.dineroDisponible);
-  const mesesCerrarBrecha = brechaFinanciacion > 0 && profile.ahorroMensual > 0 ? Math.ceil(brechaFinanciacion / profile.ahorroMensual) : 0;
-  const coverage = totalRealista > 0 ? Math.round((profile.dineroDisponible / totalRealista) * 100) : 0;
-
-  let riskScore = 20;
-  if (coverage < 25) riskScore += 45;
-  else if (coverage < 50) riskScore += 25;
-  else if (coverage < 75) riskScore += 10;
-  if (profile.financiacion === "no") riskScore += 20;
-  if (profile.toleranciaRiesgo === "baja") riskScore += 8;
-  if (costs.bufferPct < 12) riskScore += 8;
-  riskScore = clamp(riskScore);
-
-  const riesgoFinanciero =
-    riskScore >= 80 ? "Crítico" : riskScore >= 60 ? "Alto" : riskScore >= 40 ? "Medio" : "Bajo";
-
-  return {
-    subtotalFormacion,
-    subtotalExtras,
-    subtotalVida,
-    buffer,
-    totalOptimista,
-    totalRealista,
-    totalConservador,
-    brechaFinanciacion,
-    mesesCerrarBrecha,
-    coverage,
-    riskScore,
-    riesgoFinanciero,
-  };
-}
-
-function yesScore(value: YesNoUnknown, yes = 10, no = -6, unknown = -2) {
-  if (value === "si") return yes;
-  if (value === "no") return no;
-  return unknown;
-}
-
-function schoolAnalysis(school: School, totalRealista: number) {
-  let claridadCoste = 30 + (school.precioAnunciado > 0 ? 10 : -10) + yesScore(school.calendarioPagosClaro, 12, -10, -3);
-  claridadCoste += yesScore(school.tasasIncluidas, 8, -5, -2) + yesScore(school.skillTestsIncluidos, 7, -4, -2);
-
-  let transparencia = 30;
-  transparencia += yesScore(school.contratoAntesPagar, 12, -10, -4);
-  transparencia += yesScore(school.reembolsoClaro, 10, -8, -3);
-  transparencia += yesScore(school.flotaExplicada, 8, -5, -2);
-  transparencia += yesScore(school.mantenimientoExplicado, 8, -5, -2);
-  transparencia += yesScore(school.ratioAlumnoAvionConocido, 8, -5, -2);
-
-  let riesgoFinanciero = 60;
-  riesgoFinanciero -= yesScore(school.calendarioPagosClaro, 10, -8, -2);
-  riesgoFinanciero -= yesScore(school.reembolsoClaro, 10, -8, -2);
-  if (school.precioAnunciado > totalRealista * 1.15) riesgoFinanciero += 15;
-  if (school.estadoVerificacion === "no_verificado") riesgoFinanciero += 10;
-
-  let riesgoOperacional = 55;
-  riesgoOperacional -= yesScore(school.flotaExplicada, 8, -8, -3);
-  riesgoOperacional -= yesScore(school.mantenimientoExplicado, 8, -8, -3);
-  riesgoOperacional -= yesScore(school.ratioAlumnoAvionConocido, 8, -6, -3);
-
-  let riesgoMarketing = 55;
-  if (school.promesasEmpleo === "garantia_contractual") riesgoMarketing += 5;
-  if (school.promesasEmpleo === "vagas") riesgoMarketing += 10;
-  if (school.promesasEmpleo === "ninguna") riesgoMarketing -= 5;
-  if (school.fuentePrecio === "no_verificado" || school.fuentePrecio === "redes") riesgoMarketing += 10;
-
-  const verificacion =
-    school.estadoVerificacion === "verificado"
-      ? 85
-      : school.estadoVerificacion === "parcialmente_verificado"
-      ? 60
-      : school.estadoVerificacion === "pendiente"
-      ? 35
-      : 20;
-
-  claridadCoste = clamp(claridadCoste);
-  transparencia = clamp(transparencia);
-  riesgoFinanciero = clamp(riesgoFinanciero);
-  riesgoOperacional = clamp(riesgoOperacional);
-  riesgoMarketing = clamp(riesgoMarketing);
-
-  const encajeGeneral = clamp(
-    Math.round((claridadCoste + transparencia + (100 - riesgoFinanciero) + (100 - riesgoOperacional) + (100 - riesgoMarketing) + verificacion) / 6)
-  );
-
-  const redFlags: string[] = [];
-  if (school.calendarioPagosClaro !== "si") redFlags.push("Calendario de pagos no claro.");
-  if (school.contratoAntesPagar !== "si") redFlags.push("Contrato no confirmado antes del pago.");
-  if (school.reembolsoClaro !== "si") redFlags.push("Política de reembolso poco clara.");
-  if (school.estadoVerificacion !== "verificado") redFlags.push("Información insuficiente.");
-
-  const preguntasPendientes: string[] = [];
-  if (school.tasasIncluidas !== "si") preguntasPendientes.push("Confirmar tasas de examen.");
-  if (school.skillTestsIncluidos !== "si") preguntasPendientes.push("Confirmar coste de skill tests.");
-  if (school.mccIncluido !== "si") preguntasPendientes.push("Aclarar MCC/JOC.");
-  if (school.uprtIncluido !== "si") preguntasPendientes.push("Aclarar Advanced UPRT.");
-
-  let recomendacionPrudente = "no decidir aún";
-  if (claridadCoste >= 70 && transparencia >= 70 && verificacion >= 60) recomendacionPrudente = "buena claridad documental";
-  else if (verificacion < 50) recomendacionPrudente = "requiere confirmación";
-  else recomendacionPrudente = "riesgo por falta de datos";
-
-  return {
-    claridadCoste,
-    transparencia,
-    riesgoFinanciero,
-    riesgoOperacional,
-    riesgoMarketing,
-    verificacion,
-    encajeGeneral,
-    redFlags,
-    preguntasPendientes,
-    recomendacionPrudente,
-  };
-}
-
-function computeDecisionReadiness({
-  profile,
-  costs,
-  route,
-  schoolsAnalyzed,
-  bufferPct,
-}: {
-  profile: Profile;
-  costs: ReturnType<typeof computeCosts>;
-  route: RouteAnalysis;
-  schoolsAnalyzed: Array<{ school: School; analysis: ReturnType<typeof schoolAnalysis> }>;
-  bufferPct: number;
-}): DecisionReadiness {
-  let score = 100;
-  const bloqueosCriticos: string[] = [];
-  const faltanDatos: string[] = [];
-
-  const verifiedOrPartial = schoolsAnalyzed.filter(
-    (x) => x.school.estadoVerificacion === "verificado" || x.school.estadoVerificacion === "parcialmente_verificado"
-  );
-
-  // 1. Replace anyVaguePromises with hasAnySchool
-  const hasAnySchool = schoolsAnalyzed.length > 0;
-  // More robust and transparent logic for payment-clear schools
-  const paymentClearSchools = schoolsAnalyzed.filter(
-    (x) =>
-      x.school.contratoAntesPagar === "si" &&
-      x.school.reembolsoClaro === "si" &&
-      x.school.calendarioPagosClaro === "si"
-  );
-  const hasPaymentClearSchool = paymentClearSchools.length > 0;
-
-  // 1.5. Add usableSchools block after paymentClearSchools
-  const usableSchools = schoolsAnalyzed.filter(
-    (x) =>
-      x.school.precioAnunciado > 0 &&
-      x.school.contratoAntesPagar === "si" &&
-      x.school.reembolsoClaro === "si" &&
-      x.school.calendarioPagosClaro === "si"
-  );
-
-  const hasPaymentReadySchool = paymentClearSchools.some(
-    (x) => x.school.estadoVerificacion === "verificado" || x.school.estadoVerificacion === "parcialmente_verificado"
-  );
-
-  // 2. Add new blocks
-  const hasFullyCostedSchool = schoolsAnalyzed.some(
-    (x) =>
-      x.school.mccIncluido === "si" &&
-      x.school.uprtIncluido === "si" &&
-      x.school.tasasIncluidas === "si" &&
-      x.school.skillTestsIncluidos === "si"
-  );
-
-  const hasLowMarketingRiskSchool = schoolsAnalyzed.some(
-    (x) => x.school.promesasEmpleo === "ninguna" || x.school.promesasEmpleo === "claras_no_garantizadas"
-  );
-
-  if (profile.class1 !== "si") {
-    score -= 45;
-    bloqueosCriticos.push("Clase 1 no confirmado.");
-  }
-
-  if (profile.ingles === "bajo") {
-    score -= 18;
-    faltanDatos.push("Condición previa: mejorar inglés operativo.");
-  } else if (profile.ingles === "medio") {
-    score -= 8;
-  }
-
-  if (costs.brechaFinanciacion > costs.totalRealista * 0.4) {
-    score -= 25;
-    if (profile.financiacion !== "confirmada") {
-      bloqueosCriticos.push("Brecha financiera alta respecto al coste realista.");
-    } else {
-      faltanDatos.push("Brecha financiera alta, aunque hay financiación confirmada.");
-    }
-  } else if (costs.brechaFinanciacion > costs.totalRealista * 0.2) {
-    score -= 12;
-  }
-
-  if (profile.financiacion !== "confirmada" && costs.coverage < 70) {
-    score -= 25;
-    bloqueosCriticos.push("Bloqueo financiero: cobertura < 70% y financiación no confirmada.");
-  }
-
-  if (bufferPct < 12) {
-    score -= 10;
-    faltanDatos.push("El margen de seguridad de costes es bajo; conviene subirlo por encima del 12%.");
-  }
-
-  if (schoolsAnalyzed.length === 0) {
-    score -= 20;
-    faltanDatos.push("No hay escuelas comparadas.");
-  } else if (schoolsAnalyzed.length < 2) {
-    score -= 6;
-    faltanDatos.push("Comparar al menos 2 escuelas para decidir con criterio.");
-  }
-
-  if (verifiedOrPartial.length === 0 && usableSchools.length === 0) {
-    score -= hasPaymentClearSchool ? 6 : 14;
-    faltanDatos.push("Falta al menos una escuela con datos verificados o suficientemente documentados.");
-  } else if (verifiedOrPartial.length === 0 && usableSchools.length > 0) {
-    score -= 2;
-    faltanDatos.push("La escuela parece suficientemente documentada, pero conviene conservar evidencia por escrito.");
-  }
-
-  if (schoolsAnalyzed.length > 0 && !hasPaymentClearSchool) {
-    score -= 15;
-    faltanDatos.push("Falta al menos una escuela con contrato, reembolso y calendario de pagos claros.");
-  } else if (hasPaymentClearSchool && !hasPaymentReadySchool) {
-    score -= 4;
-    const clearSchoolNames = paymentClearSchools.map((x) => x.school.nombre).filter(Boolean).join(", ");
-    faltanDatos.push(
-      `${clearSchoolNames || "Una escuela"} ya tiene contrato, reembolso y calendario claros; falta marcarla como verificada o parcialmente verificada.`
-    );
-  }
-
-  // 4. Replace vague promises block
-  if (hasAnySchool && !hasLowMarketingRiskSchool) {
-    score -= 6;
-    faltanDatos.push("Falta una escuela con promesas comerciales claras y no garantizadas.");
-  }
-
-  // 5. Replace anyCriticalMissing block
-  if (hasAnySchool && !hasFullyCostedSchool) {
-    score -= 8;
-    // No longer push the legacy generic message here; granular message will be handled below.
-    // (Score penalty remains.)
-  }
-
-  // Accommodation is useful for budgeting, but it is not a critical readiness blocker.
-  const hasAccommodationInfo = schoolsAnalyzed.some((x) => x.school.alojamientoIncluido === "si" || x.school.alojamientoIncluido === "no");
-
-  if (route.conflicts.some((c) => c.includes("rapidez"))) {
-    score -= 8;
-    faltanDatos.push("Conflicto actual entre urgencia y necesidad de trabajar.");
-  }
-
-  // Remove any critical blockers related to documentation issues before clamping score
-  const nonCriticalSchoolWarnings = [
-    "Bloqueo documental",
-    "contrato/reembolso/calendario",
-    "Faltan datos verificados",
-    "datos verificados o parcialmente verificados",
-  ];
-
-  const filteredCriticalBlockers = bloqueosCriticos.filter(
-    (item) => !nonCriticalSchoolWarnings.some((warning) => item.includes(warning))
-  );
-  bloqueosCriticos.splice(0, bloqueosCriticos.length, ...filteredCriticalBlockers);
-
-  // Remove "Falta al menos una escuela con contrato, reembolso y calendario de pagos claros." if we actually have one (safety cleanup)
-  if (hasPaymentClearSchool) {
-    const missingPaymentText = "Falta al menos una escuela con contrato, reembolso y calendario de pagos claros.";
-    for (let i = faltanDatos.length - 1; i >= 0; i -= 1) {
-      if (faltanDatos[i] === missingPaymentText) faltanDatos.splice(i, 1);
-    }
-  }
-  // Remove legacy generic extras text if present (cleanup). The app should now show granular missing items instead.
-  const legacyGenericExtrasFragments = [
-    "Faltan datos críticos: MCC/UPRT/tasas/skill tests/alojamiento",
-    "MCC/UPRT/tasas/skill tests/alojamiento",
-  ];
-  for (let i = faltanDatos.length - 1; i >= 0; i -= 1) {
-    if (legacyGenericExtrasFragments.some((fragment) => faltanDatos[i]?.includes(fragment))) {
-      faltanDatos.splice(i, 1);
-    }
-  }
-
-  // 4. Safety cleanup for obsolete school verification steps if at least 2 usableSchools
-  if (usableSchools.length >= 2) {
-    const obsoleteSchoolVerificationSteps = [
-      "Actualizar escenarios con costes verificados o parcialmente verificados de al menos 2 escuelas.",
-      "Falta al menos una escuela con datos verificados o parcialmente verificados.",
-    ];
-    for (let i = faltanDatos.length - 1; i >= 0; i -= 1) {
-      if (obsoleteSchoolVerificationSteps.some((text) => faltanDatos[i]?.includes(text))) {
-        faltanDatos.splice(i, 1);
-      }
-    }
-  }
-
-  // Add granular message for missing included items, only if actually missing and not already present.
-  const granularMissingIncludedItems = [
-    !schoolsAnalyzed.some((x) => x.school.mccIncluido === "si") ? "MCC/JOC" : null,
-    !schoolsAnalyzed.some((x) => x.school.uprtIncluido === "si") ? "Advanced UPRT" : null,
-    !schoolsAnalyzed.some((x) => x.school.tasasIncluidas === "si") ? "tasas" : null,
-    !schoolsAnalyzed.some((x) => x.school.skillTestsIncluidos === "si") ? "skill tests" : null,
-    // alojamiento intentionally omitted as not critical for readiness
-  ].filter(Boolean) as string[];
-
-  const granularIncludedText = granularMissingIncludedItems.length
-    ? `Falta confirmar como incluido: ${granularMissingIncludedItems.join(", ")}.`
-    : null;
-
-  const alreadyHasGranularIncludedText = faltanDatos.some((item) => item.startsWith("Falta confirmar como incluido:"));
-  if (granularIncludedText && !alreadyHasGranularIncludedText) {
-    faltanDatos.push(granularIncludedText);
-  }
-
-  // 7. Make sure the score rewards having at least one good school instead of being dragged down by every incomplete/demo school.
-  // (This is achieved by the logic above: only penalize if NO school meets the good criteria, not for every incomplete one)
-
-  score = clamp(score);
-
-  const hasHardPersonalBlocker =
-    profile.class1 !== "si" ||
-    (profile.financiacion !== "confirmada" && costs.coverage < 70) ||
-    (profile.financiacion !== "confirmada" && costs.brechaFinanciacion > costs.totalRealista * 0.4);
-
-  const showNoPaguesBadge = hasHardPersonalBlocker;
-
-  let decision: DecisionReadiness["decision"];
-  if (hasHardPersonalBlocker || score < 50) {
-    decision = "No estás listo para pagar";
-  } else if (score < 75) {
-    decision = "Puedes seguir investigando, pero no pagar";
-  } else {
-    decision = "Listo para decidir con condiciones";
-  }
-
-  const explanationMap: Record<DecisionReadiness["decision"], string> = {
-    "No estás listo para pagar":
-      "El riesgo actual es demasiado alto para pagar matrícula, depósito o firmar condiciones. Primero hay que resolver bloqueos y datos críticos.",
-    "Puedes seguir investigando, pero no pagar":
-      "Puedes seguir comparando escuelas y completando datos, pero todavía no hay base suficiente para comprometer pagos.",
-    "Listo para decidir con condiciones":
-      "La base de decisión es más sólida, siempre que conserves contrato, precio final, extras incluidos, reembolso y calendario de pagos por escrito.",
-  };
-
-  const proximosPasos: string[] = [];
-
-  if (!hasPaymentClearSchool) {
-    proximosPasos.push("Confirmar por escrito contrato, reembolso y calendario de pagos con al menos una escuela.");
-  } else if (!hasPaymentReadySchool) {
-    proximosPasos.push("Marcar como verificada o parcialmente verificada la escuela que ya tiene contrato, reembolso y calendario claros.");
-  }
-
-  if (schoolsAnalyzed.length < 2) {
-    proximosPasos.push("Comparar al menos 2 escuelas antes de tomar una decisión final.");
-  } else if (usableSchools.length < 2) {
-    proximosPasos.push("Completar precio, contrato, reembolso y calendario de pagos en al menos 2 escuelas.");
-  }
-
-  if (granularMissingIncludedItems.length > 0) {
-    proximosPasos.push(`Confirmar por escrito si están incluidos: ${granularMissingIncludedItems.join(", ")}.`);
-  }
-
-
-  if (proximosPasos.length === 0) {
-    proximosPasos.push("Confirmar por escrito contrato, reembolso y calendario de pagos antes de transferir dinero.");
-    proximosPasos.push("Guardar evidencia por escrito de precio final, extras incluidos y condiciones de pago.");
-    proximosPasos.push("No transferir depósito hasta validar todos los datos críticos y conservar copia de las condiciones.");
-  }
-
-  // Safety cleanup: avoid surfacing legacy step texts.
-  const legacySteps = [
-    "Guardar evidencia por escrito de precio final, extras incluidos y condiciones de pago.",
-    "No transferir depósito hasta validar todos los datos críticos y conservar copia de las condiciones.",
-  ];
-  for (let i = proximosPasos.length - 1; i >= 0; i -= 1) {
-    if (legacySteps.includes(proximosPasos[i])) proximosPasos.splice(i, 1);
-  }
-
-  if (decision === "Listo para decidir con condiciones") {
-    proximosPasos.splice(
-      0,
-      proximosPasos.length,
-      "Confirmar por escrito contrato, reembolso y calendario de pagos antes de transferir dinero.",
-      "Guardar evidencia por escrito de precio final, extras incluidos y condiciones de pago.",
-      "No transferir depósito hasta validar todos los datos críticos y conservar copia de las condiciones."
-    );
-  }
-
-  return {
-    score,
-    decision,
-    explanation: explanationMap[decision],
-    bloqueosCriticos,
-    faltanDatos,
-    proximosPasos,
-    showNoPaguesBadge,
-  };
-}
-
-function buildActionPlan({
-  profile,
-  costs,
-  route,
-  schools,
-  decisionReadiness,
-}: {
-  profile: Profile;
-  costs: ReturnType<typeof computeCosts>;
-  route: RouteAnalysis;
-  schools: School[];
-  decisionReadiness: DecisionReadiness;
-}) {
-  const sevenDays: string[] = [];
-  const thirtyDays: string[] = [];
-  const ninetyDays: string[] = [];
-
-  const pushUnique = (bucket: string[], text: string) => {
-    if (!bucket.includes(text)) bucket.push(text);
-  };
-
-  const hasPaymentClearSchool = schools.some(
-    (school) =>
-      school.contratoAntesPagar === "si" &&
-      school.reembolsoClaro === "si" &&
-      school.calendarioPagosClaro === "si"
-  );
-
-  const hasTwoDocumentedSchools =
-    schools.filter(
-      (school) =>
-        school.precioAnunciado > 0 &&
-        school.contratoAntesPagar === "si" &&
-        school.reembolsoClaro === "si" &&
-        school.calendarioPagosClaro === "si"
-    ).length >= 2;
-
-  const missingExtras: string[] = [];
-  if (!schools.some((school) => school.mccIncluido === "si")) missingExtras.push("MCC/JOC");
-  if (!schools.some((school) => school.uprtIncluido === "si")) missingExtras.push("Advanced UPRT");
-  if (!schools.some((school) => school.tasasIncluidas === "si")) missingExtras.push("tasas");
-  if (!schools.some((school) => school.skillTestsIncluidos === "si")) missingExtras.push("skill tests");
-  if (!schools.some((school) => school.alojamientoIncluido === "si")) missingExtras.push("alojamiento");
-
-  if (profile.class1 !== "si") {
-    pushUnique(sevenDays, "Reservar o confirmar Clase 1 antes de comprometer pagos.");
-    pushUnique(thirtyDays, "No firmar matrícula ni depósito hasta tener el resultado médico claro.");
-    pushUnique(ninetyDays, "Recalcular ruta cuando la Clase 1 esté confirmada.");
-  } else {
-    pushUnique(sevenDays, "Guardar evidencia de Clase 1 y fecha de validez.");
-  }
-
-  if (profile.ingles === "bajo") {
-    pushUnique(sevenDays, "Hacer una prueba realista de inglés aeronáutico y general.");
-    pushUnique(thirtyDays, "Crear un plan intensivo de inglés antes de iniciar fases caras.");
-    pushUnique(ninetyDays, "Reevaluar nivel de inglés antes de pagar una fase avanzada.");
-  } else if (profile.ingles === "medio") {
-    pushUnique(thirtyDays, "Practicar inglés aeronáutico y comunicaciones ATC semanalmente.");
-  }
-
-  if (costs.brechaFinanciacion > 0) {
-    pushUnique(sevenDays, "Actualizar presupuesto máximo y brecha financiera real.");
-    pushUnique(thirtyDays, "Cerrar financiación o ajustar ruta antes de comprometer pagos grandes.");
-    pushUnique(ninetyDays, "Mantener un margen de seguridad financiero antes de avanzar a fases caras.");
-  } else {
-    pushUnique(sevenDays, "Confirmar que el dinero disponible cubre también extras y un margen de seguridad financiero.");
-    pushUnique(ninetyDays, "Mantener reserva para repeticiones, tasas y retrasos.");
-  }
-
-  if (schools.length < 2) {
-    pushUnique(sevenDays, "Añadir al menos 2 escuelas comparables.");
-    pushUnique(thirtyDays, "Pedir desglose por escrito a cada escuela candidata.");
-  } else {
-    pushUnique(sevenDays, "Revisar puntos a validar de las escuelas comparadas.");
-    pushUnique(thirtyDays, "Confirmar por escrito contrato, reembolso y calendario de pagos.");
-  }
-
-  if (!hasPaymentClearSchool) {
-    pushUnique(sevenDays, "Pedir contrato, política de reembolso y calendario de pagos antes de decidir.");
-  }
-
-  if (route.recommended === "Preparación") {
-    pushUnique(thirtyDays, "Resolver bloqueos principales antes de elegir escuela.");
-    pushUnique(ninetyDays, "Recalcular ruta cuando Clase 1, inglés y financiación estén más claros.");
-  } else if (route.recommended === "Modular") {
-    pushUnique(thirtyDays, "Comparar escenarios modular e integrado con el mismo coste total.");
-    pushUnique(ninetyDays, "Planificar fases por orden y evitar pagos adelantados innecesarios.");
-  } else if (route.recommended === "Integrada") {
-    pushUnique(thirtyDays, "Validar que la ruta integrada encaja con disponibilidad full-time y financiación.");
-    pushUnique(ninetyDays, "No avanzar con integrada sin contrato completo y calendario de pagos por escrito.");
-  }
-
-  if (profile.necesitaTrabajar === "si") {
-    pushUnique(thirtyDays, "Alinear la ruta con el trabajo actual y horas reales disponibles por semana.");
-  }
-
-  if (decisionReadiness.decision === "Listo para decidir con condiciones") {
-    pushUnique(sevenDays, "Preparar carpeta con contrato, precio final, extras incluidos y condiciones.");
-    pushUnique(thirtyDays, "Comparar la escuela elegida con al menos una alternativa real antes de pagar.");
-    pushUnique(ninetyDays, "Transferir dinero solo si todas las condiciones finales están por escrito.");
-  }
-
-  if (schools.length >= 2 && !hasTwoDocumentedSchools) {
-    pushUnique(thirtyDays, "Completar precio, contrato, reembolso y calendario de pagos en al menos 2 escuelas.");
-  }
-
-  if (missingExtras.length > 0) {
-    pushUnique(thirtyDays, `Confirmar por escrito si están incluidos: ${missingExtras.join(", ")}.`);
-  }
-
-  return {
-    sevenDays: sevenDays.slice(0, 4),
-    thirtyDays: thirtyDays.slice(0, 4),
-    ninetyDays: ninetyDays.slice(0, 4),
-  };
-}
-
-function getSchoolEmailMissingData(school: School) {
-  const pending: string[] = [];
-  if (school.mccIncluido !== "si") pending.push("MCC/JOC");
-  if (school.uprtIncluido !== "si") pending.push("Advanced UPRT");
-  if (school.tasasIncluidas !== "si") pending.push("tasas de examen");
-  if (school.skillTestsIncluidos !== "si") pending.push("skill tests");
-  if (school.alojamientoIncluido !== "si") pending.push("alojamiento y costes aproximados");
-  if (school.reembolsoClaro !== "si") pending.push("política de reembolso");
-  if (school.contratoAntesPagar !== "si") pending.push("contrato/condiciones antes de pagar");
-  if (school.calendarioPagosClaro !== "si") pending.push("calendario de pagos");
-  if (school.flotaExplicada !== "si") pending.push("flota disponible");
-  if (school.mantenimientoExplicado !== "si") pending.push("mantenimiento y disponibilidad");
-  if (school.ratioAlumnoAvionConocido !== "si") pending.push("ratio alumno/avión");
-  if (school.permiteHablarAlumnos !== "si") pending.push("contacto con alumnos actuales o antiguos");
-  if (school.promesasEmpleo === "vagas") pending.push("detalle real de apoyo laboral (sin garantía de empleo)");
-  if (school.estadoVerificacion !== "verificado") pending.push("confirmación oficial de precio y condiciones");
-  return pending;
-}
-
 function buildSchoolEmail(school: School, nombreUsuario: string) {
   const who = nombreUsuario.trim() || "un aspirante a piloto";
   const signOff = nombreUsuario.trim();
@@ -1589,157 +830,6 @@ async function copyText(text: string) {
   }
 }
 
-function riskLevelFromScore(score: number) {
-  if (score >= 80) return "Crítico";
-  if (score >= 60) return "Alto";
-  if (score >= 40) return "Medio";
-  return "Bajo";
-}
-
-type FlyPathPrimaryId = "guia" | "mentoria" | "ingles";
-type FlyPathProductId = FlyPathPrimaryId | "atpl" | "clases" | "escuelas";
-
-const FLYPATH_PRODUCT_HREF: Record<
-  Exclude<FlyPathProductId, "escuelas">,
-  string
-> = {
-  guia: "/guia-como-ser-piloto",
-  mentoria: "/mentorias",
-  ingles: "/ingles-aeronautico",
-  atpl: "/atpl-planner",
-  clases: "/clases-ppl-atpl",
-};
-
-const FLYPATH_PRIMARY_IMAGE: Record<FlyPathProductId, string> = {
-  guia: "/como-ser-piloto-cover.jpeg",
-  mentoria: "/mentoria.jpg",
-  ingles: "/ingles-aeronautico.jpg",
-  atpl: "/atpl-planner.jpg",
-  clases: "/clases.jpg",
-  escuelas: "/school-card-bg/cadet-airline.jpg",
-};
-
-const FLYPATH_SECONDARY_BY_PRIMARY: Record<FlyPathPrimaryId, [FlyPathProductId, FlyPathProductId]> = {
-  guia: ["mentoria", "ingles"],
-  mentoria: ["guia", "ingles"],
-  ingles: ["mentoria", "guia"],
-};
-
-function flyPathContextualSecondaries(opts: {
-  atplStudyReady: boolean;
-  academicSubjectBlock: boolean;
-}): [FlyPathProductId, FlyPathProductId] {
-  const picks: FlyPathProductId[] = [];
-  if (opts.academicSubjectBlock) picks.push("clases");
-  if (opts.atplStudyReady) picks.push("atpl");
-  const fill: FlyPathProductId[] = ["mentoria", "guia", "ingles"];
-  for (const id of fill) {
-    if (picks.length >= 2) break;
-    if (!picks.includes(id)) picks.push(id);
-  }
-  return [picks[0]!, picks[1]!];
-}
-
-function riskNivelIsHigh(nivel: string): boolean {
-  return nivel === "Alto" || nivel === "Crítico";
-}
-
-function hasHighDocumentOrCommercialRisk(
-  riskDiagnosis: { label: string; nivel: string }[],
-): boolean {
-  return riskDiagnosis.some(
-    (r) =>
-      (r.label === "Riesgo documental" || r.label === "Riesgo de marketing/promesas") &&
-      riskNivelIsHigh(r.nivel),
-  );
-}
-
-/** Solo Mentoría, Guía o Inglés como principal; ATPL/Clases solo secundarias contextuales. */
-function pickFlyPathNextSteps(input: {
-  profile: Profile;
-  route: { recommended: "Integrada" | "Modular" | "Preparación"; principalBlock: string };
-  decisionReadiness: { decision: string; faltanDatos: string[] };
-  schoolsCount: number;
-  verifiedSchoolsCount: number;
-  costInputs: { atplTheory: number };
-  costs: { riesgoFinanciero: string; coverage: number };
-  riskDiagnosis: { label: string; nivel: string }[];
-}): { primary: FlyPathPrimaryId; secondaryIds: [FlyPathProductId, FlyPathProductId]; reasons: string[] } {
-  const { profile, route, decisionReadiness, schoolsCount, verifiedSchoolsCount, costInputs, costs, riskDiagnosis } =
-    input;
-  const reasons: string[] = [];
-
-  const isInitial =
-    profile.class1 !== "si" ||
-    route.recommended === "Preparación" ||
-    profile.objetivo === "no_lo_se";
-  const totallyInitial = isInitial && schoolsCount === 0;
-
-  const schoolsInsufficient = schoolsCount < 2;
-  const schoolsUnverified = schoolsCount > 0 && verifiedSchoolsCount === 0;
-  const documentOrCommercialRisk = hasHighDocumentOrCommercialRisk(riskDiagnosis);
-  const notReadyToPay =
-    decisionReadiness.decision === "No estás listo para pagar" ||
-    decisionReadiness.decision === "Puedes seguir investigando, pero no pagar";
-  const financialPressure =
-    riskNivelIsHigh(costs.riesgoFinanciero) ||
-    (profile.financiacion !== "confirmada" && costs.coverage < 70);
-  const decisionBeforePay =
-    schoolsInsufficient ||
-    schoolsUnverified ||
-    documentOrCommercialRisk ||
-    notReadyToPay ||
-    decisionReadiness.faltanDatos.length >= 2 ||
-    financialPressure;
-
-  const faltanLower = decisionReadiness.faltanDatos.join(" ").toLowerCase();
-  const academicSubjectBlock =
-    /atpl|mcc|uprt|asignatur|skill test|repaso|examen|teoría|teoria/i.test(faltanLower);
-
-  const englishBlock =
-    profile.ingles === "bajo" || (profile.preocupacionIngles === "si" && !totallyInitial);
-
-  const atplStudyReady =
-    profile.class1 === "si" &&
-    profile.ingles !== "bajo" &&
-    costInputs.atplTheory > 0 &&
-    profile.objetivo !== "no_lo_se" &&
-    route.recommended !== "Preparación";
-
-  if (decisionBeforePay) {
-    reasons.push(
-      "Prioridad decisión/pago: escuelas, documentación o economía antes de organizar estudio ATPL",
-    );
-    return { primary: "mentoria", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.mentoria, reasons };
-  }
-
-  if (totallyInitial || (isInitial && schoolsCount === 0)) {
-    reasons.push("Perfil inicial: ruta, licencias y costes aún por aclarar");
-    return { primary: "guia", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.guia, reasons };
-  }
-
-  if (englishBlock) {
-    reasons.push("Bloqueo principal: inglés operativo o ICAO");
-    return { primary: "ingles", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.ingles, reasons };
-  }
-
-  if (isInitial) {
-    reasons.push("Perfil en preparación: entender ruta y marco antes de escuelas");
-    return { primary: "guia", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.guia, reasons };
-  }
-
-  const contextualSecondaries = flyPathContextualSecondaries({ atplStudyReady, academicSubjectBlock });
-  if (atplStudyReady || academicSubjectBlock) {
-    reasons.push(
-      "Contexto de estudio (ATPL/clases) como apoyo secundario; decisión sigue en Mentoría/Guía/Inglés",
-    );
-    return { primary: "guia", secondaryIds: contextualSecondaries, reasons };
-  }
-
-  reasons.push("Fallback: guía como base de decisión");
-  return { primary: "guia", secondaryIds: FLYPATH_SECONDARY_BY_PRIMARY.guia, reasons };
-}
-
 function FlyPathPrimaryProductVisual({ productId }: { productId: FlyPathProductId }) {
   const [imgFailed, setImgFailed] = useState(false);
   const src = FLYPATH_PRIMARY_IMAGE[productId];
@@ -1780,6 +870,7 @@ function FlyPathPrimaryProductVisual({ productId }: { productId: FlyPathProductI
 }
 
 function FlyPathNextStepsPanel({
+  recommendation,
   profile,
   route,
   decisionReadiness,
@@ -1789,13 +880,14 @@ function FlyPathNextStepsPanel({
   riskDiagnosis,
   verifiedSchoolsCount,
 }: {
-  profile: Profile;
-  route: { recommended: "Integrada" | "Modular" | "Preparación"; principalBlock: string };
-  decisionReadiness: { decision: string; faltanDatos: string[] };
+  recommendation: FlyPathNextStepRecommendation;
+  profile: Pick<Profile, "class1" | "objetivo" | "ingles">;
+  route: Pick<RouteRecommendation, "recommended">;
+  decisionReadiness: Pick<ReadinessResult, "decision" | "faltanDatos">;
   schools: { length: number };
-  costInputs: { atplTheory: number };
+  costInputs: Pick<CostInputs, "atplTheory">;
   costs: { riesgoFinanciero: string; coverage: number };
-  riskDiagnosis: { label: string; nivel: string }[];
+  riskDiagnosis: Pick<RiskItem, "label" | "nivel">[];
   verifiedSchoolsCount: number;
 }) {
   const router = useRouter();
@@ -1804,54 +896,10 @@ function FlyPathNextStepsPanel({
     if (id === "escuelas") return;
     router.push(FLYPATH_PRODUCT_HREF[id]);
   };
-  const products: Record<
-    FlyPathProductId,
-    { title: string; body: string; cta: string }
-  > = {
-    guia: {
-      title: "Guía Cómo ser Piloto",
-      body: "Entiende el camino completo antes de hablar con escuelas: licencias, rutas, costes, tiempos y errores típicos.",
-      cta: "Ver la guía",
-    },
-    mentoria: {
-      title: "Mentoría de decisión",
-      body: "Revisa tu caso, presupuesto y escuelas candidatas con un piloto profesional.",
-      cta: "Reservar mentoría",
-    },
-    ingles: {
-      title: "Inglés aeronáutico",
-      body: "Trabaja inglés operativo, comunicaciones y confianza antes de avanzar a fases críticas.",
-      cta: "Ver inglés aeronáutico",
-    },
-    atpl: {
-      title: "ATPL Planner",
-      body: "Organiza asignaturas, horas semanales, repasos y exámenes con un plan realista.",
-      cta: "Ver ATPL Planner",
-    },
-    clases: {
-      title: "Clases PPL/ATPL",
-      body: "Refuerza teoría y práctica por asignatura con sesiones enfocadas a tu ritmo y objetivo.",
-      cta: "Ver clases",
-    },
-    escuelas: {
-      title: "Comparador de escuelas",
-      body: "Explora la base FlyPath, compara opciones reales y valida condiciones antes de pagar.",
-      cta: "Explorar escuelas",
-    },
-  };
 
   const DEBUG_FLYPATH_NEXT_STEPS = process.env.NODE_ENV === "development";
 
-  const { primary, secondaryIds, reasons: primaryReasons } = pickFlyPathNextSteps({
-    profile,
-    route,
-    decisionReadiness,
-    schoolsCount: schools.length,
-    verifiedSchoolsCount,
-    costInputs,
-    costs,
-    riskDiagnosis,
-  });
+  const { primary, secondaryIds, reasons: primaryReasons } = recommendation;
 
   if (DEBUG_FLYPATH_NEXT_STEPS) {
     console.log("[FlyPath siguiente paso]", {
@@ -1878,7 +926,7 @@ function FlyPathNextStepsPanel({
     "inline-flex min-h-[40px] w-full cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-4 py-2 text-[15px] font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30";
 
   const renderCard = (id: FlyPathProductId, isPrimary: boolean) => {
-    const p = products[id];
+    const p = FLYPATH_PRODUCTS[id];
 
     return (
       <div
@@ -2432,54 +1480,15 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const route = useMemo(() => computeRoute(profile), [profile]);
   const costs = useMemo(() => computeCosts(costInputs, profile), [costInputs, profile]);
 
-  const schoolStats = useMemo(() => {
-    const analyzed = schools.map((s) => ({ school: s, analysis: schoolAnalysis(s, costs.totalRealista) }));
-    const verifiedCount = analyzed.filter((x) => x.school.estadoVerificacion === "verificado").length;
-    const pendingCount = analyzed.filter((x) => x.school.estadoVerificacion === "pendiente").length;
-    const viable = analyzed
-      .filter((x) => x.analysis.verificacion >= 60 && x.analysis.claridadCoste >= 60)
-      .sort((a, b) => b.analysis.encajeGeneral - a.analysis.encajeGeneral);
-    return { analyzed, verifiedCount, pendingCount, bestSchool: viable[0] || null };
-  }, [schools, costs.totalRealista]);
+  const schoolStats = useMemo(
+    () => computeSchoolStats(schools, costs.totalRealista),
+    [schools, costs.totalRealista],
+  );
 
-  /** Recomendación FlyPath unificada: hero Escuelas + Informe final premium (Conclusión de decisión).
-   *  Regla: con 2+ escuelas siempre devolvemos la mejor relativa. Las señales documentales solo matizan
-   *  el texto explicativo, no bloquean la recomendación. */
-  const flypathSchoolRecommendation = useMemo(() => {
-    const candidates = [...schoolStats.analyzed].sort(
-      (a, b) => b.analysis.encajeGeneral - a.analysis.encajeGeneral,
-    );
-    const best = candidates[0];
-
-    if (!best || candidates.length < 2) {
-      return {
-        school: null as School | null,
-        reason:
-          "Añade al menos 2 escuelas comparables para que FlyPath pueda cruzar tu perfil con opciones reales.",
-      };
-    }
-
-    const hasEnoughDocumentSignal =
-      best.school.contratoAntesPagar === "si" ||
-      best.school.reembolsoClaro === "si" ||
-      best.school.calendarioPagosClaro === "si" ||
-      best.school.estadoVerificacion === "verificado" ||
-      best.school.estadoVerificacion === "parcialmente_verificado";
-
-    if (best.analysis.encajeGeneral >= 60 && hasEnoughDocumentSignal) {
-      return {
-        school: best.school,
-        reason:
-          "Con los datos actuales, esta escuela es la opción más sólida dentro de las escuelas añadidas. Aun así, la recomendación depende de confirmar precio, contrato, reembolso y calendario antes de pagar.",
-      };
-    }
-
-    return {
-      school: best.school,
-      reason:
-        "Con los datos actuales, esta escuela es la opción más sólida dentro de las escuelas añadidas, pero la recomendación no es suficiente para pagar todavía. Faltan condiciones clave por confirmar: contrato, reembolso, calendario de pagos, coste final o extras incluidos.",
-    };
-  }, [schoolStats.analyzed]);
+  const flypathSchoolRecommendation = useMemo(
+    () => computeFlypathSchoolRecommendation(schoolStats.analyzed),
+    [schoolStats.analyzed],
+  );
 
   const decisionReadiness = useMemo(
     () =>
@@ -2539,51 +1548,168 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     } as const;
   }, [route.integrated, route.modular, route.prep]);
 
-  const riskDiagnosis = useMemo(() => {
-    const bestAnalysis = schoolStats.bestSchool?.analysis;
-    const escuelaDataRiskScore = bestAnalysis ? Math.round((100 - bestAnalysis.verificacion + (100 - bestAnalysis.transparencia)) / 2) : 75;
-    const marketingRiskScore = bestAnalysis ? bestAnalysis.riesgoMarketing : 70;
-    const timingRiskScore = route.conflicts.length > 0 ? 75 : 35;
+  const riskDiagnosis = useMemo(
+    () =>
+      buildRiskDiagnosis({
+        class1: profile.class1,
+        ingles: profile.ingles,
+        riesgoFinanciero: costs.riesgoFinanciero,
+        coverage: costs.coverage,
+        schoolsCount: schools.length,
+        verifiedCount: schoolStats.verifiedCount,
+        routeConflicts: route.conflicts,
+        bestSchoolAnalysis: schoolStats.bestSchool?.analysis ?? null,
+      }),
+    [
+      profile.class1,
+      profile.ingles,
+      costs.riesgoFinanciero,
+      costs.coverage,
+      schoolStats.bestSchool,
+      schoolStats.verifiedCount,
+      schools.length,
+      route.conflicts,
+    ],
+  );
 
-    return [
-      {
-        label: "Riesgo médico",
-        nivel: profile.class1 === "si" ? "Bajo" : profile.class1 === "reservado" ? "Medio" : "Crítico",
-        explicacion: profile.class1 === "si" ? "Clase 1 confirmada." : "Clase 1 no confirmada para avanzar con seguridad.",
-        accion: "Confirmar Clase 1 antes de firmar o transferir dinero.",
+  const nextStepRecommendation = useMemo(
+    () =>
+      pickFlyPathNextSteps({
+        profile,
+        route,
+        decisionReadiness,
+        schoolsCount: schools.length,
+        verifiedSchoolsCount: schoolStats.verifiedCount,
+        costInputs,
+        costs,
+        riskDiagnosis,
+      }),
+    [profile, route, decisionReadiness, schools.length, schoolStats.verifiedCount, costInputs, costs, riskDiagnosis],
+  );
+
+  const reportSnapshot = useMemo(() => {
+    const generatedAt = new Intl.DateTimeFormat("es-ES", {
+      dateStyle: "long",
+      timeStyle: "short",
+    }).format(new Date());
+
+    return buildReportSnapshot({
+      generatedAt,
+      disclaimer: disclaimerText,
+      metadata: {
+        source: "career-planner",
+        reviewMode,
+        initialTab,
       },
-      {
-        label: "Riesgo financiero",
-        nivel: costs.riesgoFinanciero,
-        explicacion: `Cobertura actual del ${costs.coverage}% sobre el escenario realista.`,
-        accion: "Reducir brecha, confirmar financiación y mantener un margen de seguridad financiero.",
+      profile: {
+        nombre: profile.nombre,
+        edad: profile.edad,
+        pais: profile.pais,
+        objetivo: profile.objetivo,
+        class1: profile.class1,
+        ingles: profile.ingles,
+        icaoLevel: profile.icaoLevel,
+        preocupacionIngles: profile.preocupacionIngles,
+        dineroDisponible: profile.dineroDisponible,
+        ahorroMensual: profile.ahorroMensual,
+        financiacion: profile.financiacion,
+        inversionMaxima: profile.inversionMaxima,
+        toleranciaRiesgo: profile.toleranciaRiesgo,
+        disponibilidad: profile.disponibilidad,
+        horasSemana: profile.horasSemana,
+        necesitaTrabajar: profile.necesitaTrabajar,
+        movilidad: profile.movilidad,
+        urgencia: profile.urgencia,
+        costEstimateSource: profile.costEstimateSource,
       },
-      {
-        label: "Riesgo de inglés",
-        nivel: profile.ingles === "alto" ? "Bajo" : profile.ingles === "medio" ? "Medio" : "Alto",
-        explicacion: profile.ingles === "alto" ? "Nivel funcional para progresar." : "Puede impactar ritmo y rendimiento formativo.",
-        accion: "Definir plan de mejora y validar objetivo ICAO.",
+      routeRecommendation: {
+        recommended: route.recommended,
+        reason: route.reason,
+        principalBlock: route.principalBlock,
+        warnings: [...route.warnings],
+        conflicts: [...route.conflicts],
+        scores: {
+          integrated: route.integrated,
+          modular: route.modular,
+          prep: route.prep,
+        },
       },
-      {
-        label: "Riesgo documental",
-        nivel: riskLevelFromScore(escuelaDataRiskScore),
-        explicacion: `${schoolStats.verifiedCount} escuela(s) verificadas de ${schools.length}.`,
-        accion: "Exigir confirmación documental de costes y condiciones.",
+      costs: {
+        inputs: { ...costInputs },
+        summary: {
+          subtotalFormacion: costs.subtotalFormacion,
+          subtotalExtras: costs.subtotalExtras,
+          subtotalVida: costs.subtotalVida,
+          buffer: costs.buffer,
+          totalOptimista: costs.totalOptimista,
+          totalRealista: costs.totalRealista,
+          totalConservador: costs.totalConservador,
+          brechaFinanciacion: costs.brechaFinanciacion,
+          coveragePct: costs.coverage,
+          mesesCerrarBrecha: costs.mesesCerrarBrecha,
+          riskScore: costs.riskScore,
+          riesgoFinanciero: costs.riesgoFinanciero,
+        },
       },
-      {
-        label: "Riesgo de marketing/promesas",
-        nivel: riskLevelFromScore(marketingRiskScore),
-        explicacion: bestAnalysis ? "Evaluación sobre promesas y transparencia comercial." : "Falta evidencia documental suficiente.",
-        accion: "Pedir por escrito alcance real de career support y límites.",
+      readiness: {
+        score: decisionReadiness.score,
+        decision: decisionReadiness.decision,
+        explanation: decisionReadiness.explanation,
+        showNoPaguesBadge: decisionReadiness.showNoPaguesBadge,
+        shouldPayNow,
+        bloqueosCriticos: [...decisionReadiness.bloqueosCriticos],
+        faltanDatos: [...decisionReadiness.faltanDatos],
+        proximosPasos: [...decisionReadiness.proximosPasos],
       },
-      {
-        label: "Riesgo de timing",
-        nivel: riskLevelFromScore(timingRiskScore),
-        explicacion: route.conflicts[0] || "No se detecta conflicto fuerte de timing.",
-        accion: "Alinear urgencia, disponibilidad y necesidad de trabajar.",
+      risks: riskDiagnosis.map((risk) => ({
+        label: risk.label,
+        nivel: risk.nivel,
+        explicacion: risk.explicacion,
+        accion: risk.accion,
+      })),
+      roadmap: {
+        sevenDays: [...actionPlan.sevenDays],
+        thirtyDays: [...actionPlan.thirtyDays],
+        ninetyDays: [...actionPlan.ninetyDays],
       },
-    ];
-  }, [profile.class1, profile.ingles, costs.riesgoFinanciero, costs.coverage, schoolStats.bestSchool, schoolStats.verifiedCount, schools.length, route.conflicts]);
+      schoolsSummary: {
+        total: schools.length,
+        verifiedCount: schoolStats.verifiedCount,
+        pendingCount: schoolStats.pendingCount,
+        bestSchoolName: schoolStats.bestSchool?.school.nombre ?? null,
+        items: schools.slice(0, 6).map((school) => ({
+          id: String(school.id),
+          nombre: school.nombre,
+          pais: school.pais,
+          ciudad: school.ciudad,
+          programa: school.programa,
+          precioAnunciado: school.precioAnunciado,
+          estadoVerificacion: school.estadoVerificacion,
+          pendientes: getSchoolEmailMissingData(school),
+        })),
+      },
+      flypathNextStep: {
+        primaryId: nextStepRecommendation.primary,
+        primary: FLYPATH_PRODUCTS[nextStepRecommendation.primary],
+        secondaryIds: [...nextStepRecommendation.secondaryIds],
+        reasons: [...nextStepRecommendation.reasons],
+      },
+    });
+  }, [
+    reviewMode,
+    initialTab,
+    profile,
+    route,
+    costInputs,
+    costs,
+    decisionReadiness,
+    shouldPayNow,
+    riskDiagnosis,
+    actionPlan,
+    schools,
+    schoolStats,
+    nextStepRecommendation,
+  ]);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -4988,10 +4114,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         }
                         try {
                           const { downloadFlyPathInformePdf, getFlyPathPrimaryProductForPdf } = await import("@/lib/flypathReportPdf");
-                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
-                            dateStyle: "long",
-                            timeStyle: "short",
-                          }).format(new Date());
                           const nextPrimary = getFlyPathPrimaryProductForPdf({
                             class1: profile.class1,
                             ingles: profile.ingles,
@@ -5006,52 +4128,51 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                             faltanDatosLength: decisionReadiness.faltanDatos.length,
                             atplTheory: costInputs.atplTheory,
                           });
-                          const schoolSummaries = schools.slice(0, 6).map((s, i) => {
-                            const pend = getSchoolEmailMissingData(s);
-                            return {
-                              id: `school-${s.id}-${i}`,
-                              nombre: s.nombre,
-                              pais: s.pais,
-                              ciudad: s.ciudad,
-                              precio: euro(s.precioAnunciado),
-                              estado: s.estadoVerificacion.replace(/_/g, " "),
-                              pendientes: pend.length ? pend.slice(0, 8).join(", ") : "Sin pendientes destacados en el checklist.",
-                            };
-                          });
+                          const schoolSummaries = reportSnapshot.schoolsSummary.items.map((s, i) => ({
+                            id: `school-${s.id}-${i}`,
+                            nombre: s.nombre,
+                            pais: s.pais,
+                            ciudad: s.ciudad,
+                            precio: euro(s.precioAnunciado),
+                            estado: s.estadoVerificacion.replace(/_/g, " "),
+                            pendientes: s.pendientes.length
+                              ? s.pendientes.slice(0, 8).join(", ")
+                              : "Sin pendientes destacados en el checklist.",
+                          }));
                           const payload: FlyPathInformePdfInput = {
-                            generatedAt,
-                            nombre: profile.nombre.trim(),
-                            routeRecommended: route.recommended,
-                            routeReason: route.reason,
-                            principalBlock: route.principalBlock,
-                            decision: decisionReadiness.decision,
-                            score: decisionReadiness.score,
-                            shouldPayNow,
+                            generatedAt: reportSnapshot.generatedAt,
+                            nombre: reportSnapshot.profile.nombre.trim(),
+                            routeRecommended: reportSnapshot.routeRecommendation.recommended,
+                            routeReason: reportSnapshot.routeRecommendation.reason,
+                            principalBlock: reportSnapshot.routeRecommendation.principalBlock,
+                            decision: reportSnapshot.readiness.decision,
+                            score: reportSnapshot.readiness.score,
+                            shouldPayNow: reportSnapshot.readiness.shouldPayNow,
                             conclusionEjecutiva: conclusionEjecutivaInformeFinal(
-                              decisionReadiness.decision,
+                              reportSnapshot.readiness.decision,
                               criticalBlockersForConclusion,
-                              decisionReadiness.faltanDatos,
+                              reportSnapshot.readiness.faltanDatos,
                             ),
-                            totalOptimista: euro(costs.totalOptimista),
-                            totalRealista: euro(costs.totalRealista),
-                            totalConservador: euro(costs.totalConservador),
-                            dineroDisponible: euro(profile.dineroDisponible),
-                            brecha: euro(costs.brechaFinanciacion),
-                            coverage: `${costs.coverage}% del coste realista`,
-                            mesesCerrarBrecha: costs.mesesCerrarBrecha,
-                            costEstimateNote: costEstimateNoteForPdf(profile.costEstimateSource),
-                            riskRows: mapRiskRowsForInformePdf(riskDiagnosis),
-                            faltanDatos: [...decisionReadiness.faltanDatos],
-                            proximosPasos: [...decisionReadiness.proximosPasos],
-                            sevenDays: [...actionPlan.sevenDays],
-                            thirtyDays: [...actionPlan.thirtyDays],
-                            ninetyDays: [...actionPlan.ninetyDays],
-                            schoolsCount: schools.length,
-                            verifiedCount: schoolStats.verifiedCount,
-                            pendingCount: schoolStats.pendingCount,
+                            totalOptimista: euro(reportSnapshot.costs.summary.totalOptimista),
+                            totalRealista: euro(reportSnapshot.costs.summary.totalRealista),
+                            totalConservador: euro(reportSnapshot.costs.summary.totalConservador),
+                            dineroDisponible: euro(reportSnapshot.profile.dineroDisponible),
+                            brecha: euro(reportSnapshot.costs.summary.brechaFinanciacion),
+                            coverage: `${reportSnapshot.costs.summary.coveragePct}% del coste realista`,
+                            mesesCerrarBrecha: reportSnapshot.costs.summary.mesesCerrarBrecha,
+                            costEstimateNote: costEstimateNoteForPdf(reportSnapshot.profile.costEstimateSource),
+                            riskRows: mapRiskRowsForInformePdf(reportSnapshot.risks.items),
+                            faltanDatos: [...reportSnapshot.readiness.faltanDatos],
+                            proximosPasos: [...reportSnapshot.readiness.proximosPasos],
+                            sevenDays: [...reportSnapshot.roadmap.sevenDays],
+                            thirtyDays: [...reportSnapshot.roadmap.thirtyDays],
+                            ninetyDays: [...reportSnapshot.roadmap.ninetyDays],
+                            schoolsCount: reportSnapshot.schoolsSummary.total,
+                            verifiedCount: reportSnapshot.schoolsSummary.verifiedCount,
+                            pendingCount: reportSnapshot.schoolsSummary.pendingCount,
                             schoolSummaries,
                             nextPrimary,
-                            disclaimer: disclaimerText,
+                            disclaimer: reportSnapshot.disclaimer,
                           };
                           await downloadFlyPathInformePdf(payload);
                           showToast("Informe descargado");
@@ -5074,24 +4195,20 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       onClick={async () => {
                         try {
                           const { downloadFlyPathResumenPadresPdf } = await import("@/lib/flypathReportPdf");
-                          const generatedAt = new Intl.DateTimeFormat("es-ES", {
-                            dateStyle: "long",
-                            timeStyle: "short",
-                          }).format(new Date());
                           const padresPayload: FlyPathResumenPadresPdfInput = {
-                            generatedAt,
-                            nombre: profile.nombre.trim(),
-                            routeRecommended: route.recommended,
-                            decision: decisionReadiness.decision,
-                            shouldPayNow,
-                            totalRealista: euro(costs.totalRealista),
-                            brecha: euro(costs.brechaFinanciacion),
-                            riesgosSimple: riesgosSimpleParaPadresPdf(riskDiagnosis),
-                            faltanDatos: [...decisionReadiness.faltanDatos],
-                            sevenDays: [...actionPlan.sevenDays],
-                            thirtyDays: [...actionPlan.thirtyDays],
-                            ninetyDays: [...actionPlan.ninetyDays],
-                            disclaimer: disclaimerText,
+                            generatedAt: reportSnapshot.generatedAt,
+                            nombre: reportSnapshot.profile.nombre.trim(),
+                            routeRecommended: reportSnapshot.routeRecommendation.recommended,
+                            decision: reportSnapshot.readiness.decision,
+                            shouldPayNow: reportSnapshot.readiness.shouldPayNow,
+                            totalRealista: euro(reportSnapshot.costs.summary.totalRealista),
+                            brecha: euro(reportSnapshot.costs.summary.brechaFinanciacion),
+                            riesgosSimple: riesgosSimpleParaPadresPdf(reportSnapshot.risks.items),
+                            faltanDatos: [...reportSnapshot.readiness.faltanDatos],
+                            sevenDays: [...reportSnapshot.roadmap.sevenDays],
+                            thirtyDays: [...reportSnapshot.roadmap.thirtyDays],
+                            ninetyDays: [...reportSnapshot.roadmap.ninetyDays],
+                            disclaimer: reportSnapshot.disclaimer,
                           };
                           await downloadFlyPathResumenPadresPdf(padresPayload);
                           showToast("Resumen para padres descargado");
@@ -5113,6 +4230,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 </div>
 
                 <FlyPathNextStepsPanel
+                  recommendation={nextStepRecommendation}
                   profile={profile}
                   route={route}
                   decisionReadiness={decisionReadiness}
