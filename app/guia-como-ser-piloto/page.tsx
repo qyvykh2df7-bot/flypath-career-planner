@@ -495,7 +495,7 @@ export default function GuiaComoSerPilotoPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
                   Por qué esta guía
                 </p>
-                <div className="mt-5 space-y-4 text-lg leading-relaxed text-[#0f1a33] sm:text-xl lg:text-[22px]">
+                <div className="mt-5 max-w-2xl space-y-5 text-[17px] leading-[1.8] text-[#0f1a33] sm:text-[19px] lg:text-[21px]">
                   <p>
                     Cómo ser Piloto es una guía práctica para quienes quieren iniciar o ya han iniciado el camino hacia la aviación profesional y no quieren equivocarse en las decisiones importantes.
                   </p>
@@ -645,16 +645,10 @@ export default function GuiaComoSerPilotoPage() {
         <section className="bg-gradient-to-b from-[#f8fafc] to-white py-14 lg:py-20">
           <div className="mx-auto max-w-3xl px-6 text-center lg:px-10">
             <h2 className="text-2xl font-semibold tracking-tight text-[#0f1a33] sm:text-3xl">
-              Empieza por entender el camino antes de pagar
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-slate-600">
-              La guía te ayuda a tomar mejores decisiones antes de hablar con escuelas, comparar precios o comprometer dinero.
-            </p>
-            <p className="mt-5 text-[15px] font-medium leading-relaxed text-[#7a5a16] sm:text-base">
               Empieza con la guía, valida tu ruta y después compara escuelas con más criterio.
-            </p>
+            </h2>
             <p className="mt-2 text-[12px] font-medium uppercase tracking-[0.22em] text-slate-500">
-              Lee · Planifica · Compara
+              LEE · PLANIFICA · COMPARA
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
               <button

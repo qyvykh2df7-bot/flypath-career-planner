@@ -322,8 +322,7 @@ export default function InglesAeronauticoPage() {
                   Elige cómo quieres trabajar tu inglés
                 </h2>
                 <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600 sm:text-base">
-                  Elige entre una clase individual para empezar o un pack de clases para trabajar con
-                  seguimiento.
+                  Elige una clase individual o un pack con seguimiento.
                 </p>
                 <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 items-stretch gap-5 md:max-w-none md:grid-cols-2 md:gap-6">
                   {MODALITIES.map((mod) => (
@@ -350,15 +349,19 @@ export default function InglesAeronauticoPage() {
                               {mod.tag}
                             </span>
                           ) : null}
-                          <h3 className="text-xl font-semibold text-[#0f1a33]">{mod.title}</h3>
+                          <h3
+                            className={`text-xl font-semibold text-[#0f1a33] ${
+                              mod.featured ? "mt-[18px]" : ""
+                            }`}
+                          >
+                            {mod.title}
+                          </h3>
                           <p
                             className={`mt-3 text-2xl font-semibold tracking-tight ${
                               mod.featured ? "text-[#7a5a16]" : "text-[#0f1a33]"
                             }`}
                           >
-                            {mod.featured
-                              ? `Pack ${selectedPack.classes} clases · ${selectedPack.price} €`
-                              : mod.price}
+                            {mod.featured ? `${selectedPack.price} €` : mod.price}
                           </p>
                           {mod.featured ? (
                             <div className="mt-2 space-y-2">
@@ -401,9 +404,6 @@ export default function InglesAeronauticoPage() {
                                   </li>
                                 ))}
                               </ul>
-                              <p className="text-[13px] text-slate-500">
-                                Perfecta para empezar o preparar una situación concreta.
-                              </p>
                             </div>
                           )}
                         </div>

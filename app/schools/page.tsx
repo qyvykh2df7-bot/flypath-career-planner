@@ -21,13 +21,14 @@ import {
   sortMainListingSchools,
   type SchoolsFilters,
 } from "@/lib/schools/schoolUtils";
-import type { DataConfidence, RouteType, SchoolEntry } from "@/types/schools";
+import type { RouteType, SchoolEntry } from "@/types/schools";
 import { QaPremiumFloatingToggle } from "@/components/dev/QaPremiumFloatingToggle";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
 import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 
 const MAX_SELECTED = 2;
 const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
+type VisibleSchoolsFilters = Omit<SchoolsFilters, "dataConfidence">;
 
 /**
  * Desde opiniones: incluir la escuela del query aunque ya hubiera 2 seleccionadas.
@@ -93,12 +94,11 @@ function SchoolsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultMaxAdvertisedPrice = 140000;
-  const [filters, setFilters] = useState<SchoolsFilters>({
+  const [filters, setFilters] = useState<VisibleSchoolsFilters>({
     query: "",
     routeType: "all",
     city: "all",
     maxAdvertisedPrice: defaultMaxAdvertisedPrice,
-    dataConfidence: "all",
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionHydrated, setSelectionHydrated] = useState(false);
@@ -121,7 +121,14 @@ function SchoolsPageContent() {
   const premiumUnlocked = false; // pago real futuro (Stripe / backend)
   const canSeePremium = canSeePremiumForDevQa(premiumUnlocked, qaPremiumMode);
 
-  const filtered = useMemo(() => filterSchools(schoolsDataset, filters), [schoolsDataset, filters]);
+  const effectiveFilters = useMemo<SchoolsFilters>(
+    () => ({ ...filters, dataConfidence: "all" }),
+    [filters],
+  );
+  const filtered = useMemo(
+    () => filterSchools(schoolsDataset, effectiveFilters),
+    [schoolsDataset, effectiveFilters],
+  );
   const listingBuckets = useMemo(() => {
     const main: SchoolEntry[] = [];
     const pending: SchoolEntry[] = [];
@@ -163,8 +170,7 @@ function SchoolsPageContent() {
     filters.query.trim().length > 0 ||
     filters.routeType !== "all" ||
     filters.city !== "all" ||
-    filters.maxAdvertisedPrice !== defaultMaxAdvertisedPrice ||
-    filters.dataConfidence !== "all";
+    filters.maxAdvertisedPrice !== defaultMaxAdvertisedPrice;
   const hasSearchActive = hasActiveFilters || searchSubmitted;
   const filteredSchoolsCount = filtered.length;
 
@@ -462,7 +468,7 @@ function SchoolsPageContent() {
           <p className="mt-1 text-[15px] text-slate-600">
             Busca una escuela, ciudad o tipo de ruta. Después selecciona 2 escuelas para compararlas con criterios FlyPath.
           </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <label className="block">
               <span className="text-[15px] font-medium text-slate-500">Buscar por nombre o ciudad</span>
               <input
@@ -518,21 +524,6 @@ function SchoolsPageContent() {
                 className="mt-3 w-full"
               />
               <p className="text-[15px] text-slate-600">Hasta {filters.maxAdvertisedPrice.toLocaleString("es-ES")} EUR</p>
-            </label>
-            <label className="block">
-              <span className="text-[15px] font-medium text-slate-500">Confianza del dato</span>
-              <select
-                value={filters.dataConfidence}
-                onChange={(e) => {
-                  setFilters((f) => ({ ...f, dataConfidence: e.target.value as DataConfidence | "all" }));
-                }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
-              >
-                <option value="all">Todas</option>
-                <option value="high">Alta</option>
-                <option value="medium">Media</option>
-                <option value="low">Baja</option>
-              </select>
             </label>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
