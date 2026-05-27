@@ -1612,7 +1612,7 @@ const FLYPATH_PRODUCT_HREF: Record<
 
 const FLYPATH_PRIMARY_IMAGE: Record<FlyPathProductId, string> = {
   guia: "/como-ser-piloto-cover.jpeg",
-  mentoria: "/mentoria-flypath.jpg",
+  mentoria: "/mentoria.jpg",
   ingles: "/ingles-aeronautico.jpg",
   atpl: "/atpl-planner.jpg",
   clases: "/clases.jpg",
