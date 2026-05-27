@@ -92,8 +92,9 @@ const WHY_BULLETS = [
 const MODALITIES = [
   {
     title: "Clase individual",
-    price: "49 €",
-    text: "Para detectar tu nivel, trabajar tus bloqueos y practicar speaking real a tu ritmo.",
+    tag: "Clase puntual",
+    price: "20 €",
+    text: "Clase online enfocada en desbloquear una asignatura, entender teoría y practicar speaking real.",
     cta: "Agendar clase",
     href: CALCOM_INDIVIDUAL_URL,
     featured: false,
@@ -106,6 +107,14 @@ const MODALITIES = [
     href: CALCOM_PACK_URL,
     featured: true,
   },
+] as const;
+
+const PACK_CLASS_OPTIONS = [
+  { classes: 2, price: 38, perClass: "19" },
+  { classes: 3, price: 54, perClass: "18" },
+  { classes: 4, price: 68, perClass: "17" },
+  { classes: 5, price: 80, perClass: "16" },
+  { classes: 6, price: 90, perClass: "15" },
 ] as const;
 
 const TESTIMONIALS = [
@@ -127,6 +136,11 @@ const TESTIMONIALS = [
 export default function InglesAeronauticoPage() {
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
+  const [selectedPackClasses, setSelectedPackClasses] = useState<number>(2);
+
+  const selectedPack =
+    PACK_CLASS_OPTIONS.find((option) => option.classes === selectedPackClasses) ??
+    PACK_CLASS_OPTIONS[0];
 
   const showMainToast = useCallback(() => setToast(MAIN_TOAST), []);
 
@@ -331,15 +345,67 @@ export default function InglesAeronauticoPage() {
                         }`}
                       >
                         <div>
+                          {!mod.featured ? (
+                            <span className="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                              {mod.tag}
+                            </span>
+                          ) : null}
                           <h3 className="text-xl font-semibold text-[#0f1a33]">{mod.title}</h3>
                           <p
                             className={`mt-3 text-2xl font-semibold tracking-tight ${
                               mod.featured ? "text-[#7a5a16]" : "text-[#0f1a33]"
                             }`}
                           >
-                            {mod.price}
+                            {mod.featured
+                              ? `Pack ${selectedPack.classes} clases · ${selectedPack.price} €`
+                              : mod.price}
                           </p>
-                          <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                          {mod.featured ? (
+                            <div className="mt-2 space-y-2">
+                              <label
+                                htmlFor="pack-class-count-english"
+                                className="block text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500"
+                              >
+                                Número de clases
+                              </label>
+                              <select
+                                id="pack-class-count-english"
+                                value={selectedPackClasses}
+                                onChange={(e) => setSelectedPackClasses(Number(e.target.value))}
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] font-medium text-[#0f1a33] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/45"
+                              >
+                                {PACK_CLASS_OPTIONS.map((option) => (
+                                  <option key={option.classes} value={option.classes}>
+                                    {option.classes} clases
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                              <p className="text-[14px] font-semibold text-[#7a5a16]">
+                                {selectedPack.perClass} €/clase aprox.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-2 space-y-2">
+                              <p className="text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                              <ul className="space-y-1.5 rounded-lg border border-slate-200/80 bg-slate-50/90 p-3">
+                                {[
+                                  "1 sesión online personalizada",
+                                  "práctica speaking y listening",
+                                  "feedback sobre errores frecuentes",
+                                  "ejercicios aplicados a aviación real",
+                                ].map((item) => (
+                                  <li key={item} className="flex gap-2 text-[13px] leading-snug text-slate-600">
+                                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="text-[13px] text-slate-500">
+                                Perfecta para empezar o preparar una situación concreta.
+                              </p>
+                            </div>
+                          )}
                         </div>
                         <div className="mt-auto pt-6">
                           <a
@@ -351,7 +417,9 @@ export default function InglesAeronauticoPage() {
                                 : "border border-[#0f1a33]/15 bg-[#0f1a33] text-white shadow-sm hover:bg-[#16264a] focus-visible:ring-[#0f1a33]/40"
                             }`}
                           >
-                            {mod.cta}
+                            {mod.featured
+                              ? `Reservar pack de ${selectedPack.classes} clases`
+                              : mod.cta}
                           </a>
                         </div>
                       </div>

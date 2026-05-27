@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { FlyPathTeamSection } from "@/components/FlyPathTeamSection";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import {
   ArrowRight,
@@ -19,10 +18,9 @@ const MAIN_TOAST = "Clases PPL/ATPL próximamente";
 /** Sustituir por URLs reales de Cal.com cuando estén disponibles */
 const CALCOM_PPL_ATPL_CLASS_URL = "#";
 const CALCOM_PPL_ATPL_PACK_URL = "#";
+const CALCOM_PPL_ATPL_CALL_URL = "#";
 
-/** Sustituir por ruta real cuando ATPL Planner esté disponible (p. ej. "/atpl-planner") */
-const ATPL_PLANNER_HREF = "#";
-const ATPL_PLANNER_TOAST = "Próximamente";
+const ATPL_PLANNER_HREF = "/atpl-planner";
 
 const HERO_HIGHLIGHTS = [
   "PPL Theory",
@@ -57,65 +55,59 @@ const TEAM = [
   },
 ] as const;
 
-const SUBJECT_WORK = [
-  {
-    title: "PPL Theory",
-    items: ["Air Law", "Navigation", "Meteorology", "Aircraft General Knowledge"],
-    footer: "Y otras asignaturas PPL",
-  },
-  {
-    title: "ATPL Theory",
-    items: ["Performance", "Flight Planning", "Mass & Balance", "General Navigation"],
-    footer: "Y otras asignaturas ATPL",
-  },
-  {
-    title: "Exámenes y estudio",
-    items: [
-      "Repaso antes de examen",
-      "Dudas concretas",
-      "Banco de preguntas con criterio",
-      "Plan semanal de estudio",
-    ],
-  },
-] as const;
-
 const HOW_CLASS_STEPS = [
   {
     step: "1",
     title: "Traes tu duda, tema o examen",
-    text: "Puedes venir con un tema concreto, un examen próximo o una asignatura que se te está atascando.",
+    text: "Puedes venir con una asignatura, un tema concreto o una fecha de examen cercana.",
   },
   {
     step: "2",
-    title: "Lo explicamos con contexto",
-    text: "Trabajamos teoría, ejemplos y aplicación real para que entiendas el porqué, no solo la respuesta.",
+    title: "Lo trabajamos con explicación real",
+    text: "Te explicamos la teoría con ejemplos, contexto operativo y aplicación práctica.",
   },
   {
     step: "3",
-    title: "Sales con plan de estudio",
-    text: "Te llevas próximos pasos, prioridades de repaso y una forma más ordenada de seguir.",
+    title: "Sales con plan en el ATPL Planner",
+    text: "Te llevas próximos pasos, sesiones recomendadas y objetivos claros para seguir estudiando dentro del ATPL Planner.",
   },
 ] as const;
 
 const MODALITIES = [
   {
-    title: "Clase individual",
+    title: "Clase individual online",
     tag: "Clase puntual",
-    price: "49 €",
-    text: "Para resolver dudas concretas, reforzar una asignatura o preparar una explicación desde cero.",
+    price: "25 €",
+    text: "Clase enfocada en entender la teoría, resolver bloqueos y preparar exámenes con una explicación clara y aplicada.",
     cta: "Agendar clase",
     href: CALCOM_PPL_ATPL_CLASS_URL,
     featured: false,
   },
   {
-    title: "Pack de clases",
+    title: "Pack de clases + seguimiento",
     tag: "Plan de apoyo",
     price: "Pack 4 clases · 179 €",
-    text: "Para trabajar varias asignaturas, preparar exámenes o seguir un plan de estudio con continuidad.",
+    text: "Para trabajar varias asignaturas con continuidad, comentarios de seguimiento y organización del estudio dentro del ATPL Planner.",
     cta: "Reservar pack",
     href: CALCOM_PPL_ATPL_PACK_URL,
     featured: true,
   },
+] as const;
+
+const PACK_CLASS_OPTIONS = [
+  { classes: 2, price: 55, perClass: "27,50" },
+  { classes: 3, price: 79, perClass: "26,33" },
+  { classes: 4, price: 99, perClass: "24,75" },
+  { classes: 5, price: 119, perClass: "23,80" },
+  { classes: 6, price: 139, perClass: "23,17" },
+] as const;
+
+const PACK_FOLLOWUP_ITEMS = [
+  "clases online",
+  "planificación de sesiones en el planner",
+  "comentarios de seguimiento en Evaluación",
+  "próximos objetivos",
+  "organización antes de examen",
 ] as const;
 
 const TESTIMONIALS = [
@@ -135,8 +127,12 @@ const TESTIMONIALS = [
 
 
 export default function ClasesPplAtplPage() {
-  const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
+  const [selectedPackClasses, setSelectedPackClasses] = useState<number>(2);
+
+  const selectedPack =
+    PACK_CLASS_OPTIONS.find((option) => option.classes === selectedPackClasses) ??
+    PACK_CLASS_OPTIONS[0];
 
   const scrollToModalities = useCallback(() => {
     document.getElementById("modalidades-clases")?.scrollIntoView({
@@ -145,8 +141,8 @@ export default function ClasesPplAtplPage() {
     });
   }, []);
 
-  const scrollToSubjects = useCallback(() => {
-    document.getElementById("asignaturas-clases")?.scrollIntoView({
+  const scrollToHowClass = useCallback(() => {
+    document.getElementById("como-es-una-clase")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -237,10 +233,10 @@ export default function ClasesPplAtplPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={scrollToSubjects}
+                  onClick={scrollToHowClass}
                   className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-7 py-3 text-[15px] font-semibold text-white backdrop-blur-sm transition hover:border-white/40 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                 >
-                  Ver asignaturas
+                  Cómo funciona
                   <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                 </button>
               </div>
@@ -289,42 +285,49 @@ export default function ClasesPplAtplPage() {
           </div>
         </section>
 
-        {/* 3. Asignaturas */}
+        {/* 3. Cómo es una clase */}
         <section
-          id="asignaturas-clases"
-          className="border-b border-slate-200/70 bg-white py-8 sm:py-9"
+          id="como-es-una-clase"
+          className="border-b border-slate-200/70 bg-white py-9 sm:py-10"
         >
           <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <h2 className="text-xl font-semibold leading-snug tracking-tight text-[#0f1a33] sm:text-2xl">
-              Podemos ayudarte con cualquier asignatura PPL o ATPL
+            <h2 className="text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
+              Cómo es una clase
             </h2>
             <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-600">
-              No nos limitamos a una lista cerrada. Estas son áreas habituales, pero podemos trabajar
-              cualquier tema de PPL o ATPL según tu escuela, banco de preguntas y fecha de examen.
+              No se trata de repetir apuntes. La idea es detectar el bloqueo, explicarlo con claridad
+              y darte una forma práctica de seguir estudiando.
             </p>
-            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-              {SUBJECT_WORK.map((block) => (
-                <div
-                  key={block.title}
-                  className="rounded-2xl border border-slate-200/80 bg-[#f4f7fb] p-4 shadow-[0_10px_28px_rgba(15,26,51,0.05)] ring-1 ring-black/[0.03] sm:p-5"
+            <ol className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {HOW_CLASS_STEPS.map((step) => (
+                <li
+                  key={step.step}
+                  className="relative rounded-2xl border border-slate-200/80 bg-[#f8fafc] p-5"
                 >
-                  <h3 className="text-lg font-semibold text-[#0f1a33]">{block.title}</h3>
-                  <ul className="mt-2.5 space-y-1.5">
-                    {block.items.map((item) => (
-                      <li key={item} className="flex gap-2 text-[15px] leading-snug text-slate-600">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  {"footer" in block && block.footer ? (
-                    <p className="mt-2.5 border-t border-slate-200/70 pt-2 text-[14px] font-medium leading-snug text-slate-500">
-                      {block.footer}
-                    </p>
-                  ) : null}
-                </div>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0f1a33] text-sm font-semibold text-[#f2ddaa]">
+                    {step.step}
+                  </span>
+                  <h3 className="mt-3 text-base font-semibold text-[#0f1a33]">{step.title}</h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                    {step.step === "3" ? (
+                      <>
+                        Te llevas próximos pasos, sesiones recomendadas y objetivos claros para seguir
+                        estudiando dentro del{" "}
+                        <Link
+                          href={ATPL_PLANNER_HREF}
+                          className="font-semibold text-[#7a5a16] underline decoration-[#c9a454]/55 underline-offset-2 hover:text-[#5e4511]"
+                        >
+                          ATPL Planner
+                        </Link>
+                        .
+                      </>
+                    ) : (
+                      step.text
+                    )}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </section>
 
@@ -344,11 +347,11 @@ export default function ClasesPplAtplPage() {
                   Puedes reservar una clase puntual o trabajar varias sesiones con seguimiento según
                   tus asignaturas y fechas de examen.
                 </p>
-                <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 items-stretch gap-5 md:max-w-none md:grid-cols-2 md:gap-6">
+                <div className="mx-auto mt-8 flex max-w-3xl flex-col gap-5 md:gap-6">
                   {MODALITIES.map((mod) => (
                     <div
                       key={mod.title}
-                      className={`relative h-full ${mod.featured ? "order-first md:order-none" : ""}`}
+                      className="relative h-full"
                     >
                       {mod.featured ? (
                         <span className="pointer-events-none absolute -top-3 left-1/2 z-10 inline-flex -translate-x-1/2 rounded-full border border-[#c9a454] bg-[#c9a454] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33] shadow-sm">
@@ -378,9 +381,64 @@ export default function ClasesPplAtplPage() {
                               mod.featured ? "text-[#7a5a16]" : "text-[#0f1a33]"
                             }`}
                           >
-                            {mod.price}
+                            {mod.featured
+                              ? `Pack ${selectedPack.classes} clases · ${selectedPack.price} €`
+                              : mod.price}
                           </p>
-                          <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                          {mod.featured ? (
+                            <div className="mt-2 space-y-2">
+                              <label
+                                htmlFor="pack-class-count"
+                                className="block text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500"
+                              >
+                                Número de clases
+                              </label>
+                              <select
+                                id="pack-class-count"
+                                value={selectedPackClasses}
+                                onChange={(e) => setSelectedPackClasses(Number(e.target.value))}
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] font-medium text-[#0f1a33] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/45"
+                              >
+                                {PACK_CLASS_OPTIONS.map((option) => (
+                                  <option key={option.classes} value={option.classes}>
+                                    {option.classes} clases
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                              <p className="text-[14px] font-semibold text-[#7a5a16]">
+                                {selectedPack.perClass} €/clase aprox.
+                              </p>
+                              <p className="text-[13px] text-slate-500">
+                                Más clases = más seguimiento y mejor precio por sesión.
+                              </p>
+                              <ul className="space-y-1.5 rounded-lg border border-slate-200/80 bg-slate-50/90 p-3">
+                                {PACK_FOLLOWUP_ITEMS.map((item) => (
+                                  <li key={item} className="flex gap-2 text-[13px] leading-snug text-slate-600">
+                                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : (
+                            <div className="mt-2 space-y-2">
+                              <p className="text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
+                              <ul className="space-y-1.5 rounded-lg border border-slate-200/80 bg-slate-50/90 p-3">
+                                {[
+                                  "explicación clara y estructurada",
+                                  "teoría aplicada a la aviación real",
+                                  "preparación PPL o ATPL",
+                                  "sesión personalizada online",
+                                ].map((item) => (
+                                  <li key={item} className="flex gap-2 text-[13px] leading-snug text-slate-600">
+                                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                         <div className="mt-auto pt-6">
                           <a
@@ -392,7 +450,9 @@ export default function ClasesPplAtplPage() {
                                 : "border border-[#0f1a33]/20 bg-[#0f1a33] text-white hover:bg-[#16264a] focus-visible:ring-[#0f1a33]/40"
                             }`}
                           >
-                            {mod.cta}
+                            {mod.featured
+                              ? `Reservar pack de ${selectedPack.classes} clases`
+                              : mod.cta}
                           </a>
                         </div>
                       </div>
@@ -402,30 +462,32 @@ export default function ClasesPplAtplPage() {
           </div>
         </section>
 
-        {/* 5. Cómo es una clase */}
-        <section className="border-b border-slate-200/70 bg-white py-9 sm:py-10">
-          <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <h2 className="text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
-              Cómo es una clase
-            </h2>
-            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-600">
-              No se trata de repetir apuntes. La idea es detectar el bloqueo, explicarlo con claridad
-              y darte una forma práctica de seguir estudiando.
-            </p>
-            <ol className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-              {HOW_CLASS_STEPS.map((step) => (
-                <li
-                  key={step.step}
-                  className="relative rounded-2xl border border-slate-200/80 bg-[#f8fafc] p-5"
-                >
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0f1a33] text-sm font-semibold text-[#f2ddaa]">
-                    {step.step}
-                  </span>
-                  <h3 className="mt-3 text-base font-semibold text-[#0f1a33]">{step.title}</h3>
-                  <p className="mt-2 text-[14px] leading-relaxed text-slate-600">{step.text}</p>
-                </li>
-              ))}
-            </ol>
+        {/* 5. Videollamada inicial */}
+        <section className="border-b border-slate-200/70 bg-gradient-to-b from-[#f8fafc] via-white to-[#f8fafc] py-7 sm:py-8">
+          <div className="mx-auto max-w-5xl px-6 lg:px-10">
+            <div className="rounded-3xl border border-[#c9a454]/25 bg-white px-5 py-5 shadow-[0_18px_40px_rgba(15,26,51,0.08)] ring-1 ring-[#c9a454]/15 sm:px-6 sm:py-5">
+              <div className="flex flex-col gap-4 text-center sm:gap-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:text-left">
+                <div className="min-w-0">
+                  <h2 className="text-[1.5rem] font-semibold tracking-tight text-[#0f1a33] sm:text-[1.65rem]">
+                    ¿No sabes qué opción elegir?
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-600">
+                    Reserva una videollamada inicial de 10–15 minutos y vemos qué asignatura te está
+                    bloqueando, si necesitas una clase puntual o seguimiento, y cómo podemos ayudarte de
+                    forma más útil.
+                  </p>
+                </div>
+                <div className="flex justify-center lg:justify-end">
+                  <a
+                    href={CALCOM_PPL_ATPL_CALL_URL}
+                    onClick={(e) => handleCalLinkClick(e, CALCOM_PPL_ATPL_CALL_URL)}
+                    className="inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-2xl border border-[#c9a454] bg-[#c9a454] px-5 py-2 text-[15px] font-semibold leading-none text-[#0f1a33] shadow-[0_10px_24px_rgba(201,164,84,0.33)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:px-6"
+                  >
+                    Reservar videollamada
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -466,11 +528,11 @@ export default function ClasesPplAtplPage() {
         <section className="bg-gradient-to-b from-[#f8fafc] to-white py-10 sm:py-12">
           <div className="mx-auto max-w-3xl px-6 text-center lg:px-10">
             <h2 className="text-2xl font-semibold tracking-tight text-[#0f1a33] sm:text-3xl">
-              Refuerza tus asignaturas antes de que se conviertan en un bloqueo
+              Deja de estudiar a ciegas
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
-              Si una asignatura se atasca, no esperes al último momento. Agenda una clase y trabaja
-              el problema con una explicación clara.
+              Te ayudamos a entender la teoría, organizar tu estudio y llegar al examen con más
+              claridad.
             </p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
               <button
@@ -480,20 +542,13 @@ export default function ClasesPplAtplPage() {
               >
                 Agendar clase
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (ATPL_PLANNER_HREF === "#") {
-                    setToast(ATPL_PLANNER_TOAST);
-                    return;
-                  }
-                  router.push(ATPL_PLANNER_HREF);
-                }}
+              <a
+                href={CALCOM_PPL_ATPL_CALL_URL}
+                onClick={(e) => handleCalLinkClick(e, CALCOM_PPL_ATPL_CALL_URL)}
                 className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-8 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/45 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35 sm:w-auto"
               >
-                ATPL Planner
-                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-              </button>
+                Reservar videollamada
+              </a>
             </div>
           </div>
         </section>
