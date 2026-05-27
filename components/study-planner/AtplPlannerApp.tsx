@@ -354,7 +354,10 @@ export function AtplPlannerApp() {
             mockResults={modeMockResults}
             reviewItems={modeReviewItems}
             errorLogItems={modeErrorLogItems}
+            examDates={modeExamDates}
             weeklyGoalMinutes={weeklyGoalMinutes}
+            weekStartDate={visibleWeekStartDate}
+            today={today}
             onApplyPlan={recoveryApplyPlan}
             onGoToCalendar={goToCalendar}
           />

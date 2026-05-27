@@ -15,10 +15,9 @@ describe("recovery-display", () => {
     expect(title).toBe("Cierra a 2 asignaturas");
   });
 
-  it("clips long summary to first sentence", () => {
-    const s = formatRecoverySummaryForDisplay(
-      "Primero limpia la base. Segunda frase que no debería salir entera si es muy larga.",
-    );
-    expect(s).toBe("Primero limpia la base.");
+  it("preserves practical summary text", () => {
+    const text =
+      "Durante los próximos 7 días el plan añadirá unas 5 sesiones en tu calendario.";
+    expect(formatRecoverySummaryForDisplay(text)).toBe(text);
   });
 });

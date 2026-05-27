@@ -8,7 +8,10 @@ import type {
 } from "./types";
 import { createPlannerId, getReviewStatus, minutesToHoursLabel } from "./calculations";
 import { getWeekDates } from "./date-utils";
+import { getWeekRange } from "./date-utils";
+import { isBurnoutRecoveryPlan } from "./recovery-burnout-relief";
 import { computeRecoveryTargetMinutes } from "./recovery-load";
+import { isPendingLikeStatus } from "./planner-session-status";
 
 export type RecoveryApplyInput = {
   plan: RecoveryPlan;
@@ -100,6 +103,44 @@ export function pickRecoveryFocusSubjects(
   return priority.slice(0, 2);
 }
 
+/** Hasta 3 asignaturas prioritarias en semana ligera por burnout. */
+export function pickBurnoutPrioritySubjects(
+  activeSubjectIds: string[],
+  reviewItems: ReviewItem[],
+  errorLogItems: ErrorLogItem[],
+  today: string,
+): string[] {
+  return pickRecoveryFocusSubjects(activeSubjectIds, reviewItems, errorLogItems, today).slice(
+    0,
+    3,
+  );
+}
+
+export function getRecoverySubjectsToDeschedule(
+  plan: RecoveryPlan,
+  activeSubjectIds: string[],
+): string[] {
+  const fromPlan = plan.focusReduction?.subjectIdsToRemove ?? [];
+  if (fromPlan.length > 0) return fromPlan;
+  return activeSubjectIds;
+}
+
+export function shouldDescheduleRecoverySession(
+  plan: RecoveryPlan,
+  session: PlannedStudySession,
+  weekStartDate: string,
+  activeSubjectIds: string[],
+): boolean {
+  const { start, end } = getWeekRange(weekStartDate);
+  if (session.date < start || session.date > end) return false;
+  if (!isPendingLikeStatus(session.status)) return false;
+  const targetSubjectSet = new Set(getRecoverySubjectsToDeschedule(plan, activeSubjectIds));
+  if (!targetSubjectSet.has(session.subjectId)) return false;
+  if (plan.focusReduction?.appliesThisWeek) return true;
+  if (isBurnoutRecoveryPlan(plan.problems) && plan.variant === "lighter") return true;
+  return session.source === "auto";
+}
+
 function actionableSteps(plan: RecoveryPlan): RecoveryPlanStep[] {
   return plan.steps.filter(
     (s) => s.actionType && !SKIPPED_ACTIONS.has(s.actionType),
@@ -180,6 +221,7 @@ export function recoveryPlanToPlannedSessions(input: RecoveryApplyInput): Planne
   if (activeSubjectIds.length === 0) return [];
 
   const lighter = plan.variant === "lighter";
+  const burnout = isBurnoutRecoveryPlan(plan.problems);
   const steps = actionableSteps(plan);
   if (steps.length === 0) return [];
 
@@ -190,11 +232,11 @@ export function recoveryPlanToPlannedSessions(input: RecoveryApplyInput): Planne
     weeklyGoalMinutes,
   });
 
-  const minDuration = lighter ? 35 : 40;
-  const maxDuration = lighter ? 50 : 55;
-  const avgDuration = lighter ? 42 : 48;
-  const maxBlocks = lighter ? 8 : 10;
-  const minBlocks = Math.max(steps.length, 3);
+  const minDuration = burnout ? 45 : lighter ? 35 : 40;
+  const maxDuration = burnout ? 60 : lighter ? 50 : 55;
+  const avgDuration = burnout ? 52 : lighter ? 42 : 48;
+  const maxBlocks = burnout ? 7 : lighter ? 8 : 10;
+  const minBlocks = burnout ? 3 : Math.max(steps.length, 3);
 
   let blockCount = Math.ceil(targetMinutes / avgDuration);
   blockCount = Math.min(maxBlocks, Math.max(minBlocks, blockCount));
@@ -202,21 +244,39 @@ export function recoveryPlanToPlannedSessions(input: RecoveryApplyInput): Planne
   const stepCycle = expandStepCycle(steps, blockCount);
   const durations = distributeDurations(targetMinutes, blockCount, minDuration, maxDuration);
 
-  const focusSubjects = pickRecoveryFocusSubjects(
-    activeSubjectIds,
-    reviewItems,
-    errorLogItems,
-    today,
-  );
+  const focusSubjects =
+    plan.focusReduction?.subjectIdsToKeep && plan.focusReduction.subjectIdsToKeep.length > 0
+      ? plan.focusReduction.subjectIdsToKeep.slice(0, 3)
+      : burnout
+        ? pickBurnoutPrioritySubjects(activeSubjectIds, reviewItems, errorLogItems, today)
+        : pickRecoveryFocusSubjects(activeSubjectIds, reviewItems, errorLogItems, today);
   const weekDates = getWeekDates(weekStartDate).filter((d) => d >= today);
   const dates = weekDates.length > 0 ? weekDates : [today];
 
   const sessions: PlannedStudySession[] = [];
+  const sessionsPerDate: Record<string, number> = {};
+  let dateCursor = 0;
+
+  const pickDate = (): string => {
+    for (let attempt = 0; attempt < dates.length * 2; attempt++) {
+      const date = dates[dateCursor % dates.length]!;
+      dateCursor += 1;
+      const count = sessionsPerDate[date] ?? 0;
+      if (!burnout || count < 2) {
+        sessionsPerDate[date] = count + 1;
+        return date;
+      }
+    }
+    const fallback = dates[dateCursor % dates.length]!;
+    dateCursor += 1;
+    sessionsPerDate[fallback] = (sessionsPerDate[fallback] ?? 0) + 1;
+    return fallback;
+  };
 
   stepCycle.forEach((step, index) => {
     const actionType = step.actionType!;
     const subjectId = focusSubjects[index % focusSubjects.length] ?? activeSubjectIds[0]!;
-    const date = dates[index % dates.length]!;
+    const date = pickDate();
     const type = mapActionToSessionType(actionType, lighter, index);
 
     sessions.push({
@@ -226,7 +286,7 @@ export function recoveryPlanToPlannedSessions(input: RecoveryApplyInput): Planne
       subjectId,
       type,
       plannedDurationMinutes: durations[index] ?? minDuration,
-      goal: `Recuperación: ${step.title}`,
+      goal: burnout ? `Semana ligera: ${step.title}` : `Recuperación: ${step.title}`,
       status: "pending",
       source: "auto",
     });

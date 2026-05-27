@@ -165,7 +165,7 @@ export type RecoveryProblem =
   | "low_mock_scores"
   | "no_weekly_plan"
   | "overdue_reviews"
-  | "pending_errors"
+  | "accumulated_doubts"
   | "low_time"
   | "burnout"
   | "dont_know_where_to_start";
@@ -186,12 +186,44 @@ export type RecoveryPlanStep = {
 
 export type RecoveryPlanVariant = "standard" | "lighter";
 
+export type RecoveryPlanCalendarImpact = {
+  days: number;
+  estimatedSessions: number;
+  sessionTypesSummary: string;
+  willModifyExistingSessions: boolean;
+};
+
+export type RecoveryFocusReduction = {
+  activeSubjectsCount: number;
+  subjectsToRemoveCount: number;
+  subjectIdsToRemove: string[];
+  subjectIdsToKeep: string[];
+  nearExamSubjectIds: string[];
+  appliesThisWeek: boolean;
+};
+
+/** Propuesta concreta para semana más ligera (burnout / saturación). */
+export type RecoveryBurnoutRelief = {
+  currentSessionCount: number;
+  proposedSessionCount: number;
+  intensiveBankRemoved: number;
+  prioritySubjectCount: number;
+  prioritySubjectIds: string[];
+  volumeReductionPercent: number;
+  proposedChanges: string[];
+  planEffects: string[];
+};
+
 export type RecoveryPlan = {
   problems: RecoveryProblem[];
+  primaryIntent?: RecoveryProblem;
   summary: string;
   riskLevel: "low" | "medium" | "high";
   steps: RecoveryPlanStep[];
   variant?: RecoveryPlanVariant;
+  calendarImpact?: RecoveryPlanCalendarImpact;
+  focusReduction?: RecoveryFocusReduction;
+  burnoutRelief?: RecoveryBurnoutRelief;
   cta?: {
     label: string;
     href: string;

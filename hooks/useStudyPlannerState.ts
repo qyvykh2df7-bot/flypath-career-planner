@@ -39,6 +39,7 @@ import { weeklyPlanToPlannedSessions } from "@/lib/study-planner/planning/plan-t
 import {
   buildRecoveryApplyResult,
   recoveryPlanToPlannedSessions,
+  shouldDescheduleRecoverySession,
 } from "@/lib/study-planner/recovery-apply";
 import { sumPendingPlannedMinutesForWeek } from "@/lib/study-planner/recovery-load";
 import { validatePlannedSessionScheduleDate } from "@/lib/study-planner/planned-session-scheduling";
@@ -485,24 +486,30 @@ export function useStudyPlannerState() {
           currentPlannedMinutes: previousPlannedMinutes,
         });
         if (sessions.length === 0) {
-          result = buildRecoveryApplyResult([], previousPlannedMinutes, previousPlannedMinutes);
-          return prev;
+          const mergedPlanned = prev.plannedSessions.filter(
+            (p) => !shouldDescheduleRecoverySession(plan, p, weekStartDate, prev.activeSubjectIds),
+          );
+          const newPlannedMinutes = sumPendingPlannedMinutesForWeek(mergedPlanned, weekStartDate);
+          const changed = mergedPlanned.length !== prev.plannedSessions.length;
+          result = changed
+            ? {
+                ...buildRecoveryApplyResult([], previousPlannedMinutes, newPlannedMinutes),
+                applied: true,
+              }
+            : buildRecoveryApplyResult([], previousPlannedMinutes, previousPlannedMinutes);
+          return changed
+            ? {
+                ...prev,
+                plannedSessions: mergedPlanned,
+              }
+            : prev;
         }
 
-        const { start, end } = getWeekRange(weekStartDate);
-        const activeSet = new Set(prev.activeSubjectIds);
         markPlanActivated(prev.mode);
 
         const mergedPlanned = [
           ...prev.plannedSessions.filter(
-            (p) =>
-              !(
-                p.date >= start &&
-                p.date <= end &&
-                isPendingLikeStatus(p.status) &&
-                p.source === "auto" &&
-                activeSet.has(p.subjectId)
-              ),
+            (p) => !shouldDescheduleRecoverySession(plan, p, weekStartDate, prev.activeSubjectIds),
           ),
           ...sessions,
         ];

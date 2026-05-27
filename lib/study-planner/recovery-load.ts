@@ -50,7 +50,7 @@ export function computeRecoveryTargetMinutes(params: {
     return Math.max(floor, emptyTarget);
   }
 
-  const aimRatio = lighter ? (burnout ? 0.52 : 0.58) : 0.72;
+  const aimRatio = lighter ? (burnout ? 0.65 : 0.58) : 0.72;
   let target = Math.round(currentSafe * aimRatio);
   target = Math.max(floor, Math.min(currentSafe, target));
   return target;

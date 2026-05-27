@@ -3,6 +3,7 @@ import { generateRecoveryPlan } from "./recovery";
 import {
   pickRecoveryFocusSubjects,
   recoveryPlanToPlannedSessions,
+  shouldDescheduleRecoverySession,
 } from "./recovery-apply";
 import { computeRecoveryTargetMinutes } from "./recovery-load";
 
@@ -34,7 +35,7 @@ describe("recovery-apply", () => {
 
   it("con semana cargada (~9 h 45 min) no recorta a ~2 h", () => {
     const plan = generateRecoveryPlan({
-      selectedProblems: ["overdue_reviews", "pending_errors"],
+      selectedProblems: ["overdue_reviews", "accumulated_doubts"],
       mode: "atpl",
       subjects: [],
       sessions: [],
@@ -128,5 +129,78 @@ describe("recovery-apply", () => {
         currentPlannedMinutes: LOAD_9H45,
       }),
     ).toEqual([]);
+  });
+
+  it("solo desprograma pendientes de esta semana para asignaturas a quitar", () => {
+    const plan = generateRecoveryPlan({
+      selectedProblems: ["too_many_subjects"],
+      mode: "atpl",
+      subjects: Array.from({ length: 5 }, (_, index) => ({
+        id: `atpl-s${index + 1}`,
+        name: `Asignatura ${index + 1}`,
+        mode: "atpl" as const,
+      })),
+      sessions: [],
+      plannedSessions: [],
+      mockResults: [],
+      reviewItems: [],
+      errorLogItems: [],
+      examDates: [],
+      weeklyGoalMinutes: GOAL_10H,
+      today: TODAY,
+    });
+    const removeId = plan.focusReduction?.subjectIdsToRemove[0];
+    expect(removeId).toBeTruthy();
+
+    expect(
+      shouldDescheduleRecoverySession(
+        plan,
+        {
+          id: "pending-week",
+          date: TODAY,
+          subjectId: removeId!,
+          type: "theory",
+          plannedDurationMinutes: 45,
+          status: "pending",
+          source: "manual",
+        },
+        WEEK_START,
+        plan.focusReduction?.subjectIdsToKeep ?? [],
+      ),
+    ).toBe(true);
+
+    expect(
+      shouldDescheduleRecoverySession(
+        plan,
+        {
+          id: "completed-week",
+          date: TODAY,
+          subjectId: removeId!,
+          type: "theory",
+          plannedDurationMinutes: 45,
+          status: "completed",
+          source: "manual",
+        },
+        WEEK_START,
+        plan.focusReduction?.subjectIdsToKeep ?? [],
+      ),
+    ).toBe(false);
+
+    expect(
+      shouldDescheduleRecoverySession(
+        plan,
+        {
+          id: "pending-outside-week",
+          date: "2026-05-27",
+          subjectId: removeId!,
+          type: "theory",
+          plannedDurationMinutes: 45,
+          status: "pending",
+          source: "manual",
+        },
+        WEEK_START,
+        plan.focusReduction?.subjectIdsToKeep ?? [],
+      ),
+    ).toBe(false);
   });
 });
