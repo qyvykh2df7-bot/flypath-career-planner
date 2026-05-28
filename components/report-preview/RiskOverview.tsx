@@ -9,7 +9,13 @@ import {
   Stethoscope,
 } from "lucide-react";
 import type { ReportSnapshotV1 } from "@/lib/reporting/types/report-snapshot";
-import { riskIconKey, type RiskIconKey, riskLevelTone } from "./report-preview-utils";
+import { SectionTitle } from "./report-preview-layouts";
+import {
+  riskIconKey,
+  type RiskIconKey,
+  riskLevelBadgeClass,
+  riskLevelTone,
+} from "./report-preview-utils";
 
 type RiskOverviewProps = {
   snapshot: ReportSnapshotV1;
@@ -30,52 +36,40 @@ export function RiskOverview({ snapshot }: RiskOverviewProps) {
 
   return (
     <div>
-      <h2 className="font-serif text-3xl font-medium tracking-tight text-[#0f1a33] sm:text-[2rem]">
-        Mapa de riesgos
-      </h2>
-      <p className="mt-4 text-sm text-slate-600">
-        Nivel global del escenario:{" "}
-        <span className="font-medium text-[#0f1a33]">{risks.highestLevel}</span>
+      <SectionTitle>Mapa de riesgos</SectionTitle>
+      <p className="mb-10 text-sm text-slate-600">
+        Nivel de riesgo global ·{" "}
+        <span className="inline-flex rounded-sm bg-[#0f1a33] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[#faf8f4]">
+          {risks.highestLevel}
+        </span>
       </p>
 
-      <div className="mt-10 grid gap-5 sm:grid-cols-2">
-        {risks.items.map((risk, index) => {
+      <div className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
+        {risks.items.map((risk) => {
           const tone = riskLevelTone(risk.nivel);
-          const iconKey = riskIconKey(risk.label);
-          const Icon = RISK_ICONS[iconKey];
-          const isFeatured = index === 0 || risk.nivel === "Alto" || risk.nivel === "Crítico";
+          const Icon = RISK_ICONS[riskIconKey(risk.label)];
 
           return (
             <div
               key={risk.label}
-              className={`border-t border-[#0f1a33]/10 pt-5 ${
-                isFeatured ? "sm:col-span-2 sm:grid sm:grid-cols-[auto_1fr] sm:gap-6 sm:border-t-2 sm:pt-6" : ""
-              }`}
+              className="grid grid-cols-[auto_1fr] gap-3 border-t border-[#0f1a33]/10 py-5"
             >
               <div
-                className={`mb-3 flex h-9 w-9 items-center justify-center rounded-full ${tone.bg} ${isFeatured ? "sm:mb-0 sm:h-11 sm:w-11" : ""}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-full ${tone.bg}`}
               >
-                <Icon className={`h-4 w-4 stroke-[1.5] ${tone.text} ${isFeatured ? "sm:h-5 sm:w-5" : ""}`} />
+                <Icon className={`h-4 w-4 stroke-[1.5] ${tone.text}`} />
               </div>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                  <h3
-                    className={`font-medium leading-tight text-[#0f1a33] ${isFeatured ? "font-serif text-lg" : "text-sm"}`}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-[#0f1a33]">{risk.label}</h3>
+                  <span
+                    className={`rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${riskLevelBadgeClass(risk.nivel)}`}
                   >
-                    {risk.label}
-                  </h3>
-                  <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${tone.text}`}>
                     {risk.nivel}
                   </span>
                 </div>
-                <p
-                  className={`mt-2 leading-relaxed text-slate-700 ${isFeatured ? "text-sm" : "text-xs line-clamp-2"}`}
-                >
+                <p className="mt-2 text-xs leading-relaxed text-slate-600 line-clamp-2">
                   {risk.explicacion}
-                </p>
-                <p className="mt-2.5 text-xs leading-snug text-slate-600">
-                  <span className="font-medium text-slate-800">Acción · </span>
-                  {risk.accion}
                 </p>
               </div>
             </div>

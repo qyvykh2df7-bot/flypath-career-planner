@@ -1,0 +1,105 @@
+/**
+ * Paleta HEX/RGB para export PDF (html2canvas).
+ * Scoped al root de export; refuerza overrides si queda alguna regla Tailwind.
+ */
+.report-preview-export-root {
+  --rp-navy: #0f1a33;
+  --rp-gold: #c9a454;
+  --rp-cream: #faf8f4;
+  --rp-muted: #64748b;
+  --rp-muted-light: #94a3b8;
+  --rp-muted-dark: #475569;
+  --rp-gold-dark: #8a6520;
+  --rp-slate-bar: #cbd5e1;
+  --rp-white-80: rgba(255, 255, 255, 0.8);
+  --rp-white-45: rgba(255, 255, 255, 0.45);
+  --rp-white-35: rgba(255, 255, 255, 0.35);
+  --rp-navy-10: rgba(15, 26, 51, 0.1);
+  --rp-navy-15: rgba(15, 26, 51, 0.15);
+  --rp-navy-6: rgba(15, 26, 51, 0.06);
+  --rp-navy-4: rgba(15, 26, 51, 0.04);
+  --rp-gold-40: rgba(201, 164, 84, 0.4);
+  --rp-gold-20: rgba(201, 164, 84, 0.2);
+  --rp-gold-12: rgba(201, 164, 84, 0.12);
+  --rp-gold-6: rgba(201, 164, 84, 0.06);
+  --rp-gold-90: rgba(201, 164, 84, 0.9);
+  --rp-rose-border: rgba(253, 164, 175, 0.6);
+  --rp-amber-border: rgba(253, 230, 138, 0.8);
+  --rp-emerald-border: rgba(167, 243, 208, 0.8);
+  color: var(--rp-navy);
+  background-color: var(--rp-cream);
+}
+
+.report-preview-export-root .text-slate-400 {
+  color: var(--rp-muted-light) !important;
+}
+.report-preview-export-root .text-slate-500 {
+  color: var(--rp-muted) !important;
+}
+.report-preview-export-root .text-slate-600 {
+  color: var(--rp-muted) !important;
+}
+.report-preview-export-root .text-slate-700 {
+  color: var(--rp-muted-dark) !important;
+}
+.report-preview-export-root .bg-slate-300\/80 {
+  background-color: var(--rp-slate-bar) !important;
+}
+.report-preview-export-root .text-white\/80 {
+  color: var(--rp-white-80) !important;
+}
+.report-preview-export-root .text-white\/45 {
+  color: var(--rp-white-45) !important;
+}
+.report-preview-export-root .text-white\/35 {
+  color: var(--rp-white-35) !important;
+}
+.report-preview-export-root .border-rose-300\/60 {
+  border-color: var(--rp-rose-border) !important;
+}
+.report-preview-export-root .border-amber-200\/80 {
+  border-color: var(--rp-amber-border) !important;
+}
+.report-preview-export-root .border-emerald-200\/80 {
+  border-color: var(--rp-emerald-border) !important;
+}
+
+.report-preview-export-root .bg-rose-50 {
+  background-color: #fff1f2 !important;
+}
+.report-preview-export-root .bg-rose-100 {
+  background-color: #ffe4e6 !important;
+}
+.report-preview-export-root .text-rose-900 {
+  color: #881337 !important;
+}
+.report-preview-export-root .bg-rose-500 {
+  background-color: #f43f5e !important;
+}
+.report-preview-export-root .bg-amber-50\/80 {
+  background-color: rgba(255, 251, 235, 0.8) !important;
+}
+.report-preview-export-root .bg-amber-100 {
+  background-color: #fef3c7 !important;
+}
+.report-preview-export-root .text-amber-950 {
+  color: #451a03 !important;
+}
+.report-preview-export-root .bg-amber-500 {
+  background-color: #f59e0b !important;
+}
+.report-preview-export-root .bg-emerald-50\/60 {
+  background-color: rgba(236, 253, 245, 0.6) !important;
+}
+.report-preview-export-root .bg-emerald-100 {
+  background-color: #d1fae5 !important;
+}
+.report-preview-export-root .text-emerald-900 {
+  color: #064e3b !important;
+}
+.report-preview-export-root .text-emerald-950 {
+  color: #022c22 !important;
+}
+.report-preview-export-root .bg-emerald-500 {
+  background-color: #10b981 !important;
+}

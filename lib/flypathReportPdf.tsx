@@ -1,11 +1,19 @@
 import type { ReactNode } from "react";
-import { Document, Font, Image, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
+import { Document, Font, Image, Link, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
+import {
+  FLYPATH_PRIMARY_IMAGE,
+  FLYPATH_PRODUCT_HREF,
+  FLYPATH_PRODUCTS,
+} from "@/lib/reporting/domain/flypath-next-step-engine";
+import type { FlyPathProductId } from "@/lib/reporting/types/shared";
 
 /** Desactiva guionización automática (evita cortes tipo "man￾tener", "pa￾gos"). */
 Font.registerHyphenationCallback((word: string) => [word]);
 
 const FONT = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
+const FONT_SERIF = "Times-Roman";
+const FONT_SERIF_BOLD = "Times-Bold";
 
 /** Elimina guiones blandos y zero-width que a veces provocan glifos raros en PDF. */
 export function stripPdfText(s: string): string {
@@ -18,8 +26,8 @@ const c = {
   gold: "#c9a454",
   goldMuted: "rgba(201,164,84,0.35)",
   goldSoft: "#f2ddaa",
-  creamPage: "#fefdfb",
-  creamCard: "#fffdf8",
+  creamPage: "#faf8f4",
+  creamCard: "#faf8f4",
   white: "#ffffff",
   text: "#0f1a33",
   muted: "#64748b",
@@ -33,18 +41,30 @@ const c = {
 const ASSET_PATHS = {
   logoWhite: "/flypath-logo-white.png",
   hero: "/hero-aircraft.jpg",
-  comoSer: "/como-ser-piloto-cover.jpeg",
-  mentoria: "/mentoria-flypath.jpg",
-  ingles: "/ingles-aeronautico.jpg",
-  atpl: "/atpl-planner.jpg",
 } as const;
+
+const PDF_PRODUCT_TITLE_TO_ID: Record<string, FlyPathProductId> = Object.fromEntries(
+  (Object.entries(FLYPATH_PRODUCTS) as [FlyPathProductId, (typeof FLYPATH_PRODUCTS)[FlyPathProductId]][]).map(
+    ([id, card]) => [card.title, id],
+  ),
+) as Record<string, FlyPathProductId>;
 
 export type PdfResolvedAssets = {
   origin: string;
   logoHeaderUrl: string | null;
   heroUrl: string | null;
   productUrl: string | null;
+  productLink: string;
+  blobUrlsToRevoke: string[];
 };
+
+export function productHrefForPdf(origin: string, productTitle: string): string {
+  const base = origin.replace(/\/$/, "");
+  const id = PDF_PRODUCT_TITLE_TO_ID[productTitle];
+  if (!id) return base || "/";
+  if (id === "escuelas") return `${base}/schools`;
+  return `${base}${FLYPATH_PRODUCT_HREF[id]}`;
+}
 
 async function probeImageUrl(absUrl: string): Promise<boolean> {
   try {
@@ -57,25 +77,86 @@ async function probeImageUrl(absUrl: string): Promise<boolean> {
   }
 }
 
+/** Reescala JPEG en cliente para reducir peso del PDF (objetivo <15 MB). */
+async function optimizeImageForPdf(
+  absUrl: string,
+  maxWidth: number,
+  quality = 0.84,
+): Promise<string | null> {
+  if (typeof document === "undefined") return absUrl;
+  try {
+    const res = await fetch(absUrl, { cache: "no-store" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
+    const scale = bitmap.width > maxWidth ? maxWidth / bitmap.width : 1;
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return absUrl;
+    const isPng =
+      blob.type.includes("png") || /\.png(\?|$)/i.test(absUrl);
+    if (!isPng) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    const optimized = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, isPng ? "image/png" : "image/jpeg", isPng ? undefined : quality),
+    );
+    if (!optimized) return absUrl;
+    return URL.createObjectURL(optimized);
+  } catch {
+    return absUrl;
+  }
+}
+
+async function resolvePdfAssetUrl(
+  absUrl: string,
+  maxWidth: number,
+  blobUrls: string[],
+): Promise<string | null> {
+  if (!(await probeImageUrl(absUrl))) return null;
+  const optimized = await optimizeImageForPdf(absUrl, maxWidth);
+  if (!optimized) return null;
+  if (optimized.startsWith("blob:")) blobUrls.push(optimized);
+  return optimized;
+}
+
+export function revokePdfAssetBlobs(assets: PdfResolvedAssets): void {
+  for (const url of assets.blobUrlsToRevoke) {
+    try {
+      URL.revokeObjectURL(url);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export async function resolvePdfAssets(origin: string, productTitle: string): Promise<PdfResolvedAssets> {
   const base = origin.replace(/\/$/, "");
   const abs = (path: string) => `${base}${path}`;
-  const out: PdfResolvedAssets = { origin: base, logoHeaderUrl: null, heroUrl: null, productUrl: null };
+  const blobUrlsToRevoke: string[] = [];
+  const out: PdfResolvedAssets = {
+    origin: base,
+    logoHeaderUrl: null,
+    heroUrl: null,
+    productUrl: null,
+    productLink: productHrefForPdf(base, productTitle),
+    blobUrlsToRevoke,
+  };
   if (!base) return out;
 
-  if (await probeImageUrl(abs(ASSET_PATHS.logoWhite))) out.logoHeaderUrl = abs(ASSET_PATHS.logoWhite);
-  if (await probeImageUrl(abs(ASSET_PATHS.hero))) out.heroUrl = abs(ASSET_PATHS.hero);
+  out.logoHeaderUrl = await resolvePdfAssetUrl(abs(ASSET_PATHS.logoWhite), 360, blobUrlsToRevoke);
+  out.heroUrl = await resolvePdfAssetUrl(abs(ASSET_PATHS.hero), 1400, blobUrlsToRevoke);
 
-  const productMap: Record<string, keyof typeof ASSET_PATHS> = {
-    "Guía Cómo ser Piloto": "comoSer",
-    "Mentoría de decisión": "mentoria",
-    "Inglés aeronáutico": "ingles",
-    "ATPL Planner": "atpl",
-  };
-  const key = productMap[productTitle];
-  if (key && key !== "logoWhite" && key !== "hero") {
-    const p = ASSET_PATHS[key];
-    if (await probeImageUrl(abs(p))) out.productUrl = abs(p);
+  const productId = PDF_PRODUCT_TITLE_TO_ID[productTitle];
+  if (productId && productId !== "escuelas") {
+    out.productUrl = await resolvePdfAssetUrl(abs(FLYPATH_PRIMARY_IMAGE[productId]), 520, blobUrlsToRevoke);
   }
   return out;
 }
@@ -87,7 +168,7 @@ const styles = StyleSheet.create({
     color: c.text,
     lineHeight: 1.48,
     paddingTop: 40,
-    paddingBottom: 56,
+    paddingBottom: 68,
     paddingHorizontal: 44,
     backgroundColor: c.creamPage,
   },
@@ -117,7 +198,7 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerMeta: { color: c.mutedLight, fontSize: 8.5, textAlign: "right" as const, maxWidth: "46%", lineHeight: 1.35 },
   heroBand: {
-    height: 176,
+    height: 168,
     marginLeft: -44,
     marginRight: -44,
     marginBottom: 22,
@@ -135,7 +216,7 @@ const styles = StyleSheet.create({
   heroTitle: { fontFamily: FONT_BOLD, fontSize: 24, color: c.white, letterSpacing: 0.2 },
   heroSubtitle: { fontSize: 10, color: c.goldSoft, marginTop: 8, lineHeight: 1.5, maxWidth: "92%" },
   heroFallback: {
-    height: 176,
+    height: 168,
     marginLeft: -44,
     marginRight: -44,
     marginBottom: 22,
@@ -153,7 +234,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sectionTitle: {
-    fontFamily: FONT_BOLD,
+    fontFamily: FONT_SERIF_BOLD,
     fontSize: 13,
     color: c.navy,
     marginBottom: 12,
@@ -253,7 +334,14 @@ const styles = StyleSheet.create({
   ctaTitle: { fontFamily: FONT_BOLD, fontSize: 14, color: c.white, marginTop: 8 },
   ctaProduct: { fontFamily: FONT_BOLD, fontSize: 12, color: c.goldSoft, marginTop: 10 },
   ctaBody: { fontSize: 10, color: "#cbd5e1", marginTop: 8, lineHeight: 1.5 },
-  ctaLine: { marginTop: 14, fontSize: 10, fontFamily: FONT_BOLD, color: c.gold },
+  ctaLine: { marginTop: 14, fontSize: 10, fontFamily: FONT_BOLD, color: c.gold, textDecoration: "none" },
+  resourceLink: {
+    marginTop: 10,
+    fontSize: 9.5,
+    fontFamily: FONT_BOLD,
+    color: c.goldDark,
+    textDecoration: "none",
+  },
   valoresRow: { flexDirection: "row", gap: 10, marginTop: 14 },
   valorCol: {
     flex: 1,
@@ -266,7 +354,7 @@ const styles = StyleSheet.create({
   valorTitle: { fontFamily: FONT_BOLD, fontSize: 8.5, color: c.navy, marginBottom: 4 },
   valorText: { fontSize: 8.5, color: c.muted, lineHeight: 1.4 },
   disclaimer: { fontSize: 7.5, color: c.mutedLight, lineHeight: 1.42, marginTop: 16 },
-  footerFixed: { position: "absolute", bottom: 16, left: 44, right: 44 },
+  footerFixed: { position: "absolute", bottom: 20, left: 44, right: 44 },
   footerLine: { height: 0.5, backgroundColor: c.gold, opacity: 0.5, marginBottom: 8 },
   footerRow: { flexDirection: "row", justifyContent: "space-between" },
   footerTxt: { fontSize: 7.5, color: c.muted },
@@ -579,6 +667,15 @@ function BulletList({ items }: { items: string[] }) {
   );
 }
 
+function PdfProductLink({ href, children }: { href: string; children: ReactNode }) {
+  const safeHref = href.startsWith("http") || href.startsWith("/") ? href : `/${href}`;
+  return (
+    <Link src={safeHref} style={styles.ctaLine}>
+      {children}
+    </Link>
+  );
+}
+
 function TimelineBlock({
   title,
   subtitle,
@@ -589,7 +686,7 @@ function TimelineBlock({
   items: string[];
 }) {
   return (
-    <View style={styles.timelineBlock}>
+    <View style={styles.timelineBlock} wrap={false}>
       <Text style={styles.timelineTitle}>{stripPdfText(title)}</Text>
       <Text style={styles.timelineSub}>{stripPdfText(subtitle)}</Text>
       {items.length ? <NumberedList items={items} /> : <Text style={styles.bodyTight}>—</Text>}
@@ -615,7 +712,6 @@ function InformePdfDoc({ d, assets }: { d: FlyPathInformePdfInput; assets: PdfRe
           subtitle="Diagnóstico de ruta, costes, riesgos y próximos pasos antes de tomar una decisión económica."
         />
 
-        <Text style={styles.sectionEyebrow}>Resumen</Text>
         <Text style={styles.sectionTitle}>Resumen ejecutivo</Text>
 
         <View style={styles.cardRow2}>
@@ -644,8 +740,7 @@ function InformePdfDoc({ d, assets }: { d: FlyPathInformePdfInput; assets: PdfRe
           <Text style={styles.valueMd}>{stripPdfText(d.principalBlock)}</Text>
         </View>
 
-        <View style={{ marginTop: 6 }}>
-          <Text style={styles.sectionEyebrow}>Síntesis</Text>
+        <View style={{ marginTop: 6 }} wrap={false}>
           <Text style={styles.sectionTitle}>Conclusión ejecutiva</Text>
           <View style={styles.cardGoldLeft}>
             <Text style={[styles.body, { color: c.text }]}>{stripPdfText(d.conclusionEjecutiva)}</Text>
@@ -729,6 +824,7 @@ function InformePdfDoc({ d, assets }: { d: FlyPathInformePdfInput; assets: PdfRe
           return (
             <View
               key={`${idx}-${r.label}`}
+              wrap={false}
               style={[
                 styles.riskCard,
                 { backgroundColor: acc.bg, borderLeftWidth: 2, borderLeftColor: acc.borderLeft },
@@ -763,9 +859,9 @@ function InformePdfDoc({ d, assets }: { d: FlyPathInformePdfInput; assets: PdfRe
         )}
 
         <Text style={styles.sectionTitle}>Plan de acción</Text>
-        <TimelineBlock title="Próximos 7 días" subtitle="Prioridades inmediatas" items={d.sevenDays} />
-        <TimelineBlock title="Próximos 30 días" subtitle="Consolidar información" items={d.thirtyDays} />
-        <TimelineBlock title="Próximos 90 días" subtitle="Medio plazo" items={d.ninetyDays} />
+        <TimelineBlock title="7 días" subtitle="Prioridades inmediatas" items={d.sevenDays} />
+        <TimelineBlock title="30 días" subtitle="Consolidar información" items={d.thirtyDays} />
+        <TimelineBlock title="90 días" subtitle="Medio plazo" items={d.ninetyDays} />
 
         <Text style={styles.sectionTitle}>Próximos pasos del diagnóstico</Text>
         <View style={styles.card}>
@@ -779,12 +875,17 @@ function InformePdfDoc({ d, assets }: { d: FlyPathInformePdfInput; assets: PdfRe
             {d.verifiedCount} verificada{d.verifiedCount === 1 ? "" : "s"} · {d.pendingCount} pendiente
             {d.pendingCount === 1 ? "" : "s"}
           </Text>
+          {d.schoolsCount > 0 ? (
+            <Link src={`${assets.origin}/schools`} style={styles.resourceLink}>
+              Ver comparativa de escuelas en FlyPath
+            </Link>
+          ) : null}
         </View>
         {d.schoolSummaries.map((s) => {
           const { shown, extra } = formatSchoolPending(s.pendientes);
           const loc = [stripPdfText(s.pais), s.ciudad ? stripPdfText(s.ciudad) : ""].filter(Boolean).join(" · ");
           return (
-            <View key={s.id} style={styles.riskCard}>
+            <View key={s.id} style={styles.riskCard} wrap={false}>
               <Text style={{ fontFamily: FONT_BOLD, fontSize: 10.5, color: c.navy }}>{stripPdfText(s.nombre)}</Text>
               <Text style={styles.schoolMeta}>{loc}</Text>
               <Text style={[styles.body, { marginTop: 4 }]}>
@@ -807,14 +908,14 @@ function InformePdfDoc({ d, assets }: { d: FlyPathInformePdfInput; assets: PdfRe
         <BrandHeader assets={assets} right="Informe de decisión · cierre" />
         <View style={styles.goldHairline} />
 
-        <View style={styles.ctaDark}>
+        <View style={styles.ctaDark} wrap={false}>
           <Text style={styles.ctaEyebrow}>PROFUNDIZA CON FLYPATH</Text>
           <Text style={styles.ctaTitle}>Tu siguiente paso FlyPath</Text>
           <View style={{ flexDirection: "row", gap: 14, marginTop: 12 }}>
             <View style={{ flex: 1 }}>
               <Text style={styles.ctaProduct}>{stripPdfText(d.nextPrimary.title)}</Text>
               <Text style={styles.ctaBody}>{stripPdfText(d.nextPrimary.body)}</Text>
-              <Text style={styles.ctaLine}>{stripPdfText(d.nextPrimary.cta)}</Text>
+              <PdfProductLink href={assets.productLink}>{stripPdfText(d.nextPrimary.cta)}</PdfProductLink>
             </View>
             {assets.productUrl ? (
               <Image
@@ -840,7 +941,6 @@ function InformePdfDoc({ d, assets }: { d: FlyPathInformePdfInput; assets: PdfRe
           </View>
         </View>
 
-        <Text style={styles.sectionEyebrow}>Principios</Text>
         <Text style={styles.sectionTitle}>Valores FlyPath</Text>
         <View style={styles.valoresRow}>
           <View style={styles.valorCol}>
@@ -960,14 +1060,14 @@ function ResumenPadresPdfDoc({ d, assets }: { d: FlyPathResumenPadresPdfInput; a
         <BrandHeader assets={assets} right="Resumen para padres · cierre" />
         <View style={styles.goldHairline} />
 
-        <View style={styles.ctaDark}>
+        <View style={styles.ctaDark} wrap={false}>
           <Text style={styles.ctaEyebrow}>Mentoría</Text>
           <Text style={styles.ctaTitle}>Antes de tomar una decisión económica</Text>
           <Text style={styles.ctaBody}>
             Podéis revisar el caso con FlyPath para alinear ruta, costes y riesgos con alguien que ha pasado por el
             proceso.
           </Text>
-          <Text style={styles.ctaLine}>Reservar mentoría de decisión</Text>
+          <PdfProductLink href={assets.productLink}>Reservar mentoría de decisión</PdfProductLink>
         </View>
 
         <View style={[styles.card, { marginTop: 14 }]}>
@@ -987,13 +1087,21 @@ function ResumenPadresPdfDoc({ d, assets }: { d: FlyPathResumenPadresPdfInput; a
 export async function renderInformePdfToBlob(d: FlyPathInformePdfInput): Promise<Blob> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const assets = await resolvePdfAssets(origin, d.nextPrimary.title);
-  return pdf(<InformePdfDoc d={d} assets={assets} />).toBlob();
+  try {
+    return await pdf(<InformePdfDoc d={d} assets={assets} />).toBlob();
+  } finally {
+    revokePdfAssetBlobs(assets);
+  }
 }
 
 export async function renderResumenPadresPdfToBlob(d: FlyPathResumenPadresPdfInput): Promise<Blob> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const assets = await resolvePdfAssets(origin, "Mentoría de decisión");
-  return pdf(<ResumenPadresPdfDoc d={d} assets={assets} />).toBlob();
+  try {
+    return await pdf(<ResumenPadresPdfDoc d={d} assets={assets} />).toBlob();
+  } finally {
+    revokePdfAssetBlobs(assets);
+  }
 }
 
 function triggerDownload(blob: Blob, filename: string) {

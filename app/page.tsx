@@ -1132,6 +1132,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [emailDrafts, setEmailDrafts] = useState<Record<number, string>>({});
   const [emailPendingBySchool, setEmailPendingBySchool] = useState<Record<number, string[]>>({});
   const [toast, setToast] = useState<string | null>(null);
+  const [premiumPdfExporting, setPremiumPdfExporting] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
@@ -4106,10 +4107,27 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
+                      disabled={premiumPdfExporting}
                       onClick={async () => {
                         if (plannerPremiumContentVisible) {
-                          // TODO: conectar descarga real del informe premium cuando exista el PDF premium.
-                          showToast("Informe premium próximamente");
+                          if (premiumPdfExporting) return;
+                          setPremiumPdfExporting(true);
+                          try {
+                            const { downloadPremiumCareerReportPdf } =
+                              await import("@/lib/premiumCareerReportPdf");
+                            await downloadPremiumCareerReportPdf(reportSnapshot);
+                            showToast("Informe premium descargado");
+                          } catch (e) {
+                            if (process.env.NODE_ENV === "development") {
+                              console.error("[FlyPath] Error generando PDF premium:", e);
+                            } else {
+                              console.error("[FlyPath] PDF premium fallido");
+                            }
+                            const pdfErr = await import("@/lib/premiumCareerReportPdf");
+                            showToast(pdfErr.PREMIUM_PDF_ERROR_MESSAGE);
+                          } finally {
+                            setPremiumPdfExporting(false);
+                          }
                           return;
                         }
                         try {
@@ -4188,7 +4206,11 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                      {plannerPremiumContentVisible ? "Descargar informe premium" : "Descargar informe gratuito"}
+                      {premiumPdfExporting
+                        ? "Generando PDF…"
+                        : plannerPremiumContentVisible
+                          ? "Descargar informe premium"
+                          : "Descargar informe gratuito"}
                     </button>
                     <button
                       type="button"

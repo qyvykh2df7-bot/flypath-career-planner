@@ -24,6 +24,13 @@ export function disponibilidadLabel(disponibilidad: string): string {
   return "Compatibilidad con trabajo (part-time)";
 }
 
+export function riskLevelBadgeClass(nivel: string): string {
+  if (nivel === "Crítico") return "bg-[#c9a454]/20 text-[#8a6520]";
+  if (nivel === "Alto") return "bg-rose-100 text-rose-900";
+  if (nivel === "Medio") return "bg-amber-100 text-amber-950";
+  return "bg-emerald-100 text-emerald-900";
+}
+
 export function riskLevelTone(nivel: string): {
   border: string;
   bg: string;
