@@ -410,21 +410,6 @@ function SchoolsPageContent() {
                   Empezar comparación
                 </button>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {[
-                  "Coste real estimado",
-                  "Contrato y reembolso",
-                  "Extras incluidos",
-                  "Reviews verificadas próximamente",
-                ].map((chip) => (
-                  <span
-                    key={chip}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium text-slate-600"
-                  >
-                    {chip}
-                  </span>
-                ))}
-              </div>
               <div className="mt-4 flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-600">
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">1. Busca</span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">2. Selecciona 2 escuelas</span>

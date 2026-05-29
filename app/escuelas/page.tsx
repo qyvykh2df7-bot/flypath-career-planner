@@ -9,6 +9,12 @@ export default function EscuelasHubPage() {
       cardsSectionLabel="Compara y valida"
       description="La decisión de escuela condiciona precio final, calendario, extras incluidos y riesgos contractuales. Aquí comparas opciones y contrastas experiencias reales de alumnos."
       intro="Usa el comparador para criterios objetivos y las opiniones para validar lo que no aparece en la web comercial de la escuela."
+      heroBackgroundImage="/landingescuelas.jpg"
+      heroOverlayClassName="bg-gradient-to-r from-black/62 via-[#0f1a33]/36 to-transparent"
+      cardClassName="border-[#bfdbfe]/80 shadow-[0_6px_24px_rgba(15,26,51,0.06)] hover:border-[#93c5fd] hover:shadow-[0_12px_34px_rgba(15,26,51,0.1)]"
+      highlightsListClassName="text-slate-600"
+      highlightMarkerClassName="text-[#c9a454] text-[12px] leading-none"
+      highlightSymbol="✓"
       cards={[
         {
           title: "Comparador de escuelas",
