@@ -110,6 +110,16 @@ const PACK_FOLLOWUP_ITEMS = [
   "organización antes de examen",
 ] as const;
 
+const INDIVIDUAL_CLASS_BENEFITS = [
+  "explicación clara y estructurada",
+  "teoría aplicada a la aviación real",
+  "preparación PPL o ATPL",
+  "sesión personalizada online",
+] as const;
+
+const MODALITY_BENEFITS_LIST_CLASS =
+  "grid grid-cols-1 gap-x-4 gap-y-1 rounded-lg border border-slate-200/80 bg-slate-50/90 p-2.5 md:grid-cols-2 md:gap-y-1.5 md:p-3";
+
 const TESTIMONIALS = [
   {
     quote: "Por fin entendí temas que llevaba días memorizando sin sentido.",
@@ -412,7 +422,7 @@ export default function ClasesPplAtplPage() {
                               <p className="text-[13px] text-slate-500">
                                 Más clases = más seguimiento y mejor precio por sesión.
                               </p>
-                              <ul className="space-y-1.5 rounded-lg border border-slate-200/80 bg-slate-50/90 p-3">
+                              <ul className={MODALITY_BENEFITS_LIST_CLASS}>
                                 {PACK_FOLLOWUP_ITEMS.map((item) => (
                                   <li key={item} className="flex gap-2 text-[13px] leading-snug text-slate-600">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
@@ -424,13 +434,8 @@ export default function ClasesPplAtplPage() {
                           ) : (
                             <div className="mt-2 space-y-2">
                               <p className="text-[15px] leading-relaxed text-slate-600">{mod.text}</p>
-                              <ul className="space-y-1.5 rounded-lg border border-slate-200/80 bg-slate-50/90 p-3">
-                                {[
-                                  "explicación clara y estructurada",
-                                  "teoría aplicada a la aviación real",
-                                  "preparación PPL o ATPL",
-                                  "sesión personalizada online",
-                                ].map((item) => (
+                              <ul className={MODALITY_BENEFITS_LIST_CLASS}>
+                                {INDIVIDUAL_CLASS_BENEFITS.map((item) => (
                                   <li key={item} className="flex gap-2 text-[13px] leading-snug text-slate-600">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
                                     {item}

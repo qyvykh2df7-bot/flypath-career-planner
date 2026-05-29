@@ -26,7 +26,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { FlyPathInformePdfInput, FlyPathResumenPadresPdfInput } from "@/lib/flypathReportPdf";
 import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
@@ -34,7 +33,7 @@ import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { CareerPlannerDashboardShell } from "@/components/career-planner/CareerPlannerDashboardShell";
 import { buildReportSnapshot } from "@/lib/reporting/mappers/build-report-snapshot";
-import { buildRiskDiagnosis, mapRiskRowsForInformePdf, riesgosSimpleParaPadresPdf } from "@/lib/reporting/domain/risk-engine";
+import { buildRiskDiagnosis, mapRiskRowsForInformePdf } from "@/lib/reporting/domain/risk-engine";
 import { buildActionPlan } from "@/lib/reporting/domain/roadmap-engine";
 import { computeRoute } from "@/lib/reporting/domain/route-engine";
 import { computeCosts } from "@/lib/reporting/domain/cost-engine";
@@ -1133,6 +1132,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const [emailPendingBySchool, setEmailPendingBySchool] = useState<Record<number, string[]>>({});
   const [toast, setToast] = useState<string | null>(null);
   const [premiumPdfExporting, setPremiumPdfExporting] = useState(false);
+  const [freePdfExporting, setFreePdfExporting] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
@@ -4107,7 +4107,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
-                      disabled={premiumPdfExporting}
+                      disabled={premiumPdfExporting || freePdfExporting}
                       onClick={async () => {
                         if (plannerPremiumContentVisible) {
                           if (premiumPdfExporting) return;
@@ -4130,83 +4130,28 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           }
                           return;
                         }
+                        if (freePdfExporting) return;
+                        setFreePdfExporting(true);
                         try {
-                          const { downloadFlyPathInformePdf, getFlyPathPrimaryProductForPdf } = await import("@/lib/flypathReportPdf");
-                          const nextPrimary = getFlyPathPrimaryProductForPdf({
-                            class1: profile.class1,
-                            ingles: profile.ingles,
-                            preocupacionIngles: profile.preocupacionIngles,
-                            objetivo: profile.objetivo,
-                            urgencia: profile.urgencia,
-                            dineroDisponible: profile.dineroDisponible,
-                            inversionMaxima: profile.inversionMaxima,
-                            routeRecommended: route.recommended,
-                            schoolsLength: schools.length,
-                            decision: decisionReadiness.decision,
-                            faltanDatosLength: decisionReadiness.faltanDatos.length,
-                            atplTheory: costInputs.atplTheory,
-                          });
-                          const schoolSummaries = reportSnapshot.schoolsSummary.items.map((s, i) => ({
-                            id: `school-${s.id}-${i}`,
-                            nombre: s.nombre,
-                            pais: s.pais,
-                            ciudad: s.ciudad,
-                            precio: euro(s.precioAnunciado),
-                            estado: s.estadoVerificacion.replace(/_/g, " "),
-                            pendientes: s.pendientes.length
-                              ? s.pendientes.slice(0, 8).join(", ")
-                              : "Sin pendientes destacados en el checklist.",
-                          }));
-                          const payload: FlyPathInformePdfInput = {
-                            generatedAt: reportSnapshot.generatedAt,
-                            nombre: reportSnapshot.profile.nombre.trim(),
-                            routeRecommended: reportSnapshot.routeRecommendation.recommended,
-                            routeReason: reportSnapshot.routeRecommendation.reason,
-                            principalBlock: reportSnapshot.routeRecommendation.principalBlock,
-                            decision: reportSnapshot.readiness.decision,
-                            score: reportSnapshot.readiness.score,
-                            shouldPayNow: reportSnapshot.readiness.shouldPayNow,
-                            conclusionEjecutiva: conclusionEjecutivaInformeFinal(
-                              reportSnapshot.readiness.decision,
-                              criticalBlockersForConclusion,
-                              reportSnapshot.readiness.faltanDatos,
-                            ),
-                            totalOptimista: euro(reportSnapshot.costs.summary.totalOptimista),
-                            totalRealista: euro(reportSnapshot.costs.summary.totalRealista),
-                            totalConservador: euro(reportSnapshot.costs.summary.totalConservador),
-                            dineroDisponible: euro(reportSnapshot.profile.dineroDisponible),
-                            brecha: euro(reportSnapshot.costs.summary.brechaFinanciacion),
-                            coverage: `${reportSnapshot.costs.summary.coveragePct}% del coste realista`,
-                            mesesCerrarBrecha: reportSnapshot.costs.summary.mesesCerrarBrecha,
-                            costEstimateNote: costEstimateNoteForPdf(reportSnapshot.profile.costEstimateSource),
-                            riskRows: mapRiskRowsForInformePdf(reportSnapshot.risks.items),
-                            faltanDatos: [...reportSnapshot.readiness.faltanDatos],
-                            proximosPasos: [...reportSnapshot.readiness.proximosPasos],
-                            sevenDays: [...reportSnapshot.roadmap.sevenDays],
-                            thirtyDays: [...reportSnapshot.roadmap.thirtyDays],
-                            ninetyDays: [...reportSnapshot.roadmap.ninetyDays],
-                            schoolsCount: reportSnapshot.schoolsSummary.total,
-                            verifiedCount: reportSnapshot.schoolsSummary.verifiedCount,
-                            pendingCount: reportSnapshot.schoolsSummary.pendingCount,
-                            schoolSummaries,
-                            nextPrimary,
-                            disclaimer: reportSnapshot.disclaimer,
-                          };
-                          await downloadFlyPathInformePdf(payload);
+                          const { downloadFreeCareerReportPdf } = await import("@/lib/freeCareerReportPdf");
+                          await downloadFreeCareerReportPdf(reportSnapshot);
                           showToast("Informe descargado");
                         } catch (e) {
                           if (process.env.NODE_ENV === "development") {
-                            console.error("[FlyPath] Error generando PDF del informe:", e);
+                            console.error("[FlyPath] Error generando informe gratuito V2:", e);
                           } else {
-                            console.error("[FlyPath] PDF informe fallido");
+                            console.error("[FlyPath] PDF informe gratuito fallido");
                           }
-                          showToast("No se pudo generar el informe. Inténtalo de nuevo.");
+                          const pdfErr = await import("@/lib/freeCareerReportPdf");
+                          showToast(pdfErr.FREE_PDF_ERROR_MESSAGE);
+                        } finally {
+                          setFreePdfExporting(false);
                         }
                       }}
                       className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                      {premiumPdfExporting
+                      {premiumPdfExporting || freePdfExporting
                         ? "Generando PDF…"
                         : plannerPremiumContentVisible
                           ? "Descargar informe premium"
@@ -4216,23 +4161,8 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       type="button"
                       onClick={async () => {
                         try {
-                          const { downloadFlyPathResumenPadresPdf } = await import("@/lib/flypathReportPdf");
-                          const padresPayload: FlyPathResumenPadresPdfInput = {
-                            generatedAt: reportSnapshot.generatedAt,
-                            nombre: reportSnapshot.profile.nombre.trim(),
-                            routeRecommended: reportSnapshot.routeRecommendation.recommended,
-                            decision: reportSnapshot.readiness.decision,
-                            shouldPayNow: reportSnapshot.readiness.shouldPayNow,
-                            totalRealista: euro(reportSnapshot.costs.summary.totalRealista),
-                            brecha: euro(reportSnapshot.costs.summary.brechaFinanciacion),
-                            riesgosSimple: riesgosSimpleParaPadresPdf(reportSnapshot.risks.items),
-                            faltanDatos: [...reportSnapshot.readiness.faltanDatos],
-                            sevenDays: [...reportSnapshot.roadmap.sevenDays],
-                            thirtyDays: [...reportSnapshot.roadmap.thirtyDays],
-                            ninetyDays: [...reportSnapshot.roadmap.ninetyDays],
-                            disclaimer: reportSnapshot.disclaimer,
-                          };
-                          await downloadFlyPathResumenPadresPdf(padresPayload);
+                          const { downloadParentsReportPdf } = await import("@/lib/parentsReportPdf");
+                          await downloadParentsReportPdf(reportSnapshot);
                           showToast("Resumen para padres descargado");
                         } catch (e) {
                           if (process.env.NODE_ENV === "development") {
@@ -4240,7 +4170,8 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                           } else {
                             console.error("[FlyPath] PDF resumen padres fallido");
                           }
-                          showToast("No se pudo generar el resumen para padres. Inténtalo de nuevo.");
+                          const pdfErr = await import("@/lib/parentsReportPdf");
+                          showToast(pdfErr.PARENTS_PDF_ERROR_MESSAGE);
                         }
                       }}
                       className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"

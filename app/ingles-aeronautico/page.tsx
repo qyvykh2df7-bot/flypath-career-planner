@@ -94,7 +94,7 @@ const MODALITIES = [
     title: "Clase individual",
     tag: "Clase puntual",
     price: "20 €",
-    text: "Clase online enfocada en desbloquear una asignatura, entender teoría y practicar speaking real.",
+    text: "Una clase práctica para resolver bloqueos concretos, mejorar tu speaking y salir con un plan claro de estudio.",
     cta: "Agendar clase",
     href: CALCOM_INDIVIDUAL_URL,
     featured: false,
@@ -364,7 +364,7 @@ export default function InglesAeronauticoPage() {
                             {mod.featured ? `${selectedPack.price} €` : mod.price}
                           </p>
                           {mod.featured ? (
-                            <div className="mt-2 space-y-2">
+                            <div className="mt-2 space-y-1.5">
                               <label
                                 htmlFor="pack-class-count-english"
                                 className="block text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500"

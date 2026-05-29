@@ -23,6 +23,10 @@ type SplitProps = LayoutBaseProps & {
   imageRatio?: 40 | 50;
   imageTreatment?: "default" | "soft";
   placeholderVariant?: PlaceholderVariant;
+  /** Menos padding en la columna de contenido (sin cambiar la imagen). */
+  contentCompact?: boolean;
+  /** Alineación vertical del contenido en la columna derecha/izquierda. */
+  contentAlign?: "center" | "start";
 };
 
 function PageShell({
@@ -70,25 +74,32 @@ function ContentColumn({
   children,
   sectionLabel,
   compact = false,
+  align = "center",
 }: {
   children: ReactNode;
   sectionLabel?: string;
   compact?: boolean;
+  align?: "center" | "start";
 }) {
   const { enabled: exportMode } = useReportPreviewExport();
+  const justify = align === "start" ? "justify-start" : "justify-center";
 
   return (
     <div
       className={
         exportMode
-          ? `flex min-h-full flex-col justify-center ${compact ? "px-9 py-10" : "px-11 py-12"}`
-          : `flex min-h-[min(36rem,85vh)] flex-col justify-center ${
+          ? `flex min-h-full flex-col ${justify} ${compact ? "px-9 py-10" : "px-11 py-12"}`
+          : `flex min-h-[min(36rem,85vh)] flex-col ${justify} ${
               compact ? "px-7 py-8 sm:px-9 sm:py-10" : "px-8 py-10 sm:px-11 sm:py-12"
             }`
       }
     >
       {sectionLabel ? (
-        <p className="mb-6 text-[10px] font-semibold uppercase tracking-[0.32em] text-[#c9a454]">
+        <p
+          className={`text-[10px] font-semibold uppercase tracking-[0.32em] text-[#c9a454] ${
+            compact ? "mb-4" : "mb-6"
+          }`}
+        >
           {sectionLabel}
         </p>
       ) : null}
@@ -109,6 +120,8 @@ export function VisualSplitPage({
   imageTreatment = "default",
   placeholderVariant = "navy",
   className = "",
+  contentCompact = false,
+  contentAlign = "center",
 }: SplitProps) {
   const { enabled: exportMode } = useReportPreviewExport();
   const imageCols = exportMode
@@ -134,7 +147,9 @@ export function VisualSplitPage({
             placeholderVariant={placeholderVariant}
           />
         </div>
-        <ContentColumn sectionLabel={sectionLabel}>{children}</ContentColumn>
+        <ContentColumn sectionLabel={sectionLabel} compact={contentCompact} align={contentAlign}>
+          {children}
+        </ContentColumn>
       </div>
     </PageShell>
   );

@@ -308,26 +308,21 @@ export default function MentoriasPage() {
               <h2 className="mt-2 text-2xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-3xl">
                 Elige cómo quieres revisar tu decisión
               </h2>
-              <p className="mt-3 text-[15px] leading-relaxed text-slate-600 sm:text-base">
-                Una sesión puntual para resolver dudas concretas, o acompañamiento si necesitas
-                seguimiento antes de decidir.
-              </p>
             </div>
 
-            <div className="mt-10 flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_10px_32px_rgba(15,26,51,0.07)] ring-1 ring-[#0f1a33]/5 sm:p-6">
+            <div className="mt-7 flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_10px_32px_rgba(15,26,51,0.07)] ring-1 ring-[#0f1a33]/5 sm:mt-8 sm:p-6">
               <div>
                 <h3 className="text-xl font-semibold text-[#0f1a33]">Mentoría individual</h3>
                 <p className="mt-2 text-2xl font-semibold tracking-tight text-[#0f1a33]">44,95 €</p>
                 <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
-                  Una sesión para revisar tu caso, resolver dudas concretas y salir con próximos pasos
-                  claros.
+                  Una sesión directa para analizar tu situación y salir con una decisión más clara.
                 </p>
-                <p className="mt-4 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
+                <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
                   Ideal para:
                 </p>
-                <ul className="mt-2 space-y-1.5">
+                <ul className="mt-1.5 grid grid-cols-1 gap-x-5 gap-y-1.5 lg:grid-cols-3 lg:items-start">
                   {MENTORIA_IDEAL_FOR.map((item) => (
-                    <li key={item} className="flex gap-2 text-[15px] leading-snug text-slate-600">
+                    <li key={item} className="flex items-start gap-2 text-[15px] leading-snug text-slate-600">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
                       {item}
                     </li>
@@ -337,7 +332,7 @@ export default function MentoriasPage() {
               <a
                 href={CALCOM_MENTORIA_URL}
                 onClick={(e) => handleCalLinkClick(e, CALCOM_MENTORIA_URL, MAIN_TOAST)}
-                className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#0f1a33]/20 bg-[#0f1a33] px-6 py-2.5 text-[15px] font-semibold text-white transition hover:bg-[#16264a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1a33]/40 sm:w-auto sm:min-w-[200px]"
+                className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#0f1a33]/20 bg-[#0f1a33] px-6 py-2.5 text-[15px] font-semibold text-white transition hover:bg-[#16264a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1a33]/40 sm:w-auto sm:min-w-[200px]"
               >
                 Reservar mentoría
               </a>
@@ -345,18 +340,17 @@ export default function MentoriasPage() {
 
             <div
               id="acompanamiento-flypath"
-              className="relative mt-6 scroll-mt-24 overflow-hidden rounded-2xl border-2 border-[#c9a454]/45 bg-gradient-to-br from-[#fffdf8] via-white to-[#f6f8fc] p-5 shadow-[0_16px_48px_rgba(201,164,84,0.12)] ring-1 ring-[#c9a454]/20 sm:mt-8 sm:p-6 md:p-7"
+              className="relative mt-6 scroll-mt-24 overflow-visible rounded-2xl border-2 border-[#c9a454]/45 bg-gradient-to-br from-[#fffdf8] via-white to-[#f6f8fc] p-5 shadow-[0_16px_48px_rgba(201,164,84,0.12)] ring-1 ring-[#c9a454]/20 sm:mt-8 sm:p-6 md:p-7"
             >
-              <span className="absolute right-4 top-4 inline-flex rounded-full border border-[#c9a454] bg-[#c9a454] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33]">
+              <span className="pointer-events-none absolute left-1/2 top-0 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c9a454] bg-[#c9a454] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33] shadow-sm">
                 RECOMENDADO
               </span>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 md:pt-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
                 <div className="min-w-0 pr-0 md:pr-4">
                   <h3 className="text-xl font-semibold text-[#0f1a33]">Acompañamiento FlyPath</h3>
                   <p className="mt-2 text-2xl font-semibold tracking-tight text-[#7a5a16]">A consultar</p>
                   <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-                    Pensado para alumnos que están comparando escuelas, revisando condiciones o
-                    avanzando paso a paso antes de pagar.
+                    Un apoyo más continuado para tomar decisiones con criterio antes de comprometer dinero.
                   </p>
                 </div>
                 <div className="flex flex-col border-t border-[#c9a454]/20 pt-5 md:border-l md:border-t-0 md:pl-8 md:pt-0">
