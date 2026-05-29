@@ -9,6 +9,12 @@ export default function RecursosHubPage() {
       cardsSectionLabel="Explora recursos"
       description="Productos, servicios y contenido editorial de FlyPath: guías, mentorías, logbooks y artículos para apoyar decisiones y formación."
       intro="La Shop concentra lo comprable o reservable; el Blog profundiza en rutas, costes, ATPL y escuelas con artículos prácticos."
+      heroBackgroundImage="/recursoslanding.jpg"
+      heroOverlayClassName="bg-gradient-to-r from-black/62 via-[#0f1a33]/36 to-transparent"
+      cardClassName="border-[#bfdbfe]/80 shadow-[0_6px_24px_rgba(15,26,51,0.06)] hover:border-[#93c5fd] hover:shadow-[0_12px_34px_rgba(15,26,51,0.1)]"
+      highlightsListClassName="text-slate-600"
+      highlightMarkerClassName="text-[#c9a454] text-[12px] leading-none"
+      highlightSymbol="✓"
       cards={[
         {
           title: "Shop",

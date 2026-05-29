@@ -158,9 +158,9 @@ function SchoolsPageContent() {
   // muestra en la Conclusión FlyPath.
   const cameFromPlanner = searchParams.get("from") === "planner";
   const plannerCtaHref = useMemo(() => {
-    if (selectedSchools.length === 0) return "/";
+    if (selectedSchools.length === 0) return "/career-planner";
     const slugs = selectedSchools.map((school) => school.slug).join(",");
-    return `/?schools=${encodeURIComponent(slugs)}&start=onboarding&source=schools-comparator`;
+    return `/career-planner?schools=${encodeURIComponent(slugs)}&start=onboarding&source=schools-comparator`;
   }, [selectedSchools]);
   const cities = useMemo(
     () => getCities(schoolsDataset.filter(isMainListingSchool)),
@@ -566,7 +566,7 @@ function SchoolsPageContent() {
                 onBackToPlanner={
                   cameFromPlanner
                     ? () => {
-                        router.push("/?review=dashboard&tab=schools");
+                        router.push("/career-planner?review=dashboard&tab=schools");
                       }
                     : undefined
                 }
@@ -594,7 +594,7 @@ function SchoolsPageContent() {
                     source: "schools-comparator",
                     schools: slugs.join(","),
                   });
-                  router.push(`/?${query.toString()}`);
+                  router.push(`/career-planner?${query.toString()}`);
                 }}
               />
             </div>

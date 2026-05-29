@@ -7,7 +7,7 @@ const DASHBOARD_TOOL_CARDS = [
   {
     title: "Planifica tu ruta",
     description: "Arranca o retoma el diagnóstico de ruta, costes y escuelas candidatas.",
-    href: "/?start=onboarding",
+    href: "/career-planner?start=onboarding",
     cta: "Abrir Career Planner",
   },
   {
@@ -47,7 +47,7 @@ const RECOMMENDED_STEPS = [
     step: "1",
     title: "Completa tu diagnóstico de ruta",
     text: "Introduce perfil, presupuesto y escuelas candidatas para tener una base clara.",
-    href: "/?start=onboarding",
+    href: "/career-planner?start=onboarding",
   },
   {
     step: "2",

@@ -20,7 +20,7 @@ export default function PlanificaTuRutaPage() {
           title: "Career Planner",
           description:
             "Herramienta principal de FlyPath: introduce tu perfil y obtén un diagnóstico de ruta, costes y riesgos.",
-          href: "/",
+          href: "/career-planner",
           cta: "Abrir Career Planner",
           highlights: [
             "Diagnóstico de ruta integrada vs modular",

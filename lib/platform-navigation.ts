@@ -52,7 +52,7 @@ export const PLATFORM_NAV_SECTIONS: PlatformNavSection[] = [
     hubHref: "/planifica-tu-ruta",
     status: "available",
     items: [
-      { id: "planner", label: "Career Planner", href: "/", status: "available" },
+      { id: "planner", label: "Career Planner", href: "/career-planner", status: "available" },
       {
         id: "guia",
         label: "Guía Cómo ser piloto",
