@@ -20,7 +20,6 @@ import {
   Lock,
   Mail,
   MessagesSquare,
-  Plane,
   Route,
   ShieldAlert,
   Trash2,
@@ -30,8 +29,31 @@ import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
 import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
-import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
-import { CareerPlannerDashboardShell } from "@/components/career-planner/CareerPlannerDashboardShell";
+import { CareerPlannerAppShell } from "@/components/career-planner/CareerPlannerAppShell";
+import { CareerPlannerBottomNav } from "@/components/career-planner/CareerPlannerBottomNav";
+import { CareerPlannerStepNav } from "@/components/career-planner/CareerPlannerStepNav";
+import { PlannerStepFooter } from "@/components/career-planner/PlannerStepFooter";
+import { PlannerMainCanvas } from "@/components/career-planner/PlannerMainCanvas";
+import {
+  plannerBody,
+  plannerBtnPrimary,
+  plannerBtnSecondary,
+  plannerDivider,
+  plannerEyebrow,
+  plannerMuted,
+  plannerSectionTitle,
+  plannerSubcard,
+  plannerSubcardAccent,
+  plannerTitle,
+} from "@/components/career-planner/planner-surface";
+import { CareerPlannerDiagnosisView } from "@/components/career-planner/CareerPlannerDiagnosisView";
+import type { PlannerDashboardTab, PlannerStepId } from "@/components/career-planner/career-planner-steps";
+import {
+  normalizeDashboardTab,
+  normalizePlannerStep,
+  plannerStepToTab,
+} from "@/components/career-planner/career-planner-steps";
+import type { DiagnosisCtaTarget } from "@/lib/planner-diagnosis-ui";
 import { buildReportSnapshot } from "@/lib/reporting/mappers/build-report-snapshot";
 import { buildRiskDiagnosis, mapRiskRowsForInformePdf } from "@/lib/reporting/domain/risk-engine";
 import { buildActionPlan } from "@/lib/reporting/domain/roadmap-engine";
@@ -60,8 +82,8 @@ import type {
   School,
   YesNoUnknown,
 } from "@/lib/reporting/types/shared";
-type Screen = "landing" | "onboarding" | "dashboard";
-export type Tab = "route" | "cost" | "schools" | "report";
+type Screen = "onboarding" | "dashboard";
+export type Tab = PlannerDashboardTab;
 type RouteAnalysis = RouteRecommendation;
 type DecisionReadiness = ReadinessResult;
 
@@ -292,6 +314,39 @@ const globalButtonFeedbackStyles = `
     button:disabled {
       cursor: not-allowed !important;
       opacity: 0.55;
+    }
+
+    /* Career Planner stepper: sin overlay rectangular ni lift global de button */
+    button.planner-step-button {
+      position: static !important;
+      overflow: visible !important;
+      transform: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+    }
+
+    button.planner-step-button::after {
+      display: none !important;
+      content: none !important;
+    }
+
+    button.planner-step-button:hover:not(:disabled),
+    button.planner-step-button:active:not(:disabled),
+    button.planner-step-button:focus-visible {
+      transform: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+      background: transparent !important;
+      outline: none !important;
+      outline-offset: 0 !important;
+    }
+
+    button.planner-step-button:focus-visible .planner-step-circle {
+      outline: 2px solid rgba(201, 164, 84, 0.55);
+      outline-offset: 2px;
     }
   }
 
@@ -993,7 +1048,8 @@ function FlyPathNextStepsPanel({
 
 type FlyPathAppProps = {
   reviewMode?: boolean;
-  initialTab?: Tab;
+  /** Acepta tabs legacy `route` / `cost` (mapean a diagnóstico). */
+  initialTab?: Tab | "route" | "cost";
 };
 
 function PlannerSchoolsPremiumModal({
@@ -1077,7 +1133,11 @@ function PlannerSchoolsPremiumModal({
   );
 }
 
-export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPathAppProps) {
+export function FlyPathApp({
+  reviewMode = false,
+  initialTab: initialTabProp = "diagnosis",
+}: FlyPathAppProps) {
+  const initialTab = normalizeDashboardTab(initialTabProp);
   const router = useRouter();
   const createEmptySchool = (): School => ({
     id: 0,
@@ -1109,7 +1169,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     notas: "",
   });
 
-  const [screen, setScreen] = useState<Screen>(reviewMode ? "dashboard" : "landing");
+  const [screen, setScreen] = useState<Screen>(reviewMode ? "dashboard" : "onboarding");
+  const [plannerStep, setPlannerStep] = useState<PlannerStepId>(
+    reviewMode ? normalizePlannerStep(initialTab) : "profile",
+  );
   const [tab, setTab] = useState<Tab>(initialTab);
   const [profile, setProfile] = useState<Profile>(defaultProfile);
   const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
@@ -1145,8 +1208,6 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const manualFormInitializedRef = useRef(false);
   const [plannerSchoolsPremiumModalOpen, setPlannerSchoolsPremiumModalOpen] = useState(false);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
-  const [landingGuideCoverAvailable, setLandingGuideCoverAvailable] = useState(false);
-  const [landingHeroBgPhotoSrc, setLandingHeroBgPhotoSrc] = useState<string | null>(null);
   const [cameFromSchoolsComparator, setCameFromSchoolsComparator] = useState(false);
 
   const { qaPremiumMode, toggleQaPremium } = useQaPremiumMode();
@@ -1233,12 +1294,19 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
 
         // Si la URL trae un deep-link (?source=schools-comparator o ?review=dashboard) la
         // decisión de pantalla la toma el efecto del deep-link de más abajo. Aquí solo
-        // decidimos cuando NO hay deep-link: dashboard si onboarding está hecho, landing si no.
+        // decidimos cuando NO hay deep-link: dashboard si onboarding está hecho, perfil si no.
         const params = new URLSearchParams(window.location.search);
         const isSchoolsComparatorSource = params.get("source") === "schools-comparator";
         const reviewParam = params.get("review");
         if (!isSchoolsComparatorSource && reviewParam !== "dashboard") {
-          setScreen(done ? "dashboard" : "landing");
+          if (done) {
+            setScreen("dashboard");
+            setPlannerStep("diagnosis");
+            setTab("diagnosis");
+          } else {
+            setScreen("onboarding");
+            setPlannerStep("profile");
+          }
         }
       }
       setStorageHydrated(true);
@@ -1258,8 +1326,8 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     const startParam = params.get("start");
     const sourceParam = params.get("source");
     const isSchoolsComparatorSource = sourceParam === "schools-comparator";
-    const requestedTab = params.get("tab") as Tab | null;
-    const validTabs: Tab[] = ["route", "cost", "schools", "report"];
+    const tabParam = params.get("tab");
+    const validTabs: Tab[] = ["diagnosis", "schools", "report"];
 
     // Onboarding ya completado se lee directamente de localStorage para decidir
     // de forma síncrona si saltamos al dashboard cuando llegamos desde el comparador.
@@ -1281,8 +1349,18 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     if (reviewParam === "dashboard") {
       setOnboardingCompleted(true);
       setScreen("dashboard");
-      if (requestedTab && validTabs.includes(requestedTab)) {
-        setTab(requestedTab);
+      if (tabParam) {
+        const requestedTab = normalizeDashboardTab(tabParam);
+        if (validTabs.includes(requestedTab)) {
+          setTab(requestedTab);
+          setPlannerStep(requestedTab);
+        } else {
+          setPlannerStep("diagnosis");
+          setTab("diagnosis");
+        }
+      } else {
+        setPlannerStep("diagnosis");
+        setTab("diagnosis");
       }
     }
 
@@ -1407,8 +1485,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       setOnboardingCompleted(true);
       setScreen("dashboard");
       setTab("schools");
+      setPlannerStep("schools");
     } else if (startParam === "onboarding" || (isSchoolsComparatorSource && !onboardingDone)) {
       setScreen("onboarding");
+      setPlannerStep("profile");
       setOnboardingStep(1);
     }
   }, [reviewMode, onboardingCompleted]);
@@ -1428,34 +1508,8 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
     if (!reviewMode) return;
     setScreen("dashboard");
     setTab(initialTab);
+    setPlannerStep(normalizePlannerStep(initialTab));
   }, [reviewMode, initialTab]);
-
-  useEffect(() => {
-    if (screen !== "landing") return;
-    let cancelled = false;
-
-    void (async () => {
-      setLandingGuideCoverAvailable(false);
-      setLandingHeroBgPhotoSrc(null);
-      try {
-        const res = await fetch("/como-ser-piloto-cover.jpeg", { method: "HEAD" });
-        if (!cancelled && res.ok) setLandingGuideCoverAvailable(true);
-      } catch {
-        /* sin portada en public */
-      }
-      if (cancelled) return;
-      try {
-        const res = await fetch("/hero-aircraft.jpg", { method: "HEAD" });
-        if (!cancelled && res.ok) setLandingHeroBgPhotoSrc("/hero-aircraft.jpg");
-      } catch {
-        /* sin imagen en public */
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [screen]);
 
   // Las cuatro escrituras a localStorage están bloqueadas hasta que el efecto de
   // hidratación haya leído los datos guardados (storageHydrated === true). Esto
@@ -1769,8 +1823,52 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
   const finishOnboarding = () => {
     setOnboardingCompleted(true);
     setScreen("dashboard");
-    setTab("route");
+    setTab("diagnosis");
+    setPlannerStep("diagnosis");
   };
+
+  const goToPlannerStep = (step: PlannerStepId) => {
+    if (step !== "profile" && !onboardingCompleted) {
+      showToast("Completa tu perfil antes de continuar.");
+      setPlannerStep("profile");
+      setScreen("onboarding");
+      setOnboardingStep(1);
+      return;
+    }
+    setPlannerStep(step);
+    if (step === "profile") {
+      setScreen("onboarding");
+      return;
+    }
+    const nextTab = plannerStepToTab(step);
+    if (nextTab) {
+      setScreen("dashboard");
+      goToDashboardTab(nextTab);
+    }
+  };
+
+  const plannerStepFooter = (() => {
+    if (screen === "onboarding") {
+      if (onboardingStep === 6) {
+        return (
+          <PlannerStepFooter label="Continuar a diagnóstico" onClick={finishOnboarding} variant="gold" />
+        );
+      }
+      return null;
+    }
+    switch (plannerStep) {
+      case "schools":
+        return (
+          <PlannerStepFooter
+            label="Continuar a informe"
+            onClick={() => goToPlannerStep("report")}
+            variant="gold"
+          />
+        );
+      default:
+        return null;
+    }
+  })();
 
   /**
    * Navegación de tabs del dashboard activada por el USUARIO (clicks en sidebar o
@@ -1783,8 +1881,10 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
    * hay que tocar el scroll porque el usuario aún no estaba navegando dentro del
    * dashboard.
    */
-  const goToDashboardTab = (nextTab: Tab) => {
-    setTab(nextTab);
+  const goToDashboardTab = (nextTab: Tab | "route" | "cost") => {
+    const normalized = normalizeDashboardTab(nextTab);
+    setTab(normalized);
+    setPlannerStep(normalized);
     if (typeof window === "undefined") return;
     // Esperamos al siguiente frame para que la nueva sección ya esté en el DOM antes
     // de mover el scroll: si lo hacemos sincrónicamente, el scrollTop puede aplicarse
@@ -1814,491 +1914,40 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             3: { title: "Presupuesto", desc: "Alinea capacidad económica y riesgo." },
     4: { title: "Disponibilidad", desc: "Calcula ritmo realista de progreso." },
     5: {
-      title: "Escuelas",
-      desc: "No necesitas tener datos exactos ahora. Podrás comparar escuelas reales más adelante desde el Planner.",
+      title: "Costes",
+      desc: "Estima el coste de tu formación con FlyPath o con tus propios números. Podrás afinarlo después en el diagnóstico.",
     },
             6: { title: "Resultado inicial", desc: "Visualiza recomendación y brechas." },
   };
 
-  if (screen === "landing") {
-    const gotoExample = () => setScreen(onboardingCompleted ? "dashboard" : "onboarding");
-    const gotoDiagnosis = () => {
-      if (onboardingCompleted) {
-        setScreen("dashboard");
-        setTab("route");
-      } else {
-        setScreen("onboarding");
-        setOnboardingStep(1);
-      }
-    };
+  const handleDiagnosisNavigate = (target: DiagnosisCtaTarget | "schools" | "report") => {
+    if (target === "profile") {
+      goToPlannerStep("profile");
+      return;
+    }
+    if (target === "cost-adjust") return;
+    goToPlannerStep(target);
+  };
 
+  const plannerStepNav = (
+    <CareerPlannerStepNav
+      activeStep={plannerStep}
+      onboardingCompleted={onboardingCompleted}
+      onStepChange={goToPlannerStep}
+    />
+  );
 
-    return (
-      <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
-        <style jsx global>{globalButtonFeedbackStyles}</style>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
-            {toast}
-          </motion.div>
-        )}
-
-
-        <FlyPathPlatformHeader
-          pageTitle="Planifica tu Ruta"
-          currentModuleId="planifica"
-          logoMode="landing"
-          onSoonClick={(msg) => showToast(msg ?? "Próximamente")}
-        />
-
-
-        <main>
-          <section className="relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-white via-[#f7f9fc] to-[#f4f7fb]">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.98)_0%,rgba(243,246,252,0.65)_38%,rgba(232,240,250,0.45)_58%,rgba(201,164,84,0.09)_82%,rgba(201,164,84,0.13)_100%),radial-gradient(ellipse_90%_70%_at_92%_18%,rgba(201,164,84,0.14),transparent_52%),radial-gradient(ellipse_70%_55%_at_12%_72%,rgba(15,26,51,0.06),transparent_50%),radial-gradient(ellipse_at_50%_100%,rgba(15,26,51,0.04),transparent_45%)]" />
-            {landingHeroBgPhotoSrc ? (
-              <>
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 hidden bg-cover bg-[position:center_80%] lg:block"
-                  style={{
-                    backgroundImage: `url(${landingHeroBgPhotoSrc})`,
-                  }}
-                />
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.10)_40%,rgba(255,255,255,0.06)_100%)] lg:bg-[radial-gradient(ellipse_68%_118%_at_12%_40%,rgba(255,255,255,0.88)_0%,rgba(255,255,255,0.48)_36%,rgba(255,255,255,0.14)_56%,rgba(255,255,255,0.04)_70%,transparent_80%),linear-gradient(90deg,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.42)_18%,rgba(255,255,255,0.18)_36%,rgba(255,255,255,0.07)_54%,rgba(255,255,255,0.02)_74%,rgba(255,255,255,0)_100%)]"
-                />
-              </>
-            ) : null}
-            <div className="relative z-[1] mx-auto grid max-w-7xl gap-10 px-6 pb-14 pt-4 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-10 lg:pb-[3.875rem] lg:pt-5">
-              <div className="relative isolate before:pointer-events-none before:absolute before:inset-y-0 before:-left-8 before:-z-10 before:w-[min(118%,52rem)] before:bg-[linear-gradient(90deg,rgba(255,255,255,0.84)_0%,rgba(255,255,255,0.52)_22%,rgba(255,255,255,0.24)_44%,rgba(255,255,255,0.08)_66%,rgba(255,255,255,0.02)_82%,transparent_100%)] before:content-[''] lg:before:-left-12 lg:before:w-[min(125%,56rem)]">
-                <p className="inline-flex max-w-xl mt-3 -translate-y-6 rounded-full border border-[#c9a454]/32 bg-white/88 px-6 py-2 text-[14px] font-medium leading-tight tracking-wide text-[#7a5a16] shadow-[0_2px_14px_rgba(15,26,51,0.055),0_1px_6px_rgba(201,164,84,0.07)] sm:mt-0 sm:px-7 sm:py-2 sm:text-[15px]">
-                  FlyPath Career Planner
-                </p>
-                <h1 className="mt-px text-4xl font-semibold leading-[1.08] tracking-tight text-[#0f1a33] md:text-5xl lg:text-[2.75rem] xl:text-6xl">
-                  Antes de pagar una escuela de vuelo, entiende tu ruta, tus costes y tus riesgos.
-                </h1>
-                <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
-                  Haz un diagnóstico inicial de tu situación antes de elegir escuela: ruta recomendada, coste realista, análisis de escuelas candidatas, riesgos principales y próximos pasos para decidir con menos margen de error.
-                </p>
-                <div className="mt-8 flex w-full max-w-xl justify-start">
-                  <button
-                    type="button"
-                    onClick={gotoDiagnosis}
-                    className="landing-cta-primary inline-flex min-h-[52px] w-full items-center justify-center gap-3 rounded-2xl px-10 py-4 text-base font-semibold shadow-md sm:w-auto sm:min-h-[56px] sm:min-w-[270px] md:min-w-[288px] md:py-[15px] md:text-[17px]"
-                  >
-                    Crear mi diagnóstico
-                    <ArrowRight className="landing-arrow h-5 w-5 shrink-0 transition-transform duration-150 md:h-[1.3rem] md:w-[1.3rem]" />
-                  </button>
-                </div>
-                <p className="mt-8 max-w-md text-[15px] leading-relaxed text-slate-400">
-                  Orientación educativa. No sustituye información oficial de escuelas, médicos, bancos o autoridades.
-                </p>
-              </div>
-
-              <div className="relative z-[1] lg:justify-self-end lg:translate-y-5">
-                <div className="absolute -right-6 -top-6 hidden h-36 w-52 rounded-[100%] bg-[#c9a454]/18 blur-3xl lg:block" aria-hidden />
-                <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_36px_100px_rgba(15,26,51,0.13),0_12px_36px_rgba(201,164,84,0.08)] ring-1 ring-[#0f1a33]/[0.06]">
-                  <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-[#0f1a33] to-[#152547] px-5 py-4">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">EJEMPLO DE RESULTADO</p>
-                      <p className="mt-0.5 text-sm font-semibold text-white">Así se vería tu diagnóstico</p>
-                    </div>
-                    <span className="rounded-full border border-[#c9a454]/40 bg-[#c9a454]/15 px-3 py-1 text-[11px] font-semibold text-[#f2ddaa]">V1</span>
-                  </div>
-                  <div className="space-y-4 bg-gradient-to-b from-white to-slate-50/40 p-6">
-                    <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-100 bg-white/90 p-3 shadow-sm">
-                      {[
-                        { label: "Ruta", pct: 78 },
-                        { label: "Coste", pct: 64 },
-                        { label: "Datos", pct: 41 },
-                      ].map((m) => (
-                        <div key={m.label} className="min-w-0">
-                          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500">{m.label}</p>
-                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#c9a454] to-[#e8c97a]"
-                              style={{ width: `${m.pct}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 shadow-sm">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ruta recomendada</p>
-                      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">
-                        Modular / <span className="text-[#7a5a16]">Preparación</span>
-                      </p>
-                      <p className="mt-2 text-[15px] leading-relaxed text-slate-600">Prioriza cerrar bloqueos antes de pagos altos y avanza por fases con mejor control del riesgo.</p>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,26,51,0.06)]">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Coste realista</p>
-                        <p className="mt-1 text-xl font-semibold tabular-nums text-[#0f1a33]">62.400&nbsp;€</p>
-                        <div className="mt-3 space-y-2">
-                          <div className="flex items-center justify-between text-[10px] text-slate-500">
-                            <span>Optimista</span>
-                            <span className="tabular-nums text-slate-700">58k</span>
-                          </div>
-                          <div className="h-1 overflow-hidden rounded-full bg-slate-100">
-                            <div className="h-full w-[55%] rounded-full bg-slate-300/90" />
-                          </div>
-                          <div className="flex items-center justify-between text-[10px] text-slate-500">
-                            <span>Conservador</span>
-                            <span className="tabular-nums text-slate-700">71k</span>
-                          </div>
-                          <div className="h-1 overflow-hidden rounded-full bg-slate-100">
-                            <div className="h-full w-[88%] rounded-full bg-[#c9a454]/45" />
-                          </div>
-                        </div>
-                        <p className="mt-2 text-[11px] text-slate-500">Incluye formación, extras frecuentes y margen prudente.</p>
-                      </div>
-                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,26,51,0.06)]">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">¿Listo para pagar?</p>
-                        <p className="mt-1 text-sm font-semibold leading-snug text-[#b45309]">No estás listo para pagar</p>
-                        <div className="mt-3">
-                          <div className="flex justify-between text-[10px] font-medium text-slate-500">
-                            <span>Nivel de decisión</span>
-                            <span className="tabular-nums text-slate-700">42%</span>
-                          </div>
-                          <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
-                            <div className="h-full w-[42%] rounded-full bg-gradient-to-r from-amber-400 to-amber-600/90" />
-                          </div>
-                        </div>
-                        <p className="mt-2 text-[11px] text-slate-500">Faltan datos por escrito y condiciones claras antes del depósito.</p>
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-[#c9a454]/35 bg-gradient-to-br from-[#fffdf8] to-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_10px_28px_rgba(201,164,84,0.12)]">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">Siguiente paso</p>
-                          <p className="mt-1 text-base font-semibold text-[#0f1a33]">Revisar costes y escuelas candidatas</p>
-                        </div>
-                        <div className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0f1a33] text-[#f2ddaa] shadow-md sm:flex" aria-hidden>
-                          <Compass className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                        <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-[#c9a454] to-[#f0c96b]" />
-                      </div>
-                      <p className="mt-2 text-[11px] text-slate-600">Progreso del diagnóstico: datos clave recogidos, pendientes de contrato y financiación.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="landing-hero-strip border-b border-[#c9a454]/20 bg-[#0f1a33] py-5 md:py-6">
-            <div className="mx-auto max-w-7xl px-6 lg:px-10">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-4">
-                {[
-                  { label: "Antes de pedir precio", text: "Entiende tu ruta" },
-                  { label: "Antes de elegir escuela", text: "Analiza tus opciones" },
-                  { label: "Antes de pagar matrícula", text: "Detecta riesgos" },
-                ].map((strip) => (
-                  <div
-                    key={strip.label}
-                    className="min-w-0 rounded-2xl border border-white/12 bg-white/[0.06] px-4 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[2px] md:rounded-3xl md:px-5 md:py-3.5"
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#e8d5a3]/95 sm:text-[11px]">{strip.label}</p>
-                    <p className="mt-1 text-sm font-semibold leading-snug text-white sm:text-base">{strip.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="border-b border-slate-200/80 bg-[#f8fafc] py-12 lg:py-14">
-            <div className="mx-auto max-w-7xl px-6 lg:px-10">
-              <h2 className="text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">Cómo funciona</h2>
-              <p className="mt-3 max-w-2xl text-base text-slate-600">Tres pasos claros: datos, diagnóstico y qué hacer después.</p>
-              <div className="mt-10 grid gap-6 md:grid-cols-3">
-                {[
-                  {
-                    step: "1",
-                    title: "Introduce tus datos",
-                    text: "Perfil, médico e inglés, presupuesto, disponibilidad y escuelas candidatas en minutos.",
-                  },
-                  {
-                    step: "2",
-                    title: "Revisa tu diagnóstico",
-                    text: "Ruta recomendada, coste realista, análisis de escuelas candidatas, nivel de decisión y riesgos antes de comprometer dinero.",
-                  },
-                  {
-                    step: "3",
-                    title: "Decide tu siguiente paso",
-                    text: "Plan corto plazo e informe para contrastar con familia, escuela o asesor antes de firmar.",
-                  },
-                ].map((block) => (
-                  <div key={block.step} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,26,51,0.06)]">
-                    <div className="flex gap-4">
-                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#0f1a33] text-sm font-bold text-[#f2ddaa] shadow-md">
-                        {block.step}
-                      </span>
-                      <div className="min-w-0">
-                        <h3 className="text-lg font-semibold text-[#0f1a33]">{block.title}</h3>
-                        <p className="mt-2 text-base leading-relaxed text-slate-600">{block.text}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="border-b border-slate-200/80 bg-[#f1f5f9]/85 py-12 lg:py-14">
-            <div className="mx-auto max-w-screen-2xl px-6 lg:px-10">
-              <div className="max-w-5xl">
-                <h2 className="text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">
-                  Diseñado para quienes están antes de tomar una decisión importante.
-                </h2>
-                <p className="mt-3 text-base leading-relaxed text-slate-600">
-                  Si estás empezando, comparando escuelas, a punto de pagar matrícula o intentando explicarlo en casa, el Career Planner te ayuda a ordenar la decisión antes de comprometer dinero.
-                </p>
-              </div>
-              <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  {
-                    icon: Route,
-                    title: "Estoy empezando desde cero",
-                    text: "Necesitas entender rutas, licencias, costes reales y errores típicos antes de pedir precios.",
-                  },
-                  {
-                    icon: ClipboardCheck,
-                    title: "Estoy comparando escuelas",
-                    text: "Quieres ordenar precios, contrato, reembolsos, extras incluidos y promesas comerciales.",
-                  },
-                  {
-                    icon: AlertTriangle,
-                    title: "Estoy a punto de pagar matrícula",
-                    text: "Necesitas revisar riesgos antes de transferir dinero o firmar condiciones.",
-                  },
-                  {
-                    icon: Copy,
-                    title: "Mi familia quiere entender el coste",
-                    text: "Puedes generar un resumen claro para explicar ruta, presupuesto, riesgos y próximos pasos.",
-                  },
-                ].map((who) => {
-                  const Icon = who.icon;
-                  return (
-                    <div
-                      key={who.title}
-                      className="flex flex-col rounded-3xl border border-slate-200/90 bg-white p-6 shadow-[0_14px_40px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]"
-                    >
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0f1a33] text-[#f2ddaa] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-[#c9a454]/25">
-                        <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                      </div>
-                      <h3 className="mt-4 text-base font-semibold leading-snug text-[#0f1a33]">{who.title}</h3>
-                      <p className="mt-2 flex-1 text-base leading-relaxed text-slate-600">{who.text}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          <section
-            className="relative z-0 border-b border-[#c9a454]/20 py-16 lg:py-20"
-            style={{ backgroundColor: "#0f1a33" }}
-          >
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(ellipse 90% 70% at 100% 0%, rgba(201,164,84,0.14), transparent 55%), radial-gradient(ellipse at 0% 100%, rgba(255,255,255,0.05), transparent 45%), linear-gradient(180deg, rgba(21,37,71,0.5) 0%, transparent 45%)",
-              }}
-              aria-hidden
-            />
-            <div className="relative z-[1] mx-auto max-w-screen-2xl px-6 lg:px-10" style={{ color: "#ffffff" }}>
-              <div className="max-w-5xl">
-                <p
-                  className="text-[11px] font-semibold uppercase tracking-[0.22em]"
-                  style={{ color: "rgba(232, 213, 163, 0.95)" }}
-                >
-                  DE DATOS SUELTOS A DECISIÓN CLARA
-                </p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl" style={{ color: "#ffffff" }}>
-                  Todo lo que normalmente se queda fuera del precio anunciado.
-                </h2>
-                <p className="mt-4 max-w-5xl text-base leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.72)" }}>
-                  La herramienta cruza tu perfil, presupuesto, escuelas candidatas y timing para que no tomes una decisión solo por marketing, prisa o precio inicial.
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {["Clase 1", "Inglés", "Financiación", "Contrato", "Reembolso", "Extras", "Calendario de pagos"].map((chip) => (
-                    <span
-                      key={chip}
-                      className="inline-flex items-center rounded-full border border-solid px-3 py-1 text-xs font-semibold"
-                      style={{
-                        backgroundColor: "rgba(255, 255, 255, 0.05)",
-                        borderColor: "rgba(201, 164, 84, 0.35)",
-                        color: "#f2ddaa",
-                      }}
-                    >
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {(
-                  [
-                    {
-                      Icon: Route,
-                      title: "Ruta",
-                      text: "Integrada, modular o preparación según tu perfil, bloqueos y capacidad real.",
-                    },
-                    {
-                      Icon: ClipboardCheck,
-                      title: "Costes",
-                      text: "Escenarios optimista, realista y conservador para ver rangos antes de comprometer capital.",
-                    },
-                    {
-                      Icon: ShieldAlert,
-                      title: "Escuelas",
-                      text: "Analiza tus escuelas candidatas: contrato, reembolso, extras implícitos y huecos de información por cerrar por escrito.",
-                    },
-                    {
-                      Icon: AlertTriangle,
-                      title: "Readiness",
-                      text: "Si encaja pagar ahora o si conviene investigar, completar requisitos o replantear el ritmo.",
-                    },
-                    {
-                      Icon: Compass,
-                      title: "Plan",
-                      text: "Próximos pasos en 7, 30 y 90 días para ordenar decisiones sin improvisar.",
-                    },
-                    {
-                      Icon: Copy,
-                      title: "Informe",
-                      text: "Resumen listo para copiar o compartir cuando pidas segunda opinión familiar o profesional.",
-                    },
-                  ] as const
-                ).map(({ Icon, title, text }) => (
-                  <div
-                    key={title}
-                    className="flex items-start gap-5 rounded-3xl border border-solid p-6 shadow-[0_18px_44px_rgba(0,0,0,0.20)] ring-1 ring-white/[0.04] backdrop-blur-sm"
-                    style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.075)",
-                      borderColor: "rgba(255, 255, 255, 0.15)",
-                      color: "#ffffff",
-                    }}
-                  >
-                    <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm"
-                      style={{
-                        backgroundColor: "#071226",
-                        borderWidth: 1,
-                        borderStyle: "solid",
-                        borderColor: "rgba(201, 164, 84, 0.3)",
-                        color: "#f2ddaa",
-                      }}
-                    >
-                      <Icon aria-hidden className="h-5 w-5 shrink-0" strokeWidth={2} style={{ color: "#f2ddaa", stroke: "#f2ddaa" }} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold leading-snug" style={{ color: "#ffffff" }}>
-                        {title}
-                      </h3>
-                      <p className="mt-2 text-base leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.75)" }}>
-                        {text}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="border-b border-slate-200/80 bg-white py-14 lg:py-16">
-            <div className="mx-auto max-w-screen-2xl px-6 lg:px-10">
-              <div className="max-w-5xl">
-                <div className="h-0.5 w-14 rounded-full bg-[#c9a454]/85 sm:w-16" aria-hidden />
-                <h2 className="mt-5 text-3xl font-semibold tracking-tight text-[#0f1a33] md:text-4xl">
-                  Al final no recibes teoría. Recibes una decisión ordenada.
-                </h2>
-                <p className="mt-3 text-base leading-relaxed text-slate-600">
-                  El diagnóstico convierte tus datos en una lectura práctica que puedes revisar, copiar o compartir.
-                </p>
-              </div>
-              <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {[
-                  "Ruta recomendada",
-                  "Coste realista estimado",
-                  "Nivel de preparación para pagar",
-                  "Riesgos principales",
-                  "Datos pendientes",
-                  "Plan 7 / 30 / 90 días",
-                  "Informe final para compartir",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-[#f8fafc] px-5 py-4 shadow-[0_10px_28px_rgba(15,26,51,0.045)]"
-                  >
-                    <CheckCircle2 className="h-5 w-5 shrink-0 text-[#c9a454]" aria-hidden />
-                    <span className="text-sm font-medium leading-snug text-[#0f1a33]">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-[#f8fafc] py-14 lg:py-16">
-            <div className="mx-auto max-w-7xl px-6 lg:px-10">
-              <div className="overflow-hidden rounded-[2rem] border border-[#c9a454]/25 bg-[#0f1a33] p-8 text-center shadow-[0_28px_70px_rgba(15,26,51,0.35)] md:p-12 md:text-left">
-                <div className="mx-auto flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">Crea tu diagnóstico antes de elegir escuela.</h2>
-                    <p className="mt-4 text-base leading-relaxed text-white/78">
-                      En pocos minutos tendrás una lectura inicial de tu ruta, tus costes, tus riesgos y tus escuelas candidatas.
-                    </p>
-                    <p className="mt-3 text-base leading-relaxed text-white/72">
-                      Después, si quieres profundizar, la guía <span className="text-white/95">Cómo ser Piloto</span> o una mentoría pueden ayudarte a revisar tu caso con más detalle antes de pagar.
-                    </p>
-                    <p className="mt-4 max-w-xl text-base font-semibold leading-snug text-[#f2ddaa]">
-                      No empieces por la escuela. Empieza por entender tu caso.
-                    </p>
-                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
-                      <button type="button" onClick={gotoDiagnosis} className="landing-cta-primary inline-flex items-center justify-center rounded-xl px-6 py-3 text-[15px] font-semibold">
-                        Crear mi diagnóstico
-                        <ArrowRight className="landing-arrow ml-2 h-4 w-4 transition-transform duration-150" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={gotoExample}
-                        className="rounded-xl border border-white/35 bg-white/10 px-6 py-3 text-[15px] font-semibold text-white hover:bg-white/15"
-                      >
-                        Ver ejemplo
-                      </button>
-                    </div>
-                  </div>
-                  {landingGuideCoverAvailable ? (
-                    <div className="flex shrink-0 justify-center lg:justify-end">
-                      <div className="relative rotate-[2.5deg] shadow-[0_22px_48px_rgba(0,0,0,0.38)] ring-2 ring-white/25 transition-transform duration-300 hover:rotate-[1deg]">
-                        <Image
-                          src="/como-ser-piloto-cover.jpeg"
-                          alt="Guía Cómo ser Piloto FlyPath"
-                          width={220}
-                          height={308}
-                          className="h-auto max-h-[220px] w-auto max-w-[200px] rounded-2xl border border-white/30 bg-white/10 object-cover"
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              <p className="mx-auto mt-10 max-w-4xl px-1 text-center text-[11px] leading-relaxed text-slate-400 lg:text-xs">{disclaimerText}</p>
-            </div>
-          </section>
-        </main>
-      </div>
-    );
-  }
+  const plannerBottomNav = (
+    <CareerPlannerBottomNav
+      activeStep={plannerStep}
+      onboardingCompleted={onboardingCompleted}
+      onStepChange={goToPlannerStep}
+    />
+  );
 
   if (screen === "onboarding") {
     return (
-      <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-[#0f1a33]">
+      <>
         <style jsx global>{globalButtonFeedbackStyles}</style>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
@@ -2306,15 +1955,17 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
             {toast}
           </motion.div>
         )}
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <p className="text-[15px] text-slate-500">Crear mi plan - Paso {onboardingStep} de 6</p>
-            <h1 className="mt-1 text-2xl font-semibold">{stepMeta[onboardingStep].title}</h1>
+        <CareerPlannerAppShell stepNav={plannerStepNav} bottomNav={plannerBottomNav}>
+          <PlannerMainCanvas>
+            <p className={plannerEyebrow}>Paso {onboardingStep} de 6 · Perfil</p>
+            <h1 className={`mt-2 text-2xl ${plannerTitle}`}>{stepMeta[onboardingStep].title}</h1>
             {stepMeta[onboardingStep].desc ? (
-              <p className="mt-1 text-[15px] text-slate-600">{stepMeta[onboardingStep].desc}</p>
+              <p className={`mt-1 ${plannerBody}`}>{stepMeta[onboardingStep].desc}</p>
             ) : null}
-            <div className="mt-4 rounded-full bg-slate-100 p-1"><Progress value={(onboardingStep / 6) * 100} tone="bg-[#0f1a33]" /></div>
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+            <div className="mt-4 rounded-full bg-white/10 p-1">
+              <Progress value={(onboardingStep / 6) * 100} tone="bg-[#D6AE4F]" />
+            </div>
+            <div className="mt-6 rounded-xl bg-white p-4 text-[#0f1a33] shadow-sm ring-1 ring-white/20">
               {onboardingStep === 1 && <div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={profile.nombre} onChange={(v)=>setProfile(p=>({...p,nombre:v}))} /><NumberField label="Edad" value={profile.edad} onChange={(v)=>setProfile(p=>({...p,edad:v}))} /><TextField label="País" value={profile.pais} onChange={(v)=>setProfile(p=>({...p,pais:v}))} /><SelectField label="Situación laboral" value={profile.situacionLaboral} options={[{value:"estudiante",label:"Estudiante"},{value:"trabajando",label:"Trabajando"},{value:"desempleado",label:"Desempleado"},{value:"otro",label:"Otro"}]} onChange={(v)=>setProfile(p=>({...p,situacionLaboral:v as Profile["situacionLaboral"]}))} /><SelectField label="Objetivo" value={profile.objetivo} options={[{value:"aerolinea",label:"Aerolínea"},{value:"ejecutivo",label:"Ejecutivo"},{value:"instructor",label:"Instructor"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,objetivo:v as Profile["objetivo"]}))} /></div>}
               {onboardingStep === 2 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Clase 1" value={profile.class1} options={[{value:"si",label:"Sí"},{value:"no",label:"No"},{value:"reservado",label:"Reservado"}]} onChange={(v)=>setProfile(p=>({...p,class1:v as Profile["class1"]}))} /><SelectField label="Class 2" value={profile.class2} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,class2:v as Profile["class2"]}))} /><SelectField label="Nivel de inglés" value={profile.ingles} options={[{value:"bajo",label:"Bajo"},{value:"medio",label:"Medio"},{value:"alto",label:"Alto"}]} onChange={(v)=>setProfile(p=>({...p,ingles:v as Profile["ingles"]}))} /><SelectField label="ICAO level" value={profile.icaoLevel} options={[{value:"0",label:"0"},{value:"4",label:"4"},{value:"5",label:"5"},{value:"6",label:"6"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,icaoLevel:v as Profile["icaoLevel"]}))} /><SelectField label="Preocupación por inglés" value={profile.preocupacionIngles} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,preocupacionIngles:v as Profile["preocupacionIngles"]}))} /></div>}
               {onboardingStep === 3 && (
@@ -2361,7 +2012,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                 <div className="space-y-4">
                   {!cameFromSchoolsComparator ? (
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                      <p className="text-base font-semibold text-[#0f1a33]">¿Tienes ya precios aproximados de una escuela o ruta?</p>
+                      <p className="text-base font-semibold text-[#0f1a33]">¿Tienes ya una estimación de cuánto te costará la formación?</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -2372,7 +2023,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                           }`}
                         >
-                          No, usar estimación base FlyPath
+                          Usar estimación FlyPath
                         </button>
                         <button
                           type="button"
@@ -2383,18 +2034,18 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                           }`}
                         >
-                          Sí, tengo precios aproximados
+                          Introducir mis propios números
                         </button>
                       </div>
                       {profile.costEstimateSource === "user_approx" ? (
                         <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 md:grid-cols-2">
                           <NumberField
-                            label="Precio anunciado de formación / escuela"
+                            label="Coste de formación estimado"
                             value={onboardingApproxDraft.precioFormacion}
                             onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, precioFormacion: Math.max(0, v) }))}
                           />
                           <NumberField
-                            label="Extras no incluidos estimados"
+                            label="Costes adicionales estimados"
                             value={onboardingApproxDraft.extrasEstimados}
                             onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, extrasEstimados: Math.max(0, v) }))}
                           />
@@ -2404,7 +2055,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                             onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, vidaLogistica: Math.max(0, v) }))}
                           />
                           <NumberField
-                            label="Margen de seguridad recomendado %"
+                            label="Margen de seguridad %"
                             value={onboardingApproxDraft.bufferPct}
                             onChange={(v) => setOnboardingApproxDraft((d) => ({ ...d, bufferPct: clamp(v, 0, 100) }))}
                           />
@@ -2415,51 +2066,38 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                   {cameFromSchoolsComparator && hasComparatorImportedSchools ? (
                     <div className="rounded-xl border border-slate-200 bg-[#fffdf7] px-3 py-2.5">
                       <p className="text-[15px] text-slate-700">
-                        Hemos importado tus escuelas seleccionadas desde el comparador. Usaremos esos datos como base y podrás ajustar costes después en el dashboard.
+                        Hemos importado tus escuelas seleccionadas desde el comparador. Usaremos esos datos como base y podrás ajustar costes después en el diagnóstico.
                       </p>
                     </div>
-                  ) : null}
-                  {profile.costEstimateSource === "user_approx" ? (
-                    <>
-                      <p className="text-[15px] text-slate-600">
-                        {cameFromSchoolsComparator && hasComparatorImportedSchools
-                          ? "Ya hemos cargado tus escuelas seleccionadas. Puedes añadir o ajustar datos si lo necesitas."
-                          : "Puedes añadir hasta 3 referencias iniciales si ya tienes escuelas o rutas en mente."}
-                      </p>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <TextField label="Nombre" value={newSchool.nombre} onChange={(v)=>setNewSchool(s=>({...s,nombre:v}))} />
-                        <TextField label="País" value={newSchool.pais} onChange={(v)=>setNewSchool(s=>({...s,pais:v}))} />
-                        <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v)=>setNewSchool(s=>({...s,precioAnunciado:v}))} />
-                        <NumberField label="Duración anunciada" value={newSchool.duracionMeses} onChange={(v)=>setNewSchool(s=>({...s,duracionMeses:v}))} />
-                        <SelectField label="Programa" value={newSchool.programa} options={[{value:"integrado",label:"Integrado"},{value:"modular",label:"Modular"},{value:"cadet",label:"Cadet"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setNewSchool(s=>({...s,programa:v as School["programa"]}))} />
-                        <SelectField label="Fuente del dato" value={newSchool.fuentePrecio} options={[{value:"web_oficial",label:"Web oficial"},{value:"email_escuela",label:"Email escuela"},{value:"llamada",label:"Llamada"},{value:"folleto",label:"Folleto"},{value:"alumno",label:"Alumno"},{value:"redes",label:"Redes"},{value:"usuario",label:"Usuario"},{value:"no_verificado",label:"No verificado"}]} onChange={(v)=>setNewSchool(s=>({...s,fuentePrecio:v as School["fuentePrecio"]}))} />
-                        <TextField label="Fecha de actualización (opcional)" value={newSchool.fechaActualizacion} onChange={(v)=>setNewSchool(s=>({...s,fechaActualizacion:v}))} />
-                        <SelectField label="Estado de verificación (opcional)" value={newSchool.estadoVerificacion} options={[{value:"verificado",label:"Verificado"},{value:"parcialmente_verificado",label:"Parcialmente verificado"},{value:"no_verificado",label:"No verificado"},{value:"pendiente",label:"Pendiente"}]} onChange={(v)=>setNewSchool(s=>({...s,estadoVerificacion:v as School["estadoVerificacion"]}))} />
-                      </div>
-                      <button onClick={()=>addSchool(true)} disabled={schools.length>=3} className="rounded-xl bg-[#1d4ed8] px-4 py-2 text-[15px] font-medium text-white disabled:opacity-50">Añadir escuela/ruta</button>
-                    </>
                   ) : null}
                 </div>
               )}
               {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razón principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} /></div>}
             </div>
-            <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-5">
-              <button onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))} disabled={onboardingStep === 1} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-[15px] shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/40 disabled:cursor-not-allowed disabled:opacity-50">Anterior</button>
+            <div className={`mt-8 flex items-center justify-between ${plannerDivider} pt-5`}>
+              <button
+                type="button"
+                onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))}
+                disabled={onboardingStep === 1}
+                className="cursor-pointer rounded-lg border border-white/25 px-4 py-2 text-[15px] text-slate-300 transition hover:border-white/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Anterior
+              </button>
               {onboardingStep < 6 ? (
                 <button
                   type="button"
                   onClick={handleOnboardingNext}
-                  className="cursor-pointer rounded-lg bg-[#1d4ed8] px-4 py-2 text-[15px] text-white shadow-sm transition hover:bg-[#1b45c2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]/50"
+                  className="cursor-pointer rounded-lg bg-[#D6AE4F] px-4 py-2 text-[15px] font-semibold text-[#071224] transition hover:brightness-105"
                 >
                   Siguiente
                 </button>
               ) : (
-                <button onClick={finishOnboarding} className="cursor-pointer rounded-lg bg-[#0f766e] px-4 py-2 text-[15px] text-white shadow-sm transition hover:bg-[#0d665f] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/50">Ir al dashboard</button>
+                plannerStepFooter
               )}
             </div>
-          </div>
-        </div>
-      </div>
+          </PlannerMainCanvas>
+        </CareerPlannerAppShell>
+      </>
     );
   }
 
@@ -2472,371 +2110,37 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
           {toast}
         </motion.div>
       )}
-      <CareerPlannerDashboardShell
-        activeTab={tab}
-        onNavigate={goToDashboardTab}
-        onEditData={() => {
-          setScreen("onboarding");
-          setOnboardingStep(1);
-        }}
-      >
-          {tab === "route" && (
-            <header className="relative overflow-hidden rounded-[24px] bg-[#0f1a33] p-5 text-white shadow-[0_8px_28px_rgba(15,26,51,0.1)] sm:p-6">
-              {/* Card azul con relative: avión decorativo en hueco superior derecho (ver div absoluto siguiente). */}
-              <div
-                className="pointer-events-none absolute top-[50px] right-[108px] z-0 hidden w-[158px] max-w-[calc(100%-2rem)] lg:block"
-                aria-hidden
-              >
-                {/* Hueco superior derecho; ~+17% ancho vs 135px; micro top/right si invade cards o botón. */}
-                <div className="relative aspect-[250/130] w-full shrink-0">
-                  <svg viewBox="0 0 250 130" className="h-full w-full" preserveAspectRatio="xMidYMid meet">
-                    <path
-                      d="M10 98 C65 30, 145 28, 230 66"
-                      fill="none"
-                      stroke="#b89a52"
-                      strokeOpacity="0.78"
-                      strokeWidth="1.65"
-                      strokeDasharray="5 5"
-                    />
-                    <circle cx="12" cy="98" r="3.5" fill="rgba(201,164,84,0.35)" />
-                    <circle cx="103" cy="42" r="3" fill="rgba(184,154,82,0.55)" />
-                    <circle cx="230" cy="66" r="3.5" fill="rgba(148,163,184,0.35)" />
-                  </svg>
-                  <Plane className="absolute right-[2px] top-[29px] h-3.5 w-3.5 -rotate-12 text-[#c9a454]/90" aria-hidden />
-                </div>
-              </div>
-              <div className="relative z-10">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]">Diagnóstico de ruta</p>
-                <h1 className="mt-1.5 min-w-0 break-words text-2xl font-semibold text-white sm:text-3xl">Tu ruta más prudente ahora: {route.recommended}</h1>
-                <p className="mt-2.5 max-w-3xl text-base leading-relaxed text-slate-200">
-                  Esta recomendación prioriza reducir riesgo antes de comprometer pagos altos.
-                </p>
-              </div>
-              <div className="mt-3 grid gap-2 lg:grid-cols-2">
-                <div className="flex min-h-[80px] flex-col rounded-2xl border border-[#c9a454]/22 bg-[#c9a454]/[0.07] p-3.5">
-                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/70" aria-hidden />
-                    Ruta recomendada
-                  </p>
-                  <p className="mt-1.5 text-base font-semibold leading-snug text-white">{route.recommended}</p>
-                </div>
-                <div
-                  className={`flex min-h-[80px] flex-col rounded-2xl border p-3.5 ${
-                    route.principalBlock !== "Ningún bloqueo crítico"
-                      ? "border-[#c9a454]/18 bg-white/[0.06]"
-                      : "border-white/10 bg-white/[0.05]"
-                  }`}
-                >
-                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200">
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300/45" aria-hidden />
-                    Bloqueo principal
-                  </p>
-                  <p className="mt-1.5 text-base font-semibold leading-snug text-white">{route.principalBlock}</p>
-                </div>
-              </div>
-              <div className="mt-2 flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.05] p-3.5">
-                <p className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-200">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#c9a454]/70" aria-hidden />
-                  Siguiente paso prioritario
-                </p>
-                <p className="mt-1.5 text-[15px] font-semibold leading-snug text-slate-100">
-                  {profile.class1 !== "si"
-                    ? "Confirma tu Clase 1 antes de elegir escuela."
-                    : route.warnings.find((w) => !w.toLowerCase().includes("no pagues escuela todavía")) || "Pide precio final, contrato, calendario de pagos y política de reembolso antes de transferir dinero."}
-                </p>
-              </div>
-              {route.principalBlock === "Clase 1 no confirmada" && (
-                <div className="mt-2.5 rounded-2xl border border-white/10 bg-[#081329]/55 p-4 text-[15px] text-slate-100">
-                  <div className="max-w-2xl border-l-2 border-[#c9a454]/65 pl-3">
-                    <p className="font-semibold text-[#f2ddaa]">No pagar escuela todavía</p>
-                    <p className="mt-1 text-slate-200">
-                      No comprometas dinero hasta resolver el bloqueo médico principal y tener condiciones claras por escrito.
-                    </p>
-                  </div>
-                </div>
-              )}
-              </div>
-            </header>
-          )}
-          <section className={`${tab === "route" ? "mt-5" : "mt-0"} w-full space-y-6`}>
-            {tab === "route" && (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
-                  <p className="mb-2 text-sm font-semibold text-slate-700">Comparación de rutas</p>
-                  <p className="mb-4 text-[15px] leading-relaxed text-slate-600">No es una probabilidad ni una promesa de resultado. Es una lectura prudente para ayudarte a priorizar la ruta con menos riesgo.</p>
-                  <div className="grid gap-x-3 gap-y-6 pt-2 lg:grid-cols-3">
-                    <RouteOption title="Integrada" value={route.integrated} label={routePriorityLabels.Integrada} />
-                    <RouteOption title="Modular" value={route.modular} label={routePriorityLabels.Modular} />
-                    <RouteOption title="Preparación" value={route.prep} label={routePriorityLabels["Preparación"]} />
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-slate-200/90 border-l-[3px] border-l-[#c9a454]/70 bg-gradient-to-r from-white to-[#fffdf6] p-5 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-6">
-                  <p className="text-sm font-semibold text-slate-700">Siguiente paso recomendado</p>
-                  <p className="mt-1.5 max-w-3xl text-xl font-semibold leading-snug text-[#0f1a33] sm:text-2xl">
-                    {route.recommended === "Modular"
-                      ? "Avanza por fases, pero valida costes antes de pagar."
-                      : route.recommended === "Integrada"
-                      ? "Valida que puedes asumir una ruta intensiva."
-                      : "Resuelve bloqueos antes de elegir escuela."}
-                  </p>
-                  <p className="mt-2 max-w-4xl text-[15px] leading-relaxed text-slate-600">
-                    {route.recommended === "Modular"
-                      ? "Tu diagnóstico apunta a una ruta modular porque te permite controlar mejor el riesgo y la inversión por fases. El siguiente paso no es elegir escuela rápido, sino confirmar si el coste realista encaja con tu presupuesto y comparar escuelas con condiciones por escrito."
-                      : route.recommended === "Integrada"
-                      ? "Tu diagnóstico apunta a una ruta integrada, pero antes de pagar matrícula o depósito debes confirmar financiación, disponibilidad full-time, contrato, calendario de pagos y política de reembolso. La rapidez solo compensa si las condiciones están claras."
-                      : "Tu diagnóstico indica que todavía conviene preparar mejor la decisión antes de comprometer pagos altos. Prioriza resolver el bloqueo principal, revisar costes y construir un plan antes de comparar escuelas en serio."}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => goToDashboardTab("cost")}
-                      className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Revisar costes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => goToDashboardTab("schools")}
-                      className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-200/90 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm"
-                    >
-                      Comparar escuelas
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {tab === "cost" && (
-              <div className="space-y-5">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
-                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[105px] w-[190px] lg:flex items-center justify-end opacity-70">
-                    <svg viewBox="0 0 260 150" className="h-full w-full">
-                      <rect x="36" y="74" width="34" height="52" rx="6" fill="rgba(148,163,184,0.28)" />
-                      <rect x="92" y="54" width="34" height="72" rx="6" fill="rgba(255,255,255,0.26)" />
-                      <rect x="148" y="34" width="34" height="92" rx="6" fill="rgba(201,164,84,0.55)" />
-                      <path d="M24 106 C76 92, 126 74, 236 28" fill="none" stroke="#c9a454" strokeOpacity="0.52" strokeWidth="2" strokeDasharray="5 5" />
-                      <circle cx="24" cy="106" r="4" fill="rgba(255,255,255,0.38)" />
-                      <circle cx="126" cy="74" r="3.5" fill="rgba(201,164,84,0.7)" />
-                      <circle cx="236" cy="28" r="4.5" fill="rgba(255,255,255,0.5)" />
-                    </svg>
-                  </div>
-                  <div className="relative z-10">
-                  <div className="lg:max-w-[760px]">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico financiero</p>
-                    <p className="mt-3 text-lg font-semibold text-white sm:text-xl">Coste realista estimado</p>
-                    {(() => {
-                      const { amount, symbol } = formatEuroHeroAmount(costs.totalRealista);
-                      return (
-                        <div className="mt-3 flex items-baseline gap-2 tracking-tight">
-                          <span className="text-3xl font-bold leading-[0.95] text-white tabular-nums sm:text-4xl lg:text-5xl">
-                            {amount}
-                          </span>
-                          <span className="pb-1 text-xl font-medium text-white/70 sm:text-2xl">{symbol}</span>
-                        </div>
-                      );
-                    })()}
-                    <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-300">
-                      Incluye formación, extras, costes de vida y margen de seguridad.
-                    </p>
-                  </div>
-                  <div className="mt-6 grid items-stretch gap-3 lg:grid-cols-3">
-                    <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-[#c9a454]/40 bg-white/[0.09] p-5 shadow-[0_8px_28px_rgba(201,164,84,0.14)] ring-1 ring-[#c9a454]/20">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/85">Brecha pendiente</p>
-                      <p className="mt-0.5 text-[14px] font-medium text-slate-300">Dinero que falta</p>
-                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white tabular-nums sm:text-3xl">
-                        {euro(costs.brechaFinanciacion)}
-                      </p>
-                    </div>
-                    <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-white/12 bg-white/[0.06] p-5">
-                      <p className="text-[14px] font-medium text-slate-300">Presupuesto cubierto</p>
-                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white tabular-nums sm:text-3xl">
-                        {costs.coverage}%
-                      </p>
-                    </div>
-                    <div className="flex min-h-[7.75rem] flex-col rounded-2xl border border-white/12 bg-white/[0.06] p-5">
-                      <p className="text-[14px] font-medium text-slate-300">Riesgo financiero</p>
-                      <p className="mt-auto pt-3 text-2xl font-bold leading-none text-white sm:text-3xl">
-                        {costs.riesgoFinanciero}
-                      </p>
-                    </div>
-                  </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
-                  <p className="text-sm font-semibold text-slate-700">Escenarios posibles</p>
-                  <p className="mt-1 text-[15px] text-slate-600">
-                    Tres lecturas del mismo plan: optimista, realista y conservador.
-                  </p>
-                  <div className="mt-4 grid gap-x-3 gap-y-5 pt-1 md:grid-cols-3">
-                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
-                      <p className="text-[14px] font-medium text-slate-500">Optimista</p>
-                      <p className="mt-1.5 text-lg font-semibold tabular-nums text-slate-700">{euro(costs.totalOptimista)}</p>
-                    </div>
-                    <div className="relative rounded-xl border border-[#c9a454]/35 bg-[#fffdf6] p-5 pt-6 shadow-[0_6px_22px_rgba(15,26,51,0.05)] ring-1 ring-[#c9a454]/12">
-                      <span className="absolute left-1/2 top-0 max-w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 truncate rounded-md border border-[#c9a454]/30 bg-[#fffdf6] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#7a5a16]">
-                        ESCENARIO RECOMENDADO
-                      </span>
-                      <p className="text-[14px] font-medium text-slate-600">Realista</p>
-                      <p className="mt-1.5 text-xl font-bold tabular-nums text-[#0f1a33]">{euro(costs.totalRealista)}</p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4">
-                      <p className="text-[14px] font-medium text-slate-500">Conservador</p>
-                      <p className="mt-1.5 text-lg font-semibold tabular-nums text-slate-700">{euro(costs.totalConservador)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]">
-                  <p className="text-base font-semibold text-slate-700">Desglose estimado</p>
-                  <p className="mt-1 text-[15px] text-slate-600">Detalle por formación, extras, costes de vida y margen de seguridad. Usa este bloque para ajustar hipótesis sin perder la visión global.</p>
-                  <div className="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/50 p-5">
-                    <div className="space-y-5">
-                      {[
-                        { label: "Formación", value: costs.subtotalFormacion, tone: "bg-slate-500/55" },
-                        { label: "Extras", value: costs.subtotalExtras, tone: "bg-slate-400/50" },
-                        { label: "Costes de vida", value: costs.subtotalVida, tone: "bg-slate-400/40" },
-                        { label: "Margen de seguridad", value: costs.buffer, tone: "bg-[#c9a454]/50" },
-                      ].map((item) => {
-                        const pct = costs.totalRealista > 0 ? (item.value / costs.totalRealista) * 100 : 0;
-                        const widthPct = clamp(pct);
-                        return (
-                          <div key={item.label}>
-                            <div className="mb-2 flex items-baseline justify-between gap-4 text-[14px]">
-                              <p className="font-medium text-slate-700">{item.label}</p>
-                              <p className="shrink-0 text-right tabular-nums text-slate-500">
-                                <span className="font-medium text-slate-600">{euro(item.value)}</span>
-                                <span className="text-slate-400"> · {Math.round(pct)}%</span>
-                              </p>
-                            </div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-slate-200/70">
-                              <motion.div
-                                className={`h-full rounded-full ${item.tone}`}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${widthPct}%` }}
-                                transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <details className="rounded-2xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
-                    <summary className="cursor-pointer list-item marker:text-slate-400">
-                      <span className="text-base font-semibold text-[#0f1a33]">Ajustar mi estimación de costes</span>
-                      <span className="mt-1 block text-[15px] leading-relaxed text-slate-600">
-                        Modifica formación, extras, costes de vida y margen de seguridad si tus números son diferentes.
-                      </span>
-                    </summary>
-                    <div className="mt-4 space-y-4">
-                      <CostBlock title={route.recommended === "Integrada" ? "Formación integrada" : "Formación modular"}>
-                        {route.recommended === "Integrada" ? (
-                          <>
-                            <p className="md:col-span-2 xl:col-span-4 text-[15px] text-slate-600">
-                              En una ruta integrada, la formación suele venderse como un paquete completo. Edita el precio total anunciado y después ajusta extras, costes de vida y margen de seguridad.
-                            </p>
-                            <NumberField label="Programa integrado completo" value={costInputs.ppl + (costInputs.nightRating ?? 3000) + costInputs.atplTheory + costInputs.hourBuilding + costInputs.cpl + costInputs.mep + costInputs.ir} onChange={(v) => {
-                              const currentPack = costInputs.ppl + (costInputs.nightRating ?? 3000) + costInputs.atplTheory + costInputs.hourBuilding + costInputs.cpl + costInputs.mep + costInputs.ir;
-                              if (currentPack <= 0) return;
-                              const factor = v / currentPack;
-                              setCostInputs((c) => ({
-                                ...c,
-                                ppl: Math.round(c.ppl * factor),
-                                nightRating: Math.round((c.nightRating ?? 3000) * factor),
-                                atplTheory: Math.round(c.atplTheory * factor),
-                                hourBuilding: Math.round(c.hourBuilding * factor),
-                                cpl: Math.round(c.cpl * factor),
-                                mep: Math.round(c.mep * factor),
-                                ir: Math.round(c.ir * factor),
-                              }));
-                            }} />
-                            <NumberField label="MCC/JOC si no está incluido" value={costInputs.mccJoc} onChange={(v) => setCostInputs((c) => ({ ...c, mccJoc: v }))} />
-                            <NumberField label="Advanced UPRT si no está incluido" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
-                          </>
-                        ) : (
-                          <>
-                            <p className="md:col-span-2 xl:col-span-4 text-[15px] text-slate-600">
-                              En una ruta modular, tiene sentido revisar cada fase por separado para controlar pagos, ritmo y riesgo.
-                            </p>
-                            <NumberField label="PPL" value={costInputs.ppl} onChange={(v) => setCostInputs((c) => ({ ...c, ppl: v }))} />
-                            <NumberField label="Night Rating / NR" value={costInputs.nightRating ?? 3000} onChange={(v) => setCostInputs((c) => ({ ...c, nightRating: v }))} />
-                            <NumberField label="Teoría ATPL" value={costInputs.atplTheory} onChange={(v) => setCostInputs((c) => ({ ...c, atplTheory: v }))} />
-                            <NumberField label="Horas de vuelo / Hour building" value={costInputs.hourBuilding} onChange={(v) => setCostInputs((c) => ({ ...c, hourBuilding: v }))} />
-                            <NumberField label="CPL" value={costInputs.cpl} onChange={(v) => setCostInputs((c) => ({ ...c, cpl: v }))} />
-                            <NumberField label="MEP" value={costInputs.mep} onChange={(v) => setCostInputs((c) => ({ ...c, mep: v }))} />
-                            <NumberField label="IR" value={costInputs.ir} onChange={(v) => setCostInputs((c) => ({ ...c, ir: v }))} />
-                            <NumberField label="MCC/JOC" value={costInputs.mccJoc} onChange={(v) => setCostInputs((c) => ({ ...c, mccJoc: v }))} />
-                            <NumberField label="Advanced UPRT" value={costInputs.advancedUprt} onChange={(v) => setCostInputs((c) => ({ ...c, advancedUprt: v }))} />
-                          </>
-                        )}
-                      </CostBlock>
-                      <CostBlock title="Extras">
-                        <NumberField label="Reconocimiento médico Clase 1" value={costInputs.class1Medical} onChange={(v) => setCostInputs((c) => ({ ...c, class1Medical: v }))} />
-                        <NumberField label="Tasas exámenes" value={costInputs.tasasExamenes} onChange={(v) => setCostInputs((c) => ({ ...c, tasasExamenes: v }))} />
-                        <NumberField label="Skill tests" value={costInputs.skillTests} onChange={(v) => setCostInputs((c) => ({ ...c, skillTests: v }))} />
-                        <NumberField label="Headset" value={costInputs.headset} onChange={(v) => setCostInputs((c) => ({ ...c, headset: v }))} />
-                        <NumberField label="iPad/apps/cartas" value={costInputs.ipadAppsCartas} onChange={(v) => setCostInputs((c) => ({ ...c, ipadAppsCartas: v }))} />
-                        <NumberField label="Uniforme/material" value={costInputs.uniformeMaterial} onChange={(v) => setCostInputs((c) => ({ ...c, uniformeMaterial: v }))} />
-                        <NumberField label="Repeticiones" value={costInputs.repeticiones} onChange={(v) => setCostInputs((c) => ({ ...c, repeticiones: v }))} />
-                        <NumberField label="Type rating opcional" value={costInputs.typeRatingOpcional} onChange={(v) => setCostInputs((c) => ({ ...c, typeRatingOpcional: v }))} />
-                      </CostBlock>
-                      <CostBlock title="Costes de vida">
-                        <NumberField label="Alojamiento" value={costInputs.alojamiento} onChange={(v) => setCostInputs((c) => ({ ...c, alojamiento: v }))} />
-                        <NumberField label="Transporte" value={costInputs.transporte} onChange={(v) => setCostInputs((c) => ({ ...c, transporte: v }))} />
-                        <NumberField label="Comida" value={costInputs.comida} onChange={(v) => setCostInputs((c) => ({ ...c, comida: v }))} />
-                        <NumberField label="Otros gastos de vida" value={costInputs.otrosGastosVida} onChange={(v) => setCostInputs((c) => ({ ...c, otrosGastosVida: v }))} />
-                        <NumberField label="Margen de seguridad %" value={costInputs.bufferPct} onChange={(v) => setCostInputs((c) => ({ ...c, bufferPct: v }))} />
-                      </CostBlock>
-                    </div>
-                  </details>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200/90 border-l-[3px] border-l-[#c9a454]/70 bg-gradient-to-r from-white to-[#fffdf6] p-6 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-7">
-                  <p className="text-sm font-semibold text-slate-700">Siguiente paso</p>
-                  <p className="mt-2 max-w-4xl text-[15px] leading-relaxed text-slate-600">
-                    Ya tienes una referencia financiera realista.
-                    <br className="hidden sm:block" />
-                    {" "}Ahora compara escuelas usando el mismo criterio: precio final, extras incluidos, contrato, reembolso y calendario de pagos.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => goToDashboardTab("schools")}
-                      className="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#d4b76a]"
-                    >
-                      Comparar escuelas
-                    </button>
-                  </div>
-                </div>
-              </div>
+      <CareerPlannerAppShell stepNav={plannerStepNav} bottomNav={plannerBottomNav}>
+        <PlannerMainCanvas footer={plannerStepFooter}>
+            {tab === "diagnosis" && (
+              <CareerPlannerDiagnosisView
+                route={route}
+                costs={costs}
+                profile={profile}
+                costInputs={costInputs}
+                setCostInputs={setCostInputs}
+                onNavigate={handleDiagnosisNavigate}
+              />
             )}
             {tab === "schools" && (
               <div className="flex flex-col gap-6">
-                <div className="order-1 relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-sm sm:p-7">
-                  <div className="pointer-events-none absolute right-5 top-5 z-0 hidden sm:block">
-                    <ClipboardList className="h-16 w-16 text-[#c9a454]/28 drop-shadow-sm lg:h-[72px] lg:w-[72px] lg:text-[#c9a454]/32" strokeWidth={1.25} aria-hidden />
-                  </div>
-                  <div className="relative z-10">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Diagnóstico de escuelas</p>
-                  <h2 className="mt-2 text-3xl font-semibold">Compara escuelas antes de pagar depósito.</h2>
-                  <p className="mt-3 max-w-3xl text-[15px] text-slate-200">
+                <div className="order-1">
+                  <p className={plannerEyebrow}>Diagnóstico de escuelas</p>
+                  <h2 className={`mt-2 text-2xl sm:text-3xl ${plannerTitle}`}>Compara escuelas antes de pagar depósito.</h2>
+                  <p className={`mt-3 max-w-3xl ${plannerBody}`}>
                     No compares solo precio anunciado. Revisa contrato, reembolso, calendario de pagos, extras incluidos y evidencia por escrito.
                   </p>
                   <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
-                      <p className="text-[15px] text-slate-300">Escuelas comparadas</p>
+                    <div className={plannerSubcard}>
+                      <p className="text-[15px] text-slate-400">Escuelas comparadas</p>
                       <p className="mt-1 text-lg font-semibold text-white">{schools.length}</p>
                     </div>
-                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
-                      <p className="text-[15px] text-slate-300">Verificadas</p>
+                    <div className={plannerSubcard}>
+                      <p className="text-[15px] text-slate-400">Verificadas</p>
                       <p className="mt-1 text-lg font-semibold text-white">{schoolStats.verifiedCount}</p>
                     </div>
-                    <div className="rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] p-4">
-                      <p className="text-[15px] text-slate-300">Recomendación FlyPath</p>
+                    <div className={plannerSubcardAccent}>
+                      <p className="text-[15px] text-slate-400">Recomendación FlyPath</p>
                       {schools.length < 2 ? (
                         <p className="mt-1 text-lg font-semibold text-white">Añade 2 escuelas</p>
                       ) : plannerPremiumContentVisible ? (
@@ -2849,19 +2153,18 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                         <button
                           type="button"
                           onClick={openPlannerSchoolsPremiumModal}
-                          className="mt-1 inline-flex cursor-pointer border-none bg-transparent p-0 text-left text-lg font-bold leading-snug text-[#f2ddaa] underline-offset-2 transition hover:underline hover:opacity-90 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/45"
+                          className="mt-1 inline-flex cursor-pointer border-none bg-transparent p-0 text-left text-lg font-bold leading-snug text-[#D6AE4F] underline-offset-2 transition hover:underline hover:opacity-90 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/45"
                         >
                           Desbloquear análisis premium
                         </button>
                       )}
                     </div>
                   </div>
-                  </div>
                 </div>
                 <details
                   ref={schoolFormDetailsRef}
                   open={manualFormOpen}
-                  className="order-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                  className="order-2 rounded-xl bg-white p-6 text-[#0f1a33] shadow-sm ring-1 ring-white/20"
                   onToggle={(e) => {
                     const el = e.currentTarget;
                     setManualFormOpen(el.open);
@@ -3453,58 +2756,44 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               );
               return (
               <div className="space-y-7">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#0f1a33] p-5 text-white shadow-[0_12px_40px_rgba(15,26,51,0.22)] sm:p-7">
-                  <div className="pointer-events-none absolute right-6 top-4 z-0 hidden h-[100px] w-[180px] lg:flex items-center justify-end opacity-70">
-                    <svg viewBox="0 0 220 120" className="h-full w-full">
-                      <rect x="42" y="16" width="136" height="92" rx="10" fill="rgba(255,255,255,0.16)" stroke="rgba(201,164,84,0.45)" strokeWidth="1.5" />
-                      <line x1="58" y1="40" x2="156" y2="40" stroke="rgba(226,232,240,0.7)" strokeWidth="2" />
-                      <line x1="58" y1="56" x2="144" y2="56" stroke="rgba(148,163,184,0.75)" strokeWidth="2" />
-                      <line x1="58" y1="72" x2="130" y2="72" stroke="rgba(148,163,184,0.7)" strokeWidth="2" />
-                      <circle cx="158" cy="83" r="11" fill="rgba(201,164,84,0.62)" />
-                      <path d="M152 83 l4 4 l7 -8" fill="none" stroke="rgba(15,26,51,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <div className="relative z-10">
-                  <div className="lg:max-w-[820px]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/95">Informe final FlyPath</p>
-                    <h2 className="mt-3 min-w-0 break-words text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem] lg:text-3xl">
-                      {informeFinalHeroHeadline(decisionReadiness.decision)}
-                    </h2>
-                    <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-slate-200 sm:text-base">
-                      {informeFinalHeroSubheadline(route, riskDiagnosis)}
-                    </p>
-                  </div>
+                <div>
+                  <p className={plannerEyebrow}>Informe final FlyPath</p>
+                  <h2 className={`mt-3 min-w-0 break-words text-2xl leading-tight tracking-tight sm:text-[1.75rem] lg:text-3xl ${plannerTitle}`}>
+                    {informeFinalHeroHeadline(decisionReadiness.decision)}
+                  </h2>
+                  <p className={`mt-3 max-w-3xl sm:text-base ${plannerBody}`}>
+                    {informeFinalHeroSubheadline(route, riskDiagnosis)}
+                  </p>
                   <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
-                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Ruta recomendada</p>
-                      <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#f2ddaa] sm:text-2xl">{route.recommended}</p>
+                    <div className={`min-w-0 text-center sm:px-4 sm:py-3.5 ${plannerSubcard}`}>
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-400 sm:text-sm">Ruta recomendada</p>
+                      <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#D6AE4F] sm:text-2xl">{route.recommended}</p>
                     </div>
-                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
-                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Decisión de pago</p>
+                    <div className={`min-w-0 text-center sm:px-4 sm:py-3.5 ${plannerSubcard}`}>
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-400 sm:text-sm">Decisión de pago</p>
                       <p
                         className={`mt-1.5 break-words text-base font-bold leading-tight sm:text-lg ${informeHeroDecisionValueTextClass(decisionReadiness.decision)}`}
                       >
                         {decisionReadiness.decision}
                       </p>
                     </div>
-                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3 text-center sm:px-4 sm:py-3.5">
-                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-300 sm:text-sm">Coste realista</p>
-                      <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#f2ddaa] sm:text-2xl">{euro(costs.totalRealista)}</p>
+                    <div className={`min-w-0 text-center sm:px-4 sm:py-3.5 ${plannerSubcard}`}>
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-400 sm:text-sm">Coste realista</p>
+                      <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#D6AE4F] sm:text-2xl">{euro(costs.totalRealista)}</p>
                     </div>
-                    <div className="min-w-0 rounded-2xl border border-[#c9a454]/25 bg-white/[0.07] px-3 py-3.5 text-center sm:px-4">
-                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-300">Nivel de preparación</p>
+                    <div className={`min-w-0 text-center sm:px-4 ${plannerSubcardAccent}`}>
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Nivel de preparación</p>
                       <p className={`mt-1.5 text-2xl font-bold leading-none tracking-tight sm:text-3xl ${informePreparacionNivelTextClass(preparacionNivel)}`}>
                         {preparacionNivel}
                       </p>
                     </div>
                   </div>
-                  </div>
                 </div>
 
-                <div className="rounded-2xl border-2 border-[#c9a454]/35 bg-gradient-to-br from-[#fffdf8] via-white to-[#f8fafc] p-5 shadow-[0_8px_28px_rgba(15,26,51,0.06)] sm:p-6">
+                <div className={`${plannerSubcardAccent} p-5 sm:p-6`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-base font-semibold text-[#0f1a33]">Datos pendientes antes de pagar</p>
-                    <span className="inline-flex rounded-full border border-[#c9a454]/40 bg-[#c9a454]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#7a5e16]">
+                    <p className={`text-base font-semibold ${plannerTitle}`}>Datos pendientes antes de pagar</p>
+                    <span className="inline-flex rounded-full border border-[#D6AE4F]/40 bg-[#D6AE4F]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#D6AE4F]">
                       Prioridad
                     </span>
                   </div>
@@ -3513,7 +2802,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
                         <li
                           key={item}
-                          className="flex items-start gap-2.5 rounded-xl border border-slate-200/80 bg-white px-3.5 py-3 text-[15px] text-slate-700"
+                          className="flex items-start gap-2.5 rounded-lg border border-white/[0.08] bg-[#17233F] px-3.5 py-3 text-[15px] text-slate-200"
                         >
                           <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" aria-hidden />
                           <span className="leading-snug">{item}</span>
@@ -3521,15 +2810,15 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                    <p className={`mt-3 ${plannerMuted}`}>
                       No hay datos críticos pendientes detectados, pero conserva toda la documentación por escrito.
                     </p>
                   )}
                 </div>
 
                 {conclusionUi.show ? (
-                  <p className="rounded-xl border border-[#c9a454]/25 bg-[#fffdf8] px-4 py-3 text-[15px] font-medium leading-snug text-[#3d3418]">
-                    <span className="text-[#7a5e16]">→ </span>
+                  <p className={`rounded-lg border border-[#D6AE4F]/30 bg-[#1B2947] px-4 py-3 text-[15px] font-medium leading-snug text-slate-200`}>
+                    <span className="text-[#D6AE4F]">→ </span>
                     {conclusionUi.text}
                   </p>
                 ) : null}
@@ -4201,8 +3490,8 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
               </div>
               );
             })()}
-          </section>
-      </CareerPlannerDashboardShell>
+        </PlannerMainCanvas>
+      </CareerPlannerAppShell>
       <PlannerSchoolsPremiumModal
         open={plannerSchoolsPremiumModalOpen}
         onClose={() => setPlannerSchoolsPremiumModalOpen(false)}
@@ -4212,7 +3501,7 @@ export function FlyPathApp({ reviewMode = false, initialTab = "route" }: FlyPath
       <button
         type="button"
         onClick={toggleQaPremium}
-        className="fixed bottom-4 right-4 z-[9999] inline-flex w-auto max-w-[calc(100vw-2rem)] items-center justify-center rounded-full border border-[#c9a454]/50 bg-[#0f1a33] px-4 py-2 text-xs font-semibold text-[#f2ddaa] shadow-lg transition hover:bg-[#152547]"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-3 z-[40] inline-flex max-w-[calc(100vw-1.5rem)] items-center rounded-md border border-[#0f1a33]/12 bg-[#F6F7F9]/95 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500 shadow-[0_2px_8px_rgba(15,26,51,0.08)] backdrop-blur-sm transition hover:border-[#D6AE4F]/35 hover:text-[#9a7b3c] md:bottom-4 md:right-4"
         aria-label={
           qaPremiumMode === "premium"
             ? "Alternar a modo gratis para revisión QA"
@@ -4231,7 +3520,12 @@ export default function Page() {
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-[#f8fafc] p-6 shadow-[0_10px_30px_rgba(15,26,51,0.05)]"><p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>{children}</div>;
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-[#17233F] p-5 sm:p-6">
+      <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[#D6AE4F]">{title}</p>
+      {children}
+    </div>
+  );
 }
 
 function YNField({ label, value, onChange }: { label: string; value: YesNoUnknown; onChange: (value: YesNoUnknown) => void }) {
@@ -4244,16 +3538,16 @@ function RouteOption({ title, value, label }: { title: string; value: number; la
   const isPossible = label === "Ruta posible";
 
   const cardStyles = isRecommended
-    ? "border-[#c9a454]/40 bg-[#fffdf6] shadow-[0_6px_20px_rgba(15,26,51,0.05)] ring-1 ring-[#c9a454]/12"
+    ? "border border-[#D6AE4F]/40 bg-[#1B2947] ring-1 ring-[#D6AE4F]/25"
     : isPossible
-    ? "border-slate-200/90 bg-white"
-    : "border-slate-200/80 bg-white";
+      ? "border border-white/[0.08] bg-[#17233F]"
+      : "border border-white/[0.06] bg-[#17233F]/80";
 
   const chipStyles = isRecommended
-    ? "border-[#c9a454]/45 bg-[#fffdf6] text-[#7a5a16]"
+    ? "bg-[#101B35] text-[#E8C978] ring-1 ring-[#D6AE4F]/40"
     : isPossible
-    ? "border-[#3b6ea8]/30 bg-white text-[#1d4ed8]"
-    : "border-slate-200/90 bg-white text-slate-600";
+      ? "bg-[#101B35] text-slate-300 ring-1 ring-white/15"
+      : "bg-[#101B35] text-slate-400 ring-1 ring-white/10";
 
   const accentTone = isRecommended ? "bg-[#c9a454]/80" : isPossible ? "bg-[#3b6ea8]/45" : "bg-slate-200";
   const advisoryText =
@@ -4265,30 +3559,26 @@ function RouteOption({ title, value, label }: { title: string; value: number; la
 
   return (
     <div
-      className={`relative flex h-full min-h-[156px] flex-col rounded-xl border px-4 pb-4 pt-7 transition sm:px-5 sm:pb-5 sm:pt-8 ${cardStyles}`}
+      className={`relative flex h-full min-h-[118px] flex-col rounded-lg border px-3.5 pb-3.5 pt-6 transition sm:min-h-[124px] sm:px-4 sm:pb-4 sm:pt-7 ${cardStyles}`}
     >
       <span
-        className={`absolute left-1/2 top-0 z-[1] max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 truncate rounded-lg border px-3.5 py-1.5 text-center text-[12px] font-semibold leading-snug tracking-[0.01em] shadow-[0_1px_3px_rgba(15,26,51,0.06)] sm:text-[13px] ${chipStyles}`}
+        className={`absolute left-1/2 top-0 z-[1] max-w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 truncate rounded-md px-2.5 py-1 text-center text-[11px] font-semibold leading-snug sm:text-[12px] ${chipStyles}`}
       >
         {label}
       </span>
-      <p className="text-base font-semibold text-[#0f1a33] sm:text-[17px]">{title}</p>
-      <p className="mt-2 flex-1 text-[15px] leading-relaxed text-slate-600">{advisoryText}</p>
-      <div className={`mt-4 h-0.5 shrink-0 rounded-full ${accentTone}`} aria-hidden />
+      <p className="text-[15px] font-semibold text-white">{title}</p>
+      <p className="mt-1.5 flex-1 text-[13px] leading-snug text-slate-400">{advisoryText}</p>
+      <div className={`mt-2.5 h-0.5 shrink-0 rounded-full ${accentTone}`} aria-hidden />
     </div>
   );
 }
 
-function CostBlock({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div><p className="mb-3 text-base font-semibold text-slate-700">{title}</p><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{children}</div></div>;
-}
-
 function SummaryCard({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-      <p className="text-[15px] text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-[#0f1a33]">{value}</p>
-      {subValue ? <p className="mt-0.5 text-xs font-medium text-slate-600">{subValue}</p> : null}
+    <div className="rounded-lg border border-white/[0.08] bg-[#17233F] p-4">
+      <p className="text-[15px] text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      {subValue ? <p className="mt-0.5 text-xs font-medium text-slate-400">{subValue}</p> : null}
     </div>
   );
 }

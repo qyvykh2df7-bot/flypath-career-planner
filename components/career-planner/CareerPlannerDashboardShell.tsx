@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
-import { CareerPlannerBottomNav } from "./CareerPlannerBottomNav";
 import { CareerPlannerRail } from "./CareerPlannerRail";
 import type { CareerPlannerTab } from "./career-planner-nav";
 
@@ -38,7 +37,6 @@ export function CareerPlannerDashboardShell({
           </main>
         </div>
       </div>
-      <CareerPlannerBottomNav activeTab={activeTab} onNavigate={onNavigate} onEditData={onEditData} />
     </div>
   );
 }
