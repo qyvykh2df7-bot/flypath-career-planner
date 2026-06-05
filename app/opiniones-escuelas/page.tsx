@@ -286,10 +286,6 @@ export default function OpinionesEscuelasPage() {
                     Dejar una opinión
                   </button>
                 </div>
-                <p className="mt-3 max-w-2xl text-[12px] leading-snug text-[#0f1a33]/62">
-                  Las opiniones públicas se mostrarán más adelante, cuando el sistema esté
-                  validado.
-                </p>
               </div>
 
               {/* Visual derecho: mini-card opaca (no recibe el filtro crema del hero) */}
@@ -609,19 +605,6 @@ export default function OpinionesEscuelasPage() {
                 ))}
               </ul>
             </div>
-          </section>
-
-          {/* ESTADO ACTUAL */}
-          <section className="rounded-2xl border border-[#c9a454]/30 bg-[#fffdf6] p-5 shadow-sm sm:p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7a5a16]">
-              Estado actual
-            </p>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-slate-700">
-              El sistema todavía está en preparación. Estamos dejando listo el flujo de
-              consulta, envío y verificación. Hasta que haya suficientes opiniones reales
-              y revisadas, no mostraremos calificaciones públicas ni usaremos esta señal
-              en la lectura FlyPath.
-            </p>
           </section>
         </div>
       </main>

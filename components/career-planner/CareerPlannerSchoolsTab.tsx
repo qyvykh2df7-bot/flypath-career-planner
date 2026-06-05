@@ -193,7 +193,9 @@ function SelectedSchoolCard({ school, onUpdateProgram, onEditSchool, onRemoveSch
   const programaLabel = activeOption?.label ?? schoolProgramPillLabel(school.programa);
   const estado = schoolCardEstadoLabel(school);
   const reviewsHref = plannerSchoolReviewsHref(link?.slug ?? null);
-  const fichaHref = link ? `/schools/${link.slug}?from=career-planner` : null;
+  const comparatorHref = link
+    ? `/schools?add=${encodeURIComponent(link.slug)}&from=planner`
+    : null;
 
   const estadoBadgeClass =
     estado === "VERIFICADA"
@@ -216,12 +218,12 @@ function SelectedSchoolCard({ school, onUpdateProgram, onEditSchool, onRemoveSch
     );
 
   const mobilePrimaryAction =
-    isFromDatabase && fichaHref ? (
+    isFromDatabase && comparatorHref ? (
       <Link
-        href={fichaHref}
+        href={comparatorHref}
         className="inline-flex min-h-[36px] flex-1 items-center justify-center rounded-lg border border-[#B8943F]/45 bg-[#D6AE4F]/12 px-3 py-2 text-[13px] font-semibold text-[#5c4820] transition hover:border-[#B8943F]/65 hover:bg-[#D6AE4F]/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40"
       >
-        Ver ficha
+        Ver en comparador
       </Link>
     ) : (
       <button
@@ -235,12 +237,12 @@ function SelectedSchoolCard({ school, onUpdateProgram, onEditSchool, onRemoveSch
     );
 
   const desktopPrimaryAction =
-    isFromDatabase && fichaHref ? (
+    isFromDatabase && comparatorHref ? (
       <Link
-        href={fichaHref}
+        href={comparatorHref}
         className="inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-lg border border-[#B8943F]/45 bg-[#D6AE4F]/12 px-3 py-1.5 text-[12px] font-semibold text-[#5c4820] transition hover:border-[#B8943F]/65 hover:bg-[#D6AE4F]/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40"
       >
-        Ver ficha
+        Ver en comparador
       </Link>
     ) : (
       <button

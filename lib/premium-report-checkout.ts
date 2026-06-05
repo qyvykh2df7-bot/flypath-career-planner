@@ -18,3 +18,9 @@ export const PREMIUM_REPORT_CHECKOUT_URL =
   STRIPE_CHECKOUT_PLACEHOLDER;
 
 export const PREMIUM_REPORT_CHECKOUT_CTA_LABEL = `Desbloquear análisis premium · ${PREMIUM_REPORT_PRICE_LABEL}`;
+
+/** Abre Stripe Checkout en una pestaña nueva (comparador, planner, informes). */
+export function goToPremiumReportCheckout(): void {
+  if (typeof window === "undefined") return;
+  window.open(PREMIUM_REPORT_CHECKOUT_URL, "_blank", "noopener,noreferrer");
+}

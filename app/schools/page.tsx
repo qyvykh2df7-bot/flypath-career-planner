@@ -4,31 +4,24 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
-import { Menu, Plane } from "lucide-react";
 import { ComparisonResults } from "@/components/schools/ComparisonResults";
-import { FlypathComparisonConclusion } from "@/components/schools/FlypathComparisonConclusion";
-import { SchoolCard } from "@/components/schools/SchoolCard";
+import { ComparatorPlannerPreviewMockup } from "@/components/schools/ComparatorPlannerPreviewMockup";
+import { SchoolComparatorPicker } from "@/components/schools/SchoolComparatorPicker";
 import {
   getComparableSchoolsSync,
   isSupabaseSchoolsEnabled,
   loadComparableSchoolsForComparator,
 } from "@/lib/schools/comparatorSchoolsSource";
 import {
-  filterSchools,
-  getCities,
-  isMainListingSchool,
   schoolAllowsListingComparison,
   sortMainListingSchools,
-  type SchoolsFilters,
 } from "@/lib/schools/schoolUtils";
-import type { RouteType, SchoolEntry } from "@/types/schools";
+import type { SchoolEntry } from "@/types/schools";
 import { QaPremiumFloatingToggle } from "@/components/dev/QaPremiumFloatingToggle";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
-import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 
 const MAX_SELECTED = 2;
 const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
-type VisibleSchoolsFilters = Omit<SchoolsFilters, "dataConfidence">;
 
 /**
  * Desde opiniones: incluir la escuela del query aunque ya hubiera 2 seleccionadas.
@@ -93,99 +86,47 @@ function SchoolsPageContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const defaultMaxAdvertisedPrice = 140000;
-  const [filters, setFilters] = useState<VisibleSchoolsFilters>({
-    query: "",
-    routeType: "all",
-    city: "all",
-    maxAdvertisedPrice: defaultMaxAdvertisedPrice,
-  });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionHydrated, setSelectionHydrated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [heroVisualAvailable, setHeroVisualAvailable] = useState(true);
   const searchSectionRef = useRef<HTMLElement>(null);
   const comparisonPanelRef = useRef<HTMLDivElement>(null);
-  // Wrapper alrededor de FlypathComparisonConclusion para que el CTA premium
-  // inferior pueda hacer scroll al panel donde vive el overlay premium ya
-  // renderizado (free user => isLocked => overlay visible). No modifica el
-  // componente Conclusión ni el overlay.
-  const conclusionSectionRef = useRef<HTMLDivElement>(null);
-  const resultsSectionRef = useRef<HTMLElement>(null);
   const lastHandledAddSlugRef = useRef<string | null>(null);
   const lastHandledReviewsSlugRef = useRef<string | null>(null);
-  const pendingResultsScrollRef = useRef(false);
   const { qaPremiumMode, toggleQaPremium, hydrated: qaHydrated } = useQaPremiumMode();
 
-  const premiumUnlocked = false; // pago real futuro (Stripe / backend)
-  const canSeePremium = canSeePremiumForDevQa(premiumUnlocked, qaPremiumMode);
+  const pickableSchools = useMemo(
+    () =>
+      sortMainListingSchools(
+        schoolsDataset.filter((school) => schoolAllowsListingComparison(school)),
+      ),
+    [schoolsDataset],
+  );
 
-  const effectiveFilters = useMemo<SchoolsFilters>(
-    () => ({ ...filters, dataConfidence: "all" }),
-    [filters],
-  );
-  const filtered = useMemo(
-    () => filterSchools(schoolsDataset, effectiveFilters),
-    [schoolsDataset, effectiveFilters],
-  );
-  const listingBuckets = useMemo(() => {
-    const main: SchoolEntry[] = [];
-    const pending: SchoolEntry[] = [];
-    for (const s of filtered) {
-      if (isMainListingSchool(s)) main.push(s);
-      else pending.push(s);
-    }
-    pending.sort((a, b) => a.name.localeCompare(b.name, "es"));
-    return { mainSchools: sortMainListingSchools(main), pendingSchools: pending };
-  }, [filtered]);
-  const catalogBuckets = useMemo(() => {
-    let catalogMain = 0;
-    let catalogPending = 0;
-    for (const s of schoolsDataset) {
-      if (isMainListingSchool(s)) catalogMain++;
-      else catalogPending++;
-    }
-    return { catalogMain, catalogPending };
-  }, [schoolsDataset]);
   const selectedSchools = useMemo(() => {
     const idSet = new Set(selectedIds);
     return schoolsDataset.filter((school) => idSet.has(school.id));
   }, [schoolsDataset, selectedIds]);
-  // Origen del comparador: solo cuando el usuario llega desde un CTA del Planner > Escuelas
-  // (que añade ?from=planner en la URL). En cualquier otra entrada (menú, hamburger, hero,
-  // landing, URL directa /schools…) este flag es false y el botón "Volver al Planner" no se
-  // muestra en la Conclusión FlyPath.
-  const cameFromPlanner = searchParams.get("from") === "planner";
-  const plannerCtaHref = useMemo(() => {
-    if (selectedSchools.length === 0) return "/career-planner";
-    const slugs = selectedSchools.map((school) => school.slug).join(",");
-    return `/career-planner?schools=${encodeURIComponent(slugs)}&start=onboarding&source=schools-comparator`;
-  }, [selectedSchools]);
-  const cities = useMemo(
-    () => getCities(schoolsDataset.filter(isMainListingSchool)),
-    [schoolsDataset],
-  );
-  const hasActiveFilters =
-    filters.query.trim().length > 0 ||
-    filters.routeType !== "all" ||
-    filters.city !== "all" ||
-    filters.maxAdvertisedPrice !== defaultMaxAdvertisedPrice;
-  const hasSearchActive = hasActiveFilters || searchSubmitted;
-  const filteredSchoolsCount = filtered.length;
 
-  const toggleSelection = (id: string) => {
-    setSelectedIds((current) => {
-      if (current.includes(id)) return current.filter((x) => x !== id);
-      if (current.length >= MAX_SELECTED) return current;
-      return [...current, id];
-    });
-  };
+  const addSchool = useCallback(
+    (id: string) => {
+      setSelectedIds((current) => {
+        if (current.includes(id)) return current;
+        if (current.length >= MAX_SELECTED) return current;
+        return [...current, id];
+      });
+    },
+    [],
+  );
+
+  const removeSchool = useCallback((id: string) => {
+    setSelectedIds((current) => current.filter((x) => x !== id));
+  }, []);
 
   useEffect(() => {
     const stored = readStoredSelectedIds();
     setSelectedIds(stored);
-    if (stored.length > 0) setSearchSubmitted(true);
     setSelectionHydrated(true);
   }, []);
 
@@ -197,7 +138,6 @@ function SchoolsPageContent() {
       /* ignore quota / private mode */
     }
   }, [selectedIds, selectionHydrated]);
-
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -220,8 +160,6 @@ function SchoolsPageContent() {
     const school = findSchoolInDataset(schoolsDataset, slug);
     if (!school) return;
 
-    setSearchSubmitted(true);
-
     setSelectedIds((current) => {
       if (current.includes(school.id)) return current;
       if (current.length >= MAX_SELECTED) {
@@ -232,7 +170,7 @@ function SchoolsPageContent() {
     });
 
     queueMicrotask(() => {
-      comparisonPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [searchParams, router, showToast, selectionHydrated, schoolsDataset]);
 
@@ -253,7 +191,6 @@ function SchoolsPageContent() {
     router.replace(pathWithoutReviewsParams, { scroll: false });
 
     const school = findSchoolInDataset(schoolsDataset, slug);
-    setSearchSubmitted(true);
 
     if (school) {
       setSelectedIds((current) =>
@@ -262,90 +199,41 @@ function SchoolsPageContent() {
     }
 
     queueMicrotask(() => {
-      comparisonPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [searchParams, router, selectionHydrated, schoolsDataset]);
-
-  useEffect(() => {
-    if (!selectionHydrated) return;
-    if (searchParams.get("results") !== "1") return;
-
-    router.replace("/schools", { scroll: false });
-    setSearchSubmitted(true);
-    pendingResultsScrollRef.current = true;
-  }, [searchParams, router, selectionHydrated]);
-
-  useEffect(() => {
-    if (!pendingResultsScrollRef.current || !hasSearchActive) return;
-    pendingResultsScrollRef.current = false;
-    requestAnimationFrame(() => {
-      resultsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }, [hasSearchActive]);
 
   const notifyMentoring = () => {
     showToast("Mentoría FlyPath próximamente");
   };
 
-  /**
-   * Cuando sea `true`, el CTA premium del comparador volverá a importar las 2
-   * escuelas seleccionadas y abrir el Planner (flujo antiguo). Se mantiene a
-   * `false` hasta conectar el pago real.
-   */
-  const comparatorPremiumUnlocked = false;
-
-  /**
-   * Flujo antiguo "Analizar mi caso en Career Planner": importa las 2 escuelas
-   * vía `localStorage` y navega al Planner. Se conserva intacto detrás de la
-   * constante `comparatorPremiumUnlocked` para reactivarlo cuando el pago real
-   * esté operativo.
-   */
-  const handleAnalyzeWithProfileLegacy = useCallback(() => {
-    if (selectedSchools.length !== 2) return;
+  const handleOpenCareerPlanner = useCallback(() => {
     const slugs = selectedSchools.map((school) => school.slug).filter(Boolean);
-    if (slugs.length !== 2) return;
+    if (slugs.length === 0) {
+      router.push("/career-planner?source=schools-comparator");
+      return;
+    }
     try {
       window.localStorage.setItem(
         "flypath_pending_comparator_schools",
         JSON.stringify(slugs),
       );
     } catch {
-      /* localStorage opcional */
+      /* localStorage opcional: la URL ya transporta los slugs. */
     }
-    router.push(plannerCtaHref);
-  }, [router, selectedSchools, plannerCtaHref]);
-
-  /**
-   * CTA inferior "Desbloquear análisis premium":
-   *
-   * - Si `comparatorPremiumUnlocked === true`, ejecuta el flujo antiguo
-   *   (importar escuelas + abrir Planner).
-   * - Si `comparatorPremiumUnlocked === false` (estado actual), hace scroll al
-   *   panel de la Conclusión FlyPath para reutilizar el MISMO overlay premium
-   *   que ya se monta sobre el contenido bloqueado. No navega, no importa
-   *   escuelas, no escribe `flypath_pending_comparator_schools` ni crea otro
-   *   overlay.
-   */
-  const handlePremiumComparatorCta = useCallback(() => {
-    if (comparatorPremiumUnlocked) {
-      handleAnalyzeWithProfileLegacy();
-      return;
-    }
-    if (typeof window === "undefined") return;
-    requestAnimationFrame(() => {
-      conclusionSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+    const query = new URLSearchParams({
+      source: "schools-comparator",
+      schools: slugs.join(","),
     });
-  }, [comparatorPremiumUnlocked, handleAnalyzeWithProfileLegacy]);
+    router.push(`/career-planner?${query.toString()}`);
+  }, [router, selectedSchools]);
 
-  const comparisonStatusText =
+  const comparisonHelpText =
     selectedSchools.length === 0
-      ? "Añade 2 escuelas para desbloquear la comparación visual."
+      ? "Selecciona una o dos escuelas para empezar."
       : selectedSchools.length === 1
-        ? "Selecciona la segunda escuela para comparar."
-        : "Comparación desbloqueada. Revisa el panel comparativo más abajo.";
+        ? "Añade una segunda escuela para activar la comparación completa."
+        : null;
 
   const startComparison = () => {
     if (typeof window !== "undefined") {
@@ -355,11 +243,6 @@ function SchoolsPageContent() {
     }
   };
 
-  const runSearch = () => {
-    setSearchSubmitted(true);
-  };
-
-
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
       {toast && (
@@ -367,7 +250,6 @@ function SchoolsPageContent() {
           {toast}
         </div>
       )}
-      {/* QA temporal: quitar al conectar pago real. */}
       <QaPremiumFloatingToggle mode={qaPremiumMode} onToggle={toggleQaPremium} hydrated={qaHydrated} />
       <FlyPathPlatformHeader
         pageTitle="Comparador de escuelas"
@@ -410,11 +292,6 @@ function SchoolsPageContent() {
                   Empezar comparación
                 </button>
               </div>
-              <div className="mt-4 flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-600">
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">1. Busca</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">2. Selecciona 2 escuelas</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1">3. Compara riesgos</span>
-              </div>
             </div>
             <div className="rounded-2xl border border-[#c9a454]/30 bg-[#0f1a33] p-4 text-white shadow-[0_12px_28px_rgba(15,26,51,0.18)]">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">Comparación FlyPath</p>
@@ -448,250 +325,97 @@ function SchoolsPageContent() {
           </div>
         </section>
 
-        <section ref={searchSectionRef} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section ref={searchSectionRef} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <p className="text-lg font-semibold text-[#0f1a33]">Empieza tu comparación</p>
           <p className="mt-1 text-[15px] text-slate-600">
-            Busca una escuela, ciudad o tipo de ruta. Después selecciona 2 escuelas para compararlas con criterios FlyPath.
+            Elige hasta 2 escuelas para comparar costes, ruta, documentación y riesgos con criterios FlyPath.
           </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <label className="block">
-              <span className="text-[15px] font-medium text-slate-500">Buscar por nombre o ciudad</span>
-              <input
-                value={filters.query}
-                onChange={(e) => {
-                  setFilters((f) => ({ ...f, query: e.target.value }));
-                }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
-                placeholder="Ej. Madrid"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[15px] font-medium text-slate-500">Tipo de ruta</span>
-              <select
-                value={filters.routeType}
-                onChange={(e) => {
-                  setFilters((f) => ({ ...f, routeType: e.target.value as RouteType | "all" }));
-                }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
-              >
-                <option value="all">Todas</option>
-                <option value="integrated">Escuela integrada</option>
-                <option value="modular">Ruta modular</option>
-                <option value="university_plus_license">Universidad / Grado + licencia</option>
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-[15px] font-medium text-slate-500">Ciudad</span>
-              <select
-                value={filters.city}
-                onChange={(e) => {
-                  setFilters((f) => ({ ...f, city: e.target.value }));
-                }}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px]"
-              >
-                <option value="all">Todas</option>
-                {cities.map((city) => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-[15px] font-medium text-slate-500">Precio anunciado máximo</span>
-              <input
-                type="range"
-                min={40000}
-                max={140000}
-                step={2500}
-                value={filters.maxAdvertisedPrice}
-                onChange={(e) => {
-                  setFilters((f) => ({ ...f, maxAdvertisedPrice: Number(e.target.value) }));
-                }}
-                className="mt-3 w-full"
-              />
-              <p className="text-[15px] text-slate-600">Hasta {filters.maxAdvertisedPrice.toLocaleString("es-ES")} EUR</p>
-            </label>
+
+          <div ref={comparisonPanelRef} className="mt-5">
+            <SchoolComparatorPicker
+              schools={pickableSchools}
+              selectedSchools={selectedSchools}
+              maxSelected={MAX_SELECTED}
+              onAddSchool={addSchool}
+              onRemoveSchool={removeSchool}
+              onSelectionLimit={() => showToast("Máximo 2 escuelas en comparación")}
+            />
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={runSearch}
-              className="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33] shadow-sm hover:bg-[#ddb75c]"
-            >
-              Buscar escuelas
-            </button>
-          </div>
-          <div ref={comparisonPanelRef} className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">Comparación activa</p>
-            <p className="mt-0.5 text-[15px] font-medium text-[#0f1a33]">{selectedSchools.length}/{MAX_SELECTED} escuelas seleccionadas</p>
-            <p className="mt-0.5 text-[15px] text-slate-600">{comparisonStatusText}</p>
-            {selectedSchools.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {selectedSchools.map((school) => (
-                  <span
-                    key={school.id}
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700"
-                  >
-                    {school.name}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedIds((x) => x.filter((k) => k !== school.id))}
-                      className="rounded-full bg-slate-100 px-1.5 py-0 text-[10px] font-semibold text-slate-600 hover:bg-slate-200"
-                    >
-                      Quitar
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : null}
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7a5a16]">
+              {selectedSchools.length === 2 ? "Comparación activa" : "Estado"}
+            </p>
+            <p className="mt-0.5 text-[15px] font-medium text-[#0f1a33]">
+              {selectedSchools.length}/{MAX_SELECTED} escuelas seleccionadas
+            </p>
+            {comparisonHelpText ? (
+              <p className="mt-0.5 text-[15px] text-slate-600">{comparisonHelpText}</p>
+            ) : (
+              <p className="mt-0.5 text-[15px] text-slate-600">
+                Comparación desbloqueada. Revisa el análisis comparativo más abajo.
+              </p>
+            )}
           </div>
         </section>
 
         {selectedSchools.length === 2 ? (
           <>
             <ComparisonResults schools={selectedSchools} />
-            {/* Conclusión FlyPath con gating premium temporal.
-                - El contenido real SIEMPRE se renderiza dentro del componente
-                  (nunca se sustituye ni se duplica) para que QA y dev puedan
-                  revisarlo y para que al desbloquear premium aparezca sin
-                  reconstruir la sección.
-                - El propio componente decide qué blurréa: cuando `isLocked` es
-                  true, deja visible el ENCABEZADO (eyebrow + título + subtítulo)
-                  como teaser y aplica blur + overlay solo al contenido inferior
-                  (badges, riesgo, email, lectura, CTA). */}
-            <div ref={conclusionSectionRef}>
-              <FlypathComparisonConclusion
-                schools={[selectedSchools[0], selectedSchools[1]]}
-                isLocked={!canSeePremium}
-                onUnlockClick={() => showToast("Pago FlyPath próximamente")}
-                onBackToPlanner={
-                  cameFromPlanner
-                    ? () => {
-                        router.push("/career-planner?review=dashboard&tab=schools");
-                      }
-                    : undefined
-                }
-                onProfileCta={() => {
-                  if (selectedSchools.length !== 2) {
-                    showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
-                    return;
-                  }
-                  const slugs = selectedSchools
-                    .map((school) => school.slug)
-                    .filter(Boolean);
-                  if (slugs.length !== 2) {
-                    showToast("Selecciona 2 escuelas para analizarlas con tu perfil.");
-                    return;
-                  }
-                  try {
-                    window.localStorage.setItem(
-                      "flypath_pending_comparator_schools",
-                      JSON.stringify(slugs),
-                    );
-                  } catch {
-                    // localStorage opcional: la URL ya transporta los slugs.
-                  }
-                  const query = new URLSearchParams({
-                    source: "schools-comparator",
-                    schools: slugs.join(","),
-                  });
-                  router.push(`/career-planner?${query.toString()}`);
-                }}
-              />
-            </div>
-          </>
-        ) : null}
-
-        {hasSearchActive ? (
-          <section ref={resultsSectionRef} className={`${selectedSchools.length >= 2 ? "mt-8" : ""} space-y-4`}>
-            <div className="space-y-1">
-              <p className="text-lg font-semibold text-[#0f1a33]">Escuelas encontradas</p>
-              {filteredSchoolsCount === 0 ? (
-                <p className="pt-1 text-[15px] font-medium text-slate-600/95">
-                  0 escuelas encontradas con estos filtros
-                </p>
-              ) : (
-                <p className="pt-1 text-[15px] font-medium text-slate-600/95">
-                  Mostrando {listingBuckets.mainSchools.length} de {catalogBuckets.catalogMain} escuelas
-                </p>
-              )}
-            </div>
-            {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-[15px] text-slate-600 shadow-sm">
-                No hay escuelas que coincidan con estos filtros.
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {listingBuckets.mainSchools.length > 0 ? (
-                  <div className="grid items-stretch gap-4 lg:grid-cols-2">
-                    {listingBuckets.mainSchools.map((school) => (
-                      <SchoolCard
-                        key={school.id}
-                        school={school}
-                        selected={selectedIds.includes(school.id)}
-                        onToggleSelect={toggleSelection}
-                        allowComparison={schoolAllowsListingComparison(school)}
-                        selectionFull={selectedIds.length >= MAX_SELECTED && !selectedIds.includes(school.id)}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-                {listingBuckets.pendingSchools.length > 0 ? (
-                  <div className="space-y-3">
-                    <h3 className="text-base font-semibold text-[#0f1a33]">
-                      Pendientes de revisión / formación inicial
-                    </h3>
-                    <div className="grid items-stretch gap-4 lg:grid-cols-2">
-                      {listingBuckets.pendingSchools.map((school) => (
-                        <SchoolCard
-                          key={school.id}
-                          school={school}
-                          selected={selectedIds.includes(school.id)}
-                          onToggleSelect={toggleSelection}
-                          allowComparison={schoolAllowsListingComparison(school)}
-                          selectionFull={selectedIds.length >= MAX_SELECTED && !selectedIds.includes(school.id)}
-                          forcePendingListingBadge
+            <section className="rounded-3xl border border-[#c9a454]/45 bg-gradient-to-br from-[#0a1228] via-[#0f1a33] to-[#152545] p-6 text-white shadow-[0_18px_48px_-18px_rgba(15,26,51,0.45)] ring-1 ring-[#c9a454]/20 sm:p-7">
+              <div className="grid gap-5 lg:grid-cols-[1fr_minmax(240px,300px)] lg:grid-rows-[auto_auto] lg:items-center lg:gap-x-8 lg:gap-y-5">
+                <div className="lg:col-start-1 lg:row-start-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]/95">
+                    Career Planner
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold leading-snug text-white sm:text-2xl">
+                    Convierte esta comparación en un plan real
+                  </h2>
+                  <p className="mt-3 text-[15px] leading-relaxed text-slate-300">
+                    Lleva tus escuelas favoritas al Career Planner y cruza la comparación con tu perfil,
+                    presupuesto, disponibilidad y riesgos antes de pagar una matrícula.
+                  </p>
+                  <ul className="mt-4 space-y-2 text-[15px] text-slate-200">
+                    {[
+                      "Ruta recomendada según tu situación",
+                      "Coste realista con margen de seguridad",
+                      "Riesgos personales y documentales",
+                      "Informe premium personalizado",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 leading-relaxed">
+                        <span
+                          aria-hidden
+                          className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
                         />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </section>
-        ) : null}
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-        {selectedSchools.length >= 2 ? (
-          <section className="rounded-3xl border border-[#c9a454]/45 bg-gradient-to-br from-[#0a1228] via-[#0f1a33] to-[#152545] p-6 text-white shadow-[0_18px_48px_-18px_rgba(15,26,51,0.45)] ring-1 ring-[#c9a454]/20 sm:p-7">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]/95">
-              FlyPath Premium
-            </p>
-            <h2 className="mt-2 text-xl font-semibold leading-snug text-white sm:text-2xl">
-              Desbloquea el análisis premium de tus escuelas
-            </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-300">
-              La comparación básica te muestra los datos. El análisis premium cruza estas escuelas con tu perfil,
-              presupuesto y riesgo antes de decidir o pagar una matrícula.
-            </p>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <button
-                type="button"
-                onClick={handlePremiumComparatorCta}
-                className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55 sm:w-auto sm:min-w-[220px]"
-              >
-                Desbloquear análisis premium
-              </button>
-              <button
-                type="button"
-                onClick={notifyMentoring}
-                className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/22 bg-white/[0.07] px-6 py-2.5 text-[15px] font-semibold text-white transition hover:border-white/35 hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 sm:w-auto"
-              >
-                Reservar mentoría
-              </button>
-            </div>
-            <p className="mt-4 max-w-xl text-[12px] leading-snug text-slate-400">
-              Incluye recomendación FlyPath, informe premium y email personalizado para la escuela.
-            </p>
-          </section>
+                <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
+                  <ComparatorPlannerPreviewMockup />
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:col-start-1 lg:row-start-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenCareerPlanner}
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55 sm:min-w-[220px] lg:w-auto"
+                  >
+                    Abrir Career Planner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={notifyMentoring}
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/22 bg-white/[0.07] px-6 py-2.5 text-[15px] font-semibold text-white transition hover:border-white/35 hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 lg:w-auto"
+                  >
+                    Reservar mentoría
+                  </button>
+                </div>
+              </div>
+            </section>
+          </>
         ) : null}
       </div>
       </main>

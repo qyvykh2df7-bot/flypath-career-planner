@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { ComparisonSchoolHeader } from "@/components/schools/ComparisonSchoolHeader";
 import {
   confidenceLabel,
   dataStatusLabel,
-  getSchoolInitials,
   summarizeComparison,
 } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
@@ -2888,7 +2888,6 @@ export function ComparisonResults({ schools }: Props) {
           // de las columnas del comparador para evitar duplicación con el nuevo bloque global "Conclusión FlyPath".
           // Los datos siguen disponibles en el dataset y en las fichas individuales /schools/[slug].
           const schoolDisplayName = isAdventia ? "Adventia" : school.name;
-          const initials = getSchoolInitials(school.name);
           const scheduleSummary = routeProfile
             ? routeProfile.scheduleSummary
             : shortScheduleSummary(school.paymentScheduleSummary);
@@ -2999,63 +2998,54 @@ export function ComparisonResults({ schools }: Props) {
                                                                 ? "162 h de vuelo aprox. + 70,5 h de simulador"
                                                                 : null;
 
+          const headerLocationText = isAdventia
+            ? "Salamanca · Salamanca-Matacán"
+            : isEasBarcelona
+              ? EAS_BCN_BASES
+              : isFteJerez
+                ? FTE_JEREZ_BASES
+                : isCesda
+                  ? CESDA_HEADER_LOCATION
+                  : isBfs
+                    ? BFS_BASES
+                    : isMfs
+                      ? MFS_BASES
+                      : isQualityFly
+                        ? QF_BASES
+                        : isAerodynamics
+                          ? AA_BASES
+                          : isBaa
+                            ? BAA_BASES
+                            : isPanamedia
+                              ? PNM_BASES
+                              : isFaa
+                                ? FAA_BASES
+                                : isWafa
+                                  ? WAFA_BASES
+                                  : isApa
+                                    ? APA_BASES
+                                    : isFby
+                                      ? FBY_BASES
+                                      : isAeroLink
+                                        ? AERO_LINK_BASES
+                                        : isAtlantic
+                                          ? ATLANTIC_BASES
+                                          : isCanavia
+                                            ? CANAVIA_BASES
+                                            : isCorflight
+                                              ? CORFLIGHT_BASES
+                                              : isLeap
+                                                ? LEAP_BASES
+                                                : `${school.city} · ${school.baseAirport}`;
+
           return (
             <article key={school.id} className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="rounded-t-2xl border-b border-[#c9a454]/20 bg-gradient-to-r from-[#0f1a33] to-[#132240] p-4 text-white">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-xs font-semibold tracking-wide text-[#f2ddaa]">
-                    {initials}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-lg font-bold leading-snug text-white lg:text-xl">{schoolDisplayName}</p>
-                    <p className="mt-0.5 text-[13px] text-slate-300">{routeTypeLabel(school.routeType, school)}</p>
-                    <p className="mt-0.5 text-[13px] text-slate-300">
-                      {isAdventia
-                        ? "Salamanca · Salamanca-Matacán"
-                        : isEasBarcelona
-                          ? EAS_BCN_BASES
-                        : isFteJerez
-                          ? FTE_JEREZ_BASES
-                          : isCesda
-                            ? CESDA_HEADER_LOCATION
-                            : isBfs
-                              ? BFS_BASES
-                              : isMfs
-                                ? MFS_BASES
-                                : isQualityFly
-                                  ? QF_BASES
-                                  : isAerodynamics
-                                    ? AA_BASES
-                                    : isBaa
-                                      ? BAA_BASES
-                                      : isPanamedia
-                                        ? PNM_BASES
-                                        : isFaa
-                                          ? FAA_BASES
-                                          : isWafa
-                                            ? WAFA_BASES
-                                            : isApa
-                                              ? APA_BASES
-                                              : isFby
-                                                ? FBY_BASES
-                                                : isAeroLink
-                                                  ? AERO_LINK_BASES
-                                                  : isAtlantic
-                                                    ? ATLANTIC_BASES
-                                                    : isCanavia
-                                                      ? CANAVIA_BASES
-                                                      : isCorflight
-                                                        ? CORFLIGHT_BASES
-                                                        : isLeap
-                                                          ? LEAP_BASES
-                                                          : `${school.city} · ${school.baseAirport}`}
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[#c9a454]/35 bg-[#fff8e8] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7a5a16]">
-                    {dataStatusLabel(school.dataStatus)}
-                  </span>
-                </div>
-              </div>
+              <ComparisonSchoolHeader
+                school={school}
+                displayName={schoolDisplayName}
+                routeLabel={routeTypeLabel(school.routeType, school)}
+                locationText={headerLocationText}
+              />
 
               <div className="flex flex-1 flex-col gap-2.5 p-3.5">
                 {/* Slot compacto y estable para los toggles: reserva una altura mínima igual a la
