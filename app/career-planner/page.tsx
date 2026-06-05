@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -19,16 +18,28 @@ import {
   LayoutList,
   Lock,
   Mail,
+  Unlock,
   MessagesSquare,
   Route,
   ShieldAlert,
   Trash2,
-  X,
 } from "lucide-react";
 import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
+import {
+  countPlannerVerifiedSchools,
+  getPlannerSchoolCatalog,
+  mapComparatorSchoolToPlannerSchool,
+  mapEntryOptionToPlannerSchool,
+  parsePlannerSchoolLink,
+  type PlannerProgramOption,
+} from "@/lib/planner-school-database";
 import type { SchoolEntry } from "@/types/schools";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
 import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
+import {
+  PREMIUM_REPORT_CHECKOUT_URL,
+  PREMIUM_REPORT_PRICE_LABEL,
+} from "@/lib/premium-report-checkout";
 import { CareerPlannerAppShell } from "@/components/career-planner/CareerPlannerAppShell";
 import { CareerPlannerBottomNav } from "@/components/career-planner/CareerPlannerBottomNav";
 import { CareerPlannerStepNav } from "@/components/career-planner/CareerPlannerStepNav";
@@ -47,6 +58,7 @@ import {
   plannerTitle,
 } from "@/components/career-planner/planner-surface";
 import { CareerPlannerDiagnosisView } from "@/components/career-planner/CareerPlannerDiagnosisView";
+import { CareerPlannerSchoolsTab } from "@/components/career-planner/CareerPlannerSchoolsTab";
 import type { PlannerDashboardTab, PlannerStepId } from "@/components/career-planner/career-planner-steps";
 import {
   normalizeDashboardTab,
@@ -55,7 +67,12 @@ import {
 } from "@/components/career-planner/career-planner-steps";
 import type { DiagnosisCtaTarget } from "@/lib/planner-diagnosis-ui";
 import { buildReportSnapshot } from "@/lib/reporting/mappers/build-report-snapshot";
-import { buildRiskDiagnosis, mapRiskRowsForInformePdf } from "@/lib/reporting/domain/risk-engine";
+import {
+  buildRiskDiagnosis,
+  hasHighDocumentOrCommercialRisk,
+  mapRiskRowsForInformePdf,
+  riskNivelIsHigh,
+} from "@/lib/reporting/domain/risk-engine";
 import { buildActionPlan } from "@/lib/reporting/domain/roadmap-engine";
 import { computeRoute } from "@/lib/reporting/domain/route-engine";
 import { computeCosts } from "@/lib/reporting/domain/cost-engine";
@@ -73,6 +90,7 @@ import {
 } from "@/lib/reporting/domain/flypath-next-step-engine";
 import type {
   CostInputs,
+  FlyPathPrimaryId,
   FlyPathProductId,
   FlyPathNextStepRecommendation,
   Profile,
@@ -82,6 +100,14 @@ import type {
   School,
   YesNoUnknown,
 } from "@/lib/reporting/types/shared";
+const REPORT_EMAIL_STORAGE_KEY = "flypath_report_email";
+
+function isValidReportEmail(email: string): boolean {
+  const trimmed = email.trim();
+  if (!trimmed) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 type Screen = "onboarding" | "dashboard";
 export type Tab = PlannerDashboardTab;
 type RouteAnalysis = RouteRecommendation;
@@ -117,17 +143,8 @@ function informePreparacionNivel(decision: DecisionReadiness["decision"]): Infor
   }
 }
 
-function informePreparacionNivelTextClass(nivel: InformePreparacionNivel): string {
-  switch (nivel) {
-    case "Bajo":
-      return "text-[#f2ddaa]";
-    case "Medio":
-      return "text-sky-300";
-    case "Alto":
-      return "text-emerald-300";
-    default:
-      return "text-[#f2ddaa]";
-  }
+function informePreparacionNivelTextClass(_nivel: InformePreparacionNivel): string {
+  return "text-[#D6AE4F]";
 }
 
 function informeFinalHeroHeadline(decision: DecisionReadiness["decision"]): string {
@@ -674,89 +691,6 @@ function mapOnboardingApproxToCostInputs(approx: {
   };
 }
 
-function mapComparatorSchoolToPlannerSchool(source: SchoolEntry, id: number): School {
-  const paymentText = source.paymentScheduleSummary.trim().toLowerCase();
-  const refundText = source.refundPolicySummary.trim().toLowerCase();
-  const supportText = source.jobSupportSummary.trim().toLowerCase();
-
-  const calendarioPagosClaro: YesNoUnknown = paymentText.length > 0 ? "si" : "no_se";
-  const reembolsoClaro: YesNoUnknown =
-    refundText.includes("sin") || refundText.includes("no ")
-      ? "no"
-      : refundText.length > 0
-        ? "si"
-        : "no_se";
-  const careerSupport: YesNoUnknown = supportText.length > 0 ? "si" : "no_se";
-
-  return {
-    id,
-    nombre: source.name,
-    pais: source.country,
-    ciudad: source.city,
-    programa:
-      source.routeType === "integrated"
-        ? "integrado"
-        : source.routeType === "modular"
-          ? "modular"
-          : "no_lo_se",
-    precioAnunciado: source.advertisedPriceEUR,
-    duracionMeses: source.programDurationMonths,
-    depositoRequerido: source.depositOrEnrollmentFeeEUR,
-    calendarioPagosClaro,
-    mccIncluido: mapYesNoOptionalUnknownToPlanner(source.mccJocIncluded),
-    uprtIncluido: mapYesNoOptionalUnknownToPlanner(source.advancedUprtIncluded),
-    tasasIncluidas: mapYesNoUnknownToPlanner(source.examFeesIncluded),
-    skillTestsIncluidos: mapYesNoUnknownToPlanner(source.skillTestsIncluded),
-    alojamientoIncluido: mapYesNoOptionalUnknownToPlanner(source.accommodationIncluded),
-    reembolsoClaro,
-    contratoAntesPagar: mapYesNoPartialUnknownToPlanner(source.contractAvailableBeforePayment),
-    flotaExplicada: source.fleetSummary.trim().length > 0 ? "si" : "no_se",
-    mantenimientoExplicado: "no_se",
-    ratioAlumnoAvionConocido: source.studentAircraftRatio ? "si" : "no_se",
-    permiteHablarAlumnos: "no_se",
-    careerSupport,
-    promesasEmpleo: mapEmploymentClaimsToPlanner(source.employmentClaimsType),
-    fuentePrecio: "no_verificado",
-    fechaActualizacion: source.lastUpdatedAt,
-    estadoVerificacion:
-      source.dataStatus === "verified"
-        ? "verificado"
-        : source.dataStatus === "partial"
-          ? "parcialmente_verificado"
-          : source.dataStatus === "unknown"
-            ? "pendiente"
-            : "no_verificado",
-    enlaceReferencia: `comparador:${source.slug}`,
-    notas: `Importada desde comparador FlyPath (${source.slug}).`,
-  };
-}
-
-function mapYesNoOptionalUnknownToPlanner(value: "yes" | "no" | "optional" | "unknown"): YesNoUnknown {
-  if (value === "yes") return "si";
-  if (value === "no") return "no";
-  return "no_se";
-}
-
-function mapYesNoUnknownToPlanner(value: "yes" | "no" | "unknown"): YesNoUnknown {
-  if (value === "yes") return "si";
-  if (value === "no") return "no";
-  return "no_se";
-}
-
-function mapYesNoPartialUnknownToPlanner(value: "yes" | "no" | "partial" | "unknown"): YesNoUnknown {
-  if (value === "yes") return "si";
-  if (value === "no") return "no";
-  return "no_se";
-}
-
-function mapEmploymentClaimsToPlanner(value: SchoolEntry["employmentClaimsType"]): School["promesasEmpleo"] {
-  if (value === "none") return "ninguna";
-  if (value === "vague") return "vagas";
-  if (value === "clear_non_guaranteed") return "claras_no_garantizadas";
-  if (value === "guaranteed_claimed") return "garantia_contractual";
-  return "no_se";
-}
-
 function clamp(value: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
@@ -884,7 +818,111 @@ async function copyText(text: string) {
   }
 }
 
-function FlyPathPrimaryProductVisual({ productId }: { productId: FlyPathProductId }) {
+/** Copy visible en la card principal — solo UI; no altera pickFlyPathNextSteps. */
+function flyPathPrimaryReasonDisplayCopy(input: {
+  primary: FlyPathPrimaryId;
+  profile: Pick<Profile, "class1" | "objetivo" | "ingles" | "preocupacionIngles" | "financiacion">;
+  route: Pick<RouteRecommendation, "recommended">;
+  decisionReadiness: Pick<ReadinessResult, "decision" | "faltanDatos">;
+  schoolsCount: number;
+  verifiedSchoolsCount: number;
+  costs: { riesgoFinanciero: string; coverage: number };
+  riskDiagnosis: Pick<RiskItem, "label" | "nivel">[];
+}): string {
+  const {
+    primary,
+    profile,
+    route,
+    decisionReadiness,
+    schoolsCount,
+    verifiedSchoolsCount,
+    costs,
+    riskDiagnosis,
+  } = input;
+
+  if (primary === "ingles") {
+    return "El inglés puede convertirse en el principal cuello de botella de tu formación si no se trabaja a tiempo.";
+  }
+
+  if (profile.class1 !== "si") {
+    return "Antes de comprometer dinero con una ruta, confirmaríamos que no existe ningún bloqueo médico relevante.";
+  }
+
+  const financialPressure =
+    riskNivelIsHigh(costs.riesgoFinanciero) ||
+    (profile.financiacion !== "confirmada" && costs.coverage < 70);
+  const documentOrCommercialRisk = hasHighDocumentOrCommercialRisk(riskDiagnosis);
+  const schoolsInsufficient = schoolsCount < 2;
+  const schoolsUnverified = schoolsCount > 0 && verifiedSchoolsCount === 0;
+  const notReadyToPay =
+    decisionReadiness.decision === "No estás listo para pagar" ||
+    decisionReadiness.decision === "Puedes seguir investigando, pero no pagar";
+
+  if (primary === "mentoria") {
+    if (financialPressure) {
+      return riskNivelIsHigh(costs.riesgoFinanciero)
+        ? "Tu siguiente decisión puede ahorrarte miles de euros en costes de formación."
+        : "Antes de comprometer dinero con una escuela, validaríamos el impacto económico real de tu ruta.";
+    }
+    if (documentOrCommercialRisk) {
+      return "Todavía hay documentación y condiciones que conviene validar antes de pagar una matrícula o depósito.";
+    }
+    return "La siguiente decisión importante no es estudiar más. Es asegurarte de que estás apostando por la escuela adecuada.";
+  }
+
+  if (documentOrCommercialRisk && schoolsCount > 0) {
+    return "Todavía hay documentación y condiciones que conviene validar antes de pagar una matrícula o depósito.";
+  }
+
+  if (financialPressure && route.recommended !== "Preparación") {
+    return "Antes de comprometer dinero con una escuela, validaríamos el impacto económico real de tu ruta.";
+  }
+
+  return "Ahora mismo el foco está en ejecutar el plan con criterio y evitar errores caros en las siguientes decisiones.";
+}
+
+/** Miniatura real del PDF premium: pág. 6 (Hoja de ruta) en informes gratuitos; portada si premium. */
+function FlyPathReportDownloadPreview({ premium }: { premium: boolean }) {
+  const src = premium ? "/premium-report-real-preview.png" : "/premium-report-action-preview.png";
+
+  return (
+    <div
+      className="mx-auto w-[200px] max-w-[72vw] shrink-0 sm:w-[240px] lg:mx-0 lg:w-[300px] lg:max-w-none lg:pt-1"
+      aria-hidden
+    >
+      <img
+        src={src}
+        alt=""
+        width={1684}
+        height={1190}
+        className="w-full rounded-md border border-slate-200/80 shadow-[0_16px_40px_rgba(15,26,51,0.16)]"
+      />
+    </div>
+  );
+}
+
+function DocumentationStatusBadge({ premium }: { premium: boolean }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${
+        premium
+          ? "border-emerald-400/50 bg-emerald-50 text-emerald-800"
+          : "border-[#c9a454]/50 bg-[#0f1a33] text-[#f2ddaa]"
+      }`}
+    >
+      {!premium ? <Lock className="h-2.5 w-2.5 shrink-0" strokeWidth={2.5} /> : null}
+      {premium ? "Listo" : "Premium"}
+    </span>
+  );
+}
+
+function FlyPathProductVisual({
+  productId,
+  variant = "thumb",
+}: {
+  productId: FlyPathProductId;
+  variant?: "hero" | "thumb";
+}) {
   const [imgFailed, setImgFailed] = useState(false);
   const src = FLYPATH_PRIMARY_IMAGE[productId];
   const PlaceholderIcon =
@@ -900,25 +938,48 @@ function FlyPathPrimaryProductVisual({ productId }: { productId: FlyPathProductI
               ? ClipboardList
               : LayoutList;
 
+  const isHero = variant === "hero";
+
+  if (!isHero) {
+    if (imgFailed) {
+      return (
+        <div
+          className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-[#f8f0dc]/50"
+          aria-hidden
+        >
+          <PlaceholderIcon className="h-8 w-8 text-[#0f1a33]/25" strokeWidth={1.2} />
+        </div>
+      );
+    }
+    return (
+      <img
+        src={src}
+        alt=""
+        className="h-full w-full object-cover"
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  const heroFrameClass =
+    "overflow-hidden rounded-2xl border border-[#c9a454]/35 bg-[#fffdf8] p-1 shadow-[0_10px_28px_rgba(15,26,51,0.08)] ring-1 ring-[#c9a454]/15";
+  const heroImgClass =
+    "aspect-[3/4] w-full max-w-[200px] rounded-[14px] object-cover sm:max-w-[220px] lg:max-w-[240px]";
+
   if (imgFailed) {
     return (
       <div
-        className="flex aspect-[3/4] w-[100px] shrink-0 flex-col items-center justify-center rounded-lg border border-[#c9a454]/30 bg-gradient-to-br from-slate-100/95 to-[#f2ddaa]/25 p-2 shadow-[0_4px_12px_rgba(15,26,51,0.07)] sm:w-[106px] lg:w-[110px]"
+        className={`flex ${heroFrameClass} mx-auto aspect-[3/4] w-full max-w-[200px] flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-[#f8f0dc]/40 sm:max-w-[220px] lg:max-w-[240px]`}
         aria-hidden
       >
-        <PlaceholderIcon className="h-8 w-8 text-[#0f1a33]/30 sm:h-9 sm:w-9" strokeWidth={1.2} />
+        <PlaceholderIcon className="h-12 w-12 text-[#0f1a33]/25 sm:h-14 sm:w-14" strokeWidth={1.2} />
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-[#c9a454]/35 bg-white/95 p-1 shadow-[0_4px_14px_rgba(15,26,51,0.08)]">
-      <img
-        src={src}
-        alt=""
-        className="mx-auto aspect-[3/4] w-[100px] rounded-md object-cover shadow-sm sm:w-[106px] lg:mx-0 lg:w-[110px]"
-        onError={() => setImgFailed(true)}
-      />
+    <div className={heroFrameClass}>
+      <img src={src} alt="" className={heroImgClass} onError={() => setImgFailed(true)} />
     </div>
   );
 }
@@ -935,7 +996,7 @@ function FlyPathNextStepsPanel({
   verifiedSchoolsCount,
 }: {
   recommendation: FlyPathNextStepRecommendation;
-  profile: Pick<Profile, "class1" | "objetivo" | "ingles">;
+  profile: Pick<Profile, "class1" | "objetivo" | "ingles" | "preocupacionIngles" | "financiacion">;
   route: Pick<RouteRecommendation, "recommended">;
   decisionReadiness: Pick<ReadinessResult, "decision" | "faltanDatos">;
   schools: { length: number };
@@ -973,73 +1034,85 @@ function FlyPathNextStepsPanel({
     });
   }
 
+  const primaryProduct = FLYPATH_PRODUCTS[primary];
+  const primaryReasonCopy = flyPathPrimaryReasonDisplayCopy({
+    primary,
+    profile,
+    route,
+    decisionReadiness,
+    schoolsCount: schools.length,
+    verifiedSchoolsCount,
+    costs,
+    riskDiagnosis,
+  });
+
   const primaryCtaClass =
-    "inline-flex min-h-[40px] w-full min-w-0 max-w-[min(100%,22rem)] cursor-pointer items-center justify-center self-stretch rounded-xl bg-[#c9a454] px-5 py-2.5 text-base font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:min-w-[13.5rem] sm:w-auto sm:self-start sm:px-7";
+    "inline-flex min-h-[48px] w-full min-w-0 cursor-pointer items-center justify-center self-start rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_6px_20px_rgba(201,164,84,0.3)] transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50 sm:w-auto";
 
   const secondaryCtaClass =
-    "inline-flex min-h-[40px] w-full cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-4 py-2 text-[15px] font-semibold text-white transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30";
-
-  const renderCard = (id: FlyPathProductId, isPrimary: boolean) => {
-    const p = FLYPATH_PRODUCTS[id];
-
-    return (
-      <div
-        key={id}
-        className={`flex h-full w-full flex-col rounded-2xl border text-left shadow-sm transition ${
-          isPrimary
-            ? "border-[#c9a454]/70 bg-gradient-to-br from-[#fffdf8] to-[#f8f5ef] p-4 text-[#0f1a33] ring-2 ring-[#c9a454]/40 sm:p-5"
-            : "border-white/12 bg-white/[0.06] p-4 text-slate-100 sm:p-4"
-        }`}
-      >
-        {isPrimary ? (
-          <div className="grid grid-cols-1 gap-3 sm:gap-3 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-4">
-            <div className="flex min-w-0 flex-col">
-              <span className="mb-1.5 inline-flex w-fit rounded-full border border-[#c9a454]/50 bg-[#c9a454]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
-                Recomendado para tu caso
-              </span>
-              <p className="text-base font-semibold leading-snug text-[#0f1a33]">{p.title}</p>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-slate-600">{p.body}</p>
-              <div className="mt-2.5 flex justify-center lg:hidden">
-                <FlyPathPrimaryProductVisual productId={id} />
-              </div>
-              <button type="button" onClick={() => navigateToProduct(id)} className={`${primaryCtaClass} mt-3`}>
-                {p.cta}
-              </button>
-            </div>
-            <div className="hidden shrink-0 lg:flex lg:items-center lg:self-stretch">
-              <FlyPathPrimaryProductVisual productId={id} />
-            </div>
-          </div>
-        ) : (
-          <div className={`flex min-h-0 flex-1 flex-col ${!isPrimary ? "min-h-[156px]" : ""}`}>
-            <p className="text-[15px] font-semibold leading-snug text-[#f2ddaa]">{p.title}</p>
-            <p className="mt-1.5 flex-1 text-[15px] leading-relaxed text-slate-300">{p.body}</p>
-            <button type="button" onClick={() => navigateToProduct(id)} className={`${secondaryCtaClass} mt-auto shrink-0 pt-3`}>
-              {p.cta}
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
+    "inline-flex min-h-[40px] w-full cursor-pointer items-center justify-center rounded-xl border border-[#0f1a33]/15 bg-white px-4 py-2 text-[14px] font-semibold text-[#0f1a33] transition hover:border-[#c9a454]/45 hover:bg-[#fffaf0] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/30 sm:w-auto";
 
   return (
-    <section className="rounded-[28px] border border-[#c9a454]/35 bg-gradient-to-br from-[#0f1a33] via-[#121f3d] to-[#152547] px-5 py-6 text-white shadow-[0_14px_40px_rgba(15,26,51,0.18)] ring-1 ring-[#c9a454]/20 sm:px-7 sm:py-7">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]/90 sm:text-[11px]">Profundiza con FlyPath</p>
-        <h2 className="mt-1.5 text-lg font-semibold tracking-tight text-white sm:text-xl">Tu siguiente paso FlyPath</h2>
-        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-200/95">
-          Una recomendación principal y dos alternativas según lo que más te está bloqueando ahora.
+    <section className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-[#faf8f5] via-white to-[#f6f4ef] p-6 shadow-[0_10px_36px_rgba(15,26,51,0.07)] sm:p-8">
+      <div className="max-w-3xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#9a7b3c]">
+          Recomendación FlyPath
         </p>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
+          Qué haríamos en tu situación
+        </h2>
       </div>
-      <div className="mt-6 space-y-4">
-        {renderCard(primary, true)}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3">
-          {secondaryIds.map((id) => (
-            <div key={id} className="flex h-full min-h-0">
-              {renderCard(id, false)}
-            </div>
-          ))}
+
+      <div className="mt-6 overflow-hidden rounded-3xl border border-[#c9a454]/35 bg-gradient-to-br from-[#fffdf8] via-white to-[#faf6ee] p-6 shadow-[0_8px_32px_rgba(15,26,51,0.06)] sm:p-8">
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_auto] lg:gap-10">
+          <div className="min-w-0">
+            <span className="inline-flex rounded-full border border-[#c9a454]/45 bg-[#c9a454]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7a5a16]">
+              Recomendación principal para tu caso
+            </span>
+            <p className="mt-4 text-xl font-bold leading-snug text-[#0f1a33] sm:text-2xl">{primaryProduct.title}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-600 sm:text-base">{primaryProduct.body}</p>
+            {primaryReasons[0] ? (
+              <div className="mt-4 rounded-xl border border-[#c9a454]/20 bg-[#fffaf0] px-4 py-3 text-[14px] leading-snug text-slate-700">
+                <p className="font-semibold text-[#7a5a16]">Por qué te lo recomendamos</p>
+                <p className="mt-1">{primaryReasonCopy}</p>
+              </div>
+            ) : null}
+            <button type="button" onClick={() => navigateToProduct(primary)} className={`${primaryCtaClass} mt-6`}>
+              {primaryProduct.cta}
+              <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+            </button>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <FlyPathProductVisual productId={primary} variant="hero" />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          También puede ayudarte
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {secondaryIds.map((id) => {
+            const p = FLYPATH_PRODUCTS[id];
+            return (
+              <div
+                key={id}
+                className="flex h-full min-h-[148px] overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_4px_16px_rgba(15,26,51,0.04)]"
+              >
+                <div className="relative w-[30%] shrink-0 self-stretch overflow-hidden rounded-l-2xl">
+                  <FlyPathProductVisual productId={id} variant="thumb" />
+                </div>
+                <div className="flex min-w-0 flex-1 basis-[70%] flex-col p-4 sm:p-5">
+                  <p className="text-[15px] font-semibold leading-snug text-[#0f1a33]">{p.title}</p>
+                  <p className="mt-1.5 flex-1 text-[14px] leading-relaxed text-slate-600">{p.body}</p>
+                  <button type="button" onClick={() => navigateToProduct(id)} className={`${secondaryCtaClass} mt-4`}>
+                    {p.cta}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -1052,85 +1125,12 @@ type FlyPathAppProps = {
   initialTab?: Tab | "route" | "cost";
 };
 
-function PlannerSchoolsPremiumModal({
-  open,
-  onClose,
-  onUnlockClick,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onUnlockClick: () => void;
-}) {
-  if (!open) return null;
+const PLANNER_PREMIUM_CHECKOUT_CTA = `Desbloquear informe premium · ${PREMIUM_REPORT_PRICE_LABEL}`;
 
-  return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6">
-      <button
-        type="button"
-        aria-label="Cerrar ventana"
-        className="absolute inset-0 bg-[#071226]/65 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="planner-schools-premium-title"
-        aria-describedby="planner-schools-premium-desc"
-        className="relative z-[1] w-full max-w-[32rem] rounded-3xl border border-[#c9a454]/35 bg-[#0f1a33] px-6 py-7 text-white shadow-2xl sm:px-7 sm:py-8"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar"
-          className="absolute right-5 top-5 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="flex items-center gap-2 pr-12">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#c9a454]/15 ring-1 ring-[#c9a454]/35">
-            <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
-          </span>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
-            ANÁLISIS PREMIUM FLYPATH
-          </span>
-        </div>
-        <h3
-          id="planner-schools-premium-title"
-          className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl"
-        >
-          Descubre qué escuela encaja mejor contigo
-        </h3>
-        <p id="planner-schools-premium-desc" className="mt-2 text-[15px] leading-relaxed text-slate-300">
-          Compara tus escuelas con tu perfil, presupuesto y riesgo antes de comprometer una matrícula.
-        </p>
-        <ul className="mt-4 space-y-2 text-[15px] text-slate-200">
-          {[
-            "Recomendación FlyPath aplicada a tu perfil",
-            "Comparación personalizada entre tus escuelas",
-            "Informe premium de decisión",
-            "Próximos pasos adaptados a tu caso",
-          ].map((item) => (
-            <li key={item} className="flex items-start gap-2.5 leading-relaxed">
-              <span
-                aria-hidden
-                className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
-              />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-        <button
-          type="button"
-          onClick={onUnlockClick}
-          className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:text-base"
-        >
-          Desbloquear análisis premium
-        </button>
-        <p className="mt-3 text-center text-[12px] text-slate-400">Pago seguro. Acceso inmediato al análisis.</p>
-      </div>
-    </div>
-  );
+function goToPremiumCheckout(e?: MouseEvent) {
+  e?.stopPropagation();
+  e?.preventDefault();
+  window.open(PREMIUM_REPORT_CHECKOUT_URL, "_blank", "noopener,noreferrer");
 }
 
 export function FlyPathApp({
@@ -1196,17 +1196,18 @@ export function FlyPathApp({
   const [toast, setToast] = useState<string | null>(null);
   const [premiumPdfExporting, setPremiumPdfExporting] = useState(false);
   const [freePdfExporting, setFreePdfExporting] = useState(false);
+  const [reportEmail, setReportEmail] = useState("");
+  const [reportEmailDownloadHint, setReportEmailDownloadHint] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
   const [schoolEditActiveId, setSchoolEditActiveId] = useState<number | null>(null);
-  const schoolFormDetailsRef = useRef<HTMLDetailsElement>(null);
+  const schoolFormPanelRef = useRef<HTMLDivElement>(null);
   // Apertura inicial del acordeón "Añadir escuela manualmente": abierto si el usuario es nuevo
   // (sin escuelas en localStorage ni en deep-link). Tras la decisión inicial el usuario controla
   // libremente con su toggle; no se reabre automáticamente al cambiar schools.length.
   const [manualFormOpen, setManualFormOpen] = useState(false);
   const manualFormInitializedRef = useRef(false);
-  const [plannerSchoolsPremiumModalOpen, setPlannerSchoolsPremiumModalOpen] = useState(false);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [cameFromSchoolsComparator, setCameFromSchoolsComparator] = useState(false);
 
@@ -1218,25 +1219,6 @@ export function FlyPathApp({
     premiumUnlockedPlanner,
     qaPremiumMode,
   );
-
-  useEffect(() => {
-    if (schools.length < 2) setPlannerSchoolsPremiumModalOpen(false);
-  }, [schools.length]);
-
-  const openPlannerSchoolsPremiumModal = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    e?.preventDefault();
-    setPlannerSchoolsPremiumModalOpen(true);
-  };
-
-  useEffect(() => {
-    if (!plannerSchoolsPremiumModalOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPlannerSchoolsPremiumModalOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [plannerSchoolsPremiumModalOpen]);
 
   // Decide la apertura inicial del acordeón manual una sola vez, leyendo síncronamente
   // localStorage y los slugs del deep-link. Posteriores cambios de schools.length no afectan.
@@ -1277,6 +1259,8 @@ export function FlyPathApp({
       const c = localStorage.getItem("flypath_cost_inputs");
       const s = localStorage.getItem("flypath_schools");
       const o = localStorage.getItem("flypath_onboarding_completed");
+      const reportEmailStored = localStorage.getItem(REPORT_EMAIL_STORAGE_KEY);
+      if (reportEmailStored) setReportEmail(reportEmailStored);
       if (p) {
         const parsed = JSON.parse(p) as Partial<Profile>;
         setProfile({
@@ -1398,8 +1382,8 @@ export function FlyPathApp({
           (school) => !school.enlaceReferencia.startsWith("comparador:"),
         );
         const previousComparatorSlugs = current
-          .filter((school) => school.enlaceReferencia.startsWith("comparador:"))
-          .map((school) => school.enlaceReferencia.replace("comparador:", ""));
+          .map((school) => parsePlannerSchoolLink(school.enlaceReferencia)?.slug)
+          .filter((slug): slug is string => Boolean(slug));
 
         // Idempotencia: si los slugs entrantes coinciden exactamente con los que ya
         // estaban importados desde comparador, no hacer nada (evita duplicados al
@@ -1531,6 +1515,16 @@ export function FlyPathApp({
     if (reviewMode || !storageHydrated) return;
     localStorage.setItem("flypath_onboarding_completed", JSON.stringify(onboardingCompleted));
   }, [onboardingCompleted, reviewMode, storageHydrated]);
+  useEffect(() => {
+    if (reviewMode || !storageHydrated) return;
+    const trimmed = reportEmail.trim();
+    if (trimmed) {
+      localStorage.setItem(REPORT_EMAIL_STORAGE_KEY, trimmed);
+      // TODO: enviar email al backend de captura de leads cuando exista endpoint.
+    } else {
+      localStorage.removeItem(REPORT_EMAIL_STORAGE_KEY);
+    }
+  }, [reportEmail, reviewMode, storageHydrated]);
 
   const route = useMemo(() => computeRoute(profile), [profile]);
   const costs = useMemo(() => computeCosts(costInputs, profile), [costInputs, profile]);
@@ -1783,8 +1777,58 @@ export function FlyPathApp({
   const cancelSchoolEdit = () => {
     setSchoolEditActiveId(null);
     setNewSchool(createEmptySchool());
-    if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
+    setManualFormOpen(false);
     showToast("Edición cancelada");
+  };
+
+  const openSchoolsManualForm = () => {
+    setManualFormOpen(true);
+    requestAnimationFrame(() => {
+      schoolFormPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  const editSchoolInPlanner = (school: School) => {
+    setNewSchool({ ...school });
+    setSchoolEditActiveId(school.id);
+    openSchoolsManualForm();
+  };
+
+  const removeSchoolById = (id: number) => {
+    setSchools((prev) => prev.filter((s) => s.id !== id));
+    if (schoolEditActiveId === id) {
+      setSchoolEditActiveId(null);
+      setNewSchool(createEmptySchool());
+      setManualFormOpen(false);
+    }
+    showToast("Escuela eliminada");
+  };
+
+  const plannerSchoolCatalog = useMemo(() => getPlannerSchoolCatalog(), []);
+
+  const plannerVerifiedCount = useMemo(() => countPlannerVerifiedSchools(schools), [schools]);
+
+  const tryAddSchoolFromDatabase = (entry: SchoolEntry, option: PlannerProgramOption): string | null => {
+    if (schools.some((s) => parsePlannerSchoolLink(s.enlaceReferencia)?.slug === entry.slug)) {
+      return "Esta escuela ya está en tu selección.";
+    }
+    setSchools((prev) => [...prev, mapEntryOptionToPlannerSchool(entry, option, Date.now())]);
+    showToast(`${entry.name} añadida`);
+    return null;
+  };
+
+  const updatePlannerSchoolProgram = (
+    schoolId: number,
+    entry: SchoolEntry,
+    option: PlannerProgramOption,
+  ) => {
+    setSchools((prev) =>
+      prev.map((s) => {
+        if (s.id !== schoolId) return s;
+        const mapped = mapEntryOptionToPlannerSchool(entry, option, schoolId);
+        return { ...mapped, id: schoolId, isExample: s.isExample };
+      }),
+    );
   };
 
   const addSchool = (fromOnboarding = false) => {
@@ -1810,13 +1854,21 @@ export function FlyPathApp({
       });
       setSchoolEditActiveId(null);
       setNewSchool(createEmptySchool());
-      if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
+      setManualFormOpen(false);
       showToast("Escuela actualizada");
       return;
     }
 
-    setSchools((prev) => [...prev, { ...newSchool, id: Date.now() }]);
+    setSchools((prev) => [
+      ...prev,
+      {
+        ...newSchool,
+        id: Date.now(),
+        fuentePrecio: newSchool.enlaceReferencia.startsWith("comparador:") ? newSchool.fuentePrecio : "usuario",
+      },
+    ]);
     setNewSchool(createEmptySchool());
+    setManualFormOpen(false);
     showToast("Escuela añadida");
   };
 
@@ -2111,6 +2163,7 @@ export function FlyPathApp({
         </motion.div>
       )}
       <CareerPlannerAppShell stepNav={plannerStepNav} bottomNav={plannerBottomNav}>
+        <>
         <PlannerMainCanvas footer={plannerStepFooter}>
             {tab === "diagnosis" && (
               <CareerPlannerDiagnosisView
@@ -2123,637 +2176,43 @@ export function FlyPathApp({
               />
             )}
             {tab === "schools" && (
-              <div className="flex flex-col gap-6">
-                <div className="order-1">
-                  <p className={plannerEyebrow}>Diagnóstico de escuelas</p>
-                  <h2 className={`mt-2 text-2xl sm:text-3xl ${plannerTitle}`}>Compara escuelas antes de pagar depósito.</h2>
-                  <p className={`mt-3 max-w-3xl ${plannerBody}`}>
-                    No compares solo precio anunciado. Revisa contrato, reembolso, calendario de pagos, extras incluidos y evidencia por escrito.
-                  </p>
-                  <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                    <div className={plannerSubcard}>
-                      <p className="text-[15px] text-slate-400">Escuelas comparadas</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{schools.length}</p>
-                    </div>
-                    <div className={plannerSubcard}>
-                      <p className="text-[15px] text-slate-400">Verificadas</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{schoolStats.verifiedCount}</p>
-                    </div>
-                    <div className={plannerSubcardAccent}>
-                      <p className="text-[15px] text-slate-400">Recomendación FlyPath</p>
-                      {schools.length < 2 ? (
-                        <p className="mt-1 text-lg font-semibold text-white">Añade 2 escuelas</p>
-                      ) : plannerPremiumContentVisible ? (
-                        <p className="mt-1 text-lg font-semibold text-white">
-                          {flypathSchoolRecommendation.school
-                            ? flypathSchoolRecommendation.school.nombre
-                            : "Sin recomendación todavía"}
-                        </p>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={openPlannerSchoolsPremiumModal}
-                          className="mt-1 inline-flex cursor-pointer border-none bg-transparent p-0 text-left text-lg font-bold leading-snug text-[#D6AE4F] underline-offset-2 transition hover:underline hover:opacity-90 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/45"
-                        >
-                          Desbloquear análisis premium
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <details
-                  ref={schoolFormDetailsRef}
-                  open={manualFormOpen}
-                  className="order-2 rounded-xl bg-white p-6 text-[#0f1a33] shadow-sm ring-1 ring-white/20"
-                  onToggle={(e) => {
-                    const el = e.currentTarget;
-                    setManualFormOpen(el.open);
-                    if (!el.open) {
-                      if (schoolEditActiveId !== null) setNewSchool(createEmptySchool());
-                      setSchoolEditActiveId(null);
-                    }
-                  }}
-                >
-                  <summary className="cursor-pointer marker:text-slate-400">
-                    <span className="text-base font-semibold text-[#0f1a33]">
-                      {schoolEditActiveId !== null
-                        ? `Editando escuela: ${newSchool.nombre.trim() || "—"}`
-                        : "Añadir escuela manualmente"}
-                    </span>
-                  </summary>
-                  {schoolEditActiveId !== null && (
-                    <div className="mt-4 rounded-2xl border border-[#c9a454]/30 bg-gradient-to-r from-[#fffdf8] to-white px-4 py-3 shadow-sm">
-                      <p className="text-[15px] leading-relaxed text-slate-600">
-                        Actualiza aquí precio, contrato, extras incluidos y condiciones. Los scores se recalculan automáticamente.
-                      </p>
-                    </div>
-                  )}
-                  <p className="mt-2 text-[15px] text-slate-600">
-                    Introduce una escuela candidata. Cuantos más datos confirmes por escrito, más útil será el análisis.
-                  </p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    <TextField label="Nombre" value={newSchool.nombre} onChange={(v) => setNewSchool((s) => ({ ...s, nombre: v }))} />
-                    <TextField label="País" value={newSchool.pais} onChange={(v) => setNewSchool((s) => ({ ...s, pais: v }))} />
-                    <TextField label="Ciudad" value={newSchool.ciudad} onChange={(v) => setNewSchool((s) => ({ ...s, ciudad: v }))} />
-                    <NumberField label="Precio anunciado" value={newSchool.precioAnunciado} onChange={(v) => setNewSchool((s) => ({ ...s, precioAnunciado: v }))} />
-                    <NumberField label="Duración meses" value={newSchool.duracionMeses} onChange={(v) => setNewSchool((s) => ({ ...s, duracionMeses: v }))} />
-                    <TextField label="Fecha de actualización" value={newSchool.fechaActualizacion} onChange={(v) => setNewSchool((s) => ({ ...s, fechaActualizacion: v }))} />
-                  </div>
-
-                  <details className="mt-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <summary className="cursor-pointer text-base font-semibold text-slate-700">Añadir datos avanzados de verificación</summary>
-                    <p className="mt-2 text-[15px] text-slate-600">
-                      Empieza por los 3 datos clave. El resto sirve para afinar red flags y preguntas pendientes si tienes información suficiente.
-                    </p>
-                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-base font-semibold text-slate-800">Datos mínimos para decidir</p>
-                      <p className="mt-1 text-[15px] text-slate-600">
-                        Si solo puedes conseguir tres cosas de la escuela, empieza por contrato, reembolso y calendario de pagos.
-                      </p>
-                      <div className="mt-3 grid gap-3 md:grid-cols-3">
-                        <SelectField
-                          label="Contrato antes de pagar"
-                          value={newSchool.contratoAntesPagar}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, contratoAntesPagar: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Reembolso claro"
-                          value={newSchool.reembolsoClaro}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, reembolsoClaro: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Calendario de pagos claro"
-                          value={newSchool.calendarioPagosClaro}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, calendarioPagosClaro: v as YesNoUnknown }))}
-                        />
-                      </div>
-                    </div>
-
-                    <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                      <summary className="cursor-pointer text-base font-semibold text-slate-700">Ver programa, precio y fuente</summary>
-                      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        <SelectField
-                          label="Programa"
-                          value={newSchool.programa}
-                          options={[
-                            { value: "integrado", label: "integrado" },
-                            { value: "modular", label: "modular" },
-                            { value: "cadet", label: "cadet" },
-                            { value: "no_lo_se", label: "no_lo_se" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, programa: v as School["programa"] }))}
-                        />
-                        <SelectField
-                          label="Estado de verificación"
-                          value={newSchool.estadoVerificacion}
-                          options={[
-                            { value: "verificado", label: "verificado" },
-                            { value: "parcialmente_verificado", label: "parcialmente_verificado" },
-                            { value: "no_verificado", label: "no_verificado" },
-                            { value: "pendiente", label: "pendiente" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, estadoVerificacion: v as School["estadoVerificacion"] }))}
-                        />
-                        <SelectField
-                          label="Fuente del precio"
-                          value={newSchool.fuentePrecio}
-                          options={[
-                            { value: "web_oficial", label: "web_oficial" },
-                            { value: "email_escuela", label: "email_escuela" },
-                            { value: "llamada", label: "llamada" },
-                            { value: "folleto", label: "folleto" },
-                            { value: "alumno", label: "alumno" },
-                            { value: "redes", label: "redes" },
-                            { value: "usuario", label: "usuario" },
-                            { value: "no_verificado", label: "no_verificado" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, fuentePrecio: v as School["fuentePrecio"] }))}
-                        />
-                        <NumberField label="Depósito requerido" value={newSchool.depositoRequerido} onChange={(v) => setNewSchool((s) => ({ ...s, depositoRequerido: v }))} />
-                        <TextField label="Enlace de referencia" value={newSchool.enlaceReferencia} onChange={(v) => setNewSchool((s) => ({ ...s, enlaceReferencia: v }))} />
-                        <TextField label="Notas" value={newSchool.notas} onChange={(v) => setNewSchool((s) => ({ ...s, notas: v }))} />
-                      </div>
-                    </details>
-
-                    <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                      <summary className="cursor-pointer text-base font-semibold text-slate-700">Ver extras incluidos</summary>
-                      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        <SelectField
-                          label="MCC/JOC incluido"
-                          value={newSchool.mccIncluido}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, mccIncluido: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Advanced UPRT incluido"
-                          value={newSchool.uprtIncluido}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, uprtIncluido: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Tasas incluidas"
-                          value={newSchool.tasasIncluidas}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, tasasIncluidas: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Skill tests incluidos"
-                          value={newSchool.skillTestsIncluidos}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, skillTestsIncluidos: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Alojamiento incluido"
-                          value={newSchool.alojamientoIncluido}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, alojamientoIncluido: v as YesNoUnknown }))}
-                        />
-                      </div>
-                    </details>
-
-                    <details className="mt-4 rounded-xl border border-slate-200 p-4">
-                      <summary className="cursor-pointer text-base font-semibold text-slate-700">Ver operación, soporte y marketing</summary>
-                      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        <SelectField
-                          label="Flota explicada"
-                          value={newSchool.flotaExplicada}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, flotaExplicada: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Mantenimiento explicado"
-                          value={newSchool.mantenimientoExplicado}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, mantenimientoExplicado: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Ratio alumno/avión conocido"
-                          value={newSchool.ratioAlumnoAvionConocido}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, ratioAlumnoAvionConocido: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Permite hablar con alumnos"
-                          value={newSchool.permiteHablarAlumnos}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, permiteHablarAlumnos: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Career support"
-                          value={newSchool.careerSupport}
-                          options={[
-                            { value: "si", label: "Sí" },
-                            { value: "no", label: "No" },
-                            { value: "no_se", label: "No lo sé" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, careerSupport: v as YesNoUnknown }))}
-                        />
-                        <SelectField
-                          label="Promesas de empleo"
-                          value={newSchool.promesasEmpleo}
-                          options={[
-                            { value: "ninguna", label: "ninguna" },
-                            { value: "vagas", label: "vagas" },
-                            { value: "claras_no_garantizadas", label: "claras_no_garantizadas" },
-                            { value: "garantia_contractual", label: "garantia_contractual" },
-                            { value: "no_se", label: "no_se" },
-                          ]}
-                          onChange={(v) => setNewSchool((s) => ({ ...s, promesasEmpleo: v as School["promesasEmpleo"] }))}
-                        />
-                      </div>
-                    </details>
-                  </details>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => addSchool(false)}
-                      className="cursor-pointer rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
-                    >
-                      {schoolEditActiveId !== null ? "Guardar cambios" : "Añadir escuela manualmente"}
-                    </button>
-                    {schoolEditActiveId !== null && (
-                      <button
-                        type="button"
-                        onClick={cancelSchoolEdit}
-                        className="cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
-                      >
-                        Cancelar edición
-                      </button>
-                    )}
-                  </div>
-                </details>
-
-                {(() => {
-                  const importedFromComparator = schools.filter((s) =>
-                    s.enlaceReferencia.startsWith("comparador:"),
-                  );
-                  const ctaShellClass =
-                    "order-4 relative isolate overflow-hidden rounded-3xl border border-[#c9a454]/30 text-white shadow-[0_12px_40px_rgba(15,26,51,0.28)]";
-                  // Imagen local reutilizada de las cards del comparador para dar un acabado más
-                  // visual al CTA sin descargar nuevos assets. Overlay azul oscuro fuerte para
-                  // mantener legibilidad y look premium.
-                  const ctaBackdrop = (
-                    <>
-                      <Image
-                        src="/school-card-bg/cadet-airline.jpg"
-                        alt=""
-                        fill
-                        sizes="(min-width: 1024px) 768px, 100vw"
-                        className="object-cover"
-                        aria-hidden
-                        priority
-                      />
-                      <div
-                        className="absolute inset-0 bg-gradient-to-br from-[#0a1228]/88 via-[#0f1a33]/74 to-[#152545]/64"
-                        aria-hidden
-                      />
-                    </>
-                  );
-                  if (importedFromComparator.length > 0) {
-                    return (
-                      <div className={ctaShellClass}>
-                        {ctaBackdrop}
-                        <div className="relative p-5 sm:p-7">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">ESCUELAS IMPORTADAS</p>
-                          <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
-                            Ya tienes {importedFromComparator.length}{" "}
-                            {importedFromComparator.length === 1 ? "escuela" : "escuelas"} del comparador en tu Planner
-                          </h3>
-                          <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
-                            Estas escuelas se usarán en tu informe final para cruzarlas con tu perfil, presupuesto, Clase 1, inglés y disponibilidad.
-                          </p>
-                          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-                            {importedFromComparator.map((s) => (
-                              <li
-                                key={s.id}
-                                className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-[15px] font-semibold text-white backdrop-blur-sm"
-                              >
-                                {s.nombre}
-                              </li>
-                            ))}
-                          </ul>
-                          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                            <button
-                              type="button"
-                              onClick={() => goToDashboardTab("report")}
-                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
-                            >
-                              Ver informe final
-                              <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => router.push("/schools?from=planner")}
-                              className="inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-white/30 bg-white/[0.06] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-white/[0.12] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
-                            >
-                              Cambiar escuelas
-                            </button>
-                          </div>
-                          <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
-                            Puedes cambiarlas en cualquier momento volviendo al comparador.
-                          </p>
-                        </div>
-                      </div>
-                    );
+              <CareerPlannerSchoolsTab
+                schools={schools}
+                verifiedCount={plannerVerifiedCount}
+                manualFormOpen={manualFormOpen}
+                formPanelRef={schoolFormPanelRef}
+                schoolEditActiveId={schoolEditActiveId}
+                newSchool={newSchool}
+                setNewSchool={setNewSchool}
+                catalog={plannerSchoolCatalog}
+                onAddFromDatabase={tryAddSchoolFromDatabase}
+                onUpdateProgram={updatePlannerSchoolProgram}
+                onOpenManualForm={openSchoolsManualForm}
+                onCloseManualForm={() => {
+                  setManualFormOpen(false);
+                  if (schoolEditActiveId !== null) {
+                    setSchoolEditActiveId(null);
+                    setNewSchool(createEmptySchool());
                   }
-                  return (
-                    <div className={ctaShellClass}>
-                      {ctaBackdrop}
-                      <div className="relative p-5 sm:p-7">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]/85">COMPARADOR FLYPATH</p>
-                        <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
-                          ¿Todavía no sabes qué escuelas comparar?
-                        </h3>
-                        <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-200">
-                          Explora la base de datos FlyPath y trae 2 opciones reales al Planner para analizarlas con tu perfil.
-                        </p>
-                        <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-400">
-                          La búsqueda y comparación básica son gratuitas. El análisis personalizado está disponible como opción premium.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => router.push("/schools?from=planner")}
-                          className="mt-5 inline-flex min-h-[48px] cursor-pointer items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:bg-[#ddb75c] hover:border-[#ddb75c] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2ddaa]/40"
-                        >
-                          Explorar base de datos FlyPath
-                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <div className="order-5 rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-6">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Antes de comparar, confirma:</p>
-                  <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {[
-                      "precio final",
-                      "extras incluidos",
-                      "contrato",
-                      "política de reembolso",
-                      "calendario de pagos",
-                    ].map((item) => (
-                      <li
-                        key={item}
-                        className="flex items-center gap-2.5 rounded-lg border border-slate-200/70 bg-white/90 px-3 py-2.5 text-[14px] font-medium capitalize text-slate-700"
-                      >
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]/75" aria-hidden />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="order-3 flex flex-col gap-6">
-                {schoolStats.analyzed.map(({ school, analysis }) => (
-                  <div key={school.id} className={`rounded-3xl border bg-white p-6 shadow-sm ${flypathSchoolRecommendation.school?.id === school.id ? "border-[#c9a454]/50 bg-[#fffaf0]" : "border-slate-200"}`}>
-                    <div className="grid gap-4 lg:grid-cols-3">
-                      <div className="lg:col-span-2">
-                        <p className="text-xl font-semibold text-[#0f1a33]">{school.nombre}</p>
-                        <p className="mt-1 text-[15px] text-slate-600">{school.ciudad}, {school.pais} · Programa {school.programa} · {euro(school.precioAnunciado)}</p>
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                          <SchoolTextMetricCard
-                            label="Estado de verificación"
-                            value={estadoVerificacionLabel(school.estadoVerificacion)}
-                            secondary={school.estadoVerificacion === "pendiente" ? "Falta validar datos" : undefined}
-                          />
-                          <SchoolMetricCard label="Solidez general" score={analysis.encajeGeneral} reading={solidezGeneralReading(analysis.encajeGeneral)} />
-                          <SchoolMetricCard label="Claridad del coste" score={analysis.claridadCoste} reading={claridadCosteReading(analysis.claridadCoste)} />
-                          <SchoolMetricCard label="Transparencia documental" score={analysis.transparencia} reading={transparenciaDocumentalReading(analysis.transparencia)} />
-                          <SchoolFinancialRiskCard value={analysis.riesgoFinanciero} />
-                          <SchoolTextMetricCard label="Recomendación prudente" value={recomendacionLabel(analysis.recomendacionPrudente)} />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {plannerPremiumContentVisible ? (
-                          <button
-                            type="button"
-                            className={`${generatedEmailKey === school.id ? "action-success-pulse border-emerald-300 bg-emerald-50 text-emerald-800" : "bg-[#c9a454] text-[#0f1a33] border-[#c9a454]/50"} w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-semibold transition hover:bg-[#ddb75c] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40`}
-                            onClick={() => {
-                              const pending = getSchoolEmailMissingData(school);
-                              setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
-                              setEmailDrafts((d) => ({ ...d, [school.id]: buildSchoolEmail(school, profile.nombre) }));
-                              setGeneratedEmailKey(school.id);
-                              if (typeof window !== "undefined") {
-                                window.setTimeout(() => setGeneratedEmailKey((current) => (current === school.id ? null : current)), 2500);
-                              }
-                              showToast("Email generado");
-                            }}
-                          >
-                            {generatedEmailKey === school.id ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-700" /> : <Mail className="mr-2 h-4 w-4" />}
-                            {generatedEmailKey === school.id ? "Email generado" : "Generar email a escuela"}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={openPlannerSchoolsPremiumModal}
-                            aria-label="Email personalizado disponible con análisis premium"
-                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border-2 border-[#c9a454] bg-[#fffaf0] px-4 py-2 text-[15px] font-semibold text-[#7b5e1f] transition hover:bg-[#fff5e6] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/40"
-                          >
-                            <Lock className="mr-2 h-4 w-4" aria-hidden />
-                            Email personalizado · Premium
-                          </button>
-                        )}
-                        {plannerPremiumContentVisible && (
-                          <button
-                            type="button"
-                            className="w-full inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-medium text-[#0f1a33] transition hover:bg-slate-50 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
-                            onClick={async () => {
-                              const draft = emailDrafts[school.id] || buildSchoolEmail(school, profile.nombre);
-                              if (!emailDrafts[school.id]) {
-                                const pending = getSchoolEmailMissingData(school);
-                                setEmailPendingBySchool((d) => ({ ...d, [school.id]: pending }));
-                                setEmailDrafts((d) => ({ ...d, [school.id]: draft }));
-                              }
-                              const ok = await copyText(draft);
-                              if (ok) markCopied(`email-${school.id}`);
-                              showToast(ok ? "Email copiado" : "No se pudo copiar el email");
-                            }}
-                          >
-                            {copiedKey === `email-${school.id}` ? <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> : <Copy className="mr-2 h-4 w-4" />}
-                            {copiedKey === `email-${school.id}` ? "Copiado" : "Copiar email"}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className={`w-full inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-[15px] font-medium transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
-                            schoolEditActiveId === school.id
-                              ? "border-[#c9a454]/55 bg-[#fffaf0] text-[#3d3418] shadow-sm hover:bg-[#fff5e6] focus-visible:ring-[#c9a454]/35"
-                              : "border-slate-300 bg-white text-[#0f1a33] hover:bg-slate-50 focus-visible:ring-slate-300/60"
-                          }`}
-                          onClick={() => {
-                            if (schoolEditActiveId === school.id) {
-                              setSchoolEditActiveId(null);
-                              setNewSchool(createEmptySchool());
-                              const el = schoolFormDetailsRef.current;
-                              if (el) el.open = false;
-                              return;
-                            }
-                            setNewSchool({ ...school });
-                            setSchoolEditActiveId(school.id);
-                            requestAnimationFrame(() => {
-                              const el = schoolFormDetailsRef.current;
-                              if (el) {
-                                el.open = true;
-                                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                              }
-                            });
-                          }}
-                        >
-                          {schoolEditActiveId === school.id ? "Ocultar edición" : "Editar datos"}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <InfoList title="Red flags" items={analysis.redFlags.slice(0, 3)} empty="Sin red flags críticos con los datos actuales." />
-                      <InfoList title="Datos pendientes" items={analysis.preguntasPendientes.slice(0, 4)} empty="Sin datos críticos pendientes." />
-                    </div>
-                    {plannerPremiumContentVisible && emailDrafts[school.id] && (
-                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <InfoList
-                          title="Este email se ha adaptado porque faltan estos datos:"
-                          items={emailPendingBySchool[school.id] || []}
-                          empty="No faltan datos críticos detectados para esta escuela."
-                        />
-                        <p className="mb-2 mt-3 text-[15px] font-medium text-emerald-700">Email listo para copiar</p>
-                        <pre className="whitespace-pre-wrap text-[15px] text-slate-700">{emailDrafts[school.id]}</pre>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                </div>
-
-                {schools.length > 0 ? (
-                  <div className="order-3 flex justify-start">
-                    <button
-                      onClick={() => {
-                        if (typeof window !== "undefined" && !window.confirm("¿Seguro que quieres eliminar todas las escuelas y empezar desde cero?")) return;
-                        setSchools([]);
-                        setNewSchool(createEmptySchool());
-                        setSchoolEditActiveId(null);
-                        if (schoolFormDetailsRef.current) schoolFormDetailsRef.current.open = false;
-                        showToast("Escuelas eliminadas");
-                      }}
-                      className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/40"
-                    >
-                      Eliminar todas las escuelas y empezar desde cero
-                    </button>
-                  </div>
-                ) : null}
-
-                <div className="order-7 rounded-2xl border border-slate-200 border-r-4 border-r-[#c9a454] bg-gradient-to-r from-white to-[#fffaf0] p-5 shadow-sm sm:p-6">
-                  <p className="text-sm font-semibold text-[#0f1a33]">Siguiente paso</p>
-                  {schools.length >= 2 ? (
-                    <>
-                      <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-600">
-                        Cuando tengas precio final, contrato, reembolso y calendario de pagos claros en ambas escuelas, pasa al informe final.
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => goToDashboardTab("report")}
-                          className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
-                        >
-                          Ver informe final
-                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-600">
-                        Añade al menos 2 escuelas para generar una comparación útil.
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => router.push("/schools?from=planner")}
-                          className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
-                        >
-                          Explorar escuelas
-                          <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setManualFormOpen(true);
-                            requestAnimationFrame(() => {
-                              const el = schoolFormDetailsRef.current;
-                              if (el) {
-                                el.open = true;
-                                el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                              }
-                            });
-                          }}
-                          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/60"
-                        >
-                          Añadir manualmente
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-              </div>
+                }}
+                onSaveSchool={() => addSchool(false)}
+                onCancelEdit={cancelSchoolEdit}
+                onEditSchool={editSchoolInPlanner}
+                onRemoveSchool={removeSchoolById}
+              />
             )}
             {tab === "report" && (() => {
               const preparacionNivel = informePreparacionNivel(decisionReadiness.decision);
-              const conclusionUi = informeConclusionUi(
-                decisionReadiness.decision,
-                criticalBlockersForConclusion,
-                decisionReadiness.faltanDatos,
-              );
+              const reportEmailValid = isValidReportEmail(reportEmail);
+              const freeDownloadsEnabled = reportEmailValid && !freePdfExporting;
+              const requireReportEmailForDownload = () => {
+                if (reportEmailValid) {
+                  setReportEmailDownloadHint(false);
+                  return true;
+                }
+                setReportEmailDownloadHint(true);
+                return false;
+              };
               return (
               <div className="space-y-7">
                 <div>
@@ -2764,639 +2223,85 @@ export function FlyPathApp({
                   <p className={`mt-3 max-w-3xl sm:text-base ${plannerBody}`}>
                     {informeFinalHeroSubheadline(route, riskDiagnosis)}
                   </p>
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div className={`min-w-0 text-center sm:px-4 sm:py-3.5 ${plannerSubcard}`}>
                       <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-400 sm:text-sm">Ruta recomendada</p>
                       <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#D6AE4F] sm:text-2xl">{route.recommended}</p>
                     </div>
                     <div className={`min-w-0 text-center sm:px-4 sm:py-3.5 ${plannerSubcard}`}>
-                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-400 sm:text-sm">Decisión de pago</p>
-                      <p
-                        className={`mt-1.5 break-words text-base font-bold leading-tight sm:text-lg ${informeHeroDecisionValueTextClass(decisionReadiness.decision)}`}
-                      >
-                        {decisionReadiness.decision}
-                      </p>
-                    </div>
-                    <div className={`min-w-0 text-center sm:px-4 sm:py-3.5 ${plannerSubcard}`}>
                       <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-400 sm:text-sm">Coste realista</p>
                       <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[#D6AE4F] sm:text-2xl">{euro(costs.totalRealista)}</p>
                     </div>
-                    <div className={`min-w-0 text-center sm:px-4 ${plannerSubcardAccent}`}>
-                      <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Nivel de preparación</p>
-                      <p className={`mt-1.5 text-2xl font-bold leading-none tracking-tight sm:text-3xl ${informePreparacionNivelTextClass(preparacionNivel)}`}>
+                    <div className={`min-w-0 text-center sm:px-4 sm:py-3.5 ${plannerSubcard}`}>
+                      <p className="text-[13px] font-semibold uppercase tracking-wide text-slate-400 sm:text-sm">Nivel de preparación</p>
+                      <p className={`mt-1.5 text-2xl font-bold leading-none tracking-tight text-[#D6AE4F] sm:text-3xl ${informePreparacionNivelTextClass(preparacionNivel)}`}>
                         {preparacionNivel}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className={`${plannerSubcardAccent} p-5 sm:p-6`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className={`text-base font-semibold ${plannerTitle}`}>Datos pendientes antes de pagar</p>
-                    <span className="inline-flex rounded-full border border-[#D6AE4F]/40 bg-[#D6AE4F]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#D6AE4F]">
-                      Prioridad
-                    </span>
-                  </div>
-                  {decisionReadiness.faltanDatos.length > 0 ? (
-                    <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-                      {decisionReadiness.faltanDatos.slice(0, 6).map((item) => (
-                        <li
-                          key={item}
-                          className="flex items-start gap-2.5 rounded-lg border border-white/[0.08] bg-[#17233F] px-3.5 py-3 text-[15px] text-slate-200"
-                        >
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" aria-hidden />
-                          <span className="leading-snug">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={`mt-3 ${plannerMuted}`}>
-                      No hay datos críticos pendientes detectados, pero conserva toda la documentación por escrito.
-                    </p>
-                  )}
-                </div>
-
-                {conclusionUi.show ? (
-                  <p className={`rounded-lg border border-[#D6AE4F]/30 bg-[#1B2947] px-4 py-3 text-[15px] font-medium leading-snug text-slate-200`}>
-                    <span className="text-[#D6AE4F]">→ </span>
-                    {conclusionUi.text}
-                  </p>
-                ) : null}
-
-                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
-                  <p className="text-base font-semibold text-[#0f1a33]">Riesgos principales</p>
-                  <p className="mt-1 text-[14px] text-slate-500">Lo que más puede afectar tu decisión antes de pagar.</p>
-                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {riskDiagnosis.slice(0, 6).map((risk) => {
-                      const visualAction =
-                        risk.accion === "Pedir por escrito alcance real de career support y límites."
-                          ? "Exige contrato y desglose por escrito"
-                          : risk.accion === "Confirmar Clase 1 antes de firmar o transferir dinero."
-                            ? "Confirma Clase 1 antes de pagar"
-                            : risk.accion === "Exigir confirmación documental de costes y condiciones."
-                              ? "Exige contrato y desglose por escrito"
-                              : risk.accion === "Reducir brecha, confirmar financiación y mantener un margen de seguridad financiero."
-                                ? "Cierra brecha y financiación antes de pagar"
-                                : risk.accion;
-                      return (
-                        <div
-                          key={risk.label}
-                          className="flex flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_12px_rgba(15,26,51,0.04)]"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-semibold text-[#0f1a33]">
-                              {informeRiskChipLabel(risk.label)}
-                            </span>
-                            <span
-                              className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${informeRiskNivelBadgeClass(risk.nivel)}`}
-                            >
-                              {risk.nivel}
-                            </span>
-                          </div>
-                          <p className="mt-3 text-[15px] font-medium leading-snug text-slate-800">{risk.explicacion}</p>
-                          <p className="mt-2.5 text-[14px] leading-snug text-slate-600">
-                            <span className="font-semibold text-[#7a5e16]" aria-hidden>
-                              →{" "}
-                            </span>
-                            {visualAction}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-[#f8fafc] p-5 shadow-[0_6px_24px_rgba(15,26,51,0.04)] sm:p-6">
-                  <p className="text-base font-semibold text-[#0f1a33]">Plan resumido</p>
-                  <p className="mt-1 text-[14px] text-slate-500">Roadmap prudente para avanzar sin comprometer dinero demasiado pronto.</p>
-                  <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {[
-                      { title: "Próximos 7 días", items: actionPlan.sevenDays.slice(0, 3), accent: "border-[#c9a454]/50" },
-                      { title: "Próximos 30 días", items: actionPlan.thirtyDays.slice(0, 3), accent: "border-slate-300/80" },
-                      { title: "Próximos 90 días", items: actionPlan.ninetyDays.slice(0, 3), accent: "border-slate-300/60" },
-                    ].map((block) => (
-                      <div
-                        key={block.title}
-                        className={`rounded-2xl border-l-[3px] ${block.accent} border border-slate-200/80 bg-white p-5 shadow-sm`}
-                      >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{block.title}</p>
-                        {block.items.length > 0 ? (
-                          <ol className="mt-4 space-y-3">
-                            {block.items.map((task, idx) => (
-                              <li key={task} className="flex items-start gap-3">
-                                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#c9a454]/45 bg-[#fffaf0] text-xs font-bold tabular-nums text-[#7a5e16]">
-                                  {idx + 1}
-                                </span>
-                                <span className="pt-0.5 text-[15px] leading-snug text-slate-700">{task}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        ) : (
-                          <p className="mt-3 text-[15px] text-slate-500">Sin acciones clave en este bloque.</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bloque premium del Informe final: antes de documentación y "Tu siguiente paso FlyPath". */}
-                {(() => {
-                  const totalSchools = schools.length;
-                  if (!plannerPremiumContentVisible) {
-                    return (
-                      <div className="relative overflow-hidden rounded-[28px] border-2 border-[#c9a454]/45 bg-gradient-to-br from-[#071226] via-[#0f1a33] to-[#152547] p-7 text-white shadow-[0_20px_56px_rgba(15,26,51,0.28)] ring-1 ring-[#c9a454]/25 sm:p-8">
-                        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[#c9a454]/10 blur-2xl" aria-hidden />
-                        <div className="relative grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-6">
-                          <div className="lg:col-start-1 lg:row-start-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]">
-                                ANÁLISIS PREMIUM
-                              </span>
-                              <span className="ml-auto inline-flex rounded-full border border-[#c9a454]/40 bg-[#c9a454]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#f2ddaa]">
-                                Exclusivo
-                              </span>
-                            </div>
-                            <h3 className="mt-3 text-xl font-semibold leading-tight text-white sm:text-2xl">
-                              Desbloquea el análisis premium de escuelas
-                            </h3>
-                            <p className="mt-3 text-[15px] leading-relaxed text-slate-300">
-                              El informe gratuito te orienta si puedes avanzar. El premium cruza tu perfil con las escuelas comparadas para decidir con más criterio antes de pagar matrícula o depósito.
-                            </p>
-                          </div>
-                          <ul className="space-y-0.5 text-[15px] leading-relaxed text-slate-200 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
-                            {[
-                              "Recomendación FlyPath para tu perfil",
-                              "Riesgo económico y documental por escuela",
-                              "Comparación según tu presupuesto real",
-                              "Preguntas clave antes de pagar matrícula",
-                              "Próximos pasos adaptados a tu situación",
-                            ].map((item) => (
-                              <li key={item} className="flex items-start gap-3 py-1.5">
-                                <span
-                                  aria-hidden
-                                  className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
-                                />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          <button
-                            type="button"
-                            onClick={openPlannerSchoolsPremiumModal}
-                            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_8px_24px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:w-auto lg:col-start-1 lg:row-start-2 lg:justify-self-start"
-                          >
-                            Desbloquear análisis premium
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  type AnalyzedSchool = (typeof schoolStats.analyzed)[number];
-
-                  const howToStart: string[] =
-                    route.recommended === "Modular"
-                      ? [
-                          "No empieces pagando una integrada completa.",
-                          "Empieza por cerrar Clase 1, presupuesto real y escuelas con contrato claro.",
-                          "Prioriza una ruta modular o integrada solo si la financiación y condiciones están cerradas.",
-                        ]
-                      : route.recommended === "Integrada"
-                        ? [
-                            "No transfieras matrícula sin contrato firmado y reembolso claro.",
-                            "Cierra antes la financiación, el presupuesto realista y la Clase 1.",
-                            "Confirma calendario de pagos por fases y qué tasas o extras quedan dentro del precio.",
-                          ]
-                        : [
-                            "Aún no decidas escuela ni firmes ningún depósito.",
-                            "Cierra primero Clase 1, inglés operativo y presupuesto realista.",
-                            "Vuelve a comparar escuelas cuando tengas datos personales más sólidos.",
-                          ];
-
-                  const sortedByEncaje: AnalyzedSchool[] = [...schoolStats.analyzed].sort(
-                    (a, b) => b.analysis.encajeGeneral - a.analysis.encajeGeneral,
-                  );
-                  const recommendedSchool = flypathSchoolRecommendation.school;
-                  const recommendedItem: AnalyzedSchool | undefined = recommendedSchool
-                    ? sortedByEncaje.find((x) => x.school.id === recommendedSchool.id)
-                    : undefined;
-                  const comparisonSchools: AnalyzedSchool[] = recommendedItem
-                    ? [
-                        recommendedItem,
-                        ...sortedByEncaje.filter((x) => x.school.id !== recommendedItem.school.id).slice(0, 1),
-                      ]
-                    : sortedByEncaje.slice(0, 2);
-                  const alternativeItem: AnalyzedSchool | undefined = recommendedItem
-                    ? comparisonSchools.find((x) => x.school.id !== recommendedItem.school.id)
-                    : undefined;
-
-                  /** Por qué la recomendada va por delante: comparación 1:1 con la alternativa. */
-                  const whyRecommendedAhead = (
-                    rec: AnalyzedSchool,
-                    alt: AnalyzedSchool | undefined,
-                  ): string[] => {
-                    const reasons: string[] = [];
-                    if (rec.school.contratoAntesPagar === "si" && alt?.school.contratoAntesPagar !== "si") {
-                      reasons.push("Contrato disponible antes de pagar.");
-                    }
-                    if (rec.school.calendarioPagosClaro === "si" && alt?.school.calendarioPagosClaro !== "si") {
-                      reasons.push("Calendario de pagos más claro.");
-                    }
-                    if (rec.school.reembolsoClaro === "si" && alt?.school.reembolsoClaro !== "si") {
-                      reasons.push("Política de reembolso más clara.");
-                    }
-                    const recVerified =
-                      rec.school.estadoVerificacion === "verificado" ||
-                      rec.school.estadoVerificacion === "parcialmente_verificado";
-                    const altVerified =
-                      !!alt &&
-                      (alt.school.estadoVerificacion === "verificado" ||
-                        alt.school.estadoVerificacion === "parcialmente_verificado");
-                    if (recVerified && !altVerified) {
-                      reasons.push("Datos con mejor nivel de verificación.");
-                    }
-                    if (alt && rec.analysis.encajeGeneral > alt.analysis.encajeGeneral) {
-                      reasons.push("Opción más sólida frente a las alternativas añadidas.");
-                    }
-                    const unique = Array.from(new Set(reasons));
-                    if (unique.length === 0) {
-                      return ["Mejor resultado relativo dentro de las opciones comparadas."];
-                    }
-                    return unique.slice(0, 3);
-                  };
-
-                  /** Asignación de "Punto fuerte" por escuela con dedup: cada escuela intenta tener un
-                   *  motivo único distinto. Si todas comparten el mismo dato, se permite repetir como
-                   *  fallback. La recomendada (primer item) tiene prioridad de elección. */
-                  const STRENGTH_OPTIONS: Array<{ test: (s: School) => boolean; label: string }> = [
-                    { test: (s) => s.contratoAntesPagar === "si", label: "Contrato disponible antes de pagar." },
-                    { test: (s) => s.reembolsoClaro === "si", label: "Reembolso más claro." },
-                    { test: (s) => s.calendarioPagosClaro === "si", label: "Calendario de pagos definido." },
-                    {
-                      test: (s) => s.tasasIncluidas === "si" && s.skillTestsIncluidos === "si",
-                      label: "Mejor claridad de extras.",
-                    },
-                    {
-                      test: (s) =>
-                        s.estadoVerificacion === "verificado" ||
-                        s.estadoVerificacion === "parcialmente_verificado",
-                      label: "Mejor evidencia documental.",
-                    },
-                  ];
-                  const strengthByItem = new Map<number, string>();
-                  {
-                    const used = new Set<string>();
-                    for (const item of comparisonSchools) {
-                      const cand = STRENGTH_OPTIONS.find(
-                        (opt) => opt.test(item.school) && !used.has(opt.label),
-                      );
-                      if (cand) {
-                        strengthByItem.set(item.school.id, cand.label);
-                        used.add(cand.label);
-                      }
-                    }
-                    for (const item of comparisonSchools) {
-                      if (strengthByItem.has(item.school.id)) continue;
-                      const any = STRENGTH_OPTIONS.find((opt) => opt.test(item.school));
-                      strengthByItem.set(
-                        item.school.id,
-                        any ? any.label : "Necesita más datos antes de valorar.",
-                      );
-                    }
-                  }
-
-                  const riskOf = (item: AnalyzedSchool): string =>
-                    item.analysis.redFlags[0] ??
-                    "No se detecta un riesgo principal con los datos actuales.";
-
-                  const askOf = (item: AnalyzedSchool): string =>
-                    item.analysis.preguntasPendientes[0] ??
-                    "Pedir precio final, contrato y calendario por escrito.";
-
-                  const lecturaFor = (isRec: boolean): string =>
-                    isRec
-                      ? "Empezaría por esta escuela, pero solo para pedir documentación. No es una señal para pagar todavía."
-                      : "Mantenerla como alternativa, sin priorizarla hasta aclarar los puntos pendientes.";
-
-                  const isRecommendedItem = (item: AnalyzedSchool): boolean =>
-                    !!recommendedSchool && item.school.id === recommendedSchool.id;
-
-                  const notReadyToPay = decisionReadiness.decision === "No estás listo para pagar";
-                  const decisionPracticaText = notReadyToPay
-                    ? "Decisión práctica: validar primero, no pagar todavía."
-                    : "Decisión práctica: avanzar con validación, no con pago.";
-
-                  const decisionBlock: { text: string; bullets: string[] } = (() => {
-                    if (recommendedSchool && notReadyToPay) {
-                      return {
-                        text: `FlyPath no recomienda pagar todavía. La decisión razonable ahora es avanzar con ${recommendedSchool.nombre} como primera opción de validación, mantener la otra escuela como alternativa y pedir documentación antes de transferir dinero.`,
-                        bullets: [
-                          "No pagar matrícula ni depósito todavía.",
-                          "Pedir precio final, contrato, reembolso y calendario por escrito.",
-                          `Comparar la respuesta de ${recommendedSchool.nombre} con la alternativa antes de decidir.`,
-                        ],
-                      };
-                    }
-                    if (recommendedSchool) {
-                      return {
-                        text: `Puedes avanzar en la conversación con ${recommendedSchool.nombre}, pero solo si confirma por escrito las condiciones críticas.`,
-                        bullets: [
-                          "Validar documentación.",
-                          "Confirmar coste final.",
-                          "No decidir solo por precio anunciado.",
-                        ],
-                      };
-                    }
-                    return {
-                      text: "FlyPath no puede priorizar una escuela todavía. La decisión correcta es completar datos antes de elegir.",
-                      bullets: [
-                        "Añadir o completar al menos 2 escuelas.",
-                        "Pedir contrato, reembolso y calendario.",
-                        "Recalcular el informe con datos confirmados.",
-                      ],
-                    };
-                  })();
-
-                  const actionForSchool = (item: AnalyzedSchool): string =>
-                    item.analysis.preguntasPendientes[0] ??
-                    "Pedir precio final, contrato, reembolso y calendario por escrito.";
-
-                  const renderSectionLabel = (n: number, text: string) => (
-                    <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7b5e1f]">
-                      <span
-                        aria-hidden
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#c9a454]/40 bg-[#c9a454]/15 text-[10px] tabular-nums text-[#7b5e1f]"
-                      >
-                        {n}
-                      </span>
-                      {text}
-                    </p>
-                  );
-
-                  return (
-                    <div className="overflow-hidden rounded-3xl border border-[#c9a454]/40 bg-gradient-to-br from-[#fffbf5] via-white to-[#fff8eb] shadow-[0_16px_48px_rgba(15,26,51,0.12)]">
-                      <div className="relative border-b border-[#c9a454]/25 bg-gradient-to-br from-[#071226] via-[#0f1a33] to-[#152547] px-6 py-7 sm:px-8 sm:py-8">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]/95">
-                              INFORME PREMIUM FLYPATH
-                            </p>
-                            <h3 className="mt-2 text-xl font-semibold leading-tight text-white sm:text-2xl">
-                              Análisis premium de escuelas
-                            </h3>
-                            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-300">
-                              Decisión aplicada a tu perfil, presupuesto y riesgo antes de pagar matrícula o depósito.
-                            </p>
-                          </div>
-                          <span className="inline-flex shrink-0 items-center self-start rounded-full border border-[#c9a454]/40 bg-[#c9a454]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]">
-                            Premium desbloqueado
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-7 bg-gradient-to-b from-white to-[#fffbf5] px-6 py-7 sm:px-8 sm:py-8">
-                        {/* Veredicto FlyPath (top synthesis) */}
-                        <section className="rounded-2xl border-2 border-[#c9a454]/55 bg-[#fff7e3] p-5 shadow-sm sm:p-6">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5e1f]">
-                            Veredicto FlyPath
-                          </p>
-                          {recommendedSchool ? (
-                            <>
-                              <p className="mt-2 text-xl font-bold leading-snug text-[#0f1a33] sm:text-2xl">
-                                Opción más sólida ahora:{" "}
-                                <span className="text-[#7b5e1f]">{recommendedSchool.nombre}</span>
-                              </p>
-                              <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
-                                Entre las escuelas que has añadido, {recommendedSchool.nombre} aparece más sólida para tu caso ahora mismo. Esto no significa que debas pagar todavía: significa que, con los datos actuales, es la opción que conviene validar primero.
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="mt-2 text-xl font-bold leading-snug text-[#0f1a33] sm:text-2xl">
-                                No hay recomendación suficiente todavía.
-                              </p>
-                              <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
-                                Con los datos actuales no hay base suficiente para elegir una escuela concreta. Antes de pagar, necesitas completar información documental, económica y contractual.
-                              </p>
-                            </>
-                          )}
-                          <div className="mt-4 rounded-xl border border-[#c9a454]/45 bg-white/70 px-4 py-3">
-                            <p className="text-[14px] font-semibold leading-snug text-[#7b5e1f]">
-                              {decisionPracticaText}
-                            </p>
-                          </div>
-                        </section>
-
-                        {/* 1. Tu ruta recomendada */}
-                        <section>
-                          {renderSectionLabel(1, "Tu ruta recomendada")}
-                          <p className="mt-2 text-lg font-bold leading-snug text-[#0f1a33] sm:text-xl">
-                            Ruta: <span className="text-[#7b5e1f]">{route.recommended}</span>
-                          </p>
-                          <p className="mt-2 text-base leading-relaxed text-slate-700">
-                            <span className="font-semibold text-slate-800">Por qué:</span> {route.reason}
-                          </p>
-                          <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                              Cómo empezar
-                            </p>
-                            <ul className="mt-2 space-y-1.5 text-[15px] leading-relaxed text-slate-700">
-                              {howToStart.map((item) => (
-                                <li key={item} className="flex items-start gap-2.5">
-                                  <span aria-hidden className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                                  <span>{item}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </section>
-
-                        {/* 2. Opción prioritaria entre tus escuelas */}
-                        <section className="rounded-2xl border-2 border-[#c9a454]/45 bg-white p-5 shadow-sm sm:p-6">
-                          {renderSectionLabel(2, "Opción prioritaria entre tus escuelas")}
-                          {recommendedSchool && recommendedItem ? (
-                            <>
-                              <p className="mt-3 text-lg font-bold leading-snug text-[#0f1a33] sm:text-xl">
-                                Opción más sólida ahora:{" "}
-                                <span className="text-[#7b5e1f]">{recommendedSchool.nombre}</span>
-                              </p>
-                              <div className="mt-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                  Por qué sale delante
-                                </p>
-                                <ul className="mt-2 space-y-1.5 text-[15px] leading-relaxed text-slate-700">
-                                  {whyRecommendedAhead(recommendedItem, alternativeItem).map((reason) => (
-                                    <li key={reason} className="flex items-start gap-2.5">
-                                      <span aria-hidden className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                                      <span>{reason}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                              <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-                                {flypathSchoolRecommendation.reason}
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="mt-3 text-lg font-bold leading-snug text-[#0f1a33] sm:text-xl">
-                                No hay recomendación todavía.
-                              </p>
-                              <p className="mt-3 text-base leading-relaxed text-slate-700">
-                                {flypathSchoolRecommendation.reason}
-                              </p>
-                            </>
-                          )}
-                        </section>
-
-                        {/* 3. Comparación directa */}
-                        {comparisonSchools.length > 0 && (
-                          <section>
-                            {renderSectionLabel(3, "Comparación directa")}
-                            <div className="mt-3 grid gap-3 md:grid-cols-2">
-                              {comparisonSchools.map((item) => {
-                                const isRec = isRecommendedItem(item);
-                                const cardClasses = isRec
-                                  ? "rounded-2xl border-2 border-[#c9a454]/45 bg-white p-4 shadow-sm sm:p-5"
-                                  : "rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5";
-                                const roleBadgeClasses = isRec
-                                  ? "inline-flex items-center rounded-full border border-[#c9a454]/45 bg-[#c9a454]/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b5e1f]"
-                                  : "inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600";
-                                return (
-                                  <div key={item.school.id} className={cardClasses}>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="text-base font-bold text-[#0f1a33]">{item.school.nombre}</p>
-                                      {recommendedSchool && (
-                                        <span className={roleBadgeClasses}>
-                                          {isRec ? "Opción más sólida ahora" : "Alternativa a validar"}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <dl className="mt-3 space-y-2.5 text-[15px] leading-relaxed">
-                                      <div>
-                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                          Punto fuerte
-                                        </dt>
-                                        <dd className="mt-0.5 text-slate-700">
-                                          {strengthByItem.get(item.school.id) ?? "Necesita más datos antes de valorar."}
-                                        </dd>
-                                      </div>
-                                      <div>
-                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                          Riesgo principal
-                                        </dt>
-                                        <dd className="mt-0.5 text-slate-700">{riskOf(item)}</dd>
-                                      </div>
-                                      <div>
-                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                          Qué pedir
-                                        </dt>
-                                        <dd className="mt-0.5 text-slate-700">{askOf(item)}</dd>
-                                      </div>
-                                    </dl>
-                                    {recommendedSchool && (
-                                      <p className="mt-4 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-[#7b5e1f]">
-                                        <span className="font-semibold uppercase tracking-wide">Lectura FlyPath:</span>{" "}
-                                        <span className="text-slate-700">{lecturaFor(isRec)}</span>
-                                      </p>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {totalSchools < 2 && (
-                              <p className="mt-3 text-[15px] leading-relaxed text-slate-500">
-                                Añade al menos 2 escuelas comparables para una comparación directa más útil.
-                              </p>
-                            )}
-                          </section>
-                        )}
-
-                        {/* 4. Decisión FlyPath */}
-                        <section className="rounded-2xl border border-[#c9a454]/35 bg-[#fffdf8] p-5 sm:p-6">
-                          {renderSectionLabel(4, "Decisión FlyPath")}
-                          <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
-                            {decisionBlock.text}
-                          </p>
-                          <ul className="mt-3 space-y-1.5 text-[15px] leading-relaxed text-slate-700">
-                            {decisionBlock.bullets.map((text) => (
-                              <li key={text} className="flex items-start gap-2.5">
-                                <span aria-hidden className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]" />
-                                <span>{text}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </section>
-
-                        {/* 5. Acción recomendada con cada escuela */}
-                        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
-                          {renderSectionLabel(5, "Acción recomendada con cada escuela")}
-                          {recommendedSchool && comparisonSchools.length > 0 ? (
-                            <div className="mt-3 grid gap-3 md:grid-cols-2">
-                              {comparisonSchools.map((item) => {
-                                const isRec = isRecommendedItem(item);
-                                const priorityLabel = isRec ? "Validar primero" : "Mantener como alternativa";
-                                const priorityClasses = isRec
-                                  ? "inline-flex items-center rounded-full border border-[#c9a454]/45 bg-[#c9a454]/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b5e1f]"
-                                  : "inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600";
-                                const cardClasses = isRec
-                                  ? "rounded-2xl border-2 border-[#c9a454]/40 bg-white p-4 sm:p-5"
-                                  : "rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5";
-                                return (
-                                  <div key={item.school.id} className={cardClasses}>
-                                    <p className="text-base font-bold text-[#0f1a33]">{item.school.nombre}</p>
-                                    <div className="mt-2.5 flex items-center gap-2">
-                                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                        Prioridad:
-                                      </span>
-                                      <span className={priorityClasses}>{priorityLabel}</span>
-                                    </div>
-                                    <div className="mt-3">
-                                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                        Acción
-                                      </p>
-                                      <p className="mt-0.5 text-[15px] leading-relaxed text-slate-700">
-                                        {actionForSchool(item)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-                              Añade al menos 2 escuelas comparables para ver la acción recomendada con cada una.
-                            </p>
-                          )}
-                        </section>
-
-                        <div className="border-t border-slate-200/90 bg-slate-50/60 px-1 py-4 sm:px-2">
-                          <p className="text-xs leading-relaxed text-slate-500">
-                            Este análisis no sustituye la confirmación oficial de la escuela. Úsalo como filtro de decisión antes de comprometer dinero.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_4px_20px_rgba(15,26,51,0.04)] sm:p-7">
+                <div
+                  className={`relative rounded-2xl p-6 sm:p-7 ${
+                    plannerPremiumContentVisible
+                      ? "border-2 border-[#c9a454]/50 bg-gradient-to-br from-[#fffdf8] via-white to-[#faf6ee] shadow-[0_8px_28px_rgba(201,164,84,0.14)] ring-1 ring-[#c9a454]/25"
+                      : "border border-slate-200/80 bg-white shadow-[0_4px_20px_rgba(15,26,51,0.04)]"
+                  }`}
+                >
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-x-16 lg:gap-y-6">
+                    <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Documentación</p>
-                  <p className="mt-1 text-base font-semibold text-[#0f1a33]">
-                    {plannerPremiumContentVisible
-                      ? "Guardar o compartir informe premium"
-                      : "Guardar o compartir informe"}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                    {plannerPremiumContentVisible ? (
+                      <Unlock className="h-5 w-5 shrink-0 text-[#c9a454]" aria-hidden />
+                    ) : null}
+                    <p className="text-base font-semibold text-[#0f1a33]">
+                      {plannerPremiumContentVisible
+                        ? "Guardar o compartir informe premium"
+                        : "Descarga tus informes gratuitos"}
+                    </p>
+                    <DocumentationStatusBadge premium={plannerPremiumContentVisible} />
+                  </div>
                   <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-600">
                     {plannerPremiumContentVisible
-                      ? "Descarga tu informe premium con análisis de escuelas, recomendación FlyPath y próximos pasos personalizados."
-                      : "Descarga tu informe gratuito o compártelo con tu familia antes de tomar una decisión."}
+                      ? "Descarga tu informe premium con comparación de escuelas, recomendación FlyPath y próximos pasos personalizados."
+                      : "Guarda tu resultado o compártelo con tu familia antes de tomar una decisión."}
                   </p>
+                  {!plannerPremiumContentVisible ? (
+                    <div className="mt-5 max-w-md">
+                      <label htmlFor="report-email" className="text-[13px] font-semibold text-slate-600">
+                        Email
+                      </label>
+                      <div className="relative mt-1.5">
+                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+                        <input
+                          id="report-email"
+                          type="email"
+                          autoComplete="email"
+                          value={reportEmail}
+                          onChange={(e) => {
+                            setReportEmail(e.target.value);
+                            if (isValidReportEmail(e.target.value)) setReportEmailDownloadHint(false);
+                          }}
+                          placeholder="tu@email.com"
+                          className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-[15px] text-[#0f1a33] shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#c9a454]/60 focus:ring-2 focus:ring-[#c9a454]/25"
+                        />
+                      </div>
+                      {reportEmailDownloadHint && !reportEmailValid ? (
+                        <p className="mt-1.5 text-[13px] text-amber-700" role="status">
+                          Introduce un email válido para descargar.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className="mt-5 flex justify-center lg:hidden">
+                    <FlyPathReportDownloadPreview premium={plannerPremiumContentVisible} />
+                  </div>
                   <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
-                      disabled={premiumPdfExporting || freePdfExporting}
+                      disabled={plannerPremiumContentVisible ? premiumPdfExporting : freePdfExporting}
+                      aria-disabled={!plannerPremiumContentVisible && !freeDownloadsEnabled}
                       onClick={async () => {
                         if (plannerPremiumContentVisible) {
                           if (premiumPdfExporting) return;
@@ -3419,6 +2324,7 @@ export function FlyPathApp({
                           }
                           return;
                         }
+                        if (!requireReportEmailForDownload()) return;
                         if (freePdfExporting) return;
                         setFreePdfExporting(true);
                         try {
@@ -3437,7 +2343,13 @@ export function FlyPathApp({
                           setFreePdfExporting(false);
                         }
                       }}
-                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
+                      className={`inline-flex w-full min-w-0 items-center justify-center rounded-xl px-6 py-3 text-[15px] font-semibold sm:w-auto ${
+                        plannerPremiumContentVisible
+                          ? "min-h-[48px] bg-[#c9a454] text-[#0f1a33] font-bold shadow-[0_8px_24px_rgba(201,164,84,0.35)] ring-1 ring-[#c9a454]/40 transition hover:bg-[#ddb75c]"
+                          : freeDownloadsEnabled
+                            ? "min-h-[44px] bg-[#c9a454] text-[#0f1a33] shadow-sm transition hover:bg-[#ddb75c]"
+                            : "min-h-[44px] cursor-not-allowed bg-slate-200 text-slate-400 shadow-sm"
+                      }`}
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                       {premiumPdfExporting || freePdfExporting
@@ -3448,7 +2360,9 @@ export function FlyPathApp({
                     </button>
                     <button
                       type="button"
+                      aria-disabled={!plannerPremiumContentVisible && !reportEmailValid}
                       onClick={async () => {
+                        if (!plannerPremiumContentVisible && !requireReportEmailForDownload()) return;
                         try {
                           const { downloadParentsReportPdf } = await import("@/lib/parentsReportPdf");
                           await downloadParentsReportPdf(reportSnapshot);
@@ -3463,40 +2377,104 @@ export function FlyPathApp({
                           showToast(pdfErr.PARENTS_PDF_ERROR_MESSAGE);
                         }
                       }}
-                      className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm sm:w-auto"
+                      className={`inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border px-6 py-3 text-[15px] font-semibold shadow-sm sm:w-auto ${
+                        plannerPremiumContentVisible || reportEmailValid
+                          ? "border-slate-300 bg-white text-[#0f1a33] transition hover:border-slate-400 hover:bg-slate-50"
+                          : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                      }`}
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                       Descargar resumen para padres
                     </button>
                   </div>
+                    </div>
+                    <div className="hidden justify-center lg:flex lg:items-center lg:justify-end">
+                      <FlyPathReportDownloadPreview premium={plannerPremiumContentVisible} />
+                    </div>
+                  </div>
                 </div>
 
-                <FlyPathNextStepsPanel
-                  recommendation={nextStepRecommendation}
-                  profile={profile}
-                  route={route}
-                  decisionReadiness={decisionReadiness}
-                  schools={schools}
-                  costInputs={costInputs}
-                  costs={costs}
-                  riskDiagnosis={riskDiagnosis}
-                  verifiedSchoolsCount={schoolStats.verifiedCount}
-                />
+                {/* Bloque premium del Informe final: después de descarga y antes de "Tu siguiente paso FlyPath". */}
+                {(() => {
+                  if (!plannerPremiumContentVisible) {
+                    return (
+                      <div className="relative overflow-hidden rounded-[28px] border-2 border-[#c9a454]/45 bg-gradient-to-br from-[#071226] via-[#0f1a33] to-[#152547] p-7 text-white shadow-[0_20px_56px_rgba(15,26,51,0.28)] ring-1 ring-[#c9a454]/25 sm:p-8">
+                        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-[#c9a454]/10 blur-2xl" aria-hidden />
+                        <div className="relative grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-6">
+                          <div className="lg:col-start-1 lg:row-start-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Lock className="h-4 w-4 text-[#f2ddaa]" aria-hidden />
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f2ddaa]">
+                                INFORME PREMIUM
+                              </span>
+                              <span className="ml-auto inline-flex rounded-full border border-[#c9a454]/40 bg-[#c9a454]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#f2ddaa]">
+                                Exclusivo
+                              </span>
+                            </div>
+                            <h3 className="mt-3 text-xl font-semibold leading-tight text-white sm:text-2xl">
+                              La diferencia entre investigar y decidir
+                            </h3>
+                            <p className="mt-3 text-[15px] leading-relaxed text-slate-300">
+                              El informe gratuito te ofrece una orientación inicial. El informe premium cruza tu perfil, presupuesto y escuelas candidatas para ayudarte a decidir con más criterio antes de pagar matrícula o depósito.
+                            </p>
+                          </div>
+                          <ul className="space-y-0.5 text-[15px] leading-relaxed text-slate-200 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
+                            {[
+                              "Veredicto FlyPath para tu caso",
+                              "Escuela más sólida entre tus candidatas",
+                              "Comparación directa entre escuelas",
+                              "Riesgos documentales, comerciales y financieros",
+                              "Qué pedir a cada escuela antes de pagar",
+                              "Decisión FlyPath y próximos pasos recomendados",
+                            ].map((item) => (
+                              <li key={item} className="flex items-start gap-3 py-1.5">
+                                <span
+                                  aria-hidden
+                                  className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a454]"
+                                />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <button
+                            type="button"
+                            onClick={goToPremiumCheckout}
+                            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_8px_24px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:w-auto lg:col-start-1 lg:row-start-2 lg:justify-self-start"
+                          >
+                            {PLANNER_PREMIUM_CHECKOUT_CTA}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
 
-                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nota importante</p>
-                  <p className="mt-1 text-[15px] text-slate-600">{disclaimerText}</p>
-                </div>
+                  return null;
+                })()}
               </div>
               );
             })()}
         </PlannerMainCanvas>
+        {tab === "report" ? (
+          <div className="mt-8 space-y-8">
+            <FlyPathNextStepsPanel
+              recommendation={nextStepRecommendation}
+              profile={profile}
+              route={route}
+              decisionReadiness={decisionReadiness}
+              schools={schools}
+              costInputs={costInputs}
+              costs={costs}
+              riskDiagnosis={riskDiagnosis}
+              verifiedSchoolsCount={schoolStats.verifiedCount}
+            />
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nota importante</p>
+              <p className="mt-1 text-[15px] text-slate-600">{disclaimerText}</p>
+            </div>
+          </div>
+        ) : null}
+        </>
       </CareerPlannerAppShell>
-      <PlannerSchoolsPremiumModal
-        open={plannerSchoolsPremiumModalOpen}
-        onClose={() => setPlannerSchoolsPremiumModalOpen(false)}
-        onUnlockClick={() => showToast("Pago FlyPath próximamente")}
-      />
     {process.env.NODE_ENV === "development" && (
       <button
         type="button"

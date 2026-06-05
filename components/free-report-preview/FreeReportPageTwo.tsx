@@ -17,8 +17,6 @@ function StepRow({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function FreeReportPageTwo({ data }: FreeReportPageTwoProps) {
-  const schoolLine = data.leadingSchool ?? "Añade escuelas al comparador para obtener una referencia";
-
   return (
     <div className="flex flex-col">
       <SectionTitle>Tu siguiente paso recomendado</SectionTitle>
@@ -38,11 +36,8 @@ export function FreeReportPageTwo({ data }: FreeReportPageTwoProps) {
             ) : null}
           </p>
         </StepRow>
-        <StepRow label="Escuela líder">
-          <p className="font-serif text-base font-medium text-[#0f1a33]">{schoolLine}</p>
-          {data.leadingSchoolHint ? (
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{data.leadingSchoolHint}</p>
-          ) : null}
+        <StepRow label="Escuelas analizadas">
+          <p>{data.analyzedSchoolsLine}</p>
         </StepRow>
         <StepRow label="Próxima acción">
           <p>{data.nextAction}</p>

@@ -21,7 +21,22 @@ import {
   schoolsInsightMessage,
   verificacionLabel,
 } from "@/components/report-preview/report-preview-utils";
-import type { ReportSnapshotV1 } from "@/lib/reporting/types/report-snapshot";
+import {
+  FLYPATH_PARTNER_DISCOUNT_CODE,
+  isFlyPathPartnerDiscountEligible,
+} from "@/lib/flypath-partner-discount";
+import {
+  PREMIUM_SCHOOLS_PER_PAGE,
+  buildComparativeAdvisory,
+  buildInformedDecisionAdvisory,
+  buildValidationBlocks,
+  buildValidationPriorityMessage,
+  chunkItems,
+  chunkValidationBlocks,
+  type AdvisoryBlock,
+  type SchoolValidationBlock,
+} from "@/lib/premium-report-advisory";
+import type { ReportSnapshotSchoolSummaryItem, ReportSnapshotV1 } from "@/lib/reporting/types/report-snapshot";
 
 Font.registerHyphenationCallback((word: string) => [word]);
 
@@ -69,12 +84,36 @@ const c = {
   cardBorder: "#e7e2d8",
 };
 
+/** Escala tipográfica premium (+10% cuerpo/insights, +15% bullets/checklists). */
+const T = {
+  body: 11,
+  bodySm: 10,
+  bullet: 11,
+  bulletDot: 11.5,
+  desc: 11,
+  insight: 11,
+  label: 9,
+  labelSm: 8.3,
+  title: 22,
+  titleLg: 26,
+  titleMd: 20,
+  subtitle: 11,
+  serifMd: 15,
+  serifLg: 24,
+  number: 10,
+  cta: 12,
+  coverBrand: 29,
+  coverMeta: 12,
+  coverName: 24,
+  coverScore: 22,
+};
+
 function txt(s: string): string {
   return s.replace(/\u00ad/g, "").replace(/\u200b/g, "");
 }
 
 const s = StyleSheet.create({
-  page: { backgroundColor: c.cream, fontFamily: FONT, fontSize: 10, color: c.navy },
+  page: { backgroundColor: c.cream, fontFamily: FONT, fontSize: T.body, color: c.navy },
   row: { flexDirection: "row", width: PAGE_W, height: PAGE_H },
   img40: { width: IMAGE_W_40, height: PAGE_H, backgroundColor: c.navy },
   img50: { width: IMAGE_W_50, height: PAGE_H, backgroundColor: c.navy },
@@ -124,7 +163,7 @@ const s = StyleSheet.create({
     borderTopColor: c.sepGold,
   },
   sectionLabel: {
-    fontSize: 8,
+    fontSize: T.label,
     letterSpacing: 3.2,
     color: c.gold,
     textTransform: "uppercase",
@@ -133,7 +172,7 @@ const s = StyleSheet.create({
   sectionTitleWrap: { marginBottom: 24 },
   sectionTitle: {
     fontFamily: FONT_SERIF_BOLD,
-    fontSize: 20,
+    fontSize: T.title,
     color: c.navy,
     lineHeight: 1.15,
   },
@@ -159,7 +198,7 @@ const s = StyleSheet.create({
     borderTopColor: c.sepGray,
     paddingTop: 6,
   },
-  footerTxt: { fontSize: 7.5, color: c.muted },
+  footerTxt: { fontSize: T.labelSm, color: c.muted },
   /* Página 3 — Ruta (columna izquierda densa) */
   routeCol: {
     width: CONTENT_W_40,
@@ -177,7 +216,7 @@ const s = StyleSheet.create({
     marginTop: 70,
   },
   routeEyebrow: {
-    fontSize: 8,
+    fontSize: T.label,
     letterSpacing: 3.2,
     color: c.gold,
     textTransform: "uppercase",
@@ -185,13 +224,13 @@ const s = StyleSheet.create({
   },
   routeTitle: {
     fontFamily: FONT_SERIF_BOLD,
-    fontSize: 24,
+    fontSize: T.titleLg,
     color: c.navy,
     lineHeight: 1.1,
     marginBottom: 6,
   },
   routeReason: {
-    fontSize: 10,
+    fontSize: T.body,
     lineHeight: 1.45,
     color: c.muted,
     marginBottom: 12,
@@ -209,7 +248,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   routePriorityLabel: {
-    fontSize: 8,
+    fontSize: T.label,
     fontFamily: FONT_BOLD,
     color: c.goldDark,
     letterSpacing: 2.6,
@@ -218,7 +257,7 @@ const s = StyleSheet.create({
   },
   routePriorityBody: {
     fontFamily: FONT_SERIF,
-    fontSize: 17,
+    fontSize: 19,
     lineHeight: 1.3,
     color: c.navy,
   },
@@ -234,13 +273,13 @@ const s = StyleSheet.create({
     marginBottom: 0,
   },
   routeBarLabel: {
-    fontSize: 10,
+    fontSize: T.body,
     fontFamily: FONT_BOLD,
     color: c.navy,
     marginBottom: 6,
   },
   routeBarLabelMuted: {
-    fontSize: 10,
+    fontSize: T.body,
     color: c.muted,
     marginBottom: 6,
   },
@@ -268,7 +307,7 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   routeInsightLabel: {
-    fontSize: 7.5,
+    fontSize: T.labelSm,
     fontFamily: FONT_BOLD,
     color: c.goldDark,
     letterSpacing: 2,
@@ -276,12 +315,12 @@ const s = StyleSheet.create({
     marginBottom: 5,
   },
   routeInsightBody: {
-    fontSize: 9,
+    fontSize: T.bodySm,
     lineHeight: 1.48,
     color: c.slate700,
   },
   routeBlockLine: {
-    fontSize: 9,
+    fontSize: T.bodySm,
     color: c.muted,
     marginTop: 0,
     width: INNER_W_40,
@@ -312,7 +351,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   risksPrincipalEyebrow: {
-    fontSize: 8,
+    fontSize: T.label,
     fontFamily: FONT_BOLD,
     color: c.muted,
     letterSpacing: 2,
@@ -321,13 +360,13 @@ const s = StyleSheet.create({
   },
   risksPrincipalTitle: {
     fontFamily: FONT_SERIF_BOLD,
-    fontSize: 20,
+    fontSize: T.title,
     color: c.navy,
     lineHeight: 1.18,
     marginBottom: 10,
   },
   risksPrincipalBody: {
-    fontSize: 10,
+    fontSize: T.body,
     lineHeight: 1.52,
     color: c.slate700,
     maxWidth: 640,
@@ -337,7 +376,7 @@ const s = StyleSheet.create({
     marginTop: 12,
   },
   risksPrincipalBadge: {
-    fontSize: 9,
+    fontSize: T.bodySm,
     fontFamily: FONT_BOLD,
     color: c.cream,
     textTransform: "uppercase",
@@ -389,13 +428,13 @@ const s = StyleSheet.create({
   },
   riskCardTitle: {
     fontFamily: FONT_SERIF_BOLD,
-    fontSize: 13.5,
+    fontSize: T.serifMd,
     color: c.navy,
     lineHeight: 1.28,
     flex: 1,
   },
   riskCardBadge: {
-    fontSize: 7,
+    fontSize: 9,
     fontFamily: FONT_BOLD,
     textTransform: "uppercase",
     paddingVertical: 3,
@@ -403,7 +442,7 @@ const s = StyleSheet.create({
     letterSpacing: 0.6,
   },
   riskCardBody: {
-    fontSize: 9,
+    fontSize: T.bodySm,
     lineHeight: 1.45,
     color: c.mutedLight,
     paddingLeft: 16,
@@ -464,9 +503,9 @@ function SectionLabel({ children }: { children: string }) {
   return <Text style={s.sectionLabel}>{txt(children)}</Text>;
 }
 
-function SectionTitle({ children }: { children: string }) {
+function SectionTitle({ children, compact }: { children: string; compact?: boolean }) {
   return (
-    <View style={s.sectionTitleWrap}>
+    <View style={{ marginBottom: compact ? 14 : 24 }}>
       <Text style={s.sectionTitle}>{txt(children)}</Text>
     </View>
   );
@@ -497,7 +536,7 @@ function FlyPathInsightBox({
     >
       <Text
         style={{
-          fontSize: 8,
+          fontSize: T.label,
           fontFamily: FONT_BOLD,
           color: c.goldDark,
           letterSpacing: 2.2,
@@ -507,7 +546,7 @@ function FlyPathInsightBox({
       >
         FlyPath Insight
       </Text>
-      <Text style={{ fontSize: 10, lineHeight: 1.52, color: c.slate700 }}>{txt(children)}</Text>
+      <Text style={{ fontSize: T.insight, lineHeight: 1.52, color: c.slate700 }}>{txt(children)}</Text>
     </View>
   );
 }
@@ -532,7 +571,7 @@ function InterpretationBlock({
     >
       <Text
         style={{
-          fontSize: 8,
+          fontSize: T.label,
           fontFamily: FONT_BOLD,
           color: c.gold,
           letterSpacing: 2,
@@ -542,7 +581,7 @@ function InterpretationBlock({
       >
         {txt(title)}
       </Text>
-      <Text style={{ fontSize: 10, lineHeight: 1.45, color: c.slate700 }}>{txt(body)}</Text>
+      <Text style={{ fontSize: T.desc, lineHeight: 1.45, color: c.slate700 }}>{txt(body)}</Text>
     </View>
   );
 }
@@ -553,6 +592,272 @@ function SideImage({ src, wide }: { src: string | null; wide?: boolean }) {
   return (
     <View style={box}>
       {src ? <Image src={src} style={style} /> : <View style={{ width: "100%", height: PAGE_H, backgroundColor: "#1a2744" }} />}
+    </View>
+  );
+}
+
+function FullContentPage({
+  sectionLabel,
+  children,
+  compact,
+}: {
+  sectionLabel: string;
+  children: ReactNode;
+  compact?: boolean;
+}) {
+  return (
+    <Page size="A4" orientation="landscape" style={s.page}>
+      <View style={compact ? [s.full, { paddingTop: 32, paddingBottom: 36 }] : s.full}>
+        <Text style={compact ? [s.sectionLabel, { marginBottom: 14 }] : s.sectionLabel}>{txt(sectionLabel)}</Text>
+        {children}
+      </View>
+      <PageFooter full />
+    </Page>
+  );
+}
+
+function PdfSubtitle({ children, compact }: { children: string; compact?: boolean }) {
+  return (
+    <Text
+      style={{
+        fontSize: T.subtitle,
+        lineHeight: 1.5,
+        color: c.muted,
+        marginBottom: compact ? 12 : 18,
+        marginTop: compact ? -8 : -12,
+      }}
+    >
+      {txt(children)}
+    </Text>
+  );
+}
+
+function PdfBulletItem({ children, compact }: { children: string; compact?: boolean }) {
+  return (
+    <View style={{ flexDirection: "row", marginTop: compact ? 4 : 6 }}>
+      <Text style={{ width: 14, fontSize: T.bulletDot, color: c.gold }}>·</Text>
+      <Text style={{ fontSize: T.bullet, lineHeight: 1.48, color: c.slate700, width: 680 }}>{txt(children)}</Text>
+    </View>
+  );
+}
+
+function PdfAdvisoryCalloutBox({ title, body }: { title: string; body: string }) {
+  return (
+    <View
+      style={{
+        backgroundColor: c.insightBg,
+        borderLeftWidth: 3,
+        borderLeftColor: c.sepGold,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginTop: 14,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: T.label,
+          fontFamily: FONT_BOLD,
+          color: c.goldDark,
+          letterSpacing: 1.6,
+          textTransform: "uppercase",
+          marginBottom: 6,
+        }}
+      >
+        {txt(title)}
+      </Text>
+      <Text style={{ fontSize: T.body, fontFamily: FONT_SERIF, color: c.navy, lineHeight: 1.5 }}>{txt(body)}</Text>
+    </View>
+  );
+}
+
+function comparativeBlockShortTitle(title: string): string {
+  if (title.includes("precio")) return "Mejor por precio";
+  if (title.includes("seguridad")) return "Más segura";
+  if (title.includes("validación")) return "Requiere validación";
+  if (title.includes("sólida")) return "Escuela más sólida";
+  return title;
+}
+
+function PdfAdvisoryGridCell({ block, width }: { block: AdvisoryBlock | null; width: number }) {
+  if (!block) return <View style={{ width }} />;
+
+  return (
+    <View
+      style={{
+        width,
+        backgroundColor: c.cardBg,
+        borderTopWidth: 0.5,
+        borderRightWidth: 0.5,
+        borderBottomWidth: 0.5,
+        borderLeftWidth: 0.5,
+        borderTopColor: c.cardBorder,
+        borderRightColor: c.cardBorder,
+        borderBottomColor: c.cardBorder,
+        borderLeftColor: c.cardBorder,
+        paddingVertical: 14,
+        paddingHorizontal: 14,
+        minHeight: 128,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: T.label,
+          fontFamily: FONT_BOLD,
+          color: c.goldDark,
+          letterSpacing: 1.4,
+          textTransform: "uppercase",
+        }}
+      >
+        {txt(comparativeBlockShortTitle(block.title))}
+      </Text>
+      <Text
+        style={{
+          fontFamily: FONT_SERIF_BOLD,
+          fontSize: 13,
+          color: c.navy,
+          marginTop: 8,
+          lineHeight: 1.25,
+        }}
+      >
+        {txt(block.schoolName)}
+      </Text>
+      {block.reasons.slice(0, 3).map((reason) => (
+        <Text key={reason} style={{ fontSize: T.bullet, color: c.slate700, marginTop: 5, lineHeight: 1.4 }}>
+          · {txt(reason)}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+function PdfComparativeGrid({ blocks, innerWidth }: { blocks: AdvisoryBlock[]; innerWidth: number }) {
+  const gap = 12;
+  const cellWidth = (innerWidth - gap) / 2;
+  const slots: (AdvisoryBlock | null)[] = [blocks[0] ?? null, blocks[1] ?? null, blocks[2] ?? null, blocks[3] ?? null];
+
+  return (
+    <View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: gap }}>
+        <PdfAdvisoryGridCell block={slots[0]} width={cellWidth} />
+        <PdfAdvisoryGridCell block={slots[1]} width={cellWidth} />
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <PdfAdvisoryGridCell block={slots[2]} width={cellWidth} />
+        <PdfAdvisoryGridCell block={slots[3]} width={cellWidth} />
+      </View>
+    </View>
+  );
+}
+
+function PdfValidationExecutiveCard({ block, width }: { block: SchoolValidationBlock; width: number }) {
+  const items = block.shortItems.length > 0 ? block.shortItems : ["Documentación base"];
+
+  return (
+    <View
+      style={{
+        width,
+        backgroundColor: c.cardBg,
+        borderTopWidth: 0.5,
+        borderRightWidth: 0.5,
+        borderBottomWidth: 0.5,
+        borderLeftWidth: 3,
+        borderTopColor: c.cardBorder,
+        borderRightColor: c.cardBorder,
+        borderBottomColor: c.cardBorder,
+        borderLeftColor: c.sepGold,
+        paddingVertical: 16,
+        paddingHorizontal: 14,
+        minHeight: 120,
+      }}
+    >
+      <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 13, color: c.navy, lineHeight: 1.2 }}>
+        {txt(block.schoolName)}
+      </Text>
+      <Text
+        style={{
+          fontSize: T.label,
+          color: c.muted,
+          letterSpacing: 1,
+          textTransform: "uppercase",
+          marginTop: 10,
+          marginBottom: 8,
+        }}
+      >
+        Validar antes de pagar
+      </Text>
+      {items.map((item) => (
+        <View key={item} style={{ flexDirection: "row", marginTop: 4 }}>
+          <Text style={{ width: 14, fontSize: T.bullet, color: c.gold }}>✓</Text>
+          <Text style={{ fontSize: T.bullet, color: c.slate700, lineHeight: 1.35, flex: 1 }}>{txt(item)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function PdfValidationExecutiveGrid({ blocks }: { blocks: SchoolValidationBlock[] }) {
+  const pageInner = PAGE_W - 80;
+  const gap = 14;
+  const cardWidth = (pageInner - gap) / 2;
+  const rows: SchoolValidationBlock[][] = [];
+  for (let i = 0; i < blocks.length; i += 2) {
+    rows.push(blocks.slice(i, i + 2));
+  }
+
+  return (
+    <View>
+      {rows.map((row, rowIndex) => (
+        <View
+          key={`validation-row-${rowIndex}`}
+          style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: rowIndex < rows.length - 1 ? gap : 0 }}
+        >
+          {row.map((block) => (
+            <PdfValidationExecutiveCard key={block.schoolName} block={block} width={cardWidth} />
+          ))}
+          {row.length === 1 ? <View style={{ width: cardWidth }} /> : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function PdfSchoolCard({
+  school,
+  bestSchoolName,
+}: {
+  school: ReportSnapshotSchoolSummaryItem;
+  bestSchoolName: string | null;
+}) {
+  const loc = [school.ciudad, school.pais].filter(Boolean).join(" · ");
+  const action = schoolRecommendedAction(school, bestSchoolName);
+  const showAction = action && !/^Cerrar pendientes:/i.test(action);
+
+  return (
+    <View style={{ borderTopWidth: 0.5, borderTopColor: c.sepDivider, paddingTop: 14, marginTop: 10 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <View style={{ flex: 1, paddingRight: 14, maxWidth: 300 }}>
+          <Text style={{ fontFamily: FONT_SERIF, fontSize: 15, lineHeight: 1.25 }}>{txt(school.nombre)}</Text>
+          <Text style={{ fontSize: T.bodySm, color: c.muted, marginTop: 4, lineHeight: 1.35 }}>
+            {txt(loc)} · {txt(programaLabel(school.programa))}
+          </Text>
+        </View>
+        <Text style={{ fontFamily: FONT_SERIF, fontSize: 16, color: c.navy, minWidth: 72, textAlign: "right" }}>
+          {formatEuro(school.precioAnunciado)}
+        </Text>
+      </View>
+      <Text style={{ fontSize: T.bodySm, marginTop: 10 }}>
+        <Text style={{ fontSize: T.label, color: c.muted, letterSpacing: 1, textTransform: "uppercase" }}>Verificación · </Text>
+        <Text style={{ fontFamily: FONT_BOLD }}>{txt(verificacionLabel(school.estadoVerificacion))}</Text>
+      </Text>
+      <Text style={{ fontSize: T.bodySm, lineHeight: 1.45, color: c.slate700, marginTop: 8 }}>
+        <Text style={{ fontFamily: FONT_BOLD, color: c.navy }}>Pendientes · </Text>
+        {school.pendientes.length > 0
+          ? txt(school.pendientes.slice(0, 3).join(" · "))
+          : "Documentación base completa"}
+      </Text>
+      {showAction ? (
+        <Text style={{ fontSize: T.bodySm, color: c.goldDark, marginTop: 10, lineHeight: 1.4 }}>{txt(action)}</Text>
+      ) : null}
     </View>
   );
 }
@@ -703,13 +1008,13 @@ function PdfCoverPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets
     <SplitPage imageSrc={assets.images.cover} imageLeft ratio50>
       <View>
         <Text>
-          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 26, color: c.navy }}>Fly</Text>
-          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 26, color: c.gold }}>Path</Text>
+          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 29, color: c.navy }}>Fly</Text>
+          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 29, color: c.gold }}>Path</Text>
         </Text>
-        <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 26, color: c.navy, marginTop: 24, lineHeight: 1.08 }}>
+        <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 29, color: c.navy, marginTop: 24, lineHeight: 1.08 }}>
           Briefing de decisión
         </Text>
-        <Text style={{ fontSize: 11, color: c.muted, marginTop: 12 }}>Antes de comprometer pagos o elegir escuela</Text>
+        <Text style={{ fontSize: 12, color: c.muted, marginTop: 12 }}>Antes de comprometer pagos o elegir escuela</Text>
 
         <View
           style={{
@@ -721,33 +1026,33 @@ function PdfCoverPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets
             marginTop: 24,
           }}
         >
-          <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 2, textTransform: "uppercase" }}>
+          <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 2, textTransform: "uppercase" }}>
             Preparado para
           </Text>
-          <Text style={{ fontFamily: FONT_SERIF, fontSize: 22, color: c.navy, marginTop: 6, lineHeight: 1.15 }}>
+          <Text style={{ fontFamily: FONT_SERIF, fontSize: 24, color: c.navy, marginTop: 6, lineHeight: 1.15 }}>
             {txt(displayName)}
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 20 }}>
             <View style={{ width: 200, marginBottom: 12, marginRight: 16 }}>
-              <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>Ruta</Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, marginTop: 3 }}>{txt(route.recommended)}</Text>
+              <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>Ruta</Text>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 12, marginTop: 3 }}>{txt(route.recommended)}</Text>
             </View>
             <View style={{ width: 200, marginBottom: 12 }}>
-              <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>
+              <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>
                 Índice de decisión
               </Text>
-              <Text style={{ fontFamily: FONT_SERIF, fontSize: 20, marginTop: 3 }}>
+              <Text style={{ fontFamily: FONT_SERIF, fontSize: 22, marginTop: 3 }}>
                 {snapshot.readiness.score}
-                <Text style={{ fontSize: 11, color: c.mutedLight }}> /100</Text>
+                <Text style={{ fontSize: 12, color: c.mutedLight }}> /100</Text>
               </Text>
             </View>
             <View style={{ width: 200, marginBottom: 12, marginRight: 16 }}>
-              <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>Riesgo</Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, marginTop: 3 }}>{txt(snapshot.risks.highestLevel)}</Text>
+              <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>Riesgo</Text>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 12, marginTop: 3 }}>{txt(snapshot.risks.highestLevel)}</Text>
             </View>
             <View style={{ width: 200, marginBottom: 12 }}>
-              <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>Decisión</Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, marginTop: 3 }}>
+              <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>Decisión</Text>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 12, marginTop: 3 }}>
                 {txt(paymentDecisionHeadline(snapshot.readiness.decision))}
               </Text>
             </View>
@@ -755,12 +1060,12 @@ function PdfCoverPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets
         </View>
 
         <View style={{ flexDirection: "row", marginTop: 8 }}>
-          <Text style={{ fontSize: 10, color: c.muted, marginRight: 32 }}>
-            <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.2, textTransform: "uppercase" }}>Objetivo · </Text>
+          <Text style={{ fontSize: 11, color: c.muted, marginRight: 32 }}>
+            <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.2, textTransform: "uppercase" }}>Objetivo · </Text>
             {txt(objetivoLabel(snapshot.profile.objetivo))}
           </Text>
-          <Text style={{ fontSize: 10, color: c.muted }}>
-            <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.2, textTransform: "uppercase" }}>Fecha · </Text>
+          <Text style={{ fontSize: 11, color: c.muted }}>
+            <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.2, textTransform: "uppercase" }}>Fecha · </Text>
             {txt(snapshot.generatedAt)}
           </Text>
         </View>
@@ -824,7 +1129,7 @@ function PdfRoutePage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets
                       {r.rec ? (
                         <Text
                           style={{
-                            fontSize: 8,
+                            fontSize: 9,
                             color: c.gold,
                             textTransform: "uppercase",
                             letterSpacing: 0.6,
@@ -878,7 +1183,7 @@ function PdfRisksPage({ snapshot }: { snapshot: ReportSnapshotV1 }) {
       <View style={s.risksPage}>
         <View style={s.risksContentStack}>
           <Text style={{ ...s.sectionLabel, marginBottom: 8 }}>III · Riesgos</Text>
-          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 22, color: c.navy, marginBottom: 12 }}>Mapa de riesgos</Text>
+          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 24, color: c.navy, marginBottom: 12 }}>Mapa de riesgos</Text>
 
           {principal ? (
             <View style={s.risksPrincipalHero}>
@@ -928,13 +1233,13 @@ function PdfFinancesPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; ass
       <View>
         <SectionTitle>Panorama de inversión</SectionTitle>
         <View style={{ marginBottom: 10 }}>
-          <Text style={{ fontFamily: FONT_SERIF, fontSize: 32, color: c.navy, lineHeight: 1.05 }}>
+          <Text style={{ fontFamily: FONT_SERIF, fontSize: 35, color: c.navy, lineHeight: 1.05 }}>
             {formatEuro(sum.totalRealista)}
           </Text>
         </View>
         <Text
           style={{
-            fontSize: 8,
+            fontSize: 9,
             fontFamily: FONT_BOLD,
             color: c.muted,
             letterSpacing: 2,
@@ -947,9 +1252,9 @@ function PdfFinancesPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; ass
         </Text>
 
         <View style={{ borderLeftWidth: 3, borderLeftColor: c.sepGold, paddingLeft: 20, marginTop: 20, marginBottom: 18 }}>
-          <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.8, textTransform: "uppercase" }}>Brecha financiera</Text>
-          <Text style={{ fontFamily: FONT_SERIF, fontSize: 24, color: c.navy, marginTop: 4 }}>{formatEuro(sum.brechaFinanciacion)}</Text>
-          <Text style={{ fontSize: 10, color: c.muted, marginTop: 4 }}>
+          <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.8, textTransform: "uppercase" }}>Brecha financiera</Text>
+          <Text style={{ fontFamily: FONT_SERIF, fontSize: 26, color: c.navy, marginTop: 4 }}>{formatEuro(sum.brechaFinanciacion)}</Text>
+          <Text style={{ fontSize: 11, color: c.muted, marginTop: 4 }}>
             Cobertura {sum.coveragePct}%
             {sum.mesesCerrarBrecha > 0 ? ` · ~${sum.mesesCerrarBrecha} meses` : ""}
           </Text>
@@ -974,7 +1279,7 @@ function PdfFinancesPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; ass
             <View key={cell.label} style={{ width: 128, marginRight: 6 }}>
               <Text
                 style={{
-                  fontSize: 8,
+                  fontSize: 9,
                   color: c.muted,
                   letterSpacing: 1.2,
                   textTransform: "uppercase",
@@ -983,7 +1288,7 @@ function PdfFinancesPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; ass
               >
                 {cell.label}
               </Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 9.5, color: c.navy, marginTop: 9, lineHeight: 1.2 }}>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, color: c.navy, marginTop: 9, lineHeight: 1.2 }}>
                 {cell.value}
               </Text>
             </View>
@@ -993,22 +1298,22 @@ function PdfFinancesPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; ass
         <View style={{ flexDirection: "row", marginBottom: 14, width: INNER_W_40 }}>
           <View style={{ width: INNER_W_40 / 2 - 6 }}>
             <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 8, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Formación</Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 10, marginTop: 6 }}>{formatEuro(sum.subtotalFormacion)}</Text>
+              <Text style={{ fontSize: 9, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Formación</Text>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, marginTop: 6 }}>{formatEuro(sum.subtotalFormacion)}</Text>
             </View>
             <View>
-              <Text style={{ fontSize: 8, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Extras</Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 10, marginTop: 6 }}>{formatEuro(sum.subtotalExtras)}</Text>
+              <Text style={{ fontSize: 9, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Extras</Text>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, marginTop: 6 }}>{formatEuro(sum.subtotalExtras)}</Text>
             </View>
           </View>
           <View style={{ width: INNER_W_40 / 2 - 6 }}>
             <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 8, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Vida</Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 10, marginTop: 6 }}>{formatEuro(sum.subtotalVida)}</Text>
+              <Text style={{ fontSize: 9, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Vida</Text>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, marginTop: 6 }}>{formatEuro(sum.subtotalVida)}</Text>
             </View>
             <View>
-              <Text style={{ fontSize: 8, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Riesgo</Text>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 10, marginTop: 6 }}>{txt(sum.riesgoFinanciero)}</Text>
+              <Text style={{ fontSize: 9, color: c.muted, textTransform: "uppercase", letterSpacing: 1 }}>Riesgo</Text>
+              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, marginTop: 6 }}>{txt(sum.riesgoFinanciero)}</Text>
             </View>
           </View>
         </View>
@@ -1039,17 +1344,17 @@ function PdfActionPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; asset
         {phases.map((ph, i) => (
           <View key={ph.days} style={{ marginBottom: i < 2 ? 26 : 0 }}>
             <View style={{ flexDirection: "row", alignItems: "baseline" }}>
-              <Text style={{ fontFamily: FONT_SERIF, fontSize: 18, color: c.gold, width: 88 }}>
+              <Text style={{ fontFamily: FONT_SERIF, fontSize: 20, color: c.gold, width: 88 }}>
                 <Text>{ph.days} </Text>
-                <Text style={{ fontSize: 14 }}>días</Text>
+                <Text style={{ fontSize: 15 }}>días</Text>
               </Text>
-              <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase", marginLeft: 4 }}>
+              <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase", marginLeft: 4 }}>
                 {ph.hint}
               </Text>
             </View>
             <View style={{ borderLeftWidth: 1, borderLeftColor: c.sepBeige, paddingLeft: 20, marginTop: 12, marginLeft: 4 }}>
               {(ph.items.length ? ph.items.slice(0, 2) : ["—"]).map((item) => (
-                <Text key={item} style={{ fontSize: 10, lineHeight: 1.5, color: c.navy, marginBottom: 10 }}>
+                <Text key={item} style={{ fontSize: 11, lineHeight: 1.5, color: c.navy, marginBottom: 10 }}>
                   {txt(item)}
                 </Text>
               ))}
@@ -1058,7 +1363,7 @@ function PdfActionPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; asset
         ))}
         {steps.length > 0 ? (
           <View style={{ paddingTop: 18, marginTop: 6 }}>
-            <Text style={{ fontSize: 8, fontFamily: FONT_BOLD, color: c.muted, letterSpacing: 2.2, textTransform: "uppercase" }}>
+            <Text style={{ fontSize: 9, fontFamily: FONT_BOLD, color: c.muted, letterSpacing: 2.2, textTransform: "uppercase" }}>
               {proximosTitle}
             </Text>
             {steps.map((step, i) => (
@@ -1074,9 +1379,9 @@ function PdfActionPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; asset
                     marginRight: 16,
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontFamily: FONT_BOLD, color: c.cream }}>{i + 1}</Text>
+                  <Text style={{ fontSize: 11, fontFamily: FONT_BOLD, color: c.cream }}>{i + 1}</Text>
                 </View>
-                <Text style={{ fontSize: 10, lineHeight: 1.5, color: c.slate700, width: 380, paddingTop: 5 }}>
+                <Text style={{ fontSize: 11, lineHeight: 1.5, color: c.slate700, width: 380, paddingTop: 5 }}>
                   {txt(step)}
                 </Text>
               </View>
@@ -1088,120 +1393,347 @@ function PdfActionPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; asset
   );
 }
 
-/* —— Página 7: SchoolsOverview (50/50) —— */
-function PdfSchoolsPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets: PremiumPdfAssets }) {
+/* —— Páginas VI: SchoolsOverview (máx. 3 escuelas/página) —— */
+function PdfSchoolsEmptyState({ schoolsUrl }: { schoolsUrl: string }) {
+  return (
+    <View>
+      <SectionTitle>Comparativa documental</SectionTitle>
+      <View
+        style={{
+          backgroundColor: c.insightBg,
+          borderLeftWidth: 3,
+          borderLeftColor: c.sepGold,
+          paddingVertical: 24,
+          paddingHorizontal: 22,
+          marginTop: 8,
+        }}
+      >
+        <Text style={{ fontFamily: FONT_SERIF, fontSize: 20, color: c.navy, marginBottom: 10 }}>
+          Aún no hay escuelas comparadas
+        </Text>
+        <Text style={{ fontSize: 12, color: c.navy, lineHeight: 1.5, marginBottom: 18 }}>
+          Añade al menos 2 escuelas para desbloquear la comparativa documental.
+        </Text>
+        <Link
+          src={schoolsUrl}
+          style={{
+            backgroundColor: c.gold,
+            paddingVertical: 10,
+            paddingHorizontal: 18,
+            alignSelf: "flex-start",
+            marginBottom: 20,
+          }}
+        >
+          <Text style={{ fontFamily: FONT_BOLD, fontSize: 11.5, color: c.navy }}>Añadir escuelas al comparador</Text>
+        </Link>
+        {["Contrato y condiciones por escrito", "Calendario de pagos confirmado", "Política de reembolso y extras incluidos"].map(
+          (bullet) => (
+            <View key={bullet} style={{ flexDirection: "row", marginTop: 6 }}>
+              <Text style={{ width: 14, fontSize: 11, color: c.gold }}>·</Text>
+              <Text style={{ fontSize: 11, color: c.muted, width: 360 }}>{bullet}</Text>
+            </View>
+          ),
+        )}
+      </View>
+    </View>
+  );
+}
+
+function PdfSchoolsChunkPage({
+  snapshot,
+  assets,
+  schools,
+  chunkIndex,
+  totalChunks,
+}: {
+  snapshot: ReportSnapshotV1;
+  assets: PremiumPdfAssets;
+  schools: ReportSnapshotSchoolSummaryItem[];
+  chunkIndex: number;
+  totalChunks: number;
+}) {
+  const { schoolsSummary } = snapshot;
+  const isFirst = chunkIndex === 0;
+  const isLast = chunkIndex === totalChunks - 1;
+  const sectionLabel =
+    totalChunks > 1 ? `VI · Escuelas (${chunkIndex + 1}/${totalChunks})` : "VI · Escuelas";
+
+  const body = (
+    <View>
+      {isFirst ? (
+        <SectionTitle compact>Comparativa documental</SectionTitle>
+      ) : (
+        <SectionTitle compact>Comparativa documental · continuación</SectionTitle>
+      )}
+      {schools.map((school) => (
+        <PdfSchoolCard key={school.id} school={school} bestSchoolName={schoolsSummary.bestSchoolName} />
+      ))}
+      {isLast ? (
+        <FlyPathInsightBox>
+          {schoolsInsightMessage(schoolsSummary.verifiedCount, schoolsSummary.total, schoolsSummary.bestSchoolName)}
+        </FlyPathInsightBox>
+      ) : null}
+    </View>
+  );
+
+  if (isFirst) {
+    return (
+      <SplitPage imageSrc={assets.images.schools} imageLeft ratio50 sectionLabel={sectionLabel}>
+        {body}
+      </SplitPage>
+    );
+  }
+
+  return <FullContentPage sectionLabel={sectionLabel}>{body}</FullContentPage>;
+}
+
+function PdfSchoolsPages(snapshot: ReportSnapshotV1, assets: PremiumPdfAssets): ReactElement[] {
   const { schoolsSummary } = snapshot;
   const schoolsUrl = `${assets.origin}/schools`;
 
+  if (schoolsSummary.total === 0 || schoolsSummary.items.length === 0) {
+    return [
+      <SplitPage key="schools-empty" imageSrc={assets.images.schools} imageLeft ratio50 sectionLabel="VI · Escuelas">
+        <PdfSchoolsEmptyState schoolsUrl={schoolsUrl} />
+      </SplitPage>,
+    ];
+  }
+
+  const chunks = chunkItems(schoolsSummary.items, PREMIUM_SCHOOLS_PER_PAGE);
+  return chunks.map((schools, index) => (
+    <PdfSchoolsChunkPage
+      key={`schools-${index}`}
+      snapshot={snapshot}
+      assets={assets}
+      schools={schools}
+      chunkIndex={index}
+      totalChunks={chunks.length}
+    />
+  ));
+}
+
+/* —— VIII · Análisis comparativo FlyPath —— */
+function PdfComparativePage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets: PremiumPdfAssets }) {
+  const advisory = buildComparativeAdvisory(snapshot);
+  const blocks = [advisory.mostSolid, advisory.bestPrice, advisory.bestSecurity, advisory.needsValidation].filter(
+    Boolean,
+  ) as AdvisoryBlock[];
+
   return (
-    <SplitPage imageSrc={assets.images.schools} imageLeft ratio50 sectionLabel="VI · Escuelas">
-      {schoolsSummary.total > 0 ? (
-        <View>
-          <SectionTitle>Comparativa documental</SectionTitle>
-          <Link src={schoolsUrl} style={{ fontSize: 10, color: c.navy, textDecoration: "underline", marginBottom: 16 }}>
-            Ver comparativa completa en FlyPath
-          </Link>
-          <Text style={{ fontSize: 10, fontFamily: FONT_BOLD, color: c.navy, marginBottom: 20 }}>
-            {schoolsSummary.verifiedCount}/{schoolsSummary.total} verificadas
-            {schoolsSummary.bestSchoolName ? (
-              <Text style={{ fontFamily: FONT, color: c.muted }}> · Líder: {txt(schoolsSummary.bestSchoolName)}</Text>
-            ) : null}
-          </Text>
-          {schoolsSummary.items.map((school) => {
-            const loc = [school.ciudad, school.pais].filter(Boolean).join(" · ");
-            const action = schoolRecommendedAction(school, schoolsSummary.bestSchoolName);
-            return (
-              <View
-                key={school.id}
-                style={{ borderTopWidth: 0.5, borderTopColor: c.sepDivider, paddingTop: 18, marginTop: 8 }}
-              >
-                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontFamily: FONT_SERIF, fontSize: 14, width: 280, lineHeight: 1.25 }}>{txt(school.nombre)}</Text>
-                  <Text style={{ fontFamily: FONT_SERIF, fontSize: 16 }}>{formatEuro(school.precioAnunciado)}</Text>
-                </View>
-                <Text style={{ fontSize: 10, color: c.muted, marginTop: 4 }}>
-                  {txt(loc)} · {txt(programaLabel(school.programa))}
-                </Text>
-                <Text style={{ fontSize: 10, marginTop: 16 }}>
-                  <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1, textTransform: "uppercase" }}>Verificación · </Text>
-                  <Text style={{ fontFamily: FONT_BOLD }}>{txt(verificacionLabel(school.estadoVerificacion))}</Text>
-                </Text>
-                <Text style={{ fontSize: 10, lineHeight: 1.48, color: c.slate700, marginTop: 12 }}>
-                  <Text style={{ fontFamily: FONT_BOLD, color: c.navy }}>Pendientes · </Text>
-                  {school.pendientes.length > 0
-                    ? txt(school.pendientes.slice(0, 3).join(" · "))
-                    : "Documentación base completa"}
-                </Text>
-                {action ? (
-                  <Text style={{ fontSize: 9, color: c.goldDark, marginTop: 8, lineHeight: 1.4 }}>{txt(action)}</Text>
-                ) : null}
-              </View>
-            );
-          })}
-          <FlyPathInsightBox>{schoolsInsightMessage(schoolsSummary.verifiedCount, schoolsSummary.total, schoolsSummary.bestSchoolName)}</FlyPathInsightBox>
-        </View>
-      ) : (
-        <View>
-          <SectionTitle>Comparativa documental</SectionTitle>
-          <View
-            style={{
-              backgroundColor: c.insightBg,
-              borderLeftWidth: 3,
-              borderLeftColor: c.sepGold,
-              paddingVertical: 24,
-              paddingHorizontal: 22,
-              marginTop: 8,
-            }}
-          >
-            <Text style={{ fontFamily: FONT_SERIF, fontSize: 18, color: c.navy, marginBottom: 10 }}>
-              Aún no hay escuelas comparadas
-            </Text>
-            <Text style={{ fontSize: 11, color: c.navy, lineHeight: 1.5, marginBottom: 18 }}>
-              Añade al menos 2 escuelas para desbloquear la comparativa documental.
-            </Text>
-            <Link
-              src={schoolsUrl}
-              style={{
-                backgroundColor: c.gold,
-                paddingVertical: 10,
-                paddingHorizontal: 18,
-                alignSelf: "flex-start",
-                marginBottom: 20,
-              }}
-            >
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 10.5, color: c.navy }}>Añadir escuelas al comparador</Text>
-            </Link>
-            {["Contrato y condiciones por escrito", "Calendario de pagos confirmado", "Política de reembolso y extras incluidos"].map(
-              (bullet) => (
-                <View key={bullet} style={{ flexDirection: "row", marginTop: 6 }}>
-                  <Text style={{ width: 14, fontSize: 10, color: c.gold }}>·</Text>
-                  <Text style={{ fontSize: 10, color: c.muted, width: 360 }}>{bullet}</Text>
-                </View>
-              ),
-            )}
-          </View>
-        </View>
-      )}
+    <SplitPage imageSrc={assets.images.executive} imageLeft={false} alignTop sectionLabel="VIII · Análisis comparativo FlyPath">
+      <View>
+        <SectionTitle compact>Análisis comparativo FlyPath</SectionTitle>
+        <PdfSubtitle compact>Interpretación FlyPath — lectura rápida por escenario.</PdfSubtitle>
+        {blocks.length > 0 ? (
+          <PdfComparativeGrid blocks={blocks} innerWidth={INNER_W_40} />
+        ) : (
+          <FlyPathInsightBox>
+            Añade escuelas al comparador para recibir el análisis comparativo FlyPath personalizado.
+          </FlyPathInsightBox>
+        )}
+      </View>
     </SplitPage>
   );
 }
 
-/* —— Página 8: FinalRecommendation (reverse 40%) —— */
+function PdfValidationChunkPage({
+  snapshot,
+  blocks,
+  chunkIndex,
+  totalChunks,
+}: {
+  snapshot: ReportSnapshotV1;
+  blocks: SchoolValidationBlock[];
+  chunkIndex: number;
+  totalChunks: number;
+}) {
+  const sectionLabel =
+    totalChunks > 1
+      ? `IX · Validaciones pendientes (${chunkIndex + 1}/${totalChunks})`
+      : "IX · Validaciones pendientes";
+
+  return (
+    <FullContentPage sectionLabel={sectionLabel} compact>
+      {chunkIndex === 0 ? (
+        <>
+          <SectionTitle compact>Validaciones pendientes por escuela</SectionTitle>
+          <PdfSubtitle compact>Qué pedir por escrito antes de transferir dinero o reservar plaza.</PdfSubtitle>
+        </>
+      ) : (
+        <SectionTitle compact>Validaciones pendientes · continuación</SectionTitle>
+      )}
+      <PdfValidationExecutiveGrid blocks={blocks} />
+      {chunkIndex === totalChunks - 1 ? (
+        <PdfAdvisoryCalloutBox
+          title="Prioridad de validación"
+          body={buildValidationPriorityMessage(snapshot)}
+        />
+      ) : null}
+    </FullContentPage>
+  );
+}
+
+function PdfValidationPages(snapshot: ReportSnapshotV1): ReactElement[] {
+  const blocks = buildValidationBlocks(snapshot);
+  if (blocks.length === 0) {
+    return [
+      <FullContentPage key="validation-empty" sectionLabel="IX · Validaciones pendientes" compact>
+        <SectionTitle compact>Validaciones pendientes por escuela</SectionTitle>
+        <PdfSubtitle compact>Qué pedir por escrito antes de transferir dinero o reservar plaza.</PdfSubtitle>
+        <FlyPathInsightBox>
+          Cuando añadas escuelas al comparador, generaremos aquí la lista de confirmaciones específicas para cada una.
+        </FlyPathInsightBox>
+      </FullContentPage>,
+    ];
+  }
+
+  const chunks = chunkValidationBlocks(blocks);
+  return chunks.map((chunk, index) => (
+    <PdfValidationChunkPage
+      key={`validation-${index}`}
+      snapshot={snapshot}
+      blocks={chunk}
+      chunkIndex={index}
+      totalChunks={chunks.length}
+    />
+  ));
+}
+
+/* —— X · Qué haríamos en tu situación —— */
+function PdfInformedDecisionPage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets: PremiumPdfAssets }) {
+  const decision = buildInformedDecisionAdvisory(snapshot);
+
+  return (
+    <SplitPage imageSrc={assets.images.route} imageLeft alignTop sectionLabel="X · Qué haríamos en tu situación">
+      <View>
+        <SectionTitle>Qué haríamos en tu situación</SectionTitle>
+        <PdfSubtitle>Decisiones y acciones concretas para esta semana.</PdfSubtitle>
+
+        <Text
+          style={{
+            fontSize: T.label,
+            fontFamily: FONT_BOLD,
+            color: c.goldDark,
+            letterSpacing: 1.6,
+            textTransform: "uppercase",
+            marginTop: 4,
+          }}
+        >
+          Qué evitaríamos
+        </Text>
+        {decision.avoid.map((item) => (
+          <PdfBulletItem key={item}>{item}</PdfBulletItem>
+        ))}
+
+        <Text
+          style={{
+            fontSize: T.label,
+            fontFamily: FONT_BOLD,
+            color: c.goldDark,
+            letterSpacing: 1.6,
+            textTransform: "uppercase",
+            marginTop: 18,
+          }}
+        >
+          Lo que haríamos esta semana
+        </Text>
+        {decision.thisWeek.map((item, index) => (
+          <View key={item} style={{ flexDirection: "row", marginTop: 8 }}>
+            <View
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                backgroundColor: c.navy,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 12,
+              }}
+            >
+              <Text style={{ fontSize: T.number, fontFamily: FONT_BOLD, color: c.cream }}>{index + 1}</Text>
+            </View>
+            <Text style={{ fontSize: T.body, lineHeight: 1.5, color: c.slate700, width: 360, paddingTop: 4 }}>
+              {txt(item)}
+            </Text>
+          </View>
+        ))}
+
+        <PdfAdvisoryCalloutBox title="Decisión práctica" body={decision.practicalDecision} />
+      </View>
+    </SplitPage>
+  );
+}
+
+function PdfPartnerDiscountBadge() {
+  return (
+    <View
+      style={{
+        marginTop: 18,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderTopWidth: 0.5,
+        borderRightWidth: 0.5,
+        borderBottomWidth: 0.5,
+        borderLeftWidth: 0.5,
+        borderTopColor: c.sepGold,
+        borderRightColor: c.sepGold,
+        borderBottomColor: c.sepGold,
+        borderLeftColor: c.sepGold,
+        backgroundColor: "rgba(247, 244, 238, 0.12)",
+        alignSelf: "flex-start",
+        maxWidth: 340,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: T.label,
+          fontFamily: FONT_BOLD,
+          color: c.gold,
+          letterSpacing: 1.4,
+          textTransform: "uppercase",
+        }}
+      >
+        20% de descuento incluido
+      </Text>
+      <Text style={{ fontSize: T.bodySm, color: c.cream, marginTop: 5 }}>
+        Código: {FLYPATH_PARTNER_DISCOUNT_CODE}
+      </Text>
+      <Text style={{ fontSize: T.bodySm, color: c.white80, marginTop: 3, lineHeight: 1.4 }}>
+        Aplicable a tu siguiente paso recomendado.
+      </Text>
+    </View>
+  );
+}
+
+/* —— XI · Cierre / mentoría —— */
 function PdfClosePage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets: PremiumPdfAssets }) {
   const { flypathNextStep, readiness } = snapshot;
   const primaryHref = productLink(assets.origin, flypathNextStep.primaryId);
+  const showPartnerDiscount = isFlyPathPartnerDiscountEligible(flypathNextStep.primaryId);
+
+  const ctaContent = (
+    <View>
+      <Text style={{ fontFamily: FONT_BOLD, fontSize: 12, color: c.navy }}>{txt(flypathNextStep.primary.cta)}</Text>
+      {showPartnerDiscount ? (
+        <Text style={{ fontSize: 9, fontFamily: FONT_BOLD, color: c.navy, marginTop: 3, letterSpacing: 0.6 }}>
+          Código {FLYPATH_PARTNER_DISCOUNT_CODE}
+        </Text>
+      ) : null}
+    </View>
+  );
 
   return (
-    <SplitPage imageSrc={assets.images.close} imageLeft={false} alignTop sectionLabel="VII · Cierre">
+    <SplitPage imageSrc={assets.images.close} imageLeft={false} alignTop sectionLabel="XI · Cierre">
       <View>
         <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 20, color: c.navy, lineHeight: 1.15 }}>
+          <Text style={{ fontFamily: FONT_SERIF_BOLD, fontSize: 22, color: c.navy, lineHeight: 1.15 }}>
             Siguiente paso recomendado
           </Text>
         </View>
         <View style={{ backgroundColor: c.navy, paddingVertical: 26, paddingHorizontal: 28 }}>
-          <Text style={{ fontFamily: FONT_SERIF, fontSize: 18, color: c.cream, lineHeight: 1.2 }}>{txt(flypathNextStep.primary.title)}</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.52, color: c.white80, marginTop: 12 }}>{txt(flypathNextStep.primary.body)}</Text>
+          <Text style={{ fontFamily: FONT_SERIF, fontSize: 20, color: c.cream, lineHeight: 1.2 }}>{txt(flypathNextStep.primary.title)}</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.52, color: c.white80, marginTop: 12 }}>{txt(flypathNextStep.primary.body)}</Text>
+          {showPartnerDiscount ? <PdfPartnerDiscountBadge /> : null}
           {primaryHref ? (
             <Link
               src={primaryHref}
@@ -1209,32 +1741,40 @@ function PdfClosePage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets
                 backgroundColor: c.gold,
                 paddingVertical: 10,
                 paddingHorizontal: 20,
-                marginTop: 24,
+                marginTop: showPartnerDiscount ? 16 : 24,
                 alignSelf: "flex-start",
               }}
             >
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, color: c.navy }}>{txt(flypathNextStep.primary.cta)}</Text>
+              {ctaContent}
             </Link>
           ) : (
-            <View style={{ backgroundColor: c.gold, paddingVertical: 10, paddingHorizontal: 20, marginTop: 24, alignSelf: "flex-start" }}>
-              <Text style={{ fontFamily: FONT_BOLD, fontSize: 11, color: c.navy }}>{txt(flypathNextStep.primary.cta)}</Text>
+            <View
+              style={{
+                backgroundColor: c.gold,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                marginTop: showPartnerDiscount ? 16 : 24,
+                alignSelf: "flex-start",
+              }}
+            >
+              {ctaContent}
             </View>
           )}
         </View>
 
         {flypathNextStep.secondaryIds.length > 0 ? (
           <View style={{ marginTop: 20 }}>
-            <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>También útil</Text>
+            <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.4, textTransform: "uppercase" }}>También útil</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
               {flypathNextStep.secondaryIds.map((id) => {
                 const href = productLink(assets.origin, id);
                 const label = flypathSecondaryProductLabel(id);
                 return href ? (
-                  <Link key={id} src={href} style={{ fontSize: 10, color: c.navy, textDecoration: "underline", marginRight: 16, marginBottom: 6 }}>
+                  <Link key={id} src={href} style={{ fontSize: 11, color: c.navy, textDecoration: "underline", marginRight: 16, marginBottom: 6 }}>
                     {label}
                   </Link>
                 ) : (
-                  <Text key={id} style={{ fontSize: 10, color: c.muted, marginRight: 16 }}>
+                  <Text key={id} style={{ fontSize: 11, color: c.muted, marginRight: 16 }}>
                     {label}
                   </Text>
                 );
@@ -1244,9 +1784,9 @@ function PdfClosePage({ snapshot, assets }: { snapshot: ReportSnapshotV1; assets
         ) : null}
 
         <View style={{ borderTopWidth: 0.5, borderTopColor: c.sepDivider, paddingTop: 24, marginTop: 24 }}>
-          <Text style={{ fontSize: 8, color: c.muted, letterSpacing: 1.6, textTransform: "uppercase" }}>Decisión de pago</Text>
-          <Text style={{ fontFamily: FONT_SERIF, fontSize: 18, color: c.navy, marginTop: 4 }}>{txt(paymentDecisionHeadline(readiness.decision))}</Text>
-          <Text style={{ fontSize: 8, lineHeight: 1.48, color: c.muted, marginTop: 16 }}>{txt(snapshot.disclaimer)}</Text>
+          <Text style={{ fontSize: 9, color: c.muted, letterSpacing: 1.6, textTransform: "uppercase" }}>Decisión de pago</Text>
+          <Text style={{ fontFamily: FONT_SERIF, fontSize: 20, color: c.navy, marginTop: 4 }}>{txt(paymentDecisionHeadline(readiness.decision))}</Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.48, color: c.muted, marginTop: 16 }}>{txt(snapshot.disclaimer)}</Text>
         </View>
       </View>
     </SplitPage>
@@ -1260,6 +1800,9 @@ export function PremiumReportDocument({
   snapshot: ReportSnapshotV1;
   assets: PremiumPdfAssets;
 }): ReactElement {
+  const schoolPages = PdfSchoolsPages(snapshot, assets);
+  const validationPages = PdfValidationPages(snapshot);
+
   return (
     <Document>
       <PdfCoverPage snapshot={snapshot} assets={assets} />
@@ -1268,7 +1811,10 @@ export function PremiumReportDocument({
       <PdfRisksPage snapshot={snapshot} />
       <PdfFinancesPage snapshot={snapshot} assets={assets} />
       <PdfActionPage snapshot={snapshot} assets={assets} />
-      <PdfSchoolsPage snapshot={snapshot} assets={assets} />
+      {schoolPages}
+      <PdfComparativePage snapshot={snapshot} assets={assets} />
+      {validationPages}
+      <PdfInformedDecisionPage snapshot={snapshot} assets={assets} />
       <PdfClosePage snapshot={snapshot} assets={assets} />
     </Document>
   );

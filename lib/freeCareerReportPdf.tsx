@@ -10,9 +10,7 @@ import {
   Image,
   Link,
   Page,
-  Path,
   StyleSheet,
-  Svg,
   Text,
   View,
   pdf,
@@ -29,8 +27,8 @@ import {
   type FreeReportData,
 } from "@/lib/free-report-data";
 import {
-  PREMIUM_REPORT_CHECKOUT_CTA_LABEL,
   PREMIUM_REPORT_CHECKOUT_URL,
+  PREMIUM_REPORT_PRICE_LABEL,
 } from "@/lib/premium-report-checkout";
 import type { ReportSnapshotV1 } from "@/lib/reporting/types/report-snapshot";
 
@@ -71,26 +69,13 @@ function txt(s: string): string {
   return s.replace(/\u00ad/g, "").replace(/\u200b/g, "");
 }
 
-/** Checklist premium — check vectorial dorado (sin depender de glifos de fuente). */
-function PdfGoldCheckIcon() {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 12 12" style={s.ctaBulletIcon}>
-      <Path
-        d="M2 6.2 L4.6 8.8 L10 3.2"
-        stroke={c.gold}
-        strokeWidth={2.1}
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
+const FREE_PDF_PREMIUM_CTA_LABEL = `Desbloquear informe premium · ${PREMIUM_REPORT_PRICE_LABEL}`;
 
-function PdfGoldCheckItem({ label }: { label: string }) {
+/** Bullets navy — punto dorado (misma semántica que la web). */
+function PdfGoldBulletItem({ label }: { label: string }) {
   return (
     <View style={s.ctaBulletRow} wrap={false}>
-      <PdfGoldCheckIcon />
+      <View style={s.ctaBulletDot} />
       <View style={s.ctaBulletTextWrap}>
         <Text style={s.ctaBulletText}>{txt(label)}</Text>
       </View>
@@ -99,7 +84,7 @@ function PdfGoldCheckItem({ label }: { label: string }) {
 }
 
 const s = StyleSheet.create({
-  page: { backgroundColor: c.cream, fontFamily: FONT, fontSize: 10, color: c.navy },
+  page: { backgroundColor: c.cream, fontFamily: FONT, fontSize: 11, color: c.navy },
   row: { flexDirection: "row", width: PAGE_W, height: PAGE_H },
   imgCol: { width: IMAGE_W, height: PAGE_H, backgroundColor: c.navy },
   imgCover: { width: IMAGE_W, height: PAGE_H, objectFit: "cover" },
@@ -126,7 +111,7 @@ const s = StyleSheet.create({
     borderTopColor: c.sepGold,
   },
   eyebrow: {
-    fontSize: 8,
+    fontSize: 9,
     letterSpacing: 3.2,
     color: c.gold,
     textTransform: "uppercase",
@@ -134,10 +119,10 @@ const s = StyleSheet.create({
   },
   pageTitle: {
     fontFamily: FONT_SERIF_BOLD,
-    fontSize: 22,
+    fontSize: 23,
     color: c.navy,
     lineHeight: 1.12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   kpiGrid: {
     flexDirection: "row",
@@ -150,7 +135,7 @@ const s = StyleSheet.create({
     marginRight: 6,
   },
   kpiLabel: {
-    fontSize: 8,
+    fontSize: 9,
     fontFamily: FONT_BOLD,
     color: c.muted,
     letterSpacing: 1.4,
@@ -159,18 +144,18 @@ const s = StyleSheet.create({
   },
   kpiValue: {
     fontFamily: FONT_BOLD,
-    fontSize: 11,
+    fontSize: 12,
     color: c.navy,
     lineHeight: 1.25,
   },
   kpiValueSerif: {
     fontFamily: FONT_SERIF,
-    fontSize: 20,
+    fontSize: 21,
     color: c.navy,
     lineHeight: 1.1,
   },
   kpiScoreSuffix: {
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: FONT,
     color: c.mutedLight,
   },
@@ -178,88 +163,90 @@ const s = StyleSheet.create({
     backgroundColor: c.navyTint,
     borderLeftWidth: 4,
     borderLeftColor: c.sepGold,
-    paddingTop: 14,
-    paddingBottom: 14,
-    paddingLeft: 16,
-    paddingRight: 14,
+    paddingTop: 18,
+    paddingBottom: 18,
+    paddingLeft: 20,
+    paddingRight: 18,
   },
   recoLabel: {
-    fontSize: 8,
+    fontSize: 10,
     fontFamily: FONT_BOLD,
     color: c.goldDark,
     letterSpacing: 2.2,
     textTransform: "uppercase",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   recoBody: {
     fontFamily: FONT_SERIF,
-    fontSize: 13.5,
-    lineHeight: 1.4,
+    fontSize: 15.5,
+    lineHeight: 1.52,
     color: c.navy,
   },
   stepRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: c.sepBeige,
-    paddingBottom: 10,
-    marginBottom: 10,
+    paddingBottom: 11,
+    marginBottom: 11,
   },
   stepLabel: {
     width: 156,
-    fontSize: 8,
+    fontSize: 10,
     fontFamily: FONT_BOLD,
     color: c.muted,
     letterSpacing: 1.2,
     textTransform: "uppercase",
-    paddingRight: 10,
+    paddingRight: 12,
+    lineHeight: 1.4,
   },
   stepValue: {
     flex: 1,
-    fontSize: 10,
-    lineHeight: 1.45,
+    fontSize: 12,
+    lineHeight: 1.58,
     color: c.slate700,
   },
   stepValueStrong: {
     fontFamily: FONT_SERIF_BOLD,
-    fontSize: 12,
+    fontSize: 14,
     color: c.navy,
-    lineHeight: 1.3,
+    lineHeight: 1.42,
   },
   stepLevelMuted: {
     fontFamily: FONT_BOLD,
-    fontSize: 9,
+    fontSize: 11,
     color: c.muted,
   },
   schoolHint: {
-    fontSize: 8.5,
-    lineHeight: 1.45,
+    fontSize: 10.5,
+    lineHeight: 1.55,
     color: c.muted,
-    marginTop: 4,
+    marginTop: 5,
   },
   ctaNavy: {
     flexDirection: "row",
     backgroundColor: c.navy,
-    marginTop: 8,
-    paddingVertical: 20,
-    paddingHorizontal: 18,
+    marginTop: 6,
+    paddingVertical: 26,
+    paddingHorizontal: 24,
     alignItems: "stretch",
   },
   ctaColLeft: {
     flex: 1.05,
-    paddingRight: 14,
-    paddingVertical: 4,
+    paddingRight: 20,
+    paddingVertical: 6,
   },
   ctaColMid: {
     flex: 1.15,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 6,
     borderLeftWidth: 1,
     borderLeftColor: FREE_REPORT_NAVY_DIVIDER,
   },
   ctaColRight: {
-    width: 162,
-    paddingLeft: 14,
-    paddingVertical: 4,
+    width: 178,
+    paddingLeft: 20,
+    paddingVertical: 6,
     borderLeftWidth: 1,
     borderLeftColor: FREE_REPORT_NAVY_DIVIDER,
     justifyContent: "center",
@@ -267,59 +254,62 @@ const s = StyleSheet.create({
   },
   ctaNavyTitle: {
     fontFamily: FONT_SERIF_BOLD,
-    fontSize: 15,
+    fontSize: 17,
     color: c.cream,
-    lineHeight: 1.25,
-    marginBottom: 10,
+    lineHeight: 1.38,
+    marginBottom: 12,
   },
   ctaBody: {
-    fontSize: 9,
-    lineHeight: 1.5,
+    fontSize: 11,
+    lineHeight: 1.62,
     color: c.white70,
   },
   ctaBodyLead: {
-    fontSize: 9,
-    lineHeight: 1.5,
+    fontSize: 11,
+    lineHeight: 1.62,
     color: c.white70,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   ctaBulletRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
+    alignItems: "flex-start",
+    marginBottom: 9,
   },
-  ctaBulletIcon: {
-    width: 14,
-    height: 14,
-    marginRight: 10,
+  ctaBulletDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: c.gold,
+    marginRight: 11,
+    marginTop: 5,
     flexShrink: 0,
   },
   ctaBulletTextWrap: {
     flex: 1,
   },
   ctaBulletText: {
-    fontSize: 9,
-    lineHeight: 1.44,
+    fontSize: 11,
+    lineHeight: 1.58,
     color: c.white85,
   },
   ctaButton: {
     backgroundColor: c.gold,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     width: "100%",
     alignItems: "center",
   },
   ctaButtonText: {
     fontFamily: FONT_BOLD,
-    fontSize: 9,
+    fontSize: 11.5,
     color: c.navy,
     textAlign: "center",
-    lineHeight: 1.28,
+    lineHeight: 1.38,
   },
   ctaMentoria: {
-    marginTop: 14,
-    fontSize: 8,
-    lineHeight: 1.45,
+    marginTop: 16,
+    fontSize: 10,
+    lineHeight: 1.55,
     color: c.white65,
     textAlign: "center",
   },
@@ -350,7 +340,7 @@ const s = StyleSheet.create({
     borderTopColor: c.sepGray,
     paddingTop: 6,
   },
-  footerTxt: { fontSize: 7.5, color: c.muted },
+  footerTxt: { fontSize: 8.5, color: c.muted },
 });
 
 export const FREE_PDF_ERROR_MESSAGE =
@@ -446,7 +436,6 @@ function FreePdfPageTwo({
   data: FreeReportData;
   assets: FreePdfAssets;
 }) {
-  const schoolLine = data.leadingSchool ?? "Añade escuelas al comparador para obtener una referencia";
   const checkoutHref = PREMIUM_REPORT_CHECKOUT_URL;
   const mentoriaHref = productLink(assets.origin, "mentoria");
 
@@ -475,15 +464,10 @@ function FreePdfPageTwo({
           </Text>
         </View>
         <View style={s.stepRow}>
-          <Text style={s.stepLabel}>Escuela líder</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={s.stepValueStrong}>{txt(schoolLine)}</Text>
-            {data.leadingSchoolHint ? (
-              <Text style={s.schoolHint}>{txt(data.leadingSchoolHint)}</Text>
-            ) : null}
-          </View>
+          <Text style={s.stepLabel}>Escuelas analizadas</Text>
+          <Text style={s.stepValue}>{txt(data.analyzedSchoolsLine)}</Text>
         </View>
-        <View style={[s.stepRow, { borderBottomWidth: 0, marginBottom: 14 }]}>
+        <View style={[s.stepRow, { borderBottomWidth: 0, marginBottom: 12 }]}>
           <Text style={s.stepLabel}>Próxima acción</Text>
           <Text style={s.stepValue}>{txt(data.nextAction)}</Text>
         </View>
@@ -494,14 +478,14 @@ function FreePdfPageTwo({
             <Text style={s.ctaBodyLead}>{txt(FREE_REPORT_VALIDATION_LEAD)}</Text>
             <Text style={s.ctaBody}>{txt(FREE_REPORT_VALIDATION_BODY)}</Text>
           </View>
-          <View style={[s.ctaColMid, { paddingTop: 6 }]}>
+          <View style={s.ctaColMid}>
             {FREE_REPORT_VALIDATION_BULLETS.map((item) => (
-              <PdfGoldCheckItem key={item} label={item} />
+              <PdfGoldBulletItem key={item} label={item} />
             ))}
           </View>
           <View style={s.ctaColRight}>
             <Link src={checkoutHref} style={s.ctaButton}>
-              <Text style={s.ctaButtonText}>{txt(PREMIUM_REPORT_CHECKOUT_CTA_LABEL)}</Text>
+              <Text style={s.ctaButtonText}>{txt(FREE_PDF_PREMIUM_CTA_LABEL)}</Text>
             </Link>
             <Text style={s.ctaMentoria}>
               También puedes{" "}

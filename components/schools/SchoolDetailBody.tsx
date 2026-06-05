@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FlyPathAlertsBlock } from "@/components/schools/FlyPathAlertsBlock";
 import { LeaveReviewPlaceholderButton } from "@/components/schools/LeaveReviewPlaceholderButton";
@@ -41,7 +42,12 @@ type SchoolDetailBodyProps = {
 /**
  * Cuerpo de la ficha individual FlyPath (cliente: selector de programas y alertas).
  */
+const CAREER_PLANNER_SCHOOLS_HREF = "/career-planner?review=dashboard&tab=schools";
+
 export function SchoolDetailBody({ school }: SchoolDetailBodyProps) {
+  const searchParams = useSearchParams();
+  const fromCareerPlanner = searchParams.get("from") === "career-planner";
+
   const programOptions = useMemo(() => getSchoolProgramOptions(school.slug), [school.slug]);
   const [selectedProgramId, setSelectedProgramId] = useState(() =>
     defaultSchoolProgramId(school.slug),
@@ -875,12 +881,37 @@ export function SchoolDetailBody({ school }: SchoolDetailBodyProps) {
           <p className="text-sm font-semibold text-[#f2ddaa]">Lectura FlyPath</p>
           <p className="mt-1 text-[15px] text-slate-200">{flyPathReading}</p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href={`/schools?add=${school.slug}`} className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33]">
-              Añadir a comparación
-            </Link>
-            <Link href="/schools?results=1" className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-[15px] font-semibold">
-              Volver al comparador
-            </Link>
+            {fromCareerPlanner ? (
+              <>
+                <Link
+                  href={CAREER_PLANNER_SCHOOLS_HREF}
+                  className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33]"
+                >
+                  Volver al Planner
+                </Link>
+                <Link
+                  href="/schools"
+                  className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-[15px] font-semibold"
+                >
+                  Explorar comparador
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={`/schools?add=${school.slug}`}
+                  className="inline-flex min-h-[40px] items-center rounded-xl bg-[#c9a454] px-4 py-2 text-[15px] font-semibold text-[#0f1a33]"
+                >
+                  Añadir a comparación
+                </Link>
+                <Link
+                  href="/schools?results=1"
+                  className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-[15px] font-semibold"
+                >
+                  Volver al comparador
+                </Link>
+              </>
+            )}
           </div>
         </section>
     </>
