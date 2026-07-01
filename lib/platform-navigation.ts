@@ -94,6 +94,13 @@ export const PLATFORM_NAV_SECTIONS: PlatformNavSection[] = [
     items: [],
   },
   {
+    id: "aerocomms",
+    label: "AeroComms — Beta",
+    hubHref: "/aerocomms",
+    status: "available",
+    items: [],
+  },
+  {
     id: "assessment",
     label: "Assessment Prep",
     hubHref: "/assessment-prep",
