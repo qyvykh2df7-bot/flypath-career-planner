@@ -85,7 +85,7 @@ describe("flypath-next-step-engine", () => {
     ).toBe("ingles");
   });
 
-  it("coloca ATPL Planner y Clases solo como secundarias", () => {
+  it("solo recomienda productos FlyPath activos como secundarias", () => {
     const { primary, secondaryIds } = pickFlyPathNextSteps({
       ...baseInput,
       costInputs: { atplTheory: 200 },
@@ -96,8 +96,8 @@ describe("flypath-next-step-engine", () => {
     });
 
     expect(["guia", "mentoria", "ingles"]).toContain(primary);
-    expect(secondaryIds.some((id) => id === "atpl" || id === "clases")).toBe(true);
-    expect(primary).not.toBe("atpl");
-    expect(primary).not.toBe("clases");
+    for (const id of secondaryIds) {
+      expect(["guia", "mentoria", "ingles", "escuelas"]).toContain(id);
+    }
   });
 });

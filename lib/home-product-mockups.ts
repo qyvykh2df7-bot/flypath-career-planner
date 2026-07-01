@@ -17,11 +17,6 @@ export const HOME_PRODUCT_MOCKUPS = {
     alt: "Captura del comparador de escuelas de FlyPath",
     candidates: ["/comparador.jpg", "/schools.jpg", "/escuelas.jpg"],
   },
-  atplPlanner: {
-    placeholderLabel: "ATPL Planner",
-    alt: "Captura del ATPL Planner de FlyPath",
-    candidates: ["/atpl-planner.jpg", "/atpl-planner.png", "/atpl.jpg"],
-  },
 } as const;
 
 export type HomeProductMockupId = keyof typeof HOME_PRODUCT_MOCKUPS;

@@ -168,72 +168,120 @@ export function SchoolsComparatorMockup() {
   );
 }
 
-export function AtplPlannerMockup() {
-  const subjects = [
-    { name: "Air Law", pct: 72 },
-    { name: "Meteo", pct: 45 },
-    { name: "Nav", pct: 58 },
-  ];
-  const weekDays = ["L", "M", "X", "J", "V"];
+function ShowcaseMockupFrame({
+  children,
+  label,
+  className = "",
+}: {
+  children: ReactNode;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`mx-auto flex w-full max-w-[220px] items-center justify-center ${className}`}
+      role="img"
+      aria-label={label}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function HomeResourceGuideMockup({
+  title,
+  subtitle,
+  tone = "navy",
+}: {
+  title: string;
+  subtitle: string;
+  tone?: "navy" | "sky";
+}) {
+  const cover =
+    tone === "sky"
+      ? "from-[#1a3a5c] via-[#0f2844] to-[#071827]"
+      : "from-[#0f1a33] via-[#071827] to-[#06111f]";
 
   return (
-    <MockupShell label="Vista previa ATPL Planner">
-      <div className="flex h-full flex-col text-white">
+    <ShowcaseMockupFrame label={`Vista previa guía ${title}`}>
+      <div className="relative w-full max-w-[168px]">
         <div
-          className="mb-2 flex items-center justify-between rounded-lg px-2.5 py-1.5"
-          style={{ backgroundColor: PANEL, border: `1px solid ${BORDER}` }}
+          aria-hidden
+          className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-[#D6AE4F]/20 via-transparent to-[#071224]/10 blur-xl"
+        />
+        <div
+          className={`relative aspect-[3/4] w-full overflow-hidden rounded-r-xl rounded-l-sm bg-gradient-to-br ${cover} shadow-[0_20px_44px_rgba(7,18,36,0.22)] ring-1 ring-[#071224]/10`}
         >
-          <span className="text-[10px] font-semibold">ATPL Planner</span>
-          <span className="text-[8px]" style={{ color: GOLD }}>
-            Objetivo 12h/sem
-          </span>
-        </div>
-
-        <div className="mb-2 flex gap-1">
-          {weekDays.map((d, i) => (
-            <div
-              key={d}
-              className="flex flex-1 flex-col items-center rounded py-1"
-              style={{
-                backgroundColor: i === 2 ? "rgba(214,174,79,0.2)" : PANEL,
-                border: i === 2 ? "1px solid rgba(214,174,79,0.35)" : `1px solid ${BORDER}`,
-              }}
-            >
-              <span className="text-[7px] text-white/50">{d}</span>
-              <span
-                className="mt-0.5 h-3 w-full max-w-[14px] rounded-sm"
-                style={{
-                  backgroundColor: i === 2 ? GOLD : "rgba(255,255,255,0.15)",
-                  opacity: i === 2 ? 1 : 0.6 + i * 0.08,
-                }}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-1 flex-col gap-1">
-          {subjects.map((s) => (
-            <div
-              key={s.name}
-              className="rounded-md px-2 py-1"
-              style={{ backgroundColor: PANEL, border: `1px solid ${BORDER}` }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[8px] font-medium">{s.name}</span>
-                <span className="text-[8px] font-semibold" style={{ color: GOLD }}>
-                  {s.pct}%
-                </span>
-              </div>
-              <div className="mt-1 h-1 rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${s.pct}%`, backgroundColor: GOLD }}
-                />
-              </div>
-            </div>
-          ))}
+          <div className="absolute inset-y-0 left-0 w-[10%] bg-black/25" aria-hidden />
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(214,174,79,0.12),transparent_55%)]" aria-hidden />
+          <div className="relative flex h-full flex-col justify-end p-4 pl-6">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#f2ddaa]/90">
+              FlyPath
+            </p>
+            <p className="mt-2 text-[13px] font-semibold leading-tight text-white">{title}</p>
+            <p className="mt-1 text-[9px] leading-snug text-white/65">{subtitle}</p>
+            <div className="mt-3 h-1 w-8 rounded-full bg-[#D6AE4F]/70" aria-hidden />
+          </div>
         </div>
       </div>
-    </MockupShell>
+    </ShowcaseMockupFrame>
+  );
+}
+
+export function HomeResourceMobileMockup({ appName }: { appName: string }) {
+  return (
+    <ShowcaseMockupFrame label={`Vista previa app ${appName}`}>
+      <div className="relative w-full max-w-[148px]">
+        <div className="relative aspect-[9/19] w-full overflow-hidden rounded-[1.75rem] border border-[#071224]/15 bg-[#071224] p-1.5 shadow-[0_22px_48px_rgba(7,18,36,0.2)] ring-1 ring-white/10">
+          <div className="flex h-full flex-col overflow-hidden rounded-[1.35rem] bg-gradient-to-b from-[#0b1730] to-[#06111f]">
+            <div className="border-b border-white/10 px-3 py-2">
+              <p className="text-[8px] font-semibold text-[#f2ddaa]">{appName}</p>
+            </div>
+            <div className="flex-1 space-y-2 p-3">
+              <div className="rounded-lg border border-[#D6AE4F]/25 bg-[#D6AE4F]/10 px-2 py-2">
+                <p className="text-[7px] font-medium text-[#f2ddaa]">ATC Scenario</p>
+                <p className="mt-1 text-[6px] leading-relaxed text-white/55">
+                  Cleared for takeoff runway 09
+                </p>
+              </div>
+              <div className="rounded-lg bg-white/[0.06] px-2 py-2">
+                <p className="text-[6px] text-white/45">Your readback</p>
+                <div className="mt-1.5 h-1.5 w-3/4 rounded-full bg-white/15" />
+                <div className="mt-1 h-1.5 w-1/2 rounded-full bg-white/10" />
+              </div>
+              <div className="mx-auto mt-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#D6AE4F]/20 ring-1 ring-[#D6AE4F]/35">
+                <span className="h-2 w-2 rounded-full bg-[#D6AE4F]" aria-hidden />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ShowcaseMockupFrame>
+  );
+}
+
+export function HomeResourceMentorshipMockup() {
+  return (
+    <ShowcaseMockupFrame label="Vista previa Mentoría 1 a 1">
+      <div className="relative w-full max-w-[200px]">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-[#D6AE4F]/25 bg-gradient-to-br from-[#071224] to-[#0b1730] p-4 shadow-[0_22px_48px_rgba(7,18,36,0.24)]">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6AE4F]/50 to-transparent"
+          />
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#D6AE4F]/35 bg-[#D6AE4F]/12">
+            <span className="text-[11px] font-semibold text-[#f2ddaa]">1:1</span>
+          </div>
+          <p className="mt-3 text-[12px] font-semibold leading-snug text-white">Sesión personalizada</p>
+          <p className="mt-1 text-[9px] leading-relaxed text-white/60">
+            Dudas, ruta y próximos pasos con un piloto.
+          </p>
+          <div className="mt-3 flex gap-1.5">
+            <span className="h-1.5 flex-1 rounded-full bg-[#D6AE4F]/70" aria-hidden />
+            <span className="h-1.5 w-6 rounded-full bg-white/15" aria-hidden />
+          </div>
+        </div>
+      </div>
+    </ShowcaseMockupFrame>
   );
 }

@@ -932,11 +932,9 @@ function FlyPathProductVisual({
         ? MessagesSquare
         : productId === "ingles"
           ? Languages
-          : productId === "clases"
-            ? GraduationCap
-            : productId === "escuelas"
-              ? ClipboardList
-              : LayoutList;
+          : productId === "escuelas"
+            ? ClipboardList
+            : LayoutList;
 
   const isHero = variant === "hero";
 

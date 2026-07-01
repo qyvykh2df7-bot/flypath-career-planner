@@ -17,22 +17,10 @@ const DASHBOARD_TOOL_CARDS = [
     cta: "Ir al comparador",
   },
   {
-    title: "ATPL Planner",
-    description: "Organiza asignaturas, calendario de estudio y bloques de preparación teórica.",
-    href: "/atpl-planner",
-    cta: "Abrir ATPL Planner",
-  },
-  {
-    title: "Inglés aeronáutico",
-    description: "Practica vocabulario y situaciones ICAO con el coach de inglés de FlyPath.",
-    href: "/ingles-aeronautico",
-    cta: "Practicar inglés",
-  },
-  {
-    title: "Assessment Prep",
-    description: "Preparación para entrevistas, tests y dinámicas de selección (en desarrollo).",
-    href: "/assessment-prep",
-    cta: "Ver sección",
+    title: "AeroComms",
+    description: "Practica listening, readbacks, fraseología y escenarios guiados de radio ATC.",
+    href: "/aerocomms",
+    cta: "Ver AeroComms",
   },
   {
     title: "Mentorías",
@@ -57,9 +45,9 @@ const RECOMMENDED_STEPS = [
   },
   {
     step: "3",
-    title: "Organiza tu preparación ATPL o assessment",
-    text: "Planifica teoría con el ATPL Planner y revisa Assessment Prep cuando esté listo.",
-    href: "/atpl-planner",
+    title: "Refuerza comunicaciones y confianza",
+    text: "Practica listening, readbacks y escenarios guiados con AeroComms antes de fases exigentes.",
+    href: "/aerocomms",
   },
 ] as const;
 
@@ -71,9 +59,7 @@ const PLATFORM_STATUS_BADGES: {
 }[] = [
   { label: "Career Planner disponible", kind: "available" },
   { label: "Comparador disponible", kind: "available" },
-  { label: "ATPL Planner disponible", kind: "available" },
-  { label: "Assessment Prep próximamente", kind: "soon" },
-  { label: "English Coach en desarrollo futuro", kind: "future" },
+  { label: "AeroComms disponible", kind: "available" },
 ];
 
 function statusBadgeClasses(kind: PlatformStatusKind): string {
@@ -117,7 +103,7 @@ export default function DashboardPage() {
               aspirantes. En el futuro reunirá aquí tu ruta y progreso; hoy es solo una vista previa.
             </p>
             <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-slate-500">
-              Cada herramienta (Career Planner, comparador, ATPL Planner…) guarda lo suyo en tu
+              Cada herramienta (Career Planner, comparador, AeroComms…) guarda lo suyo en tu
               navegador por separado hasta que exista cuenta de usuario.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">

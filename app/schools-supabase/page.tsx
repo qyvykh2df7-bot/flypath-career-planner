@@ -52,7 +52,7 @@ export default async function SchoolsSupabasePage() {
 
 function SupabaseHeader() {
   return (
-    <header className="border-b border-white/10 bg-[#0f1a33] text-white shadow-[0_12px_40px_rgba(15,26,51,0.35)]">
+    <header className="border-b border-white/10 bg-header-navy text-white shadow-[0_12px_40px_rgba(15,26,51,0.35)]">
       <div className="mx-auto flex max-h-[90px] max-w-7xl items-center justify-between gap-3 px-6 py-3 sm:gap-4 md:gap-4 lg:px-10">
         <Link
           href="/"

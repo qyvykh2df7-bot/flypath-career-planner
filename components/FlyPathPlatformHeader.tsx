@@ -26,7 +26,7 @@ export function FlyPathPlatformHeader({
 
   return (
     <header
-      className={`relative z-50 overflow-visible border-b border-white/10 bg-[#0f1a33] text-white ${
+      className={`relative z-50 overflow-visible border-b border-white/10 bg-header-navy text-white ${
         integratedShell
           ? "shadow-[0_1px_0_rgba(255,255,255,0.06)]"
           : "shadow-[0_12px_40px_rgba(15,26,51,0.35)]"

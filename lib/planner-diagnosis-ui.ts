@@ -471,7 +471,7 @@ function buildRiskDisplayFromPrimary(top: DiagnosisRiskCandidate, input: Diagnos
         porQueImporta: "El inglés afecta ATPL, comunicaciones, entrevistas y selección.",
         recommendedAction: "Refuerza inglés antes de fases críticas de la ruta.",
       },
-      contextualLink: { href: "/ingles-aeronautico", label: "Ver clases de inglés →" },
+      contextualLink: { href: "/aerocomms", label: "Ver AeroComms →" },
     };
   }
 

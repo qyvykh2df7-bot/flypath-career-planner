@@ -185,7 +185,7 @@ export type RoadmapPlan = {
 };
 
 export type FlyPathPrimaryId = "guia" | "mentoria" | "ingles";
-export type FlyPathProductId = FlyPathPrimaryId | "atpl" | "clases" | "escuelas";
+export type FlyPathProductId = FlyPathPrimaryId | "escuelas";
 
 export type FlyPathProductCard = {
   title: string;

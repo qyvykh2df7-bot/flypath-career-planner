@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FlyPathHomePage } from "@/components/home/FlyPathHomePage";
+import { getAllPosts } from "@/lib/blog";
 
 export const metadata: Metadata = {
   title: "FlyPath — Tu copiloto durante toda la formación",
@@ -8,5 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <FlyPathHomePage />;
+  const [latestPost = null] = getAllPosts();
+  return <FlyPathHomePage latestPost={latestPost} />;
 }

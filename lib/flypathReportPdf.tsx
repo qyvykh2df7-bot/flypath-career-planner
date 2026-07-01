@@ -430,7 +430,7 @@ export type FlyPathResumenPadresPdfInput = {
   disclaimer: string;
 };
 
-type PrimaryId = "guia" | "mentoria" | "ingles" | "atpl";
+type PrimaryId = "guia" | "mentoria" | "ingles";
 
 const PRODUCTS: Record<PrimaryId, { title: string; body: string; cta: string }> = {
   guia: {
@@ -444,14 +444,9 @@ const PRODUCTS: Record<PrimaryId, { title: string; body: string; cta: string }> 
     cta: "Reservar mentoría",
   },
   ingles: {
-    title: "Inglés aeronáutico",
-    body: "Trabaja inglés operativo, comunicaciones y confianza antes de avanzar a fases críticas.",
-    cta: "Ver clases de inglés",
-  },
-  atpl: {
-    title: "ATPL Planner",
-    body: "Organiza asignaturas, horas semanales, repasos y exámenes con un plan realista.",
-    cta: "Ver ATPL Planner",
+    title: "AeroComms",
+    body: "Practica listening, readbacks, fraseología y escenarios guiados de radio ATC.",
+    cta: "Ver AeroComms",
   },
 };
 
@@ -490,21 +485,10 @@ export function getFlyPathPrimaryProductForPdf(input: {
     sigInvestigateWithSchools,
   ].filter(Boolean).length;
   const mentoriaWins = !isInitial && sigSchools && mentoriaSignalCount >= 2;
-  const atplCandidate =
-    input.class1 === "si" &&
-    input.ingles !== "bajo" &&
-    input.atplTheory > 0 &&
-    input.objetivo !== "no_lo_se" &&
-    input.routeRecommended !== "Preparación";
-  const strongPaymentBlock =
-    sigSchools &&
-    input.decision === "No estás listo para pagar" &&
-    (sigData || mentoriaSignalCount >= 3);
 
   let primary: PrimaryId;
   if (englishFirst) primary = "ingles";
   else if (mentoriaWins) primary = "mentoria";
-  else if (atplCandidate && !strongPaymentBlock) primary = "atpl";
   else if (isInitial || input.schoolsLength === 0) primary = "guia";
   else primary = "guia";
 

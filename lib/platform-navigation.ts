@@ -43,7 +43,7 @@ export const PLATFORM_DASHBOARD: PlatformNavItem = {
 
 /**
  * Secciones principales del menú (agrupadas).
- * Orden: Planifica → Escuelas → ATPL → Inglés → Assessment → Mentorías → Recursos
+ * Orden: Planifica → Escuelas → AeroComms → Mentorías → Recursos
  */
 export const PLATFORM_NAV_SECTIONS: PlatformNavSection[] = [
   {
@@ -77,34 +77,10 @@ export const PLATFORM_NAV_SECTIONS: PlatformNavSection[] = [
     ],
   },
   {
-    id: "atpl-estudio",
-    label: "ATPL & Estudio",
-    hubHref: "/atpl-estudio",
-    status: "available",
-    items: [
-      { id: "atpl", label: "ATPL Planner", href: "/atpl-planner", status: "available" },
-      { id: "clases", label: "Clases PPL/ATPL", href: "/clases-ppl-atpl", status: "available" },
-    ],
-  },
-  {
-    id: "ingles",
-    label: "Inglés aeronáutico",
-    hubHref: "/ingles-aeronautico",
-    status: "available",
-    items: [],
-  },
-  {
     id: "aerocomms",
-    label: "AeroComms — Beta",
+    label: "AeroComms",
     hubHref: "/aerocomms",
     status: "available",
-    items: [],
-  },
-  {
-    id: "assessment",
-    label: "Assessment Prep",
-    hubHref: "/assessment-prep",
-    status: "soon",
     items: [],
   },
   {

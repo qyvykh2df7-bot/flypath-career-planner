@@ -155,10 +155,9 @@ export function riskIconKey(label: string): RiskIconKey {
 
 export function flypathSecondaryProductLabel(id: string): string {
   if (id === "guia") return "Guía Cómo ser Piloto";
-  if (id === "ingles") return "Inglés aeronáutico";
+  if (id === "ingles") return "AeroComms";
   if (id === "mentoria") return "Mentoría";
-  if (id === "atpl") return "ATPL Planner";
-  if (id === "clases") return "Clases PPL/ATPL";
+  if (id === "escuelas") return "Comparador de escuelas";
   return id;
 }
 

@@ -197,12 +197,15 @@ type FlyPathPlatformModuleMenuProps = {
   onSoonClick?: (message?: string) => void;
   /** Alineación del panel respecto al botón */
   menuAlignClassName?: string;
+  /** Estilo del botón trigger. Por defecto oscuro (header de plataforma). */
+  triggerClassName?: string;
 };
 
 export function FlyPathPlatformModuleMenu({
   currentModuleId,
   onSoonClick,
   menuAlignClassName = "right-0",
+  triggerClassName = menuTriggerClass,
 }: FlyPathPlatformModuleMenuProps) {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -245,7 +248,7 @@ export function FlyPathPlatformModuleMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={menuTriggerClass}
+        className={triggerClassName}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label="Menú de módulos FlyPath Platform"
@@ -256,7 +259,7 @@ export function FlyPathPlatformModuleMenu({
         <>
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-[#0f1a33]/50 md:hidden"
+            className="fixed inset-0 z-40 bg-header-navy/50 md:hidden"
             aria-label="Cerrar menú de navegación"
             onClick={() => setOpen(false)}
           />

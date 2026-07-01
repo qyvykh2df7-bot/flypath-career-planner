@@ -88,30 +88,17 @@ const SHOP_SERVICE_CARDS = [
     href: "/mentorias#acompanamiento-flypath",
   },
   {
-    id: "ingles-aeronautico",
+    id: "aerocomms",
     section: "clases" as const,
     icon: Languages,
     imageSrc: "/ingleshop.jpg",
-    imageAlt: "Inglés aeronáutico FlyPath",
-    title: "Inglés aeronáutico",
-    price: "Desde 49 €",
+    imageAlt: "AeroComms FlyPath",
+    title: "AeroComms",
+    price: "Desde €5,99/mes",
     description:
-      "Clases prácticas de comunicaciones ATC, fraseología, listening, speaking e ICAO English aplicado a aviación.",
-    cta: "Ver clases",
-    href: "/ingles-aeronautico",
-  },
-  {
-    id: "clases-ppl-atpl",
-    section: "clases" as const,
-    icon: GraduationCap,
-    imageSrc: "/claseshop.jpg",
-    imageAlt: "Clases PPL/ATPL FlyPath",
-    title: "Clases PPL/ATPL",
-    price: "Desde 49 €",
-    description:
-      "Apoyo para asignaturas, dudas concretas, preparación de examen y planificación del estudio.",
-    cta: "Ver clases",
-    href: "/clases-ppl-atpl",
+      "Entrenamiento de comunicaciones ATC: listening, readbacks, fraseología y escenarios guiados.",
+    cta: "Ver AeroComms",
+    href: "/aerocomms",
   },
 ] as const;
 
@@ -120,7 +107,7 @@ const CATEGORIES = [
   { id: "todos", label: "Todo" },
   { id: "guia", label: "Guía" },
   { id: "mentorias", label: "Mentorías" },
-  { id: "clases", label: "Clases" },
+  { id: "clases", label: "Formación" },
   { id: "logbooks", label: "Logbooks" },
 ] as const;
 

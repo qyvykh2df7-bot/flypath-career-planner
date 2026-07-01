@@ -172,7 +172,7 @@ export function createDemoReportSnapshot(): ReportSnapshotV1 {
       },
       secondaryIds: ["guia", "ingles"],
       reasons: [
-        "Prioridad decisión/pago: escuelas, documentación o economía antes de organizar estudio ATPL",
+        "Prioridad decisión/pago: escuelas, documentación o economía antes de avanzar en la formación",
       ],
     },
   });

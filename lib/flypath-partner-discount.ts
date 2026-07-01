@@ -8,8 +8,6 @@ const FLYPATH_PARTNER_DISCOUNT_ELIGIBLE = new Set<FlyPathProductId>([
   "guia",
   "mentoria",
   "ingles",
-  "clases",
-  "atpl",
 ]);
 
 export function isFlyPathPartnerDiscountEligible(productId: string): boolean {

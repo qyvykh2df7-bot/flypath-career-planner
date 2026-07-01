@@ -21,16 +21,16 @@ const ROUTES_CTA: BlogCtaContent = {
 const ENGLISH_CTA: BlogCtaContent = {
   variant: "english",
   title: "¿El inglés te está frenando?",
-  text: "Si quieres practicar speaking, fraseología o comunicaciones ATC, puedes ver las clases de inglés aeronáutico FlyPath.",
-  primary: { label: "Ver clases de inglés", href: "/ingles-aeronautico" },
+  text: "Si quieres practicar speaking, fraseología o comunicaciones ATC, prueba AeroComms.",
+  primary: { label: "Ver AeroComms", href: "/aerocomms" },
   secondary: { label: "Reservar mentoría", href: "/mentorias" },
 };
 
 const ATPL_CTA: BlogCtaContent = {
   variant: "atpl",
   title: "¿Necesitas ayuda con tus asignaturas?",
-  text: "Si una asignatura se te está atascando, puedes reservar una clase PPL/ATPL para resolver dudas y preparar el estudio con más orden.",
-  primary: { label: "Ver clases PPL/ATPL", href: "/clases-ppl-atpl" },
+  text: "Si una asignatura se te está atascando o quieres revisar tu ruta de estudio, reserva una mentoría FlyPath para priorizar con calma.",
+  primary: { label: "Reservar mentoría", href: "/mentorias" },
   secondary: { label: "Ver guía", href: "/guia-como-ser-piloto" },
 };
 
