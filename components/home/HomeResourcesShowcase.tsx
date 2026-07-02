@@ -94,13 +94,29 @@ function ResourceTypeChip({ type }: { type: ResourceType }) {
 
 function ResourceCard({ resource }: { resource: HomeResource }) {
   const isPlaceholderLink = resource.href === "#";
+  const mockupAreaClass =
+    "relative flex min-h-[260px] items-center justify-center bg-[#F8F9FA] px-2 py-2 sm:min-h-[280px]";
+
+  const mockupContent = (
+    <>
+      <ResourceTypeChip type={resource.type} />
+      <ResourceMockupImage src={resource.mockupSrc} alt={resource.mockupAlt} />
+    </>
+  );
 
   return (
     <article className="flex w-[min(78vw,280px)] shrink-0 snap-start flex-col overflow-hidden rounded-[24px] border border-[#071224]/[0.07] bg-white shadow-[0_16px_44px_rgba(7,18,36,0.07)] sm:w-[300px] lg:w-[calc((min(76rem,100vw-3rem)-4*1.25rem)/5)] lg:min-w-[220px] lg:max-w-[280px]">
-      <div className="relative flex min-h-[260px] items-center justify-center bg-[#F8F9FA] px-2 py-2 sm:min-h-[280px]">
-        <ResourceTypeChip type={resource.type} />
-        <ResourceMockupImage src={resource.mockupSrc} alt={resource.mockupAlt} />
-      </div>
+      {isPlaceholderLink ? (
+        <div className={mockupAreaClass}>{mockupContent}</div>
+      ) : (
+        <Link
+          href={resource.href}
+          aria-label={`${resource.cta}: ${resource.title}`}
+          className={`${mockupAreaClass} block cursor-pointer transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/30 focus-visible:ring-offset-2`}
+        >
+          {mockupContent}
+        </Link>
+      )}
       <div className="flex flex-1 flex-col border-t border-[#071224]/[0.05] bg-white px-5 pb-6 pt-4">
         <h3 className="text-[17px] font-semibold leading-snug tracking-tight text-[#071224] sm:text-[18px]">
           {resource.title}
