@@ -15,9 +15,11 @@ export type FlyPathTeamMember = {
 };
 
 type FlyPathTeamSectionProps = {
+  title?: string;
   description: string;
   members: readonly FlyPathTeamMember[];
   layout?: "two" | "three";
+  sectionClassName?: string;
 };
 
 const AVATAR_SHELL_CLASS =
@@ -69,15 +71,17 @@ const GRID_BY_LAYOUT = {
 } as const;
 
 export function FlyPathTeamSection({
+  title = "El equipo detrás de FlyPath",
   description,
   members,
   layout = "two",
+  sectionClassName = "bg-[#f4f7fb]",
 }: FlyPathTeamSectionProps) {
   return (
-    <section className="border-b border-slate-200/70 bg-[#f4f7fb] py-10 sm:py-11">
+    <section className={`border-b border-slate-200/70 py-10 sm:py-11 ${sectionClassName}`}>
       <div className="mx-auto max-w-6xl px-6 lg:px-10">
         <h2 className="text-center text-xl font-semibold tracking-tight text-[#0f1a33] sm:text-2xl">
-          El equipo detrás de FlyPath
+          {title}
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-[15px] leading-relaxed text-slate-600 sm:text-base">
           {description}

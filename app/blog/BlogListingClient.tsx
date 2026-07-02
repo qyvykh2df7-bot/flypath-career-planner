@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
+import { HomeFooter } from "@/components/home/HomeFooter";
 import { useCallback, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { BlogPostCard } from "@/components/blog/BlogPostCard";
@@ -170,6 +171,7 @@ export function BlogListingClient({ posts, featuredPosts }: BlogListingClientPro
           </div>
         </section>
       </main>
+      <HomeFooter />
     </div>
   );
 }

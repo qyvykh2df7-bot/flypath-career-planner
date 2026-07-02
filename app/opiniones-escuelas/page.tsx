@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
+import { HomeFooter } from "@/components/home/HomeFooter";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Menu, Plane, ShieldCheck, Star, X } from "lucide-react";
@@ -980,6 +981,7 @@ export default function OpinionesEscuelasPage() {
           </div>
         </div>
       ) : null}
+      <HomeFooter />
     </div>
   );
 }

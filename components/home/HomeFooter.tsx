@@ -6,25 +6,25 @@ const CONTACT_EMAIL = "info@flypath.es";
 const FOOTER_TOOLS_LINKS = [
   { label: "Career Planner", href: "/career-planner" },
   { label: "Comparador de escuelas", href: "/schools" },
-  { label: "AeroComms", href: "/aerocomms" },
   { label: "Mentorías", href: "/mentorias" },
+  { label: "AeroComms", href: "/aerocomms" },
 ] as const;
 
 const FOOTER_RESOURCES_LINKS = [
   { label: "Guía Cómo ser piloto", href: "/guia-como-ser-piloto" },
   { label: "Blog", href: "/blog" },
-  { label: "Newsletter", href: "/" },
   { label: "Pre-PPL", href: "#" },
+  { label: "Recursos gratuitos", href: "/recursos" },
 ] as const;
 
 // TODO: sustituir href placeholder por rutas reales cuando existan.
 const FOOTER_COMPANY_LINKS = [
-  { label: "About", href: "#" },
-  { label: "Contact", href: "#" },
-  { label: "Support", href: "#" },
+  { label: "Sobre FlyPath", href: "#" },
+  { label: "Contacto", href: "#" },
+  { label: "Soporte", href: "#" },
   { label: "FAQ", href: "#" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
+  { label: "Política de privacidad", href: "#" },
+  { label: "Términos del servicio", href: "#" },
 ] as const;
 
 // TODO: sustituir href placeholder por URLs reales de redes sociales.
@@ -35,13 +35,13 @@ const SOCIAL_LINKS = [
 ] as const;
 
 const FOOTER_LINK_CLASS =
-  "text-[13px] font-medium leading-snug text-white/65 transition hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1a33] max-sm:text-[12px]";
+  "text-[14px] font-medium leading-[1.4] text-white/65 transition hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1a33] max-sm:text-[13px]";
 
 const FOOTER_COLUMN_TITLE_CLASS =
   "text-[12px] font-semibold uppercase tracking-[0.14em] text-[#D6AE4F]";
 
 const SOCIAL_BUTTON_CLASS =
-  "flex h-9 w-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] text-white/65 transition hover:border-[#D6AE4F]/55 hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1a33] max-sm:h-8 max-sm:w-8";
+  "flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] text-white/65 transition hover:border-[#D6AE4F]/55 hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1a33] sm:h-9 sm:w-9";
 
 function FooterLinkItem({ label, href }: { label: string; href: string }) {
   if (href === "#") {
@@ -74,10 +74,10 @@ function FooterLinkColumn({
     <nav aria-label={title} className={className}>
       <h3 className={FOOTER_COLUMN_TITLE_CLASS}>{title}</h3>
       <ul
-        className={`mt-4 space-y-2.5 max-sm:mt-2.5 sm:mt-4 sm:space-y-2.5 ${
+        className={`mt-3 space-y-2.5 max-sm:space-y-2 ${
           mobileTwoColumn
-            ? "max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-4 max-sm:gap-y-1.5 max-sm:space-y-0"
-            : "max-sm:space-y-1.5"
+            ? "max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-4 max-sm:gap-y-2 max-sm:space-y-0"
+            : ""
         }`}
       >
         {links.map((link) => (
@@ -94,19 +94,19 @@ function FooterContactColumn({ className = "" }: { className?: string }) {
   return (
     <div aria-label="Contacto" className={className}>
       <h3 className={FOOTER_COLUMN_TITLE_CLASS}>Contacto</h3>
-      <div className="mt-4 max-sm:mt-2.5 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:justify-between max-sm:gap-x-3 max-sm:gap-y-2 sm:space-y-3.5">
+      <div className="mt-3 space-y-3">
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="inline-flex min-w-0 items-center gap-1.5 text-[13px] font-medium leading-snug text-white/65 transition hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1a33] max-sm:text-[12px]"
+          className="inline-flex min-w-0 items-center gap-1.5 text-[14px] font-medium leading-[1.4] text-white/65 transition hover:text-[#f2ddaa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1a33] max-sm:text-[13px]"
         >
-          <Mail className="h-3.5 w-3.5 shrink-0 max-sm:h-3 max-sm:w-3" aria-hidden />
+          <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {CONTACT_EMAIL}
         </a>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex items-center gap-2">
           {SOCIAL_LINKS.map(({ label, href, Icon }) => (
             <a key={label} href={href} aria-label={label} className={SOCIAL_BUTTON_CLASS}>
-              <Icon className="h-[18px] w-[18px] max-sm:h-4 max-sm:w-4" />
+              <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
             </a>
           ))}
         </div>
@@ -118,20 +118,20 @@ function FooterContactColumn({ className = "" }: { className?: string }) {
 export function HomeFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#0f1a33]">
-      <div className="mx-auto max-w-[76rem] px-6 py-8 sm:py-12 lg:px-8 lg:py-14">
-        <div className="grid grid-cols-2 gap-x-5 gap-y-5 max-sm:gap-y-4 sm:gap-10 lg:grid-cols-4 lg:gap-x-12 xl:gap-x-16">
-          <FooterContactColumn className="col-span-2 sm:col-span-1" />
+      <div className="mx-auto max-w-[76rem] px-6 pb-7 pt-12 lg:px-8 lg:pb-9 lg:pt-14">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:gap-x-8 sm:gap-y-7 lg:grid-cols-4 lg:gap-x-10">
+          <FooterContactColumn className="col-span-2 lg:col-span-1" />
           <FooterLinkColumn title="Herramientas" links={FOOTER_TOOLS_LINKS} />
           <FooterLinkColumn title="Recursos" links={FOOTER_RESOURCES_LINKS} />
           <FooterLinkColumn
             title="Empresa"
             links={FOOTER_COMPANY_LINKS}
             mobileTwoColumn
-            className="col-span-2 sm:col-span-1"
+            className="col-span-2 lg:col-span-1"
           />
         </div>
 
-        <div className="mt-6 flex flex-col gap-1.5 border-t border-white/10 pt-4 text-[12px] leading-snug text-white/40 max-sm:mt-5 max-sm:pt-3.5 max-sm:text-[11px] sm:mt-10 sm:gap-2 sm:pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-1.5 border-t border-white/10 pt-4 text-[12px] leading-[1.4] text-white/40 max-sm:mt-5 max-sm:pt-3.5 max-sm:text-[11px] sm:flex-row sm:items-center sm:justify-between sm:pt-5">
           <p>© {new Date().getFullYear()} FlyPath. Todos los derechos reservados.</p>
           <p>Hecho para futuros pilotos.</p>
         </div>

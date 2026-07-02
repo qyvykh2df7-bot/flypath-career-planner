@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
+import { HomeFooter } from "@/components/home/HomeFooter";
 import { useState, type ReactNode } from "react";
 import { FileText } from "lucide-react";
 import { formatBlogDate, type BlogPostMeta } from "@/lib/blog-types";
@@ -82,6 +83,7 @@ export function BlogPostShell({ post, children, footer }: BlogPostShellProps) {
 
         {footer}
       </main>
+      <HomeFooter />
     </div>
   );
 }

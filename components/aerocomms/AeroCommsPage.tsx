@@ -5,6 +5,7 @@ import { AeroCommsTrainingShowcase } from "@/components/aerocomms/AeroCommsTrain
 import { AeroCommsBeta } from "@/components/aerocomms/AeroCommsBeta";
 import { AeroCommsPricing } from "@/components/aerocomms/AeroCommsPricing";
 import { AeroCommsFaq } from "@/components/aerocomms/AeroCommsFaq";
+import { HomeFooter } from "@/components/home/HomeFooter";
 
 export function AeroCommsPage() {
   return (
@@ -18,6 +19,7 @@ export function AeroCommsPage() {
         <AeroCommsPricing />
         <AeroCommsFaq />
       </main>
+      <HomeFooter />
     </div>
   );
 }

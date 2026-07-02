@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
+import { HomeFooter } from "@/components/home/HomeFooter";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type MouseEvent } from "react";
 import {
@@ -487,6 +488,7 @@ export default function ShopPage() {
           </div>
         </section>
       </main>
+      <HomeFooter />
     </div>
   );
 }

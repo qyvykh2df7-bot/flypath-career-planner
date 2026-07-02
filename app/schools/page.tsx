@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
+import { HomeFooter } from "@/components/home/HomeFooter";
 import { ComparisonResults } from "@/components/schools/ComparisonResults";
 import { ComparatorPlannerPreviewMockup } from "@/components/schools/ComparatorPlannerPreviewMockup";
 import { SchoolComparatorPicker } from "@/components/schools/SchoolComparatorPicker";
@@ -419,6 +420,7 @@ function SchoolsPageContent() {
         ) : null}
       </div>
       </main>
+      <HomeFooter />
     </div>
   );
 }

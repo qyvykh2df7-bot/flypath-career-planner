@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
+import { HomeFooter } from "@/components/home/HomeFooter";
 
 export type HubLinkCard = {
   title: string;
@@ -149,6 +150,7 @@ export function PlatformHubShell({
           </div>
         </section>
       </main>
+      <HomeFooter />
     </div>
   );
 }

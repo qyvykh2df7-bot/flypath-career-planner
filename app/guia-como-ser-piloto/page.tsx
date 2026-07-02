@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
+import { HomeFooter } from "@/components/home/HomeFooter";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Menu, Plane, Star } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Menu, Plane, Route, Star, Tablet, Wallet } from "lucide-react";
 
 const TOAST_MS = 2800;
 
@@ -66,6 +67,24 @@ const TOC_CHAPTERS = [
     title: "Consejos finales",
     summary:
       "Resumen de errores frecuentes, recomendaciones finales, checklists y puntos que deberías validar antes de tomar una decisión económica importante.",
+  },
+] as const;
+
+const WHY_GUIDE_CARDS = [
+  {
+    title: "Evita errores caros",
+    text: "Entiende dónde se va realmente el dinero y qué costes suelen aparecer tarde.",
+    icon: Wallet,
+  },
+  {
+    title: "Compara rutas reales",
+    text: "Modular, integrado, licencias, tiempos y riesgos explicados sin humo.",
+    icon: Route,
+  },
+  {
+    title: "Decide con criterio",
+    text: "Aprende qué preguntar, qué revisar y cuándo avanzar antes de pagar matrícula.",
+    icon: ClipboardCheck,
   },
 ] as const;
 
@@ -174,73 +193,88 @@ export default function GuiaComoSerPilotoPage() {
 
 
       <main>
-        {/* HERO — libro recortado, sin card blanca */}
-        <section className="relative overflow-hidden border-b border-slate-200/70 bg-gradient-to-b from-white via-[#f7f9fc] to-[#eef2f8]">
+        {/* HERO */}
+        <section className="relative overflow-hidden bg-[#F7F8FA] pt-8 pb-8 md:py-14 xl:min-h-[680px] xl:py-16 xl:pt-[72px] xl:pb-12 2xl:min-h-[720px] 2xl:pb-10 [@media(min-width:1280px)_and_(min-height:850px)]:min-h-[740px]">
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.55]"
             aria-hidden
+            className="pointer-events-none absolute inset-0"
             style={{
-              backgroundImage:
-                "radial-gradient(ellipse 80% 55% at 95% 10%, rgba(201,164,84,0.16), transparent 55%), radial-gradient(ellipse 60% 50% at 5% 95%, rgba(15,26,51,0.07), transparent 55%)",
+              background:
+                "radial-gradient(ellipse 65% 45% at 90% 8%, rgba(7,18,36,0.04), transparent 55%), radial-gradient(ellipse 50% 40% at 6% 92%, rgba(7,18,36,0.03), transparent 55%), linear-gradient(180deg, #F7F8FA 0%, #FFFFFF 100%)",
             }}
           />
-          <div className="relative z-[1] mx-auto max-w-7xl px-6 pb-4 pt-4 sm:pb-5 sm:pt-5 lg:px-10 lg:pb-4 lg:pt-4">
-            <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-              <div className="order-2 min-w-0 lg:order-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
+          <div className="relative z-[1] mx-auto w-full max-w-[1280px] px-6 sm:px-8 lg:px-10 2xl:max-w-[1400px]">
+            <div className="md:mx-auto md:max-w-[620px] xl:grid xl:grid-cols-[0.9fr_1.1fr] xl:items-center xl:gap-10 xl:mx-0 xl:max-w-none 2xl:gap-12">
+              <div className="relative max-w-[560px] md:mx-auto xl:mx-0 xl:max-w-none">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#B8923F]">
                   GUÍA FLYPATH
                 </p>
-                <h1 className="mt-3 text-[2rem] font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-[2.4rem] lg:text-[2.65rem] lg:leading-[1.08]">
-                  La guía que te evita decisiones que cuestan miles de euros.
+                <h1 className="mt-3 mb-0 w-full max-w-[600px] overflow-visible text-[2.5rem] font-semibold leading-[1.02] tracking-tight text-[#071224] sm:text-[3.25rem] sm:leading-[1.04] md:text-[52px] md:leading-[0.98] xl:mt-5 xl:text-[3.75rem] xl:leading-[1.04] 2xl:text-[64px] 2xl:leading-[0.95]">
+                  <span className="block xl:whitespace-nowrap">Cómo ser piloto</span>
+                  <span className="block xl:whitespace-nowrap">sin tomar decisiones</span>
+                  <span className="block font-serif italic text-[#B8923F]">a ciegas.</span>
                 </h1>
-                <p className="mt-4 max-w-xl text-base font-medium leading-relaxed text-[#7a5a16]">
-                  Cómo ser piloto sin pagar a ciegas
-                </p>
-                <p className="mt-3 max-w-xl text-base leading-relaxed text-slate-600">
+
+                <div className="relative left-1/2 -mt-6 w-screen max-w-[100vw] -translate-x-1/2 md:hidden">
+                  <img
+                    src="/comoserpilotohero.png"
+                    alt="Portada de la guía Cómo ser piloto"
+                    width={1122}
+                    height={1402}
+                    fetchPriority="high"
+                    decoding="async"
+                    className="mx-auto block h-auto w-full max-w-none -mb-6 object-contain drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)]"
+                  />
+                </div>
+
+                <div className="mx-auto mt-7 hidden w-full max-w-[305px] md:block xl:hidden">
+                  <img
+                    src="/comoserpilotohero.png"
+                    alt="Portada de la guía Cómo ser piloto"
+                    width={1122}
+                    height={1402}
+                    decoding="async"
+                    className="mx-auto h-auto w-full object-contain drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)]"
+                  />
+                </div>
+
+                <p className="-mt-2 mb-4 max-w-[520px] text-left text-[16px] leading-[1.7] text-[#4B5563] md:mt-5 md:max-w-[620px] md:text-[17px] md:leading-[1.55] xl:mb-0 xl:mt-6 xl:max-w-[520px] xl:text-[18px] xl:leading-[1.65]">
                   Entiende rutas, licencias, costes reales, Clase 1, escuelas de vuelo y decisiones clave antes de comprometer tu dinero.
                 </p>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+
+                <div className="flex flex-col gap-2.5 sm:flex-row md:mt-6 md:gap-4 xl:mt-8 xl:gap-3">
                   <button
                     type="button"
                     onClick={scrollToBuy}
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
+                    className="inline-flex h-auto items-center justify-center rounded-[14px] bg-[#D6AE4F] px-7 py-3.5 text-[15px] font-bold tracking-tight text-[#071224] transition duration-200 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/45 md:h-[56px] md:px-8 md:text-base xl:h-auto xl:px-7 xl:py-3.5 xl:text-[15px] 2xl:h-[56px] 2xl:px-8 2xl:text-[16px]"
                   >
                     Comprar guía digital
                   </button>
                   <button
                     type="button"
                     onClick={scrollToToc}
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-300/90 bg-white px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/45 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
+                    className="inline-flex h-auto items-center justify-center gap-2 rounded-[14px] border border-[#071224]/15 bg-white px-7 py-3.5 text-[15px] font-semibold text-[#071224] transition duration-200 hover:border-[#071224]/30 hover:bg-[#f8fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071224]/20 md:h-[56px] md:px-8 md:text-base xl:h-auto xl:px-7 xl:py-3.5 xl:text-[15px] 2xl:h-[56px] 2xl:px-8 2xl:text-[16px]"
                   >
                     Ver contenido
                     <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                   </button>
                 </div>
-                <p className="mt-5 text-[13px] font-medium tracking-[0.02em] text-slate-500">
-                  Digital · Física · Pago único · Pensada antes de elegir escuela
+
+                <p className="mt-2.5 text-[13px] font-medium tracking-[0.02em] text-[#6B7280] xl:mt-7">
+                  Digital · Física · Pago único · Actualizada 2026
                 </p>
               </div>
-              {/* Libro: presentación limpia sin caja blanca. */}
-              <div className="order-1 lg:order-2 lg:-translate-y-4">
-                <div className="relative mx-auto w-full max-w-[460px] lg:max-w-[560px]">
-                  <div
-                    className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-[#c9a454]/18 via-transparent to-[#0f1a33]/10 blur-3xl"
-                    aria-hidden
-                  />
-                  <div
-                    className="pointer-events-none absolute inset-x-10 bottom-2 -z-10 h-10 rounded-[100%] bg-[#0f1a33]/12 blur-2xl"
-                    aria-hidden
-                  />
-                  <img
-                    src="/librocomoserpiloto.png?v=2"
-                    alt="Portada de la guía Cómo ser piloto"
-                    width={1200}
-                    height={1500}
-                    fetchPriority="high"
-                    decoding="async"
-                    className="mx-auto h-auto w-full select-none object-contain drop-shadow-[0_22px_42px_rgba(15,26,51,0.18)]"
-                  />
-                </div>
+
+              {/* Right column — desktop mockup (same spacer rhythm as AeroComms) */}
+              <div className="relative hidden min-h-[480px] self-start xl:block 2xl:min-h-[520px]">
+                <img
+                  src="/comoserpilotohero.png"
+                  alt="Portada de la guía Cómo ser piloto"
+                  width={1122}
+                  height={1402}
+                  decoding="async"
+                  className="absolute right-10 top-0 h-auto w-full max-w-[535px] -translate-y-12 object-contain object-top object-right drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)] 2xl:max-w-[593px]"
+                />
               </div>
             </div>
           </div>
@@ -327,7 +361,7 @@ export default function GuiaComoSerPilotoPage() {
               </div>
 
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#B8923F]">
                   EDICIÓN 2026
                 </p>
                 <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-4xl">
@@ -350,7 +384,7 @@ export default function GuiaComoSerPilotoPage() {
                 </ul>
 
                 <div className="mt-7 flex flex-col items-center rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white to-[#fffdf8] p-5 text-center shadow-[0_16px_44px_rgba(15,26,51,0.07)] sm:p-6">
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a5a16]">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#B8923F]">
                     Formato
                   </p>
                   <div
@@ -411,7 +445,7 @@ export default function GuiaComoSerPilotoPage() {
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-2 lg:items-center lg:gap-14">
               <div className="order-1 min-w-0 w-full lg:order-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#B8923F]">
                   TABLA DE CONTENIDOS
                 </p>
                 <h2 className="mt-3 text-3xl font-semibold leading-[1.1] tracking-tight text-[#0f1a33] sm:text-[2rem]">
@@ -472,8 +506,8 @@ export default function GuiaComoSerPilotoPage() {
                   <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                 </button>
               </div>
-              <div className="order-2 w-full lg:order-1">
-                <div className="overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04]">
+              <div className="order-2 w-full lg:order-1 lg:flex lg:items-center lg:justify-center">
+                <div className="w-full overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04] lg:mx-auto lg:w-[88%] lg:max-w-[520px]">
                   <img
                     src="/avgas.JPG"
                     alt="Avión de aviación general como vista previa de la guía Cómo ser piloto"
@@ -487,34 +521,47 @@ export default function GuiaComoSerPilotoPage() {
           </div>
         </section>
 
-        {/* NOTA EDITORIAL — texto grande + imagen vertical */}
-        <section className="border-b border-slate-200/70 bg-gradient-to-b from-white to-[#f7f9fc] py-16 lg:py-24">
-          <div className="mx-auto max-w-6xl px-6 lg:px-10">
-            <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-2 lg:items-center lg:gap-16">
-              <div className="order-1 min-w-0 w-full">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a5a16]">
-                  Por qué esta guía
+        {/* POR QUÉ ESTA GUÍA */}
+        <section className="border-b border-slate-200/70 bg-[#F7F8FA] py-14 lg:py-20">
+          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14 xl:gap-16">
+              <div className="order-1 min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#B8923F]">
+                  POR QUÉ ESTA GUÍA
                 </p>
-                <div className="mt-5 max-w-2xl space-y-5 text-[17px] leading-[1.8] text-[#0f1a33] sm:text-[19px] lg:text-[21px]">
-                  <p>
-                    Cómo ser Piloto es una guía práctica para quienes quieren iniciar o ya han iniciado el camino hacia la aviación profesional y no quieren equivocarse en las decisiones importantes.
-                  </p>
-                  <p>
-                    Aquí encontrarás exactamente lo que a mí nadie me explicó al empezar: cómo elegir bien escuela y ruta, entender en qué se va realmente el dinero, evitar costes ocultos y gestionar el tiempo de forma inteligente.
-                  </p>
-                  <p>
-                    No es una guía teórica. Es una recopilación clara y directa de los consejos que más impacto tienen en el resultado final: ahorrar miles de euros y años de camino.
-                  </p>
+                <h2 className="mt-3 max-w-xl text-3xl font-semibold leading-[1.12] tracking-tight text-[#0f1a33] sm:text-[2rem] lg:max-w-lg">
+                  No es una guía teórica.
+                  <br />
+                  Es claridad antes de pagar una formación.
+                </h2>
+                <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-slate-600 lg:max-w-lg">
+                  Cómo ser Piloto reúne lo que a mí me habría gustado entender antes de elegir escuela, ruta y forma de financiar la formación.
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:gap-3.5">
+                  {WHY_GUIDE_CARDS.map(({ title, text, icon: Icon }) => (
+                    <div
+                      key={title}
+                      className="flex gap-3.5 rounded-[18px] border border-[#E5E7EB] bg-white p-4 sm:gap-4 sm:p-5"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fffdf6] ring-1 ring-[#c9a454]/25">
+                        <Icon className="h-4 w-4 text-[#c9a454]" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-semibold leading-snug text-[#0f1a33]">{title}</h3>
+                        <p className="mt-1 text-[15px] leading-relaxed text-slate-600">{text}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="order-2 w-full">
-                <div className="w-full overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_28px_70px_rgba(15,26,51,0.14)] ring-1 ring-black/[0.04]">
+              <div className="order-2 flex w-full justify-center lg:order-2">
+                <div className="w-full max-w-[300px] overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_20px_50px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04] sm:max-w-[360px] lg:max-w-[500px]">
                   <img
                     src="/atardecer.jpg"
                     alt="Atardecer aeronáutico como apoyo visual de la guía Cómo ser piloto"
                     loading="lazy"
                     decoding="async"
-                    className="block h-auto w-full max-w-full rounded-2xl object-contain"
+                    className="block h-auto w-full rounded-2xl object-contain"
                   />
                 </div>
               </div>
@@ -525,88 +572,108 @@ export default function GuiaComoSerPilotoPage() {
         {/* FORMATOS Y COMPRA */}
         <section
           id="formatos-guia"
-          className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-[#0f1a33] to-[#16264a] py-12 text-white lg:py-16"
+          className="border-b border-white/5 bg-header-navy pt-14 pb-10 text-white lg:pt-20 lg:pb-12"
         >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-70"
-            aria-hidden
-            style={{
-              backgroundImage:
-                "radial-gradient(ellipse 80% 55% at 100% 0%, rgba(201,164,84,0.18), transparent 55%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(255,255,255,0.06), transparent 60%)",
-            }}
-          />
           <div className="relative z-[1] mx-auto max-w-7xl px-6 lg:px-10">
-            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              Elige tu formato
-            </h2>
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-300">
-              Empieza con la versión que mejor encaje contigo. La guía está pensada para leerla antes de comparar escuelas o pagar una matrícula.
-            </p>
-            <div className="mt-8 grid gap-5 md:grid-cols-2">
-              {/* Tarjeta física */}
-              <div className="flex flex-col rounded-3xl border border-white/12 bg-white/[0.06] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_60px_rgba(0,0,0,0.25)] backdrop-blur-[2px] sm:p-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]/85">
-                  Físico
+            <div className="mx-auto max-w-[1080px]">
+              <div className="mx-auto max-w-[760px] text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#B8923F]">
+                  ELIGE TU FORMATO
                 </p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">Guía física</h3>
-                <p className="mt-3 flex items-baseline gap-2">
-                  <span className="text-4xl font-semibold tracking-tight text-[#f2ddaa]">26&nbsp;€</span>
-                  <span className="text-[13px] font-medium text-slate-300">Edición impresa</span>
+                <h2 className="mt-3 text-2xl font-semibold leading-[1.12] tracking-tight text-white sm:text-3xl lg:text-[2rem]">
+                  Empieza como tú prefieras.
+                  <br className="hidden sm:block" />
+                  {" "}
+                  Dos formatos, el mismo objetivo.
+                </h2>
+                <p className="mt-4 text-base leading-relaxed text-white/70 lg:text-[17px]">
+                  Elige cómo quieres empezar: descarga inmediata o edición impresa para leer con calma.
                 </p>
-                <ul className="mt-5 space-y-2 text-[15px] leading-relaxed text-slate-200">
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    Versión impresa.
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    Perfecta para leer con calma o regalar.
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    Ideal para familias que quieren entender el camino.
-                  </li>
-                </ul>
-                <button
-                  type="button"
-                  onClick={showPhysicalToast}
-                  className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-white/30 bg-transparent px-6 py-3 text-[15px] font-semibold text-white transition hover:border-white/60 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  Comprar física
-                </button>
               </div>
 
-              {/* Tarjeta digital */}
-              <div className="flex flex-col rounded-3xl border border-[#c9a454]/45 bg-white/[0.08] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_60px_rgba(0,0,0,0.28)] backdrop-blur-[2px] sm:p-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f2ddaa]/85">
-                  Digital
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">Guía digital</h3>
-                <p className="mt-3 flex items-baseline gap-2">
-                  <span className="text-4xl font-semibold tracking-tight text-[#f2ddaa]">14,95&nbsp;€</span>
-                  <span className="text-[13px] font-medium text-slate-300">Descarga inmediata</span>
-                </p>
-                <ul className="mt-5 space-y-2 text-[15px] leading-relaxed text-slate-200">
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    Descarga digital inmediata.
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    Ideal para empezar hoy.
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#c9a454]" aria-hidden />
-                    Versión práctica para consultar mientras comparas escuelas.
-                  </li>
-                </ul>
-                <button
-                  type="button"
-                  onClick={showDigitalToast}
-                  className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-                >
-                  Comprar digital
-                </button>
+              <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:mt-12">
+                {/* Tarjeta física */}
+                <article className="flex h-full flex-col rounded-2xl border border-white/10 bg-header-navy p-5 shadow-[0_14px_40px_rgba(7,18,36,0.18)] sm:p-6 md:max-w-[520px] md:justify-self-end">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#D6AE4F]/12 ring-1 ring-[#D6AE4F]/30">
+                      <BookOpen className="h-5 w-5 text-[#D6AE4F]" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#D6AE4F]">
+                        FÍSICO
+                      </p>
+                      <h3 className="mt-1 text-2xl font-semibold text-white">Guía física</h3>
+                    </div>
+                  </div>
+                  <p className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="text-4xl font-semibold tracking-tight text-white sm:text-[2.5rem]">26&nbsp;€</span>
+                    <span className="whitespace-nowrap text-[13px] font-medium text-white/65">Edición impresa</span>
+                  </p>
+                  <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-snug text-white/75 sm:text-[15px]">
+                    <li className="flex gap-2.5">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#D6AE4F]" aria-hidden />
+                      <span>Versión impresa de alta calidad</span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#D6AE4F]" aria-hidden />
+                      <span className="md:whitespace-nowrap">Perfecta para leer con calma o regalar</span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#D6AE4F]" aria-hidden />
+                      <span className="md:whitespace-nowrap">Ideal para familias que quieren entender el camino</span>
+                    </li>
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={showPhysicalToast}
+                    className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/30 bg-transparent px-6 py-3 text-[15px] font-semibold text-white transition hover:border-white/50 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    Comprar física
+                  </button>
+                </article>
+
+                {/* Tarjeta digital — recomendada */}
+                <article className="relative flex h-full flex-col overflow-visible rounded-2xl border border-[rgba(212,175,55,0.65)] bg-header-navy p-5 shadow-[0_14px_40px_rgba(7,18,36,0.18)] sm:p-6 sm:pt-7 md:max-w-[520px] md:justify-self-start">
+                  <span className="pointer-events-none absolute left-1/2 top-0 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c9a454] bg-[#c9a454] px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f1a33]">
+                    RECOMENDADO
+                  </span>
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#D6AE4F]/12 ring-1 ring-[#D6AE4F]/30">
+                      <Tablet className="h-5 w-5 text-[#D6AE4F]" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#D6AE4F]">
+                        DIGITAL
+                      </p>
+                      <h3 className="mt-1 text-2xl font-semibold text-white">Guía digital</h3>
+                    </div>
+                  </div>
+                  <p className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="text-4xl font-semibold tracking-tight text-[#D6AE4F] sm:text-[2.5rem]">14,95&nbsp;€</span>
+                    <span className="whitespace-nowrap text-[13px] font-medium text-white/65">Descarga inmediata</span>
+                  </p>
+                  <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-snug text-white/75 sm:text-[15px]">
+                    <li className="flex gap-2.5">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#D6AE4F]" aria-hidden />
+                      <span>Acceso inmediato tras la compra</span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#D6AE4F]" aria-hidden />
+                      <span>Ideal para empezar hoy mismo</span>
+                    </li>
+                    <li className="flex gap-2.5">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#D6AE4F]" aria-hidden />
+                      <span className="md:whitespace-nowrap">Versión práctica para consultar mientras comparas escuelas</span>
+                    </li>
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={showDigitalToast}
+                    className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_10px_28px_rgba(201,164,84,0.28)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
+                  >
+                    Comprar digital
+                  </button>
+                </article>
               </div>
             </div>
           </div>
@@ -618,7 +685,41 @@ export default function GuiaComoSerPilotoPage() {
             <h2 className="text-2xl font-semibold tracking-tight text-[#0f1a33] sm:text-3xl">
               Lo que dicen otros futuros pilotos
             </h2>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
+            <div className="mt-8 md:hidden">
+              <div className="-mx-6 flex snap-x snap-mandatory overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {TESTIMONIALS.map((t) => (
+                  <figure
+                    key={t.author}
+                    className="box-border w-full shrink-0 grow-0 basis-full snap-center"
+                  >
+                    <div className="flex h-full flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_14px_38px_rgba(15,26,51,0.06)] ring-1 ring-black/[0.03]">
+                      <div className="flex items-center gap-0.5" aria-label="Valoración 5 sobre 5">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-[#c9a454] text-[#c9a454]" aria-hidden />
+                        ))}
+                      </div>
+                      <blockquote className="mt-3 text-[15px] leading-relaxed text-slate-700">
+                        “{t.quote}”
+                      </blockquote>
+                      <figcaption className="mt-4 text-[13px] font-medium text-slate-500">
+                        {t.author}
+                      </figcaption>
+                    </div>
+                  </figure>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-center gap-2" aria-hidden>
+                {TESTIMONIALS.map((t, index) => (
+                  <span
+                    key={t.author}
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      index === 0 ? "bg-[#c9a454]" : "bg-[#0f1a33]/20"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mt-8 hidden gap-5 md:grid md:grid-cols-3">
               {TESTIMONIALS.map((t) => (
                 <figure
                   key={t.author}
@@ -670,6 +771,7 @@ export default function GuiaComoSerPilotoPage() {
           </div>
         </section>
       </main>
+      <HomeFooter />
     </div>
   );
 }
