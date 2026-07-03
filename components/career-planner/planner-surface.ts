@@ -3,7 +3,7 @@
 export const plannerShellBg = "bg-[#F6F7F9]";
 
 export const plannerCanvas =
-  "min-w-0 overflow-hidden rounded-2xl bg-[#101B35] text-slate-200 shadow-[0_12px_40px_rgba(15,26,51,0.14)] ring-1 ring-[#0f1a33]/10";
+  "min-w-0 overflow-hidden rounded-[22px] border border-[#D6AE4F]/[0.16] bg-gradient-to-b from-[#101B35] via-[#0F1A33] to-[#0C1730] text-slate-200 shadow-[0_16px_48px_rgba(7,14,31,0.35)] ring-1 ring-[#0f1a33]/10";
 
 export const plannerEyebrow =
   "text-[10px] font-semibold uppercase tracking-[0.2em] text-[#D6AE4F]";

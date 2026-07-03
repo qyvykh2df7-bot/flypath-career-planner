@@ -8,7 +8,7 @@ type PlannerMainCanvasProps = {
   footer?: ReactNode;
 };
 
-/** Card principal navy premium sobre fondo claro del planner. */
+/** Card principal navy premium sobre fondo claro del planner (onboarding y reviewMode). */
 export function PlannerMainCanvas({ children, footer }: PlannerMainCanvasProps) {
   return (
     <div className={plannerCanvas}>

@@ -2,7 +2,7 @@
 
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { CareerPlannerCostAdjustForm } from "./CareerPlannerCostAdjustForm";
 import {
@@ -381,13 +381,18 @@ export function CareerPlannerDiagnosisView({
           />
           <div className="relative z-10 flex max-h-[min(90dvh,760px)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#101B35] shadow-2xl sm:rounded-2xl">
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 bg-[#101B35] px-4 py-3.5 sm:px-5">
-              <div>
-                <p id="cost-adjust-title" className="text-base font-semibold text-white">
-                  Ajustar mi estimación de costes
-                </p>
-                <p className="mt-0.5 text-[13px] text-slate-300">
-                  Modifica formación, extras, costes de vida y margen de seguridad.
-                </p>
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1B2947] ring-1 ring-[#D6AE4F]/30">
+                  <SlidersHorizontal className="h-[18px] w-[18px] text-[#D6AE4F]" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p id="cost-adjust-title" className="text-base font-semibold text-white">
+                    Ajustar mi estimación de costes
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-slate-300">
+                    Modifica formación, extras, costes de vida y margen de seguridad.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"

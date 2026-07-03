@@ -4,30 +4,54 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode }
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
   BookOpen,
+  Briefcase,
+  CalendarCheck,
+  CalendarClock,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   ClipboardList,
+  Clock,
   Compass,
   Copy,
+  Database,
   Download,
+  FileText,
   GraduationCap,
+  HelpCircle,
+  Moon,
+  Star,
   Languages,
   LayoutList,
   Lock,
   Mail,
+  Pencil,
+  Plane,
+  Plus,
+  School as SchoolIcon,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
   Unlock,
+  UserCheck,
+  UserRound,
+  Wallet,
   MessagesSquare,
   Route,
   ShieldAlert,
   Trash2,
+  X,
 } from "lucide-react";
 import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
 import {
   countPlannerVerifiedSchools,
   getPlannerSchoolCatalog,
+  getProgramOptionsForEntry,
   mapComparatorSchoolToPlannerSchool,
   mapEntryOptionToPlannerSchool,
   parsePlannerSchoolLink,
@@ -58,14 +82,25 @@ import {
   plannerTitle,
 } from "@/components/career-planner/planner-surface";
 import { CareerPlannerDiagnosisView } from "@/components/career-planner/CareerPlannerDiagnosisView";
-import { CareerPlannerSchoolsTab } from "@/components/career-planner/CareerPlannerSchoolsTab";
+import {
+  CareerPlannerSchoolsTab,
+  SchoolDatabasePicker,
+  SchoolManualForm,
+} from "@/components/career-planner/CareerPlannerSchoolsTab";
 import type { PlannerDashboardTab, PlannerStepId } from "@/components/career-planner/career-planner-steps";
 import {
   normalizeDashboardTab,
   normalizePlannerStep,
   plannerStepToTab,
 } from "@/components/career-planner/career-planner-steps";
-import type { DiagnosisCtaTarget } from "@/lib/planner-diagnosis-ui";
+import {
+  resolveDiagnosisRiskDisplay,
+  resolveDiagnosisViabilityDisplay,
+  type DiagnosisCtaTarget,
+  type DiagnosisDimensionLevel,
+  type DiagnosisRiskPillTone,
+} from "@/lib/planner-diagnosis-ui";
+import { CareerPlannerCostAdjustForm } from "@/components/career-planner/CareerPlannerCostAdjustForm";
 import { buildReportSnapshot } from "@/lib/reporting/mappers/build-report-snapshot";
 import {
   buildRiskDiagnosis,
@@ -882,21 +917,34 @@ function flyPathPrimaryReasonDisplayCopy(input: {
 }
 
 /** Miniatura real del PDF premium: pág. 6 (Hoja de ruta) en informes gratuitos; portada si premium. */
-function FlyPathReportDownloadPreview({ premium }: { premium: boolean }) {
+function FlyPathReportDownloadPreview({
+  premium,
+  variant = "default",
+}: {
+  premium: boolean;
+  variant?: "default" | "compact" | "premium-card" | "section-feature";
+}) {
   const src = premium ? "/premium-report-real-preview.png" : "/premium-report-action-preview.png";
 
+  const wrapperClass =
+    variant === "section-feature"
+      ? "w-[180px] shrink-0 mx-auto sm:w-[220px] lg:mx-0 lg:w-[260px] xl:w-[300px] 2xl:w-[340px]"
+      : variant === "premium-card"
+        ? "w-[112px] shrink-0 mx-auto md:mx-0 md:w-[170px] lg:w-[200px] xl:w-[220px]"
+        : variant === "compact"
+          ? "w-[88px] shrink-0 sm:w-[110px] md:w-[130px] lg:w-[150px]"
+          : "mx-auto w-[200px] max-w-[72vw] shrink-0 sm:w-[240px] lg:mx-0 lg:w-[300px] lg:max-w-none lg:pt-1";
+
+  const imgClass =
+    variant === "default"
+      ? "w-full rounded-md border border-slate-200/80 shadow-[0_16px_40px_rgba(15,26,51,0.16)]"
+      : variant === "section-feature"
+        ? "w-full rounded-md border border-white/20 shadow-[0_18px_48px_rgba(0,0,0,0.55)] ring-1 ring-[#D6AE4F]/30"
+        : "w-full rounded border border-white/15 shadow-[0_10px_28px_rgba(0,0,0,0.5)] ring-1 ring-[#D6AE4F]/25";
+
   return (
-    <div
-      className="mx-auto w-[200px] max-w-[72vw] shrink-0 sm:w-[240px] lg:mx-0 lg:w-[300px] lg:max-w-none lg:pt-1"
-      aria-hidden
-    >
-      <img
-        src={src}
-        alt=""
-        width={1684}
-        height={1190}
-        className="w-full rounded-md border border-slate-200/80 shadow-[0_16px_40px_rgba(15,26,51,0.16)]"
-      />
+    <div className={wrapperClass} aria-hidden>
+      <img src={src} alt="" width={1684} height={1190} className={imgClass} />
     </div>
   );
 }
@@ -1208,6 +1256,9 @@ export function FlyPathApp({
   const manualFormInitializedRef = useRef(false);
   /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [cameFromSchoolsComparator, setCameFromSchoolsComparator] = useState(false);
+  // Estado solo visual del dashboard compacto (no afecta a cálculos ni persistencia).
+  const [costAdjustOpen, setCostAdjustOpen] = useState(false);
+  const [schoolsDbPickerOpen, setSchoolsDbPickerOpen] = useState(false);
 
   const { qaPremiumMode, toggleQaPremium } = useQaPremiumMode();
   // Misma clave localStorage que el comparador (`flypath_qa_premium_mode`).
@@ -1524,6 +1575,15 @@ export function FlyPathApp({
     }
   }, [reportEmail, reviewMode, storageHydrated]);
 
+  useEffect(() => {
+    if (reviewMode || screen !== "onboarding") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [screen, reviewMode]);
+
   const route = useMemo(() => computeRoute(profile), [profile]);
   const costs = useMemo(() => computeCosts(costInputs, profile), [costInputs, profile]);
 
@@ -1829,6 +1889,10 @@ export function FlyPathApp({
     );
   };
 
+  const updateSchoolPrograma = (schoolId: number, programa: School["programa"]) => {
+    setSchools((prev) => prev.map((s) => (s.id === schoolId ? { ...s, programa } : s)));
+  };
+
   const addSchool = (fromOnboarding = false) => {
     if (!newSchool.nombre.trim()) return;
     if (fromOnboarding && schools.length >= 3) return;
@@ -1875,6 +1939,11 @@ export function FlyPathApp({
     setScreen("dashboard");
     setTab("diagnosis");
     setPlannerStep("diagnosis");
+  };
+
+  const openProfileOnboardingModal = () => {
+    setOnboardingStep(1);
+    setScreen("onboarding");
   };
 
   const goToPlannerStep = (step: PlannerStepId) => {
@@ -1940,6 +2009,16 @@ export function FlyPathApp({
     // de mover el scroll: si lo hacemos sincrónicamente, el scrollTop puede aplicarse
     // sobre el layout viejo y queda inconsistente.
     window.requestAnimationFrame(() => {
+      // Dashboard normal = una sola página larga: navegamos haciendo scroll a la
+      // sección correspondiente. En modo review seguimos mostrando un único tab,
+      // así que volvemos arriba como antes.
+      if (!reviewMode) {
+        const section = document.getElementById(`planner-${normalized}`);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   };
@@ -1995,27 +2074,25 @@ export function FlyPathApp({
     />
   );
 
-  if (screen === "onboarding") {
-    return (
-      <>
-        <style jsx global>{globalButtonFeedbackStyles}</style>
-        {toast && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
-            {toast}
-          </motion.div>
-        )}
-        <CareerPlannerAppShell stepNav={plannerStepNav} bottomNav={plannerBottomNav}>
-          <PlannerMainCanvas>
-            <p className={plannerEyebrow}>Paso {onboardingStep} de 6 · Perfil</p>
-            <h1 className={`mt-2 text-2xl ${plannerTitle}`}>{stepMeta[onboardingStep].title}</h1>
-            {stepMeta[onboardingStep].desc ? (
-              <p className={`mt-1 ${plannerBody}`}>{stepMeta[onboardingStep].desc}</p>
-            ) : null}
-            <div className="mt-4 rounded-full bg-white/10 p-1">
-              <Progress value={(onboardingStep / 6) * 100} tone="bg-[#D6AE4F]" />
-            </div>
-            <div className="mt-6 rounded-xl bg-white p-4 text-[#0f1a33] shadow-sm ring-1 ring-white/20">
+  const onboardingModalBody = (
+    <>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div className="min-w-0">
+          <p className={plannerEyebrow}>CAREER PLANNER</p>
+          <p className="mt-1 text-[15px] font-semibold text-white">Configura tu perfil para generar tu diagnóstico</p>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#D6AE4F]/35 bg-[#1B2947] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D6AE4F]">
+          Paso {onboardingStep} de 6
+        </span>
+      </div>
+      <h1 id="onboarding-modal-title" className={`text-2xl ${plannerTitle}`}>
+        {stepMeta[onboardingStep].title}
+      </h1>
+      {stepMeta[onboardingStep].desc ? <p className={`mt-1 ${plannerBody}`}>{stepMeta[onboardingStep].desc}</p> : null}
+      <div className="mt-4 rounded-full bg-white/10 p-1">
+        <Progress value={(onboardingStep / 6) * 100} tone="bg-[#D6AE4F]" />
+      </div>
+      <div className="mt-6 rounded-xl bg-white p-4 text-[#0f1a33] shadow-sm ring-1 ring-white/20">
               {onboardingStep === 1 && <div className="grid gap-4 md:grid-cols-2"><TextField label="Nombre" value={profile.nombre} onChange={(v)=>setProfile(p=>({...p,nombre:v}))} /><NumberField label="Edad" value={profile.edad} onChange={(v)=>setProfile(p=>({...p,edad:v}))} /><TextField label="País" value={profile.pais} onChange={(v)=>setProfile(p=>({...p,pais:v}))} /><SelectField label="Situación laboral" value={profile.situacionLaboral} options={[{value:"estudiante",label:"Estudiante"},{value:"trabajando",label:"Trabajando"},{value:"desempleado",label:"Desempleado"},{value:"otro",label:"Otro"}]} onChange={(v)=>setProfile(p=>({...p,situacionLaboral:v as Profile["situacionLaboral"]}))} /><SelectField label="Objetivo" value={profile.objetivo} options={[{value:"aerolinea",label:"Aerolínea"},{value:"ejecutivo",label:"Ejecutivo"},{value:"instructor",label:"Instructor"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,objetivo:v as Profile["objetivo"]}))} /></div>}
               {onboardingStep === 2 && <div className="grid gap-4 md:grid-cols-2"><SelectField label="Clase 1" value={profile.class1} options={[{value:"si",label:"Sí"},{value:"no",label:"No"},{value:"reservado",label:"Reservado"}]} onChange={(v)=>setProfile(p=>({...p,class1:v as Profile["class1"]}))} /><SelectField label="Class 2" value={profile.class2} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,class2:v as Profile["class2"]}))} /><SelectField label="Nivel de inglés" value={profile.ingles} options={[{value:"bajo",label:"Bajo"},{value:"medio",label:"Medio"},{value:"alto",label:"Alto"}]} onChange={(v)=>setProfile(p=>({...p,ingles:v as Profile["ingles"]}))} /><SelectField label="ICAO level" value={profile.icaoLevel} options={[{value:"0",label:"0"},{value:"4",label:"4"},{value:"5",label:"5"},{value:"6",label:"6"},{value:"no_lo_se",label:"No lo sé"}]} onChange={(v)=>setProfile(p=>({...p,icaoLevel:v as Profile["icaoLevel"]}))} /><SelectField label="Preocupación por inglés" value={profile.preocupacionIngles} options={[{value:"si",label:"Sí"},{value:"no",label:"No"}]} onChange={(v)=>setProfile(p=>({...p,preocupacionIngles:v as Profile["preocupacionIngles"]}))} /></div>}
               {onboardingStep === 3 && (
@@ -2123,33 +2200,175 @@ export function FlyPathApp({
                 </div>
               )}
               {onboardingStep === 6 && <div className="grid gap-4 md:grid-cols-2"><InfoCard label="Ruta recomendada" value={route.recommended} /><InfoCard label="Razón principal" value={route.reason} /><InfoCard label="Coste realista" value={euro(costs.totalRealista)} /><InfoCard label="Brecha de financiación" value={euro(costs.brechaFinanciacion)} /></div>}
-            </div>
-            <div className={`mt-8 flex items-center justify-between ${plannerDivider} pt-5`}>
-              <button
-                type="button"
-                onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))}
-                disabled={onboardingStep === 1}
-                className="cursor-pointer rounded-lg border border-white/25 px-4 py-2 text-[15px] text-slate-300 transition hover:border-white/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Anterior
-              </button>
-              {onboardingStep < 6 ? (
-                <button
-                  type="button"
-                  onClick={handleOnboardingNext}
-                  className="cursor-pointer rounded-lg bg-[#D6AE4F] px-4 py-2 text-[15px] font-semibold text-[#071224] transition hover:brightness-105"
-                >
-                  Siguiente
-                </button>
-              ) : (
-                plannerStepFooter
-              )}
-            </div>
-          </PlannerMainCanvas>
-        </CareerPlannerAppShell>
-      </>
-    );
-  }
+      </div>
+    </>
+  );
+
+  const onboardingModalFooter = (
+    <div className="flex items-center justify-between gap-3">
+      <button
+        type="button"
+        onClick={() => setOnboardingStep((s) => Math.max(1, s - 1))}
+        disabled={onboardingStep === 1}
+        className="cursor-pointer rounded-lg border border-white/25 px-4 py-2 text-[15px] text-slate-300 transition hover:border-white/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Anterior
+      </button>
+      {onboardingStep < 6 ? (
+        <button
+          type="button"
+          onClick={handleOnboardingNext}
+          className="cursor-pointer rounded-lg bg-[#D6AE4F] px-4 py-2 text-[15px] font-semibold text-[#071224] transition hover:brightness-105"
+        >
+          Siguiente
+        </button>
+      ) : (
+        plannerStepFooter
+      )}
+    </div>
+  );
+
+  const scrollToPlannerSection = (id: string) => {
+    if (typeof window === "undefined") return;
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const plannerNextStep =
+    schools.length === 0
+      ? { label: "Comparar escuelas", target: "planner-schools" }
+      : { label: "Ver informe", target: "planner-report" };
+
+  // Gate de email + descargas del informe (misma lógica que antes, elevada a scope
+  // de componente para reutilizarla en el dashboard compacto y en modo review).
+  const reportEmailValid = isValidReportEmail(reportEmail);
+  const freeDownloadsEnabled = reportEmailValid && !freePdfExporting;
+  const requireReportEmailForDownload = () => {
+    if (reportEmailValid) {
+      setReportEmailDownloadHint(false);
+      return true;
+    }
+    setReportEmailDownloadHint(true);
+    return false;
+  };
+
+  const handlePremiumReportDownload = async () => {
+    if (premiumPdfExporting) return;
+    setPremiumPdfExporting(true);
+    try {
+      const { downloadPremiumCareerReportPdf } = await import("@/lib/premiumCareerReportPdf");
+      await downloadPremiumCareerReportPdf(reportSnapshot);
+      showToast("Informe premium descargado");
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[FlyPath] Error generando PDF premium:", e);
+      } else {
+        console.error("[FlyPath] PDF premium fallido");
+      }
+      const pdfErr = await import("@/lib/premiumCareerReportPdf");
+      showToast(pdfErr.PREMIUM_PDF_ERROR_MESSAGE);
+    } finally {
+      setPremiumPdfExporting(false);
+    }
+  };
+
+  const handleFreeReportDownload = async () => {
+    if (!requireReportEmailForDownload()) return;
+    if (freePdfExporting) return;
+    setFreePdfExporting(true);
+    try {
+      const { downloadFreeCareerReportPdf } = await import("@/lib/freeCareerReportPdf");
+      await downloadFreeCareerReportPdf(reportSnapshot);
+      showToast("Informe descargado");
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[FlyPath] Error generando informe gratuito V2:", e);
+      } else {
+        console.error("[FlyPath] PDF informe gratuito fallido");
+      }
+      const pdfErr = await import("@/lib/freeCareerReportPdf");
+      showToast(pdfErr.FREE_PDF_ERROR_MESSAGE);
+    } finally {
+      setFreePdfExporting(false);
+    }
+  };
+
+  const handleParentsReportDownload = async () => {
+    if (!plannerPremiumContentVisible && !requireReportEmailForDownload()) return;
+    try {
+      const { downloadParentsReportPdf } = await import("@/lib/parentsReportPdf");
+      await downloadParentsReportPdf(reportSnapshot);
+      showToast("Resumen para padres descargado");
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[FlyPath] Error generando PDF resumen para padres:", e);
+      } else {
+        console.error("[FlyPath] PDF resumen padres fallido");
+      }
+      const pdfErr = await import("@/lib/parentsReportPdf");
+      showToast(pdfErr.PARENTS_PDF_ERROR_MESSAGE);
+    }
+  };
+
+  // Resumen compacto de diagnóstico para el dashboard (solo presentación;
+  // reutiliza los mismos resolvers que la vista completa de Diagnóstico).
+  const diagnosisSlices = {
+    profile,
+    costs: {
+      brechaFinanciacion: costs.brechaFinanciacion,
+      coverage: costs.coverage,
+      riesgoFinanciero: costs.riesgoFinanciero,
+    },
+    route: { recommended: route.recommended, conflicts: route.conflicts },
+  };
+  const dashRiskDisplay = resolveDiagnosisRiskDisplay(diagnosisSlices);
+  const dashViabilityDisplay = resolveDiagnosisViabilityDisplay(diagnosisSlices);
+
+  const schoolsTabElement = (
+    <CareerPlannerSchoolsTab
+      schools={schools}
+      verifiedCount={plannerVerifiedCount}
+      manualFormOpen={manualFormOpen}
+      formPanelRef={schoolFormPanelRef}
+      schoolEditActiveId={schoolEditActiveId}
+      newSchool={newSchool}
+      setNewSchool={setNewSchool}
+      catalog={plannerSchoolCatalog}
+      onAddFromDatabase={tryAddSchoolFromDatabase}
+      onUpdateProgram={updatePlannerSchoolProgram}
+      onOpenManualForm={openSchoolsManualForm}
+      onCloseManualForm={() => {
+        setManualFormOpen(false);
+        if (schoolEditActiveId !== null) {
+          setSchoolEditActiveId(null);
+          setNewSchool(createEmptySchool());
+        }
+      }}
+      onSaveSchool={() => addSchool(false)}
+      onCancelEdit={cancelSchoolEdit}
+      onEditSchool={editSchoolInPlanner}
+      onRemoveSchool={removeSchoolById}
+    />
+  );
+
+  const reportNextStepsBlock = (
+    <div className="mt-8 space-y-8">
+      <FlyPathNextStepsPanel
+        recommendation={nextStepRecommendation}
+        profile={profile}
+        route={route}
+        decisionReadiness={decisionReadiness}
+        schools={schools}
+        costInputs={costInputs}
+        costs={costs}
+        riskDiagnosis={riskDiagnosis}
+        verifiedSchoolsCount={schoolStats.verifiedCount}
+      />
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nota importante</p>
+        <p className="mt-1 text-[15px] text-slate-600">{disclaimerText}</p>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -2160,8 +2379,716 @@ export function FlyPathApp({
           {toast}
         </motion.div>
       )}
-      <CareerPlannerAppShell stepNav={plannerStepNav} bottomNav={plannerBottomNav}>
-        <>
+      <CareerPlannerAppShell
+        stepNav={reviewMode ? plannerStepNav : undefined}
+        bottomNav={reviewMode ? plannerBottomNav : undefined}
+        surface={reviewMode ? "light" : "navy"}
+        contentClassName={
+          reviewMode
+            ? undefined
+            : "mx-auto w-full min-w-0 max-w-[1480px] px-4 py-4 pb-10 sm:px-6 sm:py-5 lg:px-8"
+        }
+      >
+        {!reviewMode && (
+          <div
+            className={`career-planner-dashboard relative -mt-4 pt-8 sm:-mt-5 sm:pt-10${
+              screen === "onboarding" ? " pointer-events-none select-none" : ""
+            }`}
+            aria-hidden={screen === "onboarding" ? true : undefined}
+          >
+            <div
+              className="pointer-events-none absolute -top-4 left-1/2 z-0 h-[min(780px,92vh)] w-screen -translate-x-1/2 sm:-top-5 lg:h-[820px]"
+              aria-hidden
+            >
+              <div className="absolute inset-0 bg-[url('/fondocarrer.png')] bg-cover bg-no-repeat [background-position:right_-112px]" />
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(5,11,24,0.92)_0%,rgba(8,15,31,0.52)_42%,rgba(8,15,31,0.22)_68%,rgba(5,11,24,0.12)_100%)]" />
+              <div className="absolute inset-x-0 bottom-0 h-[min(440px,58%)] bg-gradient-to-b from-transparent via-[#080F1F]/65 to-[#080F1F]" />
+            </div>
+
+            <div className="relative z-10 space-y-4 sm:space-y-5">
+                {/* B. Hero compacto + métricas */}
+                <section className="mb-8 sm:mb-10">
+                  <div className="flex flex-col items-start gap-5 lg:flex-row lg:items-start lg:gap-8">
+                    <div className="w-full max-w-md shrink-0 lg:max-w-sm xl:max-w-md">
+                      <h1 className="font-extrabold leading-[0.9] tracking-[0.03em]">
+                        <span className="block text-[2.75rem] text-white sm:text-[3.5rem]">CAREER</span>
+                        <span className="block text-[3rem] text-[#DFB04E] sm:text-[3.85rem]">PLANNER</span>
+                      </h1>
+                      <p className="mt-2 text-[15px] font-semibold text-slate-200">Tu ruta. Tu plan. Tu futuro.</p>
+                      <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-slate-400">
+                        Planifica tu camino según tu perfil, presupuesto, tiempo, escuelas candidatas y riesgos antes
+                        de pagar matrícula.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-2.5 sm:flex-row sm:gap-3">
+                      <PlannerMetricCard
+                        label="Presupuesto estimado"
+                        value={euro(costs.totalRealista)}
+                        sub="Coste realista total"
+                        actionLabel="Ver desglose"
+                        onAction={() => scrollToPlannerSection("planner-budget")}
+                        Icon={Wallet}
+                        stretchValueArea
+                      />
+                      <PlannerMetricCard
+                        label="Tiempo estimado"
+                        value={tiempoEstimadoLabel(route.recommended)}
+                        sub={`Ruta ${route.recommended}`}
+                        actionLabel="Ver línea de tiempo"
+                        onAction={() => scrollToPlannerSection("planner-route")}
+                        Icon={CalendarClock}
+                        stretchValueArea
+                      />
+                      <PlannerMetricCard
+                        label="Próximo paso"
+                        value={plannerNextStep.label}
+                        sub="Según tu progreso"
+                        actionLabel="Ir ahora"
+                        onAction={() => scrollToPlannerSection(plannerNextStep.target)}
+                        Icon={ClipboardCheck}
+                        highlight
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* C. 1. Tu perfil */}
+                <section id="planner-profile" className={`scroll-mt-6 ${dashCard}`}>
+                  <DashSectionHeader number={1} title="Tu perfil" Icon={UserRound} />
+                  <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+                    <DashTextField label="Nombre" value={profile.nombre} onChange={(v) => setProfile((p) => ({ ...p, nombre: v }))} />
+                    <DashNumberField label="Edad" value={profile.edad} onChange={(v) => setProfile((p) => ({ ...p, edad: v }))} />
+                    <DashSelectField
+                      label="Certificado médico"
+                      value={dashMedicalValueFromProfile(profile)}
+                      options={[
+                        { value: "clase1_confirmada", label: "Clase 1 confirmada" },
+                        { value: "clase1_pendiente", label: "Clase 1 pendiente" },
+                        { value: "clase2", label: "Clase 2" },
+                        { value: "no_lo_se", label: "No lo sé todavía" },
+                      ]}
+                      onChange={(v) => setProfile((p) => applyDashMedicalOption(p, v as DashMedicalOption))}
+                    />
+                    <DashSelectField
+                      label="Nivel de inglés"
+                      value={profile.ingles}
+                      options={[{ value: "bajo", label: "Bajo" }, { value: "medio", label: "Medio" }, { value: "alto", label: "Alto" }]}
+                      onChange={(v) => setProfile((p) => ({ ...p, ingles: v as Profile["ingles"] }))}
+                    />
+                    <DashNumberField
+                      label="Presupuesto disponible"
+                      value={profile.dineroDisponible}
+                      onChange={(v) => setProfile((p) => ({ ...p, dineroDisponible: v }))}
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="w-full sm:max-w-sm">
+                      <DashSelectField
+                        label="Objetivo profesional"
+                        value={profile.objetivo}
+                        options={[
+                          { value: "aerolinea", label: "Piloto de línea aérea" },
+                          { value: "ejecutivo", label: "Aviación ejecutiva" },
+                          { value: "instructor", label: "Instructor" },
+                          { value: "no_lo_se", label: "No lo sé todavía" },
+                        ]}
+                        onChange={(v) => setProfile((p) => ({ ...p, objetivo: v as Profile["objetivo"] }))}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openProfileOnboardingModal}
+                      className={`${plannerBtnPrimary} shrink-0`}
+                    >
+                      Editar mis datos
+                      <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                </section>
+
+                {/* D. 2. Tu ruta recomendada */}
+                <section id="planner-route" className={`scroll-mt-6 ${dashCard}`}>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <DashSectionHeader number={2} title="Tu ruta recomendada" Icon={Route} />
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D6AE4F]/35 bg-[#D6AE4F]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#E8C978]">
+                      <Sparkles className="h-3 w-3" aria-hidden />
+                      {route.recommended}
+                    </span>
+                    <span className="text-[12px] text-slate-400">Según tu disponibilidad, presupuesto y objetivos.</span>
+                  </div>
+                  <PlannerRouteTimeline recommended={route.recommended} objetivo={profile.objetivo} />
+                </section>
+
+                {/* E. 3. Presupuesto + 4. Diagnóstico */}
+                <section className="grid gap-4 lg:grid-cols-5">
+                  <div id="planner-budget" className={`scroll-mt-6 lg:col-span-3 ${dashCard}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <DashSectionHeader number={3} title="Presupuesto y tiempo" Icon={Wallet} />
+                      <button
+                        type="button"
+                        onClick={() => setCostAdjustOpen(true)}
+                        className={`${dashGhostBtn} text-[#DFB04E] hover:text-[#E8C978] [&_svg]:text-[#DFB04E]`}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+                        Ajustar costes
+                      </button>
+                    </div>
+                    <div
+                      className={
+                        route.recommended === "Preparación"
+                          ? "mt-3.5 flex justify-center"
+                          : "mt-3.5 grid items-start gap-4 sm:grid-cols-2"
+                      }
+                    >
+                      <div className={route.recommended === "Preparación" ? "w-full max-w-lg" : undefined}>
+                        <p
+                          className={`${dashBudgetMiniLabel}${route.recommended === "Preparación" ? " text-center" : ""}`}
+                        >
+                          Coste por partida
+                        </p>
+                        <DashCostDonut
+                          centered={route.recommended === "Preparación"}
+                          totalRealista={costs.totalRealista}
+                          subtotalFormacion={costs.subtotalFormacion}
+                          subtotalExtras={costs.subtotalExtras}
+                          subtotalVida={costs.subtotalVida}
+                          buffer={costs.buffer}
+                        />
+                      </div>
+                      {route.recommended !== "Preparación" ? (
+                        <div>
+                          <p className={dashBudgetMiniLabel}>Tiempo por fase</p>
+                          <DashTimePhaseBars recommended={route.recommended} />
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="mt-3.5 grid grid-cols-3 gap-2">
+                      <DashScenarioMini label="Optimista" value={euro(costs.totalOptimista)} />
+                      <DashScenarioMini label="Realista" value={euro(costs.totalRealista)} highlight />
+                      <DashScenarioMini label="Conservador" value={euro(costs.totalConservador)} />
+                    </div>
+                    <div className="mt-2.5 rounded-xl border border-white/[0.06] bg-[#101B35]/60 px-3.5 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[13px] font-semibold text-slate-300">Situación actual</p>
+                        <p className="text-[13px] tabular-nums text-slate-400">
+                          Cobertura <span className="font-bold text-white">{Math.round(costs.coverage)}%</span> · Brecha{" "}
+                          <span className="font-bold text-[#E8C978]">{euro(costs.brechaFinanciacion)}</span>
+                        </p>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#D6AE4F] to-[#E8C978]"
+                          style={{ width: `${clamp(costs.coverage)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="planner-diagnosis" className={`scroll-mt-6 lg:col-span-2 ${dashCard}`}>
+                    <DashSectionHeader number={4} title="Tu diagnóstico" Icon={Activity} />
+                    <div className="mt-4 space-y-2.5">
+                      <DashDiagRow
+                        Icon={Plane}
+                        iconAccent="route"
+                        label="Ruta recomendada"
+                        value={route.recommended}
+                        badge="Según tu perfil"
+                        badgeTone="bajo"
+                      />
+                      <DashDiagRow
+                        Icon={ShieldAlert}
+                        iconAccent="risk"
+                        label="Riesgo principal"
+                        value={dashRiskDisplay.title}
+                        badge={dashRiskDisplay.pill}
+                        badgeTone={dashRiskDisplay.pillTone}
+                      />
+                      <DashDiagRow
+                        Icon={Activity}
+                        iconAccent="viability"
+                        label="Viabilidad actual"
+                        value={dashViabilityDisplay.overall}
+                        valueTone={dashViabilityDisplay.overallTone}
+                      />
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <DashDimensionChip label="Presupuesto" level={dashViabilityDisplay.dimensions.presupuesto} />
+                      <DashDimensionChip label="Tiempo" level={dashViabilityDisplay.dimensions.tiempo} />
+                      <DashDimensionChip label="Inglés" level={dashViabilityDisplay.dimensions.ingles} />
+                      <DashDimensionChip
+                        label="Clase 1"
+                        level={dashViabilityDisplay.dimensions.class1.level}
+                        customValue={dashViabilityDisplay.dimensions.class1.label}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => scrollToPlannerSection("planner-report")}
+                      className="mt-4 inline-flex items-center gap-1 text-[13px] font-semibold text-[#D6AE4F] transition hover:brightness-110"
+                    >
+                      Ver recomendaciones detalladas
+                      <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  </div>
+                </section>
+
+                {/* F. 5. Escuelas candidatas */}
+                <section id="planner-schools" className={`scroll-mt-6 ${dashCard}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <DashSectionHeader number={5} title="Escuelas candidatas" Icon={SchoolIcon} />
+                      <p className="mt-1.5 text-[12.5px] text-slate-400">
+                        Compara escuelas de nuestra base de datos o añade opciones manualmente.
+                      </p>
+                    </div>
+                    <div className="relative flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSchoolsDbPickerOpen((open) => !open);
+                          setManualFormOpen(false);
+                        }}
+                        aria-expanded={schoolsDbPickerOpen}
+                        aria-controls="planner-schools-db-picker"
+                        className={dashGhostBtn}
+                      >
+                        <Database className="h-3.5 w-3.5" aria-hidden />
+                        Base de datos FlyPath
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSchoolsDbPickerOpen(false);
+                          openSchoolsManualForm();
+                        }}
+                        className={dashGhostBtn}
+                      >
+                        <Plus className="h-3.5 w-3.5" aria-hidden />
+                        Añadir escuela manual
+                      </button>
+
+                      {schoolsDbPickerOpen ? (
+                        <div id="planner-schools-db-picker" className="absolute right-0 top-[calc(100%+8px)] z-[60] w-[min(100%,22rem)]">
+                          <SchoolDatabasePicker
+                            schools={schools}
+                            catalog={plannerSchoolCatalog}
+                            onAddFromDatabase={tryAddSchoolFromDatabase}
+                            onRemoveSchool={removeSchoolById}
+                            onClose={() => setSchoolsDbPickerOpen(false)}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {schools.length === 0 ? (
+                    <div className="mt-4 rounded-xl border border-dashed border-white/15 bg-[#101B35]/50 px-4 py-6 text-center">
+                      <p className="text-[13px] text-slate-400">Aún no has añadido escuelas.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Tabla compacta (md+) */}
+                      <div className="mt-4 hidden overflow-x-auto md:block">
+                        <table className="w-full min-w-[820px] text-left text-[14px]">
+                          <thead>
+                            <tr className="border-b border-white/10">
+                              {["Escuela", "Ruta", "Coste estimado", "Ajuste a tu perfil", "Riesgo", "Acciones"].map((h) => (
+                                <th key={h} className="py-2.5 pr-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/[0.06]">
+                            {schoolStats.analyzed.map(({ school, analysis }) => {
+                              const link = parsePlannerSchoolLink(school.enlaceReferencia);
+                              return (
+                                <tr key={school.id}>
+                                  <td className="py-3 pr-3">
+                                    <div className="flex items-center gap-3">
+                                      <span
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/10 bg-[#101B35] text-[11px] font-bold uppercase tracking-wide text-[#D6AE4F]"
+                                        aria-hidden
+                                      >
+                                        {dashSchoolInitials(school.nombre)}
+                                      </span>
+                                      <div className="min-w-0">
+                                        <p className="text-[15px] font-semibold text-white">{school.nombre}</p>
+                                        <p className="text-[12.5px] text-slate-400">
+                                          {[school.ciudad, school.pais].filter(Boolean).join(", ")}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 pr-3">
+                                    <DashSchoolRoutePills
+                                      school={school}
+                                      onUpdateProgram={updatePlannerSchoolProgram}
+                                      onUpdatePrograma={updateSchoolPrograma}
+                                    />
+                                  </td>
+                                  <td className="py-3 pr-3 text-[14px] font-semibold tabular-nums text-slate-200">
+                                    {school.precioAnunciado > 0 ? euro(school.precioAnunciado) : "Pendiente"}
+                                  </td>
+                                  <td className="py-3 pr-3">
+                                    <DashFitStars score={analysis.encajeGeneral} />
+                                  </td>
+                                  <td className="py-3 pr-3">
+                                    <DashSchoolRiskBadge value={analysis.riesgoFinanciero} />
+                                  </td>
+                                  <td className="py-3">
+                                    <div className="flex items-center gap-2">
+                                      {link ? (
+                                        <a
+                                          href={`/schools?add=${link.slug}&from=planner`}
+                                          className="rounded-md border border-white/15 px-2.5 py-1.5 text-[12px] font-semibold text-slate-300 transition hover:border-[#D6AE4F]/40 hover:text-white"
+                                        >
+                                          Ver comparador
+                                        </a>
+                                      ) : null}
+                                      <button
+                                        type="button"
+                                        onClick={() => editSchoolInPlanner(school)}
+                                        className="rounded-md p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                                        aria-label={`Editar ${school.nombre}`}
+                                      >
+                                        <Pencil className="h-4 w-4" aria-hidden />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeSchoolById(school.id)}
+                                        className="rounded-md p-2 text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+                                        aria-label={`Eliminar ${school.nombre}`}
+                                      >
+                                        <Trash2 className="h-4 w-4" aria-hidden />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Cards apiladas (móvil) */}
+                      <div className="mt-4 space-y-3 md:hidden">
+                        {schoolStats.analyzed.map(({ school, analysis }) => {
+                          const link = parsePlannerSchoolLink(school.enlaceReferencia);
+                          return (
+                            <div key={school.id} className="rounded-xl border border-white/[0.08] bg-[#101B35]/60 p-4">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-[15px] font-semibold text-white">{school.nombre}</p>
+                                  <p className="text-[12.5px] text-slate-400">
+                                    {[school.ciudad, school.pais].filter(Boolean).join(", ")}
+                                  </p>
+                                </div>
+                                <DashSchoolRiskBadge value={analysis.riesgoFinanciero} />
+                              </div>
+                              <div className="mt-2.5">
+                                <DashSchoolRoutePills
+                                  school={school}
+                                  onUpdateProgram={updatePlannerSchoolProgram}
+                                  onUpdatePrograma={updateSchoolPrograma}
+                                />
+                              </div>
+                              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-300">
+                                <span className="font-semibold tabular-nums text-slate-200">
+                                  {school.precioAnunciado > 0 ? euro(school.precioAnunciado) : "Coste pendiente"}
+                                </span>
+                              </div>
+                              <div className="mt-2.5">
+                                <DashFitStars score={analysis.encajeGeneral} />
+                              </div>
+                              <div className="mt-3 flex items-center gap-2">
+                                {link ? (
+                                  <a
+                                    href={`/schools?add=${link.slug}&from=planner`}
+                                    className="rounded-md border border-white/15 px-2.5 py-1.5 text-[12px] font-semibold text-slate-300"
+                                  >
+                                    Ver comparador
+                                  </a>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => editSchoolInPlanner(school)}
+                                  className="rounded-md border border-white/15 px-2.5 py-1.5 text-[12px] font-semibold text-slate-300"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeSchoolById(school.id)}
+                                  className="rounded-md border border-white/15 px-2.5 py-1.5 text-[12px] font-semibold text-red-300/90"
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-3.5 flex justify-center">
+                        <a
+                          href="/schools"
+                          className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#D6AE4F] transition hover:brightness-110"
+                        >
+                          Ver comparador completo
+                          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                        </a>
+                      </div>
+                    </>
+                  )}
+
+                  {manualFormOpen ? (
+                    <div className="mt-5 scroll-mt-6 border-t border-white/10 pt-5">
+                      <SchoolManualForm
+                        formPanelRef={schoolFormPanelRef}
+                        schoolEditActiveId={schoolEditActiveId}
+                        newSchool={newSchool}
+                        setNewSchool={setNewSchool}
+                        onSaveSchool={() => addSchool(false)}
+                        onCancelEdit={cancelSchoolEdit}
+                        onClose={() => {
+                          setManualFormOpen(false);
+                          if (schoolEditActiveId !== null) {
+                            setSchoolEditActiveId(null);
+                            setNewSchool(createEmptySchool());
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                </section>
+
+                {/* G. 6. Informe + Mentoría */}
+                <section>
+                  <div
+                    id="planner-report"
+                    className="relative scroll-mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E1729]/82 px-4 py-3 sm:px-5 sm:py-3.5"
+                  >
+                    <DashSectionHeader number={6} title="Tu informe" Icon={FileText} />
+                    <div className="mt-2.5 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,0.62fr)_minmax(0,0.38fr)] lg:items-start lg:gap-4">
+                      <div className="flex min-w-0 flex-col gap-2 lg:gap-2.5">
+                        <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:gap-3 lg:gap-4">
+                        {/* Informe gratuito */}
+                        <div className="flex min-w-0 flex-col rounded-xl border border-white/[0.08] bg-[#101B35]/60 p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#1B2947] ring-1 ring-[#3B5AA6]/30 shadow-[0_0_18px_rgba(59,90,166,0.25)]">
+                              <FileText className="h-5 w-5 text-slate-200" aria-hidden />
+                            </span>
+                            <p className="text-[15px] font-semibold text-white">Informe gratuito</p>
+                          </div>
+                          <p className="mt-2 text-[13.5px] leading-relaxed text-slate-400">
+                            Resumen inicial con tu ruta recomendada y costes estimados.
+                          </p>
+                          {!plannerPremiumContentVisible ? (
+                            <div className="mt-3">
+                              <div className="relative">
+                                <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" aria-hidden />
+                                <input
+                                  id="report-email"
+                                  type="email"
+                                  autoComplete="email"
+                                  value={reportEmail}
+                                  onChange={(e) => {
+                                    setReportEmail(e.target.value);
+                                    if (isValidReportEmail(e.target.value)) setReportEmailDownloadHint(false);
+                                  }}
+                                  placeholder="tu@email.com"
+                                  className="w-full rounded-lg border border-white/12 bg-[#101B35] py-2 pl-9 pr-3 text-[13px] text-white outline-none transition placeholder:text-slate-500 focus:border-[#D6AE4F]/50 focus:ring-2 focus:ring-[#D6AE4F]/20"
+                                />
+                              </div>
+                              {reportEmailDownloadHint && !reportEmailValid ? (
+                                <p className="mt-1.5 text-[13px] text-amber-300" role="status">
+                                  Introduce un email válido para descargar.
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <div className="mt-auto pt-3">
+                            <button
+                              type="button"
+                              disabled={freePdfExporting}
+                              aria-disabled={!freeDownloadsEnabled}
+                              onClick={handleFreeReportDownload}
+                              className={`inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[14px] font-semibold transition ${
+                                freeDownloadsEnabled || plannerPremiumContentVisible
+                                  ? "bg-[#D6AE4F] text-[#101B35] hover:brightness-105"
+                                  : "cursor-not-allowed bg-white/10 text-slate-400"
+                              }`}
+                            >
+                              <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              {freePdfExporting ? "Generando PDF…" : "Descargar informe gratuito"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleParentsReportDownload}
+                              aria-disabled={!plannerPremiumContentVisible && !reportEmailValid}
+                              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-[13px] font-semibold text-slate-300 transition hover:border-white/30 hover:text-white"
+                            >
+                              <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              Descargar resumen para padres
+                            </button>
+                          </div>
+                        </div>
+                        {/* Informe premium */}
+                        <div className="flex min-w-0 flex-col rounded-xl border border-[#D6AE4F]/35 bg-gradient-to-br from-[#1B2947] to-[#141F3C] p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#D6AE4F]/14 ring-1 ring-[#D6AE4F]/40 shadow-[0_0_20px_rgba(214,174,79,0.35)]">
+                              {plannerPremiumContentVisible ? (
+                                <Unlock className="h-5 w-5 text-[#D6AE4F]" aria-hidden />
+                              ) : (
+                                <Lock className="h-5 w-5 text-[#D6AE4F]" aria-hidden />
+                              )}
+                            </span>
+                            <p className="text-[15px] font-semibold text-white">Informe premium</p>
+                          </div>
+                          <ul className="mt-2 space-y-1">
+                            {[
+                              "Veredicto FlyPath para tu caso",
+                              "Escuela más sólida entre tus candidatas",
+                              "Comparación directa entre escuelas",
+                              "Riesgos documentales, comerciales y financieros",
+                              "Qué pedir a cada escuela antes de pagar",
+                              "Decisión FlyPath y próximos pasos recomendados",
+                            ].map((item) => (
+                              <li key={item} className="flex items-start gap-2 text-[13px] leading-snug text-slate-300">
+                                <span aria-hidden className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-[#D6AE4F]" />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="mt-auto pt-3">
+                            {plannerPremiumContentVisible ? (
+                              <button
+                                type="button"
+                                disabled={premiumPdfExporting}
+                                onClick={handlePremiumReportDownload}
+                                className="inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#D6AE4F] px-3 py-2 text-[14px] font-bold text-[#101B35] shadow-[0_6px_18px_rgba(214,174,79,0.3)] transition hover:brightness-105"
+                              >
+                                <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                {premiumPdfExporting ? "Generando PDF…" : "Descargar informe premium"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={goToPremiumCheckout}
+                                className="inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#D6AE4F] px-3 py-2 text-[14px] font-bold text-[#101B35] shadow-[0_6px_18px_rgba(214,174,79,0.3)] transition hover:brightness-105"
+                              >
+                                <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                Desbloquear informe premium · {PREMIUM_REPORT_PRICE_LABEL}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        </div>
+                        <div className="rounded-xl border border-[#D6AE4F]/28 bg-[#16223F]/80 p-2.5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#D6AE4F]/12 ring-1 ring-[#D6AE4F]/30">
+                                  <MessagesSquare className="h-3 w-3 text-[#D6AE4F]" aria-hidden />
+                                </span>
+                                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#D6AE4F]">RECOMENDACIÓN FLYPATH</p>
+                              </div>
+                              <h3 className="mt-1 text-[15px] font-bold leading-snug text-[#D6AE4F]">Mentoría de decisión</h3>
+                              <p className="mt-0.5 text-[13px] leading-snug text-slate-300">
+                                Revisa tu caso, presupuesto y escuelas candidatas con un piloto profesional.
+                              </p>
+                            </div>
+                            <a
+                              href="/mentorias"
+                              className={`${plannerBtnPrimary} inline-flex min-h-[32px] shrink-0 items-center justify-center self-start px-3 py-1.5 text-[13px]`}
+                            >
+                              Ver mentorías
+                              <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden />
+                            </a>
+                          </div>
+                          <ul className="mt-1.5 grid grid-cols-1 gap-x-3 gap-y-0.5 sm:grid-cols-2 md:grid-cols-3">
+                            {["Análisis personalizado de tu ruta", "Resolución de dudas clave", "Decide con seguridad antes de pagar"].map((item) => (
+                              <li key={item} className="flex items-center gap-1 text-[12.5px] leading-snug text-slate-200 md:whitespace-nowrap">
+                                <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-400" aria-hidden />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex min-w-0 items-start justify-center lg:pt-0.5">
+                        <img
+                          src="/aerocomms/mockups/mockplan.png"
+                          alt=""
+                          aria-hidden="true"
+                          className="h-auto w-full max-h-[min(420px,55vh)] max-w-[min(100%,520px)] object-contain object-center drop-shadow-[0_16px_36px_rgba(0,0,0,0.42)] lg:max-h-full lg:max-w-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Nota legal */}
+                <p className="pt-1 text-center text-[11px] text-slate-500">
+                  Los cálculos son estimaciones orientativas. Revisa siempre con cada escuela.
+                </p>
+
+                {/* Modal de ajuste de costes (misma lógica y formulario) */}
+                {costAdjustOpen ? (
+                  <div
+                    className="fixed inset-0 z-[55] flex items-end justify-center bg-[#0f1a33]/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="dash-cost-adjust-title"
+                  >
+                    <button
+                      type="button"
+                      className="absolute inset-0 cursor-default"
+                      aria-label="Cerrar"
+                      onClick={() => setCostAdjustOpen(false)}
+                    />
+                    <div className="relative z-10 flex max-h-[min(90dvh,760px)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#101B35] shadow-2xl sm:rounded-2xl">
+                      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 bg-[#101B35] px-4 py-3.5 sm:px-5">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1B2947] ring-1 ring-[#D6AE4F]/30">
+                            <SlidersHorizontal className="h-[18px] w-[18px] text-[#D6AE4F]" aria-hidden />
+                          </span>
+                          <div className="min-w-0">
+                            <p id="dash-cost-adjust-title" className="text-base font-semibold text-white">
+                              Ajustar mi estimación de costes
+                            </p>
+                            <p className="mt-0.5 text-[13px] text-slate-300">
+                              Modifica formación, extras, costes de vida y margen de seguridad.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCostAdjustOpen(false)}
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                          aria-label="Cerrar ajuste de costes"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+                      <div className="min-h-0 flex-1 overflow-y-auto bg-[#F4F2EC] px-4 py-4 sm:px-5 sm:py-5">
+                        <CareerPlannerCostAdjustForm route={route} costInputs={costInputs} setCostInputs={setCostInputs} />
+                      </div>
+                      <div className="shrink-0 border-t border-white/10 bg-[#101B35] px-4 py-3.5 sm:px-5">
+                        <button
+                          type="button"
+                          onClick={() => setCostAdjustOpen(false)}
+                          className="w-full rounded-lg bg-[#D6AE4F] px-4 py-2.5 text-[14px] font-semibold text-[#101B35] transition hover:brightness-105 sm:w-auto sm:min-w-[10rem]"
+                        >
+                          Guardar estimación
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+            </div>
+          </div>
+        )}
+        {reviewMode && (
         <PlannerMainCanvas footer={plannerStepFooter}>
             {tab === "diagnosis" && (
               <CareerPlannerDiagnosisView
@@ -2173,44 +3100,9 @@ export function FlyPathApp({
                 onNavigate={handleDiagnosisNavigate}
               />
             )}
-            {tab === "schools" && (
-              <CareerPlannerSchoolsTab
-                schools={schools}
-                verifiedCount={plannerVerifiedCount}
-                manualFormOpen={manualFormOpen}
-                formPanelRef={schoolFormPanelRef}
-                schoolEditActiveId={schoolEditActiveId}
-                newSchool={newSchool}
-                setNewSchool={setNewSchool}
-                catalog={plannerSchoolCatalog}
-                onAddFromDatabase={tryAddSchoolFromDatabase}
-                onUpdateProgram={updatePlannerSchoolProgram}
-                onOpenManualForm={openSchoolsManualForm}
-                onCloseManualForm={() => {
-                  setManualFormOpen(false);
-                  if (schoolEditActiveId !== null) {
-                    setSchoolEditActiveId(null);
-                    setNewSchool(createEmptySchool());
-                  }
-                }}
-                onSaveSchool={() => addSchool(false)}
-                onCancelEdit={cancelSchoolEdit}
-                onEditSchool={editSchoolInPlanner}
-                onRemoveSchool={removeSchoolById}
-              />
-            )}
+            {tab === "schools" && schoolsTabElement}
             {tab === "report" && (() => {
               const preparacionNivel = informePreparacionNivel(decisionReadiness.decision);
-              const reportEmailValid = isValidReportEmail(reportEmail);
-              const freeDownloadsEnabled = reportEmailValid && !freePdfExporting;
-              const requireReportEmailForDownload = () => {
-                if (reportEmailValid) {
-                  setReportEmailDownloadHint(false);
-                  return true;
-                }
-                setReportEmailDownloadHint(true);
-                return false;
-              };
               return (
               <div className="space-y-7">
                 <div>
@@ -2300,46 +3192,12 @@ export function FlyPathApp({
                       type="button"
                       disabled={plannerPremiumContentVisible ? premiumPdfExporting : freePdfExporting}
                       aria-disabled={!plannerPremiumContentVisible && !freeDownloadsEnabled}
-                      onClick={async () => {
+                      onClick={() => {
                         if (plannerPremiumContentVisible) {
-                          if (premiumPdfExporting) return;
-                          setPremiumPdfExporting(true);
-                          try {
-                            const { downloadPremiumCareerReportPdf } =
-                              await import("@/lib/premiumCareerReportPdf");
-                            await downloadPremiumCareerReportPdf(reportSnapshot);
-                            showToast("Informe premium descargado");
-                          } catch (e) {
-                            if (process.env.NODE_ENV === "development") {
-                              console.error("[FlyPath] Error generando PDF premium:", e);
-                            } else {
-                              console.error("[FlyPath] PDF premium fallido");
-                            }
-                            const pdfErr = await import("@/lib/premiumCareerReportPdf");
-                            showToast(pdfErr.PREMIUM_PDF_ERROR_MESSAGE);
-                          } finally {
-                            setPremiumPdfExporting(false);
-                          }
+                          void handlePremiumReportDownload();
                           return;
                         }
-                        if (!requireReportEmailForDownload()) return;
-                        if (freePdfExporting) return;
-                        setFreePdfExporting(true);
-                        try {
-                          const { downloadFreeCareerReportPdf } = await import("@/lib/freeCareerReportPdf");
-                          await downloadFreeCareerReportPdf(reportSnapshot);
-                          showToast("Informe descargado");
-                        } catch (e) {
-                          if (process.env.NODE_ENV === "development") {
-                            console.error("[FlyPath] Error generando informe gratuito V2:", e);
-                          } else {
-                            console.error("[FlyPath] PDF informe gratuito fallido");
-                          }
-                          const pdfErr = await import("@/lib/freeCareerReportPdf");
-                          showToast(pdfErr.FREE_PDF_ERROR_MESSAGE);
-                        } finally {
-                          setFreePdfExporting(false);
-                        }
+                        void handleFreeReportDownload();
                       }}
                       className={`inline-flex w-full min-w-0 items-center justify-center rounded-xl px-6 py-3 text-[15px] font-semibold sm:w-auto ${
                         plannerPremiumContentVisible
@@ -2359,22 +3217,7 @@ export function FlyPathApp({
                     <button
                       type="button"
                       aria-disabled={!plannerPremiumContentVisible && !reportEmailValid}
-                      onClick={async () => {
-                        if (!plannerPremiumContentVisible && !requireReportEmailForDownload()) return;
-                        try {
-                          const { downloadParentsReportPdf } = await import("@/lib/parentsReportPdf");
-                          await downloadParentsReportPdf(reportSnapshot);
-                          showToast("Resumen para padres descargado");
-                        } catch (e) {
-                          if (process.env.NODE_ENV === "development") {
-                            console.error("[FlyPath] Error generando PDF resumen para padres:", e);
-                          } else {
-                            console.error("[FlyPath] PDF resumen padres fallido");
-                          }
-                          const pdfErr = await import("@/lib/parentsReportPdf");
-                          showToast(pdfErr.PARENTS_PDF_ERROR_MESSAGE);
-                        }
-                      }}
+                      onClick={handleParentsReportDownload}
                       className={`inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border px-6 py-3 text-[15px] font-semibold shadow-sm sm:w-auto ${
                         plannerPremiumContentVisible || reportEmailValid
                           ? "border-slate-300 bg-white text-[#0f1a33] transition hover:border-slate-400 hover:bg-slate-50"
@@ -2452,27 +3295,27 @@ export function FlyPathApp({
               );
             })()}
         </PlannerMainCanvas>
-        {tab === "report" ? (
-          <div className="mt-8 space-y-8">
-            <FlyPathNextStepsPanel
-              recommendation={nextStepRecommendation}
-              profile={profile}
-              route={route}
-              decisionReadiness={decisionReadiness}
-              schools={schools}
-              costInputs={costInputs}
-              costs={costs}
-              riskDiagnosis={riskDiagnosis}
-              verifiedSchoolsCount={schoolStats.verifiedCount}
-            />
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nota importante</p>
-              <p className="mt-1 text-[15px] text-slate-600">{disclaimerText}</p>
+        )}
+        {reviewMode && tab === "report" ? reportNextStepsBlock : null}
+      </CareerPlannerAppShell>
+      {screen === "onboarding" && !reviewMode ? (
+        <div
+          className="fixed inset-0 z-[58] flex items-end justify-center sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="onboarding-modal-title"
+        >
+          <div className="absolute inset-0 bg-[#050B18]/72 backdrop-blur-[4px]" aria-hidden />
+          <div className="relative z-10 flex max-h-[min(85dvh,100%)] w-full flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-gradient-to-b from-[#101B35] via-[#0F1A33] to-[#0C1730] shadow-2xl ring-1 ring-[#D6AE4F]/20 sm:max-h-[85vh] sm:max-w-[min(900px,100%)] sm:rounded-2xl">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
+              {onboardingModalBody}
+            </div>
+            <div className="shrink-0 border-t border-white/10 bg-[#101B35]/95 px-4 py-4 sm:px-6">
+              {onboardingModalFooter}
             </div>
           </div>
-        ) : null}
-        </>
-      </CareerPlannerAppShell>
+        </div>
+      ) : null}
     {process.env.NODE_ENV === "development" && (
       <button
         type="button"
@@ -2777,5 +3620,650 @@ function SelectField({ label, value, options, onChange }: { label: string; value
         {options.map((option) => typeof option === "string" ? <option key={option} value={option}>{option}</option> : <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
+  );
+}
+
+/* ============================================================================
+ * Dashboard premium (una sola página) — solo capa visual.
+ * ==========================================================================*/
+
+/** Rango orientativo de duración total según la ruta recomendada (solo copy). */
+function tiempoEstimadoLabel(recommended: RouteRecommendation["recommended"]): string {
+  if (recommended === "Integrada") return "18–24 meses";
+  if (recommended === "Modular") return "24–36 meses";
+  return "Por definir";
+}
+
+type PlannerRoutePhase = { name: string; duration?: string; Icon: typeof Plane; months?: number };
+
+const OBJETIVO_ICONS: Record<Profile["objetivo"], typeof Plane> = {
+  aerolinea: Plane,
+  ejecutivo: Briefcase,
+  instructor: GraduationCap,
+  no_lo_se: HelpCircle,
+};
+
+const PHASES_BY_ROUTE: Record<RouteRecommendation["recommended"], PlannerRoutePhase[]> = {
+  Modular: [
+    { name: "Clase 1", Icon: ShieldCheck },
+    { name: "Elegir escuela", Icon: GraduationCap },
+    { name: "PPL", Icon: Plane },
+    { name: "ATPL Teórico", Icon: BookOpen },
+    { name: "Night Rating", Icon: Moon },
+    { name: "Time Building", Icon: Clock },
+    { name: "ME/IR", Icon: Compass },
+    { name: "CPL", Icon: GraduationCap },
+    { name: "UPRT", Icon: Activity },
+    { name: "MCC", Icon: ClipboardList },
+  ],
+  Integrada: [
+    { name: "Clase 1", Icon: ShieldCheck },
+    { name: "Selección de escuela", Icon: GraduationCap },
+    { name: "Admisión", Icon: UserCheck },
+    { name: "ATPL integrado", Icon: BookOpen },
+    { name: "MCC", Icon: ClipboardList },
+  ],
+  Preparación: [
+    { name: "Diagnóstico inicial", Icon: ClipboardList },
+    { name: "Presupuesto/financiación", Icon: Wallet },
+    { name: "Nivel de inglés", Icon: Languages },
+    { name: "Elegir ruta", Icon: Route },
+    { name: "Comparar escuelas", Icon: GraduationCap },
+    { name: "Plan de inicio", Icon: CalendarCheck },
+    { name: "Clase 1", Icon: ShieldCheck },
+  ],
+};
+
+function buildPlannerRoutePhases(
+  recommended: RouteRecommendation["recommended"],
+  objetivo: Profile["objetivo"],
+): PlannerRoutePhase[] {
+  const base = PHASES_BY_ROUTE[recommended];
+  if (recommended === "Modular" || recommended === "Integrada") {
+    return [
+      ...base,
+      { name: objetivoLabel(objetivo), duration: "Objetivo final", Icon: OBJETIVO_ICONS[objetivo] },
+    ];
+  }
+  return base;
+}
+
+type TimePhase = { name: string; duration: string; months: number };
+
+/** Fases con duración orientativa para “Tiempo por fase” (independiente de la timeline visual). */
+const TIME_PHASES_BY_ROUTE: Record<"Modular" | "Integrada", TimePhase[]> = {
+  Modular: [
+    { name: "PPL", duration: "3–6 meses", months: 4.5 },
+    { name: "ATPL Teórico", duration: "6–9 meses", months: 7.5 },
+    { name: "Night Rating", duration: "1 mes", months: 1 },
+    { name: "Time Building", duration: "2–4 meses", months: 3 },
+    { name: "ME/IR", duration: "2–3 meses", months: 2.5 },
+    { name: "CPL", duration: "1–2 meses", months: 1.5 },
+    { name: "UPRT", duration: "1 mes", months: 1 },
+    { name: "MCC", duration: "1–2 meses", months: 1.5 },
+  ],
+  Integrada: [
+    { name: "ATPL integrado", duration: "18–24 meses", months: 21 },
+    { name: "MCC", duration: "1–2 meses", months: 1.5 },
+  ],
+};
+
+/* Tokens visuales del dashboard compacto */
+const dashCard = "rounded-2xl border border-white/[0.08] bg-[#0E1729]/82 p-4 sm:p-5";
+const dashGhostBtn =
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-[12px] font-semibold text-slate-300 transition hover:border-[#DFB04E]/45 hover:text-white";
+const dashMiniLabel = "text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400";
+const dashBudgetMiniLabel = "text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400";
+const dashInput =
+  "mt-1 box-border h-10 min-h-10 w-full rounded-lg border border-white/[0.12] bg-[#0A1220] px-3 text-[14px] leading-normal text-white outline-none transition placeholder:text-slate-500 focus:border-[#DFB04E]/55 focus:ring-2 focus:ring-[#DFB04E]/25";
+const dashSelectInput =
+  `${dashInput} appearance-none bg-[length:1rem_1rem] bg-[position:right_0.75rem_center] bg-no-repeat pr-9 [background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27%23ffffff%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M6%209l6%206%206-6%27%2F%3E%3C%2Fsvg%3E")]`;
+const dashNumberInput =
+  `${dashInput} !mt-0 pr-7 [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`;
+const dashFieldLabel = "text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400";
+
+function DashSectionHeader({ number, title, Icon }: { number: number; title: string; Icon: typeof Wallet }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#DFB04E]/14 ring-1 ring-[#DFB04E]/38">
+        <Icon className="h-3.5 w-3.5 text-[#DFB04E]" aria-hidden />
+      </span>
+      <h2 className="text-[13px] font-bold uppercase tracking-[0.14em] text-white">
+        {number}. {title}
+      </h2>
+    </div>
+  );
+}
+
+function PlannerMetricCard({
+  label,
+  value,
+  sub,
+  actionLabel,
+  onAction,
+  Icon,
+  highlight = false,
+  stretchValueArea = false,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  Icon: typeof Wallet;
+  highlight?: boolean;
+  /** Reserva altura de valor en 2 líneas (cards 1–2) para alinear sub/CTA con la tercera. */
+  stretchValueArea?: boolean;
+}) {
+  return (
+    <div
+      className={`flex w-[172px] shrink-0 flex-col rounded-xl border bg-[#0F1829]/75 p-3 ${
+        highlight ? "border-[#DFB04E]/42" : "border-white/[0.09]"
+      }`}
+    >
+      <div className="flex justify-start">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#DFB04E]/42 bg-[#0A1220]/90">
+          <Icon className="h-[22px] w-[22px] text-[#DFB04E]" aria-hidden />
+        </span>
+      </div>
+      <p className="mt-2 whitespace-nowrap text-[9.5px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</p>
+      <p
+        className={`mt-1 text-[1.2rem] font-bold leading-snug tracking-tight sm:text-[1.25rem] ${
+          stretchValueArea ? "min-h-[3.25rem]" : ""
+        } ${highlight ? "text-[#E8C46A]" : "text-white"}`}
+      >
+        {value}
+      </p>
+      {sub ? <p className="mt-1 text-[11.5px] text-slate-400">{sub}</p> : null}
+      {actionLabel && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className="mt-3 inline-flex cursor-pointer items-center gap-1 self-start whitespace-nowrap text-[12px] font-semibold text-[#DFB04E] transition hover:brightness-110"
+        >
+          {actionLabel}
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Timeline horizontal compacto: items de tamaño fijo, scroll horizontal si no cabe. */
+function PlannerRouteTimeline({
+  recommended,
+  objetivo,
+}: {
+  recommended: RouteRecommendation["recommended"];
+  objetivo: Profile["objetivo"];
+}) {
+  const phases = buildPlannerRoutePhases(recommended, objetivo);
+
+  return (
+    <div className="relative mt-5 overflow-x-auto overflow-y-visible pt-3 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="relative mx-auto w-max">
+        <div
+          className="pointer-events-none absolute left-8 right-8 top-[24px] hidden border-t border-dashed border-[#D6AE4F]/25 xl:block"
+          aria-hidden
+        />
+        <Plane
+          className="pointer-events-none absolute right-1 top-[14px] hidden h-[18px] w-[18px] rotate-45 text-[#D6AE4F] xl:block"
+          aria-hidden
+        />
+        <div className="flex flex-nowrap gap-5">
+          {phases.map((phase, index) => {
+            const Icon = phase.Icon;
+            const isLast = index === phases.length - 1;
+            return (
+              <div key={`${phase.name}-${index}`} className="flex w-[128px] shrink-0 flex-col items-center text-center">
+                <div
+                  className={`relative z-10 flex h-[48px] w-[48px] items-center justify-center rounded-full border bg-[#101B35] ${
+                    isLast ? "border-[#D6AE4F] shadow-[0_0_16px_rgba(214,174,79,0.25)]" : "border-[#D6AE4F]/45"
+                  }`}
+                >
+                  <Icon className="h-[18px] w-[18px] text-[#D6AE4F]" aria-hidden />
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#D6AE4F] text-[10px] font-bold tabular-nums text-[#101B35]">
+                    {index + 1}
+                  </span>
+                </div>
+                <p className="mt-2.5 text-[12px] font-semibold leading-tight text-white">{phase.name}</p>
+                {phase.duration ? (
+                  <p className="mt-0.5 text-[11px] leading-tight text-slate-400">{phase.duration}</p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashTextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="block min-w-0">
+      <span className={dashFieldLabel}>{label}</span>
+      <input value={value} onChange={(e) => onChange(e.target.value)} className={dashInput} />
+    </label>
+  );
+}
+
+function DashNumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const stepValue = (direction: 1 | -1) => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (direction > 0) el.stepUp();
+    else el.stepDown();
+    onChange(Number(el.value));
+  };
+
+  return (
+    <label className="block min-w-0">
+      <span className={dashFieldLabel}>{label}</span>
+      <div className="relative mt-1">
+        <input
+          ref={inputRef}
+          type="number"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className={dashNumberInput}
+        />
+        <div className="pointer-events-none absolute inset-y-0 right-1.5 flex w-4 flex-col items-stretch justify-center">
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={`Aumentar ${label}`}
+            onClick={() => stepValue(1)}
+            className="pointer-events-auto flex h-[14px] w-full cursor-pointer items-center justify-center text-white transition hover:text-[#DFB04E]"
+          >
+            <ChevronUp className="h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
+          </button>
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={`Reducir ${label}`}
+            onClick={() => stepValue(-1)}
+            className="pointer-events-auto flex h-[14px] w-full cursor-pointer items-center justify-center text-white transition hover:text-[#DFB04E]"
+          >
+            <ChevronDown className="h-3 w-3 shrink-0" strokeWidth={2.5} aria-hidden />
+          </button>
+        </div>
+      </div>
+    </label>
+  );
+}
+
+function DashSelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block min-w-0">
+      <span className={dashFieldLabel}>{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={dashSelectInput}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/**
+ * Certificado médico (solo UI del dashboard): mapea el select visible sobre los
+ * campos médicos existentes (class1/class2) sin tocar fórmulas ni cálculos.
+ */
+type DashMedicalOption = "clase1_confirmada" | "clase1_pendiente" | "clase2" | "no_lo_se";
+
+function dashMedicalValueFromProfile(profile: Pick<Profile, "class1" | "class2">): DashMedicalOption {
+  if (profile.class1 === "si") return "clase1_confirmada";
+  if (profile.class1 === "reservado") return "clase1_pendiente";
+  if (profile.class2 === "si") return "clase2";
+  return "no_lo_se";
+}
+
+function applyDashMedicalOption(profile: Profile, option: DashMedicalOption): Profile {
+  if (option === "clase1_confirmada") return { ...profile, class1: "si" };
+  if (option === "clase1_pendiente") return { ...profile, class1: "reservado" };
+  if (option === "clase2") return { ...profile, class1: "no", class2: "si" };
+  return { ...profile, class1: "no", class2: "no" };
+}
+
+function dashSchoolInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`;
+  return name.trim().slice(0, 2) || "??";
+}
+
+function dashEncajeReading(score: number): string {
+  if (score >= 75) return "Muy buen ajuste";
+  if (score >= 60) return "Buen ajuste";
+  if (score >= 40) return "Ajuste medio";
+  return "Ajuste bajo";
+}
+
+/** Estrellas de "Ajuste a tu perfil" (presentación del encaje 0-100 existente). */
+function DashFitStars({ score }: { score: number }) {
+  const filled = Math.min(5, Math.max(1, Math.round(score / 20)));
+  return (
+    <div>
+      <div className="flex items-center gap-0.5" aria-label={`Encaje ${score}/100`}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star
+            key={i}
+            className={`h-3.5 w-3.5 ${i < filled ? "text-[#D6AE4F]" : "text-slate-600"}`}
+            fill={i < filled ? "currentColor" : "none"}
+            aria-hidden
+          />
+        ))}
+      </div>
+      <p className="mt-1 text-[12px] text-slate-400">{dashEncajeReading(score)}</p>
+    </div>
+  );
+}
+
+/** Donut CSS (conic-gradient) con el desglose real de costes por partida. */
+function DashCostDonut({
+  totalRealista,
+  subtotalFormacion,
+  subtotalExtras,
+  subtotalVida,
+  buffer,
+  centered = false,
+}: {
+  totalRealista: number;
+  subtotalFormacion: number;
+  subtotalExtras: number;
+  subtotalVida: number;
+  buffer: number;
+  centered?: boolean;
+}) {
+  const items = [
+    { label: "Formación", value: subtotalFormacion, color: "#D6AE4F" },
+    { label: "Extras", value: subtotalExtras, color: "#6B82AB" },
+    { label: "Costes de vida", value: subtotalVida, color: "#3D5A8F" },
+    { label: "Margen", value: buffer, color: "#8FA3C4" },
+  ];
+  const total = Math.max(totalRealista, 1);
+  let acc = 0;
+  const segments = items.map((item) => {
+    const start = (acc / total) * 100;
+    acc += item.value;
+    const end = (acc / total) * 100;
+    return `${item.color} ${start}% ${end}%`;
+  });
+
+  return (
+    <div className={`mt-2.5 flex items-center ${centered ? "mx-auto w-max gap-4" : "gap-4"}`}>
+      <div
+        className="relative h-[120px] w-[120px] shrink-0 rounded-full"
+        style={{ background: `conic-gradient(${segments.join(", ")})` }}
+        role="img"
+        aria-label="Desglose del coste realista por partida"
+      >
+        <div className="absolute inset-[16px] flex flex-col items-center justify-center rounded-full bg-[#141F3B] text-center">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Total</span>
+          <span className="text-[13px] font-bold tabular-nums leading-tight text-white">{euro(totalRealista)}</span>
+        </div>
+      </div>
+      <ul className="min-w-0 flex-1 space-y-2">
+        {items.map((item) => (
+          <li key={item.label} className="flex items-center justify-between gap-2 text-[13px]">
+            <span className="flex min-w-0 items-center gap-1.5 text-slate-300">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} aria-hidden />
+              <span className="truncate">{item.label}</span>
+            </span>
+            <span className="shrink-0 tabular-nums font-semibold text-slate-200">{euro(item.value)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Barras de tiempo por fase (mapping independiente de la timeline visual). */
+function DashTimePhaseBars({ recommended }: { recommended: RouteRecommendation["recommended"] }) {
+  if (recommended === "Preparación") return null;
+
+  const phases = TIME_PHASES_BY_ROUTE[recommended];
+  const maxMonths = Math.max(...phases.map((p) => p.months), 1);
+
+  return (
+    <div className="mt-2.5 space-y-2">
+      {phases.map((phase) => (
+        <div key={phase.name} className="flex items-center gap-2.5">
+          <span className="w-[100px] shrink-0 truncate text-[12px] font-medium text-slate-300">{phase.name}</span>
+          <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#D6AE4F] to-[#E8C978]"
+              style={{ width: `${(phase.months / maxMonths) * 100}%` }}
+            />
+          </div>
+          <span className="w-[80px] shrink-0 text-right text-[11.5px] tabular-nums text-slate-400">{phase.duration}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DashScenarioMini({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div
+      className={`rounded-lg border px-2.5 py-2 text-center ${
+        highlight ? "border-[#D6AE4F]/35 bg-[#D6AE4F]/[0.07]" : "border-white/[0.08] bg-[#101B35]/60"
+      }`}
+    >
+      <p className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</p>
+      <p className={`mt-0.5 text-[14px] font-bold tabular-nums ${highlight ? "text-[#E8C978]" : "text-white"}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function dashToneBadgeClass(tone: DiagnosisRiskPillTone): string {
+  if (tone === "alto") return "border-orange-400/40 bg-orange-400/10 text-orange-300";
+  if (tone === "medio") return "border-[#D6AE4F]/40 bg-[#D6AE4F]/10 text-[#E8C978]";
+  return "border-emerald-400/40 bg-emerald-400/10 text-emerald-300";
+}
+
+function dashToneTextClass(tone: DiagnosisRiskPillTone): string {
+  if (tone === "alto") return "text-orange-300";
+  if (tone === "medio") return "text-[#E8C978]";
+  return "text-emerald-300";
+}
+
+type DashDiagIconAccent = "route" | "risk" | "viability";
+
+function dashDiagIconShellClass(accent: DashDiagIconAccent): string {
+  const base = "flex h-10 w-10 shrink-0 items-center justify-center rounded-full";
+  if (accent === "route") {
+    return `${base} bg-emerald-500/20 ring-1 ring-emerald-400/55 shadow-[0_0_16px_rgba(16,185,129,0.28)]`;
+  }
+  if (accent === "risk") {
+    return `${base} bg-orange-500/20 ring-1 ring-orange-400/55 shadow-[0_0_16px_rgba(249,115,22,0.28)]`;
+  }
+  return `${base} bg-cyan-500/20 ring-1 ring-cyan-400/55 shadow-[0_0_16px_rgba(34,211,238,0.28)]`;
+}
+
+function DashDiagRow({
+  Icon,
+  iconAccent,
+  label,
+  value,
+  badge,
+  badgeTone = "medio",
+  valueTone,
+}: {
+  Icon: typeof Wallet;
+  iconAccent: DashDiagIconAccent;
+  label: string;
+  value: string;
+  badge?: string;
+  badgeTone?: DiagnosisRiskPillTone;
+  valueTone?: DiagnosisRiskPillTone;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#101B35]/60 px-3.5 py-2.5">
+      <span className={dashDiagIconShellClass(iconAccent)}>
+        <Icon className="h-[18px] w-[18px] text-white" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-slate-400">{label}</p>
+        <p className={`truncate text-[13.5px] font-semibold ${valueTone ? dashToneTextClass(valueTone) : "text-white"}`}>
+          {value}
+        </p>
+      </div>
+      {badge ? (
+        <span
+          className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ${dashToneBadgeClass(badgeTone)}`}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** En dimensiones de viabilidad, "Alto" es positivo (verde) y "Bajo" negativo. */
+function DashDimensionChip({
+  label,
+  level,
+  customValue,
+}: {
+  label: string;
+  level: DiagnosisDimensionLevel;
+  customValue?: string;
+}) {
+  const toneClass =
+    level === "Alto" ? "text-emerald-300" : level === "Medio" ? "text-[#E8C978]" : "text-orange-300";
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-[#101B35]/50 px-2.5 py-1.5">
+      <span className="text-[11px] font-semibold text-slate-300">{label}</span>
+      <span className={`text-[11px] font-bold ${toneClass}`}>{customValue ?? level}</span>
+    </div>
+  );
+}
+
+const DASH_MANUAL_ROUTE_OPTIONS: { programa: School["programa"]; label: string }[] = [
+  { programa: "integrado", label: "Integrada" },
+  { programa: "modular", label: "Modular" },
+  { programa: "no_lo_se", label: "Carrera univ." },
+  { programa: "cadet", label: "No definido" },
+];
+
+const dashRoutePillTrack =
+  "inline-flex max-w-full shrink-0 flex-wrap items-center gap-0.5 rounded-lg border border-white/12 bg-[#101B35] p-0.5";
+
+function DashSchoolRoutePills({
+  school,
+  onUpdateProgram,
+  onUpdatePrograma,
+}: {
+  school: School;
+  onUpdateProgram: (schoolId: number, entry: SchoolEntry, option: PlannerProgramOption) => void;
+  onUpdatePrograma: (schoolId: number, programa: School["programa"]) => void;
+}) {
+  const link = parsePlannerSchoolLink(school.enlaceReferencia);
+  const entry = link ? getSchoolBySlug(link.slug) : undefined;
+  const programOptions = entry ? getProgramOptionsForEntry(entry) : [];
+  const activeKey = link?.profileKey ?? programOptions[0]?.key ?? school.programa;
+
+  if (programOptions.length > 3 && entry) {
+    return (
+      <select
+        value={activeKey}
+        onChange={(e) => {
+          const option = programOptions.find((o) => o.key === e.target.value);
+          if (option) onUpdateProgram(school.id, entry, option);
+        }}
+        className="max-w-[10.5rem] cursor-pointer rounded-lg border border-white/15 bg-[#101B35] px-2 py-1.5 text-[11px] font-semibold text-slate-200 outline-none focus:border-[#D6AE4F]/45 focus:ring-1 focus:ring-[#D6AE4F]/30"
+        aria-label={`Ruta de formación de ${school.nombre}`}
+      >
+        {programOptions.map((opt) => (
+          <option key={opt.key} value={opt.key}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (programOptions.length > 1 && entry) {
+    return (
+      <div className={dashRoutePillTrack} role="group" aria-label={`Ruta de formación de ${school.nombre}`}>
+        {programOptions.map((opt) => {
+          const active = opt.key === activeKey;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => onUpdateProgram(school.id, entry, opt)}
+              className={`cursor-pointer whitespace-nowrap rounded-md px-2 py-1 text-[10.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 ${
+                active
+                  ? "bg-[#D6AE4F]/20 text-[#E8C978] ring-1 ring-[#D6AE4F]/45"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (programOptions.length === 1) {
+    return (
+      <span className="inline-flex rounded-md border border-[#D6AE4F]/35 bg-[#D6AE4F]/10 px-2.5 py-1 text-[11px] font-semibold text-[#E8C978]">
+        {programOptions[0].label}
+      </span>
+    );
+  }
+
+  return (
+    <div className={dashRoutePillTrack} role="group" aria-label={`Ruta de formación de ${school.nombre}`}>
+      {DASH_MANUAL_ROUTE_OPTIONS.map((opt) => {
+        const active = school.programa === opt.programa;
+        return (
+          <button
+            key={opt.programa}
+            type="button"
+            onClick={() => onUpdatePrograma(school.id, opt.programa)}
+            className={`cursor-pointer whitespace-nowrap rounded-md px-2 py-1 text-[10.5px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/40 ${
+              active
+                ? "bg-[#D6AE4F]/20 text-[#E8C978] ring-1 ring-[#D6AE4F]/45"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Umbrales visuales alineados con SchoolFinancialRiskCard (>=68 alto, >=52 medio). */
+function DashSchoolRiskBadge({ value }: { value: number }) {
+  const tone: DiagnosisRiskPillTone = value >= 68 ? "alto" : value >= 52 ? "medio" : "bajo";
+  const label = tone === "alto" ? "Alto" : tone === "medio" ? "Medio" : "Bajo";
+  return (
+    <span
+      className={`inline-flex shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${dashToneBadgeClass(tone)}`}
+    >
+      {label}
+    </span>
   );
 }
