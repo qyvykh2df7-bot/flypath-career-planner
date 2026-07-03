@@ -39,7 +39,7 @@ export function AeroCommsHero() {
 
             {/* Mobile only (<768px) — approved layout */}
             <Image
-              src="/aerocomms/mockups/heromovil-compact.png"
+              src="/aerocomms/mockups/heromovil-compact.webp"
               alt="Vista previa de la app AeroComms en móvil"
               width={941}
               height={1168}
@@ -51,12 +51,13 @@ export function AeroCommsHero() {
             {/* Tablet (768px–1279px) — centered mockup between headline and copy */}
             <div className="mx-auto mt-7 hidden w-full max-w-[540px] md:block xl:hidden">
               <Image
-                src="/aerocomms/mockups/heromovil-compact.png"
+                src="/aerocomms/mockups/heromovil-compact.webp"
                 alt="Vista previa de la app AeroComms"
                 width={941}
                 height={1168}
                 className="mx-auto h-auto w-full object-contain"
                 sizes="(max-width: 1280px) min(100vw, 540px)"
+                priority
               />
             </div>
 

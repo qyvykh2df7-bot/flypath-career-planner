@@ -175,7 +175,7 @@ function ShopHeroBackground() {
     <div className="pointer-events-none absolute inset-0" aria-hidden>
       {!failed ? (
         <Image
-          src="/shop.jpg"
+          src="/shop.webp"
           alt=""
           fill
           preload
@@ -284,7 +284,7 @@ export default function ShopPage() {
 
       <main>
         {/* Hero */}
-        <section className="relative isolate overflow-hidden border-b border-[#0f1a33]/20">
+        <section className="relative isolate overflow-hidden border-b border-[#0f1a33]/20 bg-[#0f1a33]">
           <ShopHeroBackground />
           <div className="relative mx-auto max-w-7xl px-6 py-9 sm:py-10 lg:px-10 lg:py-11">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f2ddaa]">

@@ -35,7 +35,7 @@ const ACOMPANAMIENTO_TOAST = "Solicitud de acompañamiento próximamente";
 const CALCOM_MENTORIA_URL = "#";
 const CALCOM_ACOMPANAMIENTO_URL = "#";
 
-const HERO_BG = "/aerocomms/mockups/heromento.png";
+const HERO_BG = "/aerocomms/mockups/heromento.webp";
 
 const HERO_BADGES = [
   { label: "Ruta clara", icon: Map },

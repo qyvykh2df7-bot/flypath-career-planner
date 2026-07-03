@@ -2422,7 +2422,7 @@ export function FlyPathApp({
       >
         {!reviewMode && (
           <div
-            className={`career-planner-dashboard relative -mt-4 pt-8 sm:-mt-5 sm:pt-10${
+            className={`career-planner-dashboard relative -mt-4 bg-[#080F1F] pt-8 sm:-mt-5 sm:pt-10${
               screen === "onboarding" ? " pointer-events-none select-none" : ""
             }`}
             aria-hidden={screen === "onboarding" ? true : undefined}
@@ -2431,7 +2431,15 @@ export function FlyPathApp({
               className="pointer-events-none absolute -top-4 left-1/2 z-0 h-[min(780px,92vh)] w-screen -translate-x-1/2 sm:-top-5 lg:h-[820px]"
               aria-hidden
             >
-              <div className="absolute inset-0 bg-[url('/fondocarrer.webp')] bg-cover bg-no-repeat [background-position:right_-112px]" />
+              <Image
+                src="/fondocarrer.webp"
+                alt=""
+                fill
+                preload
+                sizes="100vw"
+                className="object-cover"
+                style={{ objectPosition: "right -112px" }}
+              />
               <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(5,11,24,0.92)_0%,rgba(8,15,31,0.52)_42%,rgba(8,15,31,0.22)_68%,rgba(5,11,24,0.12)_100%)]" />
               <div className="absolute inset-x-0 bottom-0 h-[min(440px,58%)] bg-gradient-to-b from-transparent via-[#080F1F]/65 to-[#080F1F]" />
             </div>
@@ -3025,7 +3033,7 @@ export function FlyPathApp({
                         </div>
                       <div className="flex min-w-0 items-start justify-center lg:pt-0.5">
                         <Image
-                          src="/aerocomms/mockups/mockplan.png"
+                          src="/aerocomms/mockups/mockplan.webp"
                           alt=""
                           aria-hidden="true"
                           width={790}
