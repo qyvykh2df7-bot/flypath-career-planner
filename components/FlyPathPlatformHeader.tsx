@@ -22,7 +22,7 @@ export function FlyPathPlatformHeader({
   onSoonClick,
 }: FlyPathPlatformHeaderProps) {
   const [logoFallback, setLogoFallback] = useState(false);
-  const [landingLogoPhase, setLandingLogoPhase] = useState<"white" | "plain" | "fallback">("white");
+  const [landingLogoPhase, setLandingLogoPhase] = useState<"white" | "fallback">("white");
 
   return (
     <header
@@ -39,16 +39,13 @@ export function FlyPathPlatformHeader({
               landingLogoPhase !== "fallback" ? (
                 <div className="relative flex h-12 max-h-[60px] w-[180px] shrink-0 items-center sm:h-[54px] sm:max-h-[58px] sm:w-[220px] md:max-h-[60px] md:w-[252px] lg:w-[268px]">
                   <Image
-                    key={landingLogoPhase}
-                    src={landingLogoPhase === "white" ? "/flypath-logo-white.png" : "/flypath-logo.png"}
+                    src="/flypath-logo-white.png"
                     alt="FlyPath"
                     width={540}
                     height={162}
                     className="h-auto max-h-12 w-auto max-w-full object-contain object-left sm:max-h-[54px] md:max-h-[58px] lg:max-h-[60px]"
                     priority
-                    onError={() =>
-                      setLandingLogoPhase((prev) => (prev === "white" ? "plain" : "fallback"))
-                    }
+                    onError={() => setLandingLogoPhase("fallback")}
                   />
                 </div>
               ) : (

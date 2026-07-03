@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import { PlatformHubShell } from "@/components/PlatformHubShell";
+
+export const metadata: Metadata = {
+  title: "Escuelas | FlyPath",
+  description:
+    "La decisión de escuela condiciona precio final, calendario, extras incluidos y riesgos contractuales. Aquí comparas opciones y contrastas experiencias reales de alumnos.",
+  robots: { index: true, follow: true },
+};
 
 export default function EscuelasHubPage() {
   return (

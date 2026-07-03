@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { getSupabaseSchoolEntriesWithProfiles } from "@/lib/schoolMapper";
@@ -6,6 +7,11 @@ import type { FullSchoolProfile } from "@/lib/schoolQueries";
 import { SupabaseSchoolsListing } from "./_components/SupabaseSchoolsListing";
 
 export const dynamic = "force-dynamic";
+
+/** Página de debug interna: no debe indexarse. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function SchoolsSupabasePage() {
   let entries: SchoolEntry[] = [];

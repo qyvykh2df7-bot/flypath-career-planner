@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { supabase } from "@/lib/supabaseClient";
 
 type SchoolRow = {
@@ -8,6 +9,11 @@ type SchoolRow = {
 };
 
 export const dynamic = "force-dynamic";
+
+/** Página de debug interna: no debe indexarse. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 const pageStyle: React.CSSProperties = {
   maxWidth: 720,

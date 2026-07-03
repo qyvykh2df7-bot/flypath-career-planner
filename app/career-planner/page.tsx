@@ -1248,7 +1248,6 @@ export function FlyPathApp({
   // libremente con su toggle; no se reabre automáticamente al cambiar schools.length.
   const [manualFormOpen, setManualFormOpen] = useState(false);
   const manualFormInitializedRef = useRef(false);
-  /** Landing header: intenta /flypath-logo-white.png y luego /flypath-logo.png vía onError en la imagen. */
   const [cameFromSchoolsComparator, setCameFromSchoolsComparator] = useState(false);
   // Estado solo visual del dashboard compacto (no afecta a cálculos ni persistencia).
   const [costAdjustOpen, setCostAdjustOpen] = useState(false);

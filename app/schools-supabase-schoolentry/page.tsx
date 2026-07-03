@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { getSupabaseSchoolEntries } from "@/lib/schoolMapper";
 import type { SchoolEntry } from "@/types/schools";
 
 export const dynamic = "force-dynamic";
+
+/** Página de debug interna: no debe indexarse. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function SchoolsSupabaseSchoolEntryDebugPage() {
   let entries: SchoolEntry[] = [];

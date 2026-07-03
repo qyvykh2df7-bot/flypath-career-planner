@@ -32,15 +32,6 @@ export const PLATFORM_HOME: PlatformNavItem = {
   status: "available",
 };
 
-/** Zona personal del usuario (sin auth por ahora). */
-export const PLATFORM_DASHBOARD: PlatformNavItem = {
-  id: "dashboard",
-  label: "Mi dashboard",
-  href: "/dashboard",
-  status: "available",
-  menuBadge: "Vista previa",
-};
-
 /**
  * Secciones principales del menú (agrupadas).
  * Orden: Career Planner → Guía → Escuelas → AeroComms → Mentorías → Recursos
@@ -106,32 +97,3 @@ export function isPlatformNavCurrent(currentModuleId: string, targetId: string):
   return currentModuleId === targetId;
 }
 
-export function getPlatformSectionById(sectionId: string): PlatformNavSection | undefined {
-  return PLATFORM_NAV_SECTIONS.find((s) => s.id === sectionId);
-}
-
-/** Lista plana legacy (p. ej. transición en landing). Preferir menú agrupado. */
-export function getLegacyFlatPlatformModules(): PlatformNavItem[] {
-  const flat: PlatformNavItem[] = [PLATFORM_HOME];
-  for (const section of PLATFORM_NAV_SECTIONS) {
-    if (section.items.length === 0 && section.hubHref) {
-      flat.push({
-        id: section.id,
-        label: section.label,
-        href: section.hubHref,
-        status: section.status,
-      });
-    } else {
-      if (section.hubHref) {
-        flat.push({
-          id: `${section.id}-hub`,
-          label: section.label,
-          href: section.hubHref,
-          status: section.status,
-        });
-      }
-      flat.push(...section.items);
-    }
-  }
-  return flat;
-}

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getSupabaseSchoolEntries } from "@/lib/schoolMapper";
 import { schoolsSpainDataset } from "@/lib/schools/schoolsSpain";
 import {
@@ -8,6 +9,11 @@ import {
 } from "@/lib/schools/supabaseParityAudit";
 
 export const dynamic = "force-dynamic";
+
+/** Página de debug interna: no debe indexarse. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 function SummaryCard({
   label,
