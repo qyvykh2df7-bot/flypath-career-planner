@@ -1,5 +1,3 @@
-"use client";
-
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HomeResourcesShowcase } from "@/components/home/HomeResourcesShowcase";

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import {
   Activity,
   ArrowRight,
@@ -2405,10 +2404,10 @@ export function FlyPathApp({
     <>
       <style jsx global>{globalButtonFeedbackStyles}</style>
       {toast && (
-        <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
+        <div className="planner-toast-in fixed right-3 top-3 z-[60] inline-flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-wrap items-center gap-2 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg sm:right-5 sm:top-5 sm:max-w-none sm:flex-nowrap">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
           {toast}
-        </motion.div>
+        </div>
       )}
       <CareerPlannerAppShell
         stepNav={reviewMode ? plannerStepNav : undefined}

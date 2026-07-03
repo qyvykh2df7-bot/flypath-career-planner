@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { motion } from "framer-motion";
 import { SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { CareerPlannerCostAdjustForm } from "./CareerPlannerCostAdjustForm";
@@ -285,11 +284,9 @@ export function CareerPlannerDiagnosisView({
                       <span className="tabular-nums font-medium text-[#3d4f6f]">{Math.round(pct)}%</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-[#0f1a33]/10">
-                      <motion.div
-                        className={`h-full rounded-full ${item.tone}`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${clampPct(pct)}%` }}
-                        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                      <div
+                        className={`planner-bar-grow h-full rounded-full ${item.tone}`}
+                        style={{ width: `${clampPct(pct)}%` }}
                       />
                     </div>
                   </div>
