@@ -2486,10 +2486,6 @@ export function FlyPathApp({
                               stretchValueArea
                             />
                           </div>
-                          <div
-                            aria-hidden
-                            className="w-[max(1rem,calc(100vw-11.75rem))] shrink-0 sm:hidden"
-                          />
                         </div>
                       </div>
                     </div>
