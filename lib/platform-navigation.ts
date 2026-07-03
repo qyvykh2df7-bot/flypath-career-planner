@@ -43,23 +43,22 @@ export const PLATFORM_DASHBOARD: PlatformNavItem = {
 
 /**
  * Secciones principales del menú (agrupadas).
- * Orden: Planifica → Escuelas → AeroComms → Mentorías → Recursos
+ * Orden: Career Planner → Guía → Escuelas → AeroComms → Mentorías → Recursos
  */
 export const PLATFORM_NAV_SECTIONS: PlatformNavSection[] = [
   {
-    id: "planifica",
-    label: "Planifica tu ruta",
-    hubHref: "/planifica-tu-ruta",
+    id: "planner",
+    label: "Career Planner",
+    hubHref: "/career-planner",
     status: "available",
-    items: [
-      { id: "planner", label: "Career Planner", href: "/career-planner", status: "available" },
-      {
-        id: "guia",
-        label: "Guía Cómo ser piloto",
-        href: "/guia-como-ser-piloto",
-        status: "available",
-      },
-    ],
+    items: [],
+  },
+  {
+    id: "guia",
+    label: "Guía Cómo ser piloto",
+    hubHref: "/guia-como-ser-piloto",
+    status: "available",
+    items: [],
   },
   {
     id: "escuelas",
