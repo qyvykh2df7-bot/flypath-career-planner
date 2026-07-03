@@ -18,10 +18,10 @@ export const FLYPATH_PRODUCT_HREF: Record<Exclude<FlyPathProductId, "escuelas">,
 };
 
 export const FLYPATH_PRIMARY_IMAGE: Record<FlyPathProductId, string> = {
-  guia: "/como-ser-piloto-cover.jpeg",
+  guia: "/como-ser-piloto-cover.webp",
   mentoria: "/mentoria.jpg",
   ingles: "/ingles-aeronautico.jpg",
-  escuelas: "/school-card-bg/cadet-airline.jpg",
+  escuelas: "/school-card-bg/cadet-airline.webp",
 };
 
 export const FLYPATH_PRODUCTS: Record<

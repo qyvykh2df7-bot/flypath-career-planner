@@ -157,8 +157,8 @@ export type SchoolCardVisualCategory = "integrated" | "modular" | "mixed" | "cad
 
 /**
  * Asignación explícita de imagen de fondo de card. Mapeo solicitado por producto:
- * - cadet-airline.jpg ÚNICAMENTE para Adventia y CESDA.
- * - integrado.jpg, modular.jpg y mixto.jpg para el resto, según rutas publicadas.
+ * - cadet-airline.webp ÚNICAMENTE para Adventia y CESDA.
+ * - integrado.webp, modular.webp y mixto.webp para el resto, según rutas publicadas.
  */
 const SCHOOL_CARD_CADET_AIRLINE_SLUGS = new Set<string>(["adventia-usal", "cesda-urv"]);
 
@@ -203,10 +203,10 @@ export function getSchoolCardVisualCategory(entry: SchoolEntry): SchoolCardVisua
 
 export function getSchoolCardBackgroundUrl(entry: SchoolEntry): string {
   const category = getSchoolCardVisualCategory(entry);
-  if (category === "modular") return "/school-card-bg/modular.jpg";
-  if (category === "mixed") return "/school-card-bg/mixto.jpg";
-  if (category === "cadet_airline") return "/school-card-bg/cadet-airline.jpg";
-  return "/school-card-bg/integrado.jpg";
+  if (category === "modular") return "/school-card-bg/modular.webp";
+  if (category === "mixed") return "/school-card-bg/mixto.webp";
+  if (category === "cadet_airline") return "/school-card-bg/cadet-airline.webp";
+  return "/school-card-bg/integrado.webp";
 }
 
 /** Solo las escuelas principales pueden añadirse a comparación desde la card del listado. */

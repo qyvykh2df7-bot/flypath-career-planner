@@ -35,7 +35,7 @@ import {
 } from "@/lib/planner-school-database";
 
 /** Misma imagen que el badge histórico «Explorar base de datos FlyPath». */
-const FLYPATH_DATABASE_CARD_BG = "/school-card-bg/cadet-airline.jpg";
+const FLYPATH_DATABASE_CARD_BG = "/school-card-bg/cadet-airline.webp";
 
 /** Rejilla fija de 7 columnas en cards seleccionadas (≥900px). */
 const SELECTED_SCHOOL_DESKTOP_GRID =

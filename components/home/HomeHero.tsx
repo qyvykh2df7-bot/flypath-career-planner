@@ -6,7 +6,7 @@ export function HomeHero() {
   return (
     <section className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-[#06111F] px-6 py-7 sm:py-9 lg:py-10">
       <Image
-        src="/herohome.png"
+        src="/herohome.webp"
         alt=""
         aria-hidden
         fill

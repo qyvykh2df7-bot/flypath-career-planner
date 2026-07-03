@@ -44,6 +44,7 @@ export function FlyPathPlatformHeader({
                     width={540}
                     height={162}
                     className="h-auto max-h-12 w-auto max-w-full object-contain object-left sm:max-h-[54px] md:max-h-[58px] lg:max-h-[60px]"
+                    sizes="(max-width: 640px) 180px, (max-width: 768px) 220px, (max-width: 1024px) 252px, 268px"
                     priority
                     onError={() => setLandingLogoPhase("fallback")}
                   />
@@ -69,6 +70,7 @@ export function FlyPathPlatformHeader({
                   width={540}
                   height={162}
                   className="h-auto max-h-12 w-auto max-w-full object-contain object-left sm:max-h-[54px] md:max-h-[58px] lg:max-h-[60px]"
+                  sizes="(max-width: 640px) 180px, (max-width: 768px) 220px, (max-width: 1024px) 252px, 268px"
                   priority
                   onError={() => setLogoFallback(true)}
                 />

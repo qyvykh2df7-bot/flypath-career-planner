@@ -59,27 +59,24 @@ function TabletChecklistChip({
 type MobileShowcaseSlide = {
   key: string;
   src: string;
-  scaleClass?: string;
+  /** carrousel1/2 tienen más margen en el PNG; escala mínima para igualar 3–5. */
+  imageScaleClass?: string;
 };
 
 const MOBILE_SHOWCASE_SLIDES: readonly MobileShowcaseSlide[] = [
-  {
-    key: "diseno-2",
-    src: "/aerocomms/mockups/Diseño%20sin%20título-2.png",
-    scaleClass: "scale-[1.08]",
-  },
-  { key: "diseno-3", src: "/aerocomms/mockups/Diseño%20sin%20título-3.png" },
-  {
-    key: "diseno-4",
-    src: "/aerocomms/mockups/Diseño%20sin%20título-4.png",
-    scaleClass: "scale-[1.08]",
-  },
-  { key: "diseno-5", src: "/aerocomms/mockups/Diseño%20sin%20título-5.png" },
-  { key: "diseno-1", src: "/aerocomms/mockups/Diseño%20sin%20título.png" },
+  { key: "carrousel-1", src: "/aerocomms/mockups/carrousel1.webp", imageScaleClass: "scale-[1.08]" },
+  { key: "carrousel-2", src: "/aerocomms/mockups/carrousel2.webp", imageScaleClass: "scale-[1.08]" },
+  { key: "carrousel-3", src: "/aerocomms/mockups/carrousel3.webp" },
+  { key: "carrousel-4", src: "/aerocomms/mockups/carrousel4.webp" },
+  { key: "carrousel-5", src: "/aerocomms/mockups/carrousel5.webp" },
 ];
 
 const MOBILE_CAROUSEL_SLIDE_CLASS =
   "flex h-[520px] w-[68vw] max-w-[300px] shrink-0 snap-center flex-none items-center justify-center overflow-visible bg-transparent md:h-[560px] md:w-[54vw] md:max-w-[360px]";
+
+/** Altura fija común: todas las capturas escalan por alto (como carrousel5), no por ancho del wrapper. */
+const MOBILE_CAROUSEL_IMAGE_CLASS =
+  "block h-[520px] w-auto max-w-none object-contain md:h-[560px]";
 
 const INITIAL_SHOWCASE_INDEX = 2;
 
@@ -128,7 +125,7 @@ export function AeroCommsTrainingShowcase() {
         aria-hidden
         className="pointer-events-none absolute inset-y-0 left-1/2 z-0 hidden w-full max-w-[1280px] -translate-x-1/2 bg-no-repeat xl:block xl:[background-size:cover] xl:[background-position:center_right] 2xl:inset-0 2xl:left-0 2xl:max-w-none 2xl:translate-x-0 2xl:[background-size:1120px_auto] 2xl:[background-position:calc(50%+140px)_center]"
         style={{
-          backgroundImage: "url('/aerocomms/mockups/seccion3-white-2x.png')",
+          backgroundImage: "url('/aerocomms/mockups/seccion3-white-2x.webp')",
         }}
       />
 
@@ -203,7 +200,9 @@ export function AeroCommsTrainingShowcase() {
                 <img
                   src={slide.src}
                   alt={`AeroComms — ${slide.key}`}
-                  className={`block h-[520px] w-auto max-w-none object-contain md:h-[560px] md:w-auto md:max-w-none md:object-contain ${slide.scaleClass ?? ""}`}
+                  className={`${MOBILE_CAROUSEL_IMAGE_CLASS} ${slide.imageScaleClass ?? ""}`}
+                  loading="lazy"
+                  decoding="async"
                   draggable={false}
                 />
               </div>

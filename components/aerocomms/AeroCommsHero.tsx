@@ -13,7 +13,7 @@ export function AeroCommsHero() {
         aria-hidden
         className="pointer-events-none absolute inset-0 z-0 hidden bg-no-repeat xl:block xl:[background-size:cover] xl:[background-position:center_58%]"
         style={{
-          backgroundImage: "url('/aerocomms/mockups/herodesktop-white-2x.png')",
+          backgroundImage: "url('/aerocomms/mockups/herodesktop-white-2x.webp')",
         }}
       />
 
@@ -44,6 +44,7 @@ export function AeroCommsHero() {
               width={941}
               height={1168}
               className="mx-auto mt-1 h-auto w-full max-w-[370px] object-contain md:hidden"
+              sizes="(max-width: 768px) min(100vw, 370px)"
               priority
             />
 
@@ -55,6 +56,7 @@ export function AeroCommsHero() {
                 width={941}
                 height={1168}
                 className="mx-auto h-auto w-full object-contain"
+                sizes="(max-width: 1280px) min(100vw, 540px)"
               />
             </div>
 

@@ -213,7 +213,7 @@ function GuideCoverImage() {
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-gradient-to-br from-[#eef2f8] to-[#e2e8f0] shadow-[0_16px_48px_rgba(15,26,51,0.14)] ring-1 ring-slate-200/70">
         {!failed ? (
           <Image
-            src="/como-ser-piloto-cover.jpeg"
+            src="/como-ser-piloto-cover.webp"
             alt="Portada de la guía Cómo ser Piloto"
             fill
             sizes="(max-width: 640px) 200px, 240px"

@@ -12,9 +12,9 @@ export const REPORT_PAGE_IMAGES = {
   /** Cartas / guía / planificación de ruta */
   finances: "/pistaguia.png",
   /** Cabina / formación práctica */
-  action: "/clases.jpg",
+  action: "/clases.webp",
   /** Avioneta / entrenamiento */
-  schools: "/cessnaguia.png",
+  schools: "/cessnaguia.webp",
   /** Acompañamiento / mentoría (distinto del resumen) */
   close: "/acompanamiento.jpg",
 } as const;
@@ -40,10 +40,10 @@ export const REPORT_PREVIEW_REMOVED_DUPLICATES = [
 ] as const;
 
 const SCHOOL_BANNER_BY_PROGRAMA: Record<string, string> = {
-  integrado: "/school-card-bg/integrado.jpg",
-  modular: "/school-card-bg/modular.jpg",
-  cadet: "/school-card-bg/cadet-airline.jpg",
-  mixto: "/school-card-bg/mixto.jpg",
+  integrado: "/school-card-bg/integrado.webp",
+  modular: "/school-card-bg/modular.webp",
+  cadet: "/school-card-bg/cadet-airline.webp",
+  mixto: "/school-card-bg/mixto.webp",
 };
 
 export function schoolBannerSrc(programa: string): string | null {

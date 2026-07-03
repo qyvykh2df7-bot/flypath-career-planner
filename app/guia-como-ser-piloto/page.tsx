@@ -24,7 +24,7 @@ const PRODUCT_INCLUDES = [
 const GUIDE_PREVIEW_IMAGES = [
   { src: "/kindleguia.png", alt: "Vista previa de la guía en Kindle" },
   { src: "/pistaguia.png", alt: "Vista previa de la guía para futuros pilotos" },
-  { src: "/cessnaguia.png", alt: "Vista previa de contenidos de la guía" },
+  { src: "/cessnaguia.webp", alt: "Vista previa de contenidos de la guía" },
 ] as const;
 
 const TOC_CHAPTERS = [
@@ -222,6 +222,7 @@ export default function GuiaComoSerPilotoPage() {
                     width={1122}
                     height={1402}
                     preload
+                    sizes="100vw"
                     className="mx-auto block h-auto w-full max-w-none -mb-6 object-contain drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)]"
                   />
                 </div>
@@ -232,6 +233,7 @@ export default function GuiaComoSerPilotoPage() {
                     alt="Portada de la guía Cómo ser piloto"
                     width={1122}
                     height={1402}
+                    sizes="305px"
                     className="mx-auto h-auto w-full object-contain drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)]"
                   />
                 </div>
@@ -270,6 +272,7 @@ export default function GuiaComoSerPilotoPage() {
                   alt="Portada de la guía Cómo ser piloto"
                   width={1122}
                   height={1402}
+                  sizes="(max-width: 1536px) 535px, 593px"
                   className="absolute right-10 top-0 h-auto w-full max-w-[535px] -translate-y-12 object-contain object-top object-right drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)] 2xl:max-w-[593px]"
                 />
               </div>
@@ -506,7 +509,7 @@ export default function GuiaComoSerPilotoPage() {
               <div className="order-2 w-full lg:order-1 lg:flex lg:items-center lg:justify-center">
                 <div className="w-full overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04] lg:mx-auto lg:w-[88%] lg:max-w-[520px]">
                   <Image
-                    src="/avgas.JPG"
+                    src="/avgas.webp"
                     alt="Avión de aviación general como vista previa de la guía Cómo ser piloto"
                     width={3024}
                     height={4032}

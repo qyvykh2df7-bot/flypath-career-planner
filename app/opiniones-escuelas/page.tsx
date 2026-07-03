@@ -231,7 +231,7 @@ export default function OpinionesEscuelasPage() {
           <section className="relative overflow-hidden rounded-3xl border border-white/90 bg-gradient-to-b from-[#fffdfb] via-[#f8fafc] to-[#f3f6fa] p-6 shadow-[0_14px_44px_-18px_rgba(15,26,51,0.1)] ring-1 ring-[#c9a454]/18 sm:p-8">
             {heroImageAvailable ? (
               <Image
-                src="/opiniones-escuelas-hero.jpg"
+                src="/opiniones-escuelas-hero.webp"
                 alt=""
                 fill
                 priority

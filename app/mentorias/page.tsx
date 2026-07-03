@@ -108,7 +108,7 @@ const TEAM = [
     name: "Jorge Feliu",
     role: "First Officer B737",
     text: "Experiencia real en aerolínea y formación de pilotos.",
-    image: "/jorge.jpeg",
+    image: "/jorge.webp",
   },
   {
     id: "carlos-vaello",
@@ -122,7 +122,7 @@ const TEAM = [
 const MENTORSHIP_WORK = [
   {
     title: "Ruta y timing",
-    image: "/aerocomms/mockups/mento1.png",
+    image: "/aerocomms/mockups/mento1.webp",
     icon: Map,
     items: [
       "Integrado vs modular",
@@ -133,7 +133,7 @@ const MENTORSHIP_WORK = [
   },
   {
     title: "Costes y riesgos",
-    image: "/aerocomms/mockups/mento2.png",
+    image: "/aerocomms/mockups/mento2.webp",
     icon: Euro,
     items: [
       "Presupuesto realista",
@@ -144,7 +144,7 @@ const MENTORSHIP_WORK = [
   },
   {
     title: "Escuelas y condiciones",
-    image: "/aerocomms/mockups/mento3.png",
+    image: "/aerocomms/mockups/mento3.webp",
     icon: Building2,
     items: [
       "Comparación de opciones reales",
@@ -272,6 +272,7 @@ export default function MentoriasPage() {
               width={1695}
               height={928}
               preload
+              sizes="100vw"
               className="absolute left-1/2 top-1/2 max-w-none"
               style={{
                 minWidth: "100%",

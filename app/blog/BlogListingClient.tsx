@@ -58,6 +58,8 @@ export function BlogListingClient({ posts, featuredPosts }: BlogListingClientPro
               alt=""
               aria-hidden
               className="absolute inset-0 h-full w-full object-cover"
+              fetchPriority="high"
+              decoding="auto"
               onError={() => setHeroImageFailed(true)}
             />
           ) : null}
