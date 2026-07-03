@@ -7,12 +7,15 @@ type CareerPlannerBottomNavProps = {
   activeStep: PlannerStepId;
   onboardingCompleted: boolean;
   onStepChange: (step: PlannerStepId) => void;
+  /** En review mode no hay onboarding real: la navegación no debe quedar bloqueada. */
+  reviewMode?: boolean;
 };
 
 export function CareerPlannerBottomNav({
   activeStep,
   onboardingCompleted,
   onStepChange,
+  reviewMode = false,
 }: CareerPlannerBottomNavProps) {
   return (
     <nav
@@ -23,7 +26,7 @@ export function CareerPlannerBottomNav({
       <div className="mx-auto grid max-w-lg grid-cols-4 gap-0.5 px-1 pt-1.5">
         {PLANNER_STEPS.map((step) => {
           const isActive = activeStep === step.id;
-          const canClick = step.id === "profile" || onboardingCompleted;
+          const canClick = step.id === "profile" || onboardingCompleted || reviewMode;
           const Icon = PLANNER_STEP_ICONS[step.id];
 
           return (

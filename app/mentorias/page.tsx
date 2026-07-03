@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { FlyPathTeamSection } from "@/components/FlyPathTeamSection";
 import { HomeFooter } from "@/components/home/HomeFooter";
@@ -265,9 +266,12 @@ export default function MentoriasPage() {
         {/* 1. Hero cinematográfico */}
         <section className="relative isolate min-h-0 overflow-hidden bg-[#06111F]">
           <div aria-hidden className="absolute inset-0 overflow-hidden">
-            <img
+            <Image
               src={HERO_BG}
               alt=""
+              width={1695}
+              height={928}
+              preload
               className="absolute left-1/2 top-1/2 max-w-none"
               style={{
                 minWidth: "100%",
@@ -436,13 +440,13 @@ export default function MentoriasPage() {
                     key={block.title}
                     className="relative flex h-full overflow-hidden rounded-2xl border border-[#071224]/[0.08] shadow-[0_12px_36px_rgba(7,18,36,0.1)]"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={block.image}
                       alt=""
                       aria-hidden
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
                     />
                     <div
                       className="absolute inset-0"

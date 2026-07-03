@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -936,7 +937,7 @@ function FlyPathReportDownloadPreview({
 
   return (
     <div className={wrapperClass} aria-hidden>
-      <img src={src} alt="" width={1684} height={1190} className={imgClass} />
+      <Image src={src} alt="" width={1683} height={1190} className={imgClass} />
     </div>
   );
 }
@@ -1234,6 +1235,7 @@ export function FlyPathApp({
   const [toast, setToast] = useState<string | null>(null);
   const [premiumPdfExporting, setPremiumPdfExporting] = useState(false);
   const [freePdfExporting, setFreePdfExporting] = useState(false);
+  const [parentsPdfExporting, setParentsPdfExporting] = useState(false);
   const [reportEmail, setReportEmail] = useState("");
   const [reportEmailDownloadHint, setReportEmailDownloadHint] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -1311,7 +1313,10 @@ export function FlyPathApp({
         });
       }
       if (c) setCostInputs({ ...defaultCostInputs, ...JSON.parse(c) });
-      if (s) setSchools(JSON.parse(s));
+      if (s) {
+        const parsedSchools = JSON.parse(s) as unknown;
+        if (Array.isArray(parsedSchools)) setSchools(parsedSchools as School[]);
+      }
       if (o) {
         // Lectura robusta: aceptamos JSON booleano `true` o el string literal "true".
         const done = JSON.parse(o) === true || o === "true";
@@ -1542,28 +1547,48 @@ export function FlyPathApp({
   // reales del usuario antes de la lectura.
   useEffect(() => {
     if (reviewMode || !storageHydrated) return;
-    localStorage.setItem("flypath_profile", JSON.stringify(profile));
+    try {
+      localStorage.setItem("flypath_profile", JSON.stringify(profile));
+    } catch {
+      // no-op: localStorage puede fallar en modo privado o por cuota.
+    }
   }, [profile, reviewMode, storageHydrated]);
   useEffect(() => {
     if (reviewMode || !storageHydrated) return;
-    localStorage.setItem("flypath_cost_inputs", JSON.stringify(costInputs));
+    try {
+      localStorage.setItem("flypath_cost_inputs", JSON.stringify(costInputs));
+    } catch {
+      // no-op: localStorage puede fallar en modo privado o por cuota.
+    }
   }, [costInputs, reviewMode, storageHydrated]);
   useEffect(() => {
     if (reviewMode || !storageHydrated) return;
-    localStorage.setItem("flypath_schools", JSON.stringify(schools));
+    try {
+      localStorage.setItem("flypath_schools", JSON.stringify(schools));
+    } catch {
+      // no-op: localStorage puede fallar en modo privado o por cuota.
+    }
   }, [schools, reviewMode, storageHydrated]);
   useEffect(() => {
     if (reviewMode || !storageHydrated) return;
-    localStorage.setItem("flypath_onboarding_completed", JSON.stringify(onboardingCompleted));
+    try {
+      localStorage.setItem("flypath_onboarding_completed", JSON.stringify(onboardingCompleted));
+    } catch {
+      // no-op: localStorage puede fallar en modo privado o por cuota.
+    }
   }, [onboardingCompleted, reviewMode, storageHydrated]);
   useEffect(() => {
     if (reviewMode || !storageHydrated) return;
     const trimmed = reportEmail.trim();
-    if (trimmed) {
-      localStorage.setItem(REPORT_EMAIL_STORAGE_KEY, trimmed);
-      // TODO: enviar email al backend de captura de leads cuando exista endpoint.
-    } else {
-      localStorage.removeItem(REPORT_EMAIL_STORAGE_KEY);
+    try {
+      if (trimmed) {
+        localStorage.setItem(REPORT_EMAIL_STORAGE_KEY, trimmed);
+        // TODO: enviar email al backend de captura de leads cuando exista endpoint.
+      } else {
+        localStorage.removeItem(REPORT_EMAIL_STORAGE_KEY);
+      }
+    } catch {
+      // no-op: localStorage puede fallar en modo privado o por cuota.
     }
   }, [reportEmail, reviewMode, storageHydrated]);
 
@@ -1934,12 +1959,15 @@ export function FlyPathApp({
   };
 
   const openProfileOnboardingModal = () => {
+    // En reviewMode el modal de onboarding nunca se renderiza: evitamos dejar
+    // `screen` en "onboarding" sin que exista overlay que lo represente.
+    if (reviewMode) return;
     setOnboardingStep(1);
     setScreen("onboarding");
   };
 
   const goToPlannerStep = (step: PlannerStepId) => {
-    if (step !== "profile" && !onboardingCompleted) {
+    if (step !== "profile" && !onboardingCompleted && !reviewMode) {
       showToast("Completa tu perfil antes de continuar.");
       setPlannerStep("profile");
       setScreen("onboarding");
@@ -1948,7 +1976,11 @@ export function FlyPathApp({
     }
     setPlannerStep(step);
     if (step === "profile") {
-      setScreen("onboarding");
+      // En reviewMode no hay onboarding modal disponible; mantenemos la pantalla
+      // actual para no desincronizar `screen` con el contenido visible.
+      if (!reviewMode) {
+        setScreen("onboarding");
+      }
       return;
     }
     const nextTab = plannerStepToTab(step);
@@ -2055,6 +2087,7 @@ export function FlyPathApp({
       activeStep={plannerStep}
       onboardingCompleted={onboardingCompleted}
       onStepChange={goToPlannerStep}
+      reviewMode={reviewMode}
     />
   );
 
@@ -2063,6 +2096,7 @@ export function FlyPathApp({
       activeStep={plannerStep}
       onboardingCompleted={onboardingCompleted}
       onStepChange={goToPlannerStep}
+      reviewMode={reviewMode}
     />
   );
 
@@ -2286,6 +2320,8 @@ export function FlyPathApp({
 
   const handleParentsReportDownload = async () => {
     if (!plannerPremiumContentVisible && !requireReportEmailForDownload()) return;
+    if (parentsPdfExporting) return;
+    setParentsPdfExporting(true);
     try {
       const { downloadParentsReportPdf } = await import("@/lib/parentsReportPdf");
       await downloadParentsReportPdf(reportSnapshot);
@@ -2298,6 +2334,8 @@ export function FlyPathApp({
       }
       const pdfErr = await import("@/lib/parentsReportPdf");
       showToast(pdfErr.PARENTS_PDF_ERROR_MESSAGE);
+    } finally {
+      setParentsPdfExporting(false);
     }
   };
 
@@ -2915,12 +2953,13 @@ export function FlyPathApp({
                             </button>
                             <button
                               type="button"
+                              disabled={parentsPdfExporting}
                               onClick={handleParentsReportDownload}
                               aria-disabled={!plannerPremiumContentVisible && !reportEmailValid}
                               className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-[13px] font-semibold text-slate-300 transition hover:border-white/30 hover:text-white"
                             >
                               <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                              Descargar resumen para padres
+                              {parentsPdfExporting ? "Generando PDF…" : "Descargar resumen para padres"}
                             </button>
                           </div>
                         </div>
@@ -3008,10 +3047,12 @@ export function FlyPathApp({
                         </div>
                       </div>
                       <div className="flex min-w-0 items-start justify-center lg:pt-0.5">
-                        <img
+                        <Image
                           src="/aerocomms/mockups/mockplan.png"
                           alt=""
                           aria-hidden="true"
+                          width={790}
+                          height={730}
                           className="h-auto w-full max-h-[min(420px,55vh)] max-w-[min(100%,520px)] object-contain object-center drop-shadow-[0_16px_36px_rgba(0,0,0,0.42)] lg:max-h-full lg:max-w-none"
                         />
                       </div>
@@ -3208,6 +3249,7 @@ export function FlyPathApp({
                     </button>
                     <button
                       type="button"
+                      disabled={parentsPdfExporting}
                       aria-disabled={!plannerPremiumContentVisible && !reportEmailValid}
                       onClick={handleParentsReportDownload}
                       className={`inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-xl border px-6 py-3 text-[15px] font-semibold shadow-sm sm:w-auto ${
@@ -3217,7 +3259,7 @@ export function FlyPathApp({
                       }`}
                     >
                       <Download className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-                      Descargar resumen para padres
+                      {parentsPdfExporting ? "Generando PDF…" : "Descargar resumen para padres"}
                     </button>
                   </div>
                     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { HomeFooter } from "@/components/home/HomeFooter";
@@ -114,13 +115,12 @@ type ShopCategory = (typeof CATEGORIES)[number]["id"];
 function ServiceImageSlot({ src, alt }: { src: string; alt: string }) {
   return (
     <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-t-2xl border-b border-slate-100/80 bg-[#eef2f8]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={src}
         alt={alt}
-        loading="eager"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 400px"
+        className="object-cover"
       />
       <div
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f1a33]/20 via-[#0f1a33]/8 to-transparent"
@@ -148,12 +148,13 @@ function ProductImageSlot({
   return (
     <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden border-b border-slate-100/80 bg-white">
       {!failed ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           key={src}
           src={src}
           alt={alt}
-          className="absolute inset-0 h-full w-full object-contain p-3"
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 400px"
+          className="object-contain p-3"
           onError={() => setFailed(true)}
         />
       ) : (
@@ -173,11 +174,13 @@ function ShopHeroBackground() {
   return (
     <div className="pointer-events-none absolute inset-0" aria-hidden>
       {!failed ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src="/shop.jpg"
           alt=""
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          fill
+          preload
+          sizes="100vw"
+          className="object-cover object-center"
           onError={() => setFailed(true)}
         />
       ) : (
@@ -209,11 +212,12 @@ function GuideCoverImage() {
     <div className="mx-auto w-full max-w-[200px] sm:max-w-[240px] md:mx-0">
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-gradient-to-br from-[#eef2f8] to-[#e2e8f0] shadow-[0_16px_48px_rgba(15,26,51,0.14)] ring-1 ring-slate-200/70">
         {!failed ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src="/como-ser-piloto-cover.jpeg"
             alt="Portada de la guía Cómo ser Piloto"
-            className="h-full w-full object-contain object-center p-2"
+            fill
+            sizes="(max-width: 640px) 200px, 240px"
+            className="object-contain object-center p-2"
             onError={() => setFailed(true)}
           />
         ) : (

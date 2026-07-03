@@ -216,24 +216,22 @@ export default function GuiaComoSerPilotoPage() {
                 </h1>
 
                 <div className="relative left-1/2 -mt-6 w-screen max-w-[100vw] -translate-x-1/2 md:hidden">
-                  <img
+                  <Image
                     src="/comoserpilotohero.png"
                     alt="Portada de la guía Cómo ser piloto"
                     width={1122}
                     height={1402}
-                    fetchPriority="high"
-                    decoding="async"
+                    preload
                     className="mx-auto block h-auto w-full max-w-none -mb-6 object-contain drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)]"
                   />
                 </div>
 
                 <div className="mx-auto mt-7 hidden w-full max-w-[305px] md:block xl:hidden">
-                  <img
+                  <Image
                     src="/comoserpilotohero.png"
                     alt="Portada de la guía Cómo ser piloto"
                     width={1122}
                     height={1402}
-                    decoding="async"
                     className="mx-auto h-auto w-full object-contain drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)]"
                   />
                 </div>
@@ -267,12 +265,11 @@ export default function GuiaComoSerPilotoPage() {
 
               {/* Right column — desktop mockup (same spacer rhythm as AeroComms) */}
               <div className="relative hidden min-h-[480px] self-start xl:block 2xl:min-h-[520px]">
-                <img
+                <Image
                   src="/comoserpilotohero.png"
                   alt="Portada de la guía Cómo ser piloto"
                   width={1122}
                   height={1402}
-                  decoding="async"
                   className="absolute right-10 top-0 h-auto w-full max-w-[535px] -translate-y-12 object-contain object-top object-right drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)] 2xl:max-w-[593px]"
                 />
               </div>
@@ -508,11 +505,11 @@ export default function GuiaComoSerPilotoPage() {
               </div>
               <div className="order-2 w-full lg:order-1 lg:flex lg:items-center lg:justify-center">
                 <div className="w-full overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_24px_60px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04] lg:mx-auto lg:w-[88%] lg:max-w-[520px]">
-                  <img
+                  <Image
                     src="/avgas.JPG"
                     alt="Avión de aviación general como vista previa de la guía Cómo ser piloto"
-                    loading="lazy"
-                    decoding="async"
+                    width={3024}
+                    height={4032}
                     className="block h-auto w-full max-w-full rounded-2xl object-contain"
                   />
                 </div>
@@ -556,11 +553,11 @@ export default function GuiaComoSerPilotoPage() {
               </div>
               <div className="order-2 flex w-full justify-center lg:order-2">
                 <div className="w-full max-w-[300px] overflow-hidden rounded-3xl border border-[#c9a454]/30 border-slate-200/80 bg-white shadow-[0_20px_50px_rgba(15,26,51,0.10)] ring-1 ring-black/[0.04] sm:max-w-[360px] lg:max-w-[500px]">
-                  <img
+                  <Image
                     src="/atardecer.jpg"
                     alt="Atardecer aeronáutico como apoyo visual de la guía Cómo ser piloto"
-                    loading="lazy"
-                    decoding="async"
+                    width={2000}
+                    height={1500}
                     className="block h-auto w-full rounded-2xl object-contain"
                   />
                 </div>

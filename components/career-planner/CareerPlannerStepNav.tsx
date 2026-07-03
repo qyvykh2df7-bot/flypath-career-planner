@@ -9,12 +9,15 @@ type CareerPlannerStepNavProps = {
   activeStep: PlannerStepId;
   onboardingCompleted: boolean;
   onStepChange: (step: PlannerStepId) => void;
+  /** En review mode no hay onboarding real: la navegación no debe quedar bloqueada. */
+  reviewMode?: boolean;
 };
 
 export function CareerPlannerStepNav({
   activeStep,
   onboardingCompleted,
   onStepChange,
+  reviewMode = false,
 }: CareerPlannerStepNavProps) {
   const activeIndex = Math.max(
     0,
@@ -52,7 +55,7 @@ export function CareerPlannerStepNav({
                 ? onboardingCompleted
                 : onboardingCompleted && index < activeIndex;
             const isPending = !isActive && !isComplete;
-            const canClick = step.id === "profile" || onboardingCompleted;
+            const canClick = step.id === "profile" || onboardingCompleted || reviewMode;
             const stepCode = String(step.number).padStart(2, "0");
 
             return (

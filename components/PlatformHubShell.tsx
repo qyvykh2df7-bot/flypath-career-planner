@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
@@ -61,11 +62,14 @@ export function PlatformHubShell({
         >
           {heroBackgroundImage ? (
             <>
-              <img
+              <Image
                 src={heroBackgroundImage}
                 alt=""
                 aria-hidden
-                className="absolute inset-0 h-full w-full object-cover object-center"
+                fill
+                preload
+                sizes="100vw"
+                className="object-cover object-center"
               />
               <div
                 className={`absolute inset-0 bg-gradient-to-r from-[#0f1a33]/86 via-[#0f1a33]/68 to-[#0f1a33]/52 ${

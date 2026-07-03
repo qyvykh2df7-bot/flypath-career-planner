@@ -1,14 +1,18 @@
+import Image from "next/image";
 import { Plane } from "lucide-react";
 import { HomeQuickAccessSelector } from "@/components/home/HomeQuickAccessSelector";
 
 export function HomeHero() {
   return (
     <section className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-[#06111F] px-6 py-7 sm:py-9 lg:py-10">
-      <img
+      <Image
         src="/herohome.png"
         alt=""
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        preload
+        sizes="100vw"
+        className="object-cover"
         style={{ objectPosition: "center 120%" }}
       />
       <div
