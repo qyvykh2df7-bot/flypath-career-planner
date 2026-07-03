@@ -233,6 +233,7 @@ export default function GuiaComoSerPilotoPage() {
                     alt="Portada de la guía Cómo ser piloto"
                     width={1122}
                     height={1402}
+                    preload
                     sizes="305px"
                     className="mx-auto h-auto w-full object-contain drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)]"
                   />
@@ -272,6 +273,7 @@ export default function GuiaComoSerPilotoPage() {
                   alt="Portada de la guía Cómo ser piloto"
                   width={1122}
                   height={1402}
+                  preload
                   sizes="(max-width: 1536px) 535px, 593px"
                   className="absolute right-10 top-0 h-auto w-full max-w-[535px] -translate-y-12 object-contain object-top object-right drop-shadow-[0_28px_35px_rgba(15,23,42,0.28)] 2xl:max-w-[593px]"
                 />

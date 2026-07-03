@@ -57,7 +57,7 @@ export function PlatformHubShell({
       <main>
         <section
           className={`relative border-b border-slate-200/70 py-9 sm:py-11 ${
-            hasHeroImage ? "overflow-hidden" : "bg-gradient-to-b from-white to-[#f8fafc]"
+            hasHeroImage ? "overflow-hidden bg-[#0f1a33]" : "bg-gradient-to-b from-white to-[#f8fafc]"
           }`}
         >
           {heroBackgroundImage ? (

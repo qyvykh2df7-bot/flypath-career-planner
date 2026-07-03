@@ -11,11 +11,18 @@ export function AeroCommsHero() {
       {/* Layer 0 — desktop hero background (xl+ only, full section width) */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 hidden bg-no-repeat xl:block xl:[background-size:cover] xl:[background-position:center_58%]"
-        style={{
-          backgroundImage: "url('/aerocomms/mockups/herodesktop-white-2x.webp')",
-        }}
-      />
+        className="pointer-events-none absolute inset-0 z-0 hidden xl:block"
+      >
+        <Image
+          src="/aerocomms/mockups/herodesktop-white-2x.webp"
+          alt=""
+          fill
+          preload
+          sizes="100vw"
+          className="object-cover"
+          style={{ objectPosition: "center 58%" }}
+        />
+      </div>
 
       {/* Layer 1 — desktop warm left overlay (xl+ only, full section width) */}
       <div
