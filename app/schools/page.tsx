@@ -263,7 +263,7 @@ function SchoolsPageContent() {
         <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-b from-white via-[#f7f9fc] to-[#f4f7fb] p-5 shadow-sm sm:p-7">
           {heroVisualAvailable ? (
             <Image
-              src="/schools-hero-planning.jpg"
+              src="/schools-hero-planning.webp"
               alt=""
               fill
               priority

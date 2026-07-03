@@ -22,8 +22,8 @@ const PRODUCT_INCLUDES = [
 ];
 
 const GUIDE_PREVIEW_IMAGES = [
-  { src: "/kindleguia.png", alt: "Vista previa de la guía en Kindle" },
-  { src: "/pistaguia.png", alt: "Vista previa de la guía para futuros pilotos" },
+  { src: "/kindleguia.webp", alt: "Vista previa de la guía en Kindle" },
+  { src: "/pistaguia.webp", alt: "Vista previa de la guía para futuros pilotos" },
   { src: "/cessnaguia.webp", alt: "Vista previa de contenidos de la guía" },
 ] as const;
 
@@ -217,7 +217,7 @@ export default function GuiaComoSerPilotoPage() {
 
                 <div className="relative left-1/2 -mt-6 w-screen max-w-[100vw] -translate-x-1/2 md:hidden">
                   <Image
-                    src="/comoserpilotohero.png"
+                    src="/comoserpilotohero.webp"
                     alt="Portada de la guía Cómo ser piloto"
                     width={1122}
                     height={1402}
@@ -229,7 +229,7 @@ export default function GuiaComoSerPilotoPage() {
 
                 <div className="mx-auto mt-7 hidden w-full max-w-[305px] md:block xl:hidden">
                   <Image
-                    src="/comoserpilotohero.png"
+                    src="/comoserpilotohero.webp"
                     alt="Portada de la guía Cómo ser piloto"
                     width={1122}
                     height={1402}
@@ -268,7 +268,7 @@ export default function GuiaComoSerPilotoPage() {
               {/* Right column — desktop mockup (same spacer rhythm as AeroComms) */}
               <div className="relative hidden min-h-[480px] self-start xl:block 2xl:min-h-[520px]">
                 <Image
-                  src="/comoserpilotohero.png"
+                  src="/comoserpilotohero.webp"
                   alt="Portada de la guía Cómo ser piloto"
                   width={1122}
                   height={1402}
@@ -302,7 +302,6 @@ export default function GuiaComoSerPilotoPage() {
                         alt={img.alt}
                         fill
                         sizes="(max-width: 1024px) 100vw, 45vw"
-                        priority={i === 0}
                         aria-hidden={!active}
                         className={`object-cover transition-opacity duration-500 ease-out ${
                           active ? "opacity-100" : "opacity-0"

@@ -10,7 +10,7 @@ export const REPORT_PAGE_IMAGES = {
   /** Horizonte / pista / atardecer aeronáutico */
   route: "/atardecer.jpg",
   /** Cartas / guía / planificación de ruta */
-  finances: "/pistaguia.png",
+  finances: "/pistaguia.webp",
   /** Cabina / formación práctica */
   action: "/clases.webp",
   /** Avioneta / entrenamiento */

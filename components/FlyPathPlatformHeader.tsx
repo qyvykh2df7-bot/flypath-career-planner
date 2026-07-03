@@ -39,13 +39,12 @@ export function FlyPathPlatformHeader({
               landingLogoPhase !== "fallback" ? (
                 <div className="relative flex h-12 max-h-[60px] w-[180px] shrink-0 items-center sm:h-[54px] sm:max-h-[58px] sm:w-[220px] md:max-h-[60px] md:w-[252px] lg:w-[268px]">
                   <Image
-                    src="/flypath-logo-white.png"
+                    src="/flypath-logo-white.webp"
                     alt="FlyPath"
                     width={540}
                     height={162}
                     className="h-auto max-h-12 w-auto max-w-full object-contain object-left sm:max-h-[54px] md:max-h-[58px] lg:max-h-[60px]"
                     sizes="(max-width: 640px) 180px, (max-width: 768px) 220px, (max-width: 1024px) 252px, 268px"
-                    priority
                     onError={() => setLandingLogoPhase("fallback")}
                   />
                 </div>
@@ -65,13 +64,12 @@ export function FlyPathPlatformHeader({
             ) : !logoFallback ? (
               <div className="relative flex h-12 max-h-[60px] w-[180px] shrink-0 items-center sm:h-[54px] sm:max-h-[58px] sm:w-[220px] md:max-h-[60px] md:w-[252px] lg:w-[268px]">
                 <Image
-                  src="/flypath-logo-white.png"
+                  src="/flypath-logo-white.webp"
                   alt="FlyPath — inicio"
                   width={540}
                   height={162}
                   className="h-auto max-h-12 w-auto max-w-full object-contain object-left sm:max-h-[54px] md:max-h-[58px] lg:max-h-[60px]"
                   sizes="(max-width: 640px) 180px, (max-width: 768px) 220px, (max-width: 1024px) 252px, 268px"
-                  priority
                   onError={() => setLogoFallback(true)}
                 />
               </div>

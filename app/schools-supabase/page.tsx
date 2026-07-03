@@ -66,7 +66,7 @@ function SupabaseHeader() {
         >
           <div className="relative flex h-12 max-h-[60px] w-[180px] shrink-0 items-center sm:h-[54px] sm:max-h-[58px] sm:w-[220px] md:max-h-[60px] md:w-[252px] lg:w-[268px]">
             <Image
-              src="/flypath-logo-white.png"
+              src="/flypath-logo-white.webp"
               alt="FlyPath"
               width={540}
               height={162}
