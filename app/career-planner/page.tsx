@@ -2449,34 +2449,49 @@ export function FlyPathApp({
                         de pagar matrícula.
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col gap-2.5 sm:flex-row sm:gap-3">
-                      <PlannerMetricCard
-                        label="Presupuesto estimado"
-                        value={euro(costs.totalRealista)}
-                        sub="Coste realista total"
-                        actionLabel="Ver desglose"
-                        onAction={() => scrollToPlannerSection("planner-budget")}
-                        Icon={Wallet}
-                        stretchValueArea
-                      />
-                      <PlannerMetricCard
-                        label="Tiempo estimado"
-                        value={tiempoEstimadoLabel(route.recommended)}
-                        sub={`Ruta ${route.recommended}`}
-                        actionLabel="Ver línea de tiempo"
-                        onAction={() => scrollToPlannerSection("planner-route")}
-                        Icon={CalendarClock}
-                        stretchValueArea
-                      />
-                      <PlannerMetricCard
-                        label="Próximo paso"
-                        value={plannerNextStep.label}
-                        sub="Según tu progreso"
-                        actionLabel="Ir ahora"
-                        onAction={() => scrollToPlannerSection(plannerNextStep.target)}
-                        Icon={ClipboardCheck}
-                        highlight
-                      />
+                    <div className="relative w-full min-w-0 sm:w-auto">
+                      <div className="-mx-4 overflow-x-auto overflow-y-visible overscroll-x-contain pb-1 pl-4 pr-4 snap-x snap-proximity scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [scroll-padding-inline:1rem] touch-pan-x [&::-webkit-scrollbar]:hidden sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0 sm:snap-none">
+                        <div className="flex w-max flex-nowrap items-stretch gap-2.5 sm:gap-3">
+                          <div className={HERO_METRIC_SLIDE_CLASS}>
+                            <PlannerMetricCard
+                              label="Presupuesto estimado"
+                              value={euro(costs.totalRealista)}
+                              sub="Coste realista total"
+                              actionLabel="Ver desglose"
+                              onAction={() => scrollToPlannerSection("planner-budget")}
+                              Icon={Wallet}
+                              stretchValueArea
+                            />
+                          </div>
+                          <div className={HERO_METRIC_SLIDE_CLASS}>
+                            <PlannerMetricCard
+                              label="Tiempo estimado"
+                              value={tiempoEstimadoLabel(route.recommended)}
+                              sub={`Ruta ${route.recommended}`}
+                              actionLabel="Ver línea de tiempo"
+                              onAction={() => scrollToPlannerSection("planner-route")}
+                              Icon={CalendarClock}
+                              stretchValueArea
+                            />
+                          </div>
+                          <div className={HERO_METRIC_SLIDE_CLASS}>
+                            <PlannerMetricCard
+                              label="Próximo paso"
+                              value={plannerNextStep.label}
+                              sub="Según tu progreso"
+                              actionLabel="Ir ahora"
+                              onAction={() => scrollToPlannerSection(plannerNextStep.target)}
+                              Icon={ClipboardCheck}
+                              highlight
+                              stretchValueArea
+                            />
+                          </div>
+                          <div
+                            aria-hidden
+                            className="w-[max(1rem,calc(100vw-11.75rem))] shrink-0 sm:hidden"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2821,13 +2836,11 @@ export function FlyPathApp({
                                   onUpdatePrograma={updateSchoolPrograma}
                                 />
                               </div>
-                              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-300">
-                                <span className="font-semibold tabular-nums text-slate-200">
+                              <div className="mt-2.5 flex items-center justify-between gap-3">
+                                <span className="shrink-0 font-semibold tabular-nums text-[13px] text-slate-200">
                                   {school.precioAnunciado > 0 ? euro(school.precioAnunciado) : "Coste pendiente"}
                                 </span>
-                              </div>
-                              <div className="mt-2.5">
-                                <DashFitStars score={analysis.encajeGeneral} />
+                                <DashFitStars score={analysis.encajeGeneral} starsOnly />
                               </div>
                               <div className="mt-3 flex items-center gap-2">
                                 {link ? (
@@ -2897,8 +2910,7 @@ export function FlyPathApp({
                     className="relative scroll-mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E1729]/82 px-4 py-3 sm:px-5 sm:py-3.5"
                   >
                     <DashSectionHeader number={6} title="Tu informe" Icon={FileText} />
-                    <div className="mt-2.5 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,0.62fr)_minmax(0,0.38fr)] lg:items-start lg:gap-4">
-                      <div className="flex min-w-0 flex-col gap-2 lg:gap-2.5">
+                    <div className="mt-2.5 flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,0.62fr)_minmax(0,0.38fr)] lg:items-start lg:gap-x-4 lg:gap-y-2.5">
                         <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:gap-3 lg:gap-4">
                         {/* Informe gratuito */}
                         <div className="flex min-w-0 flex-col rounded-xl border border-white/[0.08] bg-[#101B35]/60 p-4">
@@ -3013,6 +3025,16 @@ export function FlyPathApp({
                           </div>
                         </div>
                         </div>
+                      <div className="flex min-w-0 items-start justify-center lg:pt-0.5">
+                        <Image
+                          src="/aerocomms/mockups/mockplan.png"
+                          alt=""
+                          aria-hidden="true"
+                          width={790}
+                          height={730}
+                          className="h-auto w-full max-h-[min(420px,55vh)] max-w-[min(100%,520px)] object-contain object-center drop-shadow-[0_16px_36px_rgba(0,0,0,0.42)] lg:max-h-full lg:max-w-none"
+                        />
+                      </div>
                         <div className="rounded-xl border border-[#D6AE4F]/28 bg-[#16223F]/80 p-2.5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
@@ -3044,17 +3066,6 @@ export function FlyPathApp({
                             ))}
                           </ul>
                         </div>
-                      </div>
-                      <div className="flex min-w-0 items-start justify-center lg:pt-0.5">
-                        <Image
-                          src="/aerocomms/mockups/mockplan.png"
-                          alt=""
-                          aria-hidden="true"
-                          width={790}
-                          height={730}
-                          className="h-auto w-full max-h-[min(420px,55vh)] max-w-[min(100%,520px)] object-contain object-center drop-shadow-[0_16px_36px_rgba(0,0,0,0.42)] lg:max-h-full lg:max-w-none"
-                        />
-                      </div>
                     </div>
                   </div>
                 </section>
@@ -3768,6 +3779,9 @@ function DashSectionHeader({ number, title, Icon }: { number: number; title: str
   );
 }
 
+const HERO_METRIC_SLIDE_CLASS =
+  "box-border flex w-[172px] min-w-[172px] max-w-[172px] shrink-0 snap-start";
+
 function PlannerMetricCard({
   label,
   value,
@@ -3790,7 +3804,7 @@ function PlannerMetricCard({
 }) {
   return (
     <div
-      className={`flex w-[172px] shrink-0 flex-col rounded-xl border bg-[#0F1829]/75 p-3 ${
+      className={`flex h-full w-full min-w-full shrink-0 flex-col rounded-xl border bg-[#0F1829]/75 p-3 ${
         highlight ? "border-[#DFB04E]/42" : "border-white/[0.09]"
       }`}
     >
@@ -3836,6 +3850,10 @@ function PlannerRouteTimeline({
     <div className="relative mt-5 overflow-x-auto overflow-y-visible pt-3 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="relative mx-auto w-max">
         <div
+          className="pointer-events-none absolute left-8 right-8 top-[28px] border-t border-dashed border-[#D6AE4F]/25 xl:hidden"
+          aria-hidden
+        />
+        <div
           className="pointer-events-none absolute left-8 right-8 top-[24px] hidden border-t border-dashed border-[#D6AE4F]/25 xl:block"
           aria-hidden
         />
@@ -3850,11 +3868,11 @@ function PlannerRouteTimeline({
             return (
               <div key={`${phase.name}-${index}`} className="flex w-[128px] shrink-0 flex-col items-center text-center">
                 <div
-                  className={`relative z-10 flex h-[48px] w-[48px] items-center justify-center rounded-full border bg-[#101B35] ${
+                  className={`relative z-10 flex h-[56px] w-[56px] items-center justify-center rounded-full border bg-[#101B35] xl:h-[48px] xl:w-[48px] ${
                     isLast ? "border-[#D6AE4F] shadow-[0_0_16px_rgba(214,174,79,0.25)]" : "border-[#D6AE4F]/45"
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px] text-[#D6AE4F]" aria-hidden />
+                  <Icon className="h-[20px] w-[20px] text-[#D6AE4F] xl:h-[18px] xl:w-[18px]" aria-hidden />
                   <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#D6AE4F] text-[10px] font-bold tabular-nums text-[#101B35]">
                     {index + 1}
                   </span>
@@ -3987,20 +4005,26 @@ function dashEncajeReading(score: number): string {
 }
 
 /** Estrellas de "Ajuste a tu perfil" (presentación del encaje 0-100 existente). */
-function DashFitStars({ score }: { score: number }) {
+function DashFitStars({ score, starsOnly = false }: { score: number; starsOnly?: boolean }) {
   const filled = Math.min(5, Math.max(1, Math.round(score / 20)));
+  const stars = (
+    <div className="flex items-center gap-0.5" aria-label={`Encaje ${score}/100`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={`h-3.5 w-3.5 ${i < filled ? "text-[#D6AE4F]" : "text-slate-600"}`}
+          fill={i < filled ? "currentColor" : "none"}
+          aria-hidden
+        />
+      ))}
+    </div>
+  );
+
+  if (starsOnly) return stars;
+
   return (
     <div>
-      <div className="flex items-center gap-0.5" aria-label={`Encaje ${score}/100`}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            className={`h-3.5 w-3.5 ${i < filled ? "text-[#D6AE4F]" : "text-slate-600"}`}
-            fill={i < filled ? "currentColor" : "none"}
-            aria-hidden
-          />
-        ))}
-      </div>
+      {stars}
       <p className="mt-1 text-[12px] text-slate-400">{dashEncajeReading(score)}</p>
     </div>
   );
