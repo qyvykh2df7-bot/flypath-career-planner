@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Activity,
-  AlertTriangle,
   ArrowRight,
   BookOpen,
   Briefcase,
@@ -18,7 +17,6 @@ import {
   ClipboardList,
   Clock,
   Compass,
-  Copy,
   Database,
   Download,
   FileText,
@@ -72,13 +70,8 @@ import { PlannerMainCanvas } from "@/components/career-planner/PlannerMainCanvas
 import {
   plannerBody,
   plannerBtnPrimary,
-  plannerBtnSecondary,
-  plannerDivider,
   plannerEyebrow,
-  plannerMuted,
-  plannerSectionTitle,
   plannerSubcard,
-  plannerSubcardAccent,
   plannerTitle,
 } from "@/components/career-planner/planner-surface";
 import { CareerPlannerDiagnosisView } from "@/components/career-planner/CareerPlannerDiagnosisView";
@@ -105,7 +98,6 @@ import { buildReportSnapshot } from "@/lib/reporting/mappers/build-report-snapsh
 import {
   buildRiskDiagnosis,
   hasHighDocumentOrCommercialRisk,
-  mapRiskRowsForInformePdf,
   riskNivelIsHigh,
 } from "@/lib/reporting/domain/risk-engine";
 import { buildActionPlan } from "@/lib/reporting/domain/roadmap-engine";

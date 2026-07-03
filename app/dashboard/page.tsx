@@ -115,7 +115,7 @@ export default function DashboardPage() {
                 <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
               </Link>
               <Link
-                href="/planifica-tu-ruta"
+                href="/career-planner"
                 className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-[14px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/50"
               >
                 Explorar secciones

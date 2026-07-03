@@ -1,20 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type ComponentType, type MouseEvent } from "react";
+import { useCallback, useEffect, useState, type ComponentType, type MouseEvent } from "react";
 import {
   ArrowRight,
   BookOpen,
   ClipboardList,
   ExternalLink,
-  GraduationCap,
   Languages,
-  Menu,
-  Plane,
   Sparkles,
   Users,
 } from "lucide-react";
