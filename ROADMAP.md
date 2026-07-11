@@ -31,51 +31,56 @@ Base de datos compartida para captación, perfiles, email, eventos, contenido y 
 
 ### Completado
 
-- Migraciones 20260711180000 → 20260712000000 aplicadas en Supabase.
+- Migraciones 20260711180000 → 20260712010000 aplicadas en Supabase.
 - RLS y permisos homogéneos en tablas internas.
 - `profiles` con acceso por propietario.
 - Merge `backend-core-phase-1` → `main`.
 
-### Preparado (esquema, sin integración)
+### Preparado (esquema, sin integración app)
 
 | Dominio | Tablas | Integración app |
 |---------|--------|-----------------|
 | Catálogo | `products` | Pendiente (vista pública futura) |
 | Usuarios | `profiles` | Pendiente (alta manual / auth flow) |
-| Captación | `leads`, `lead_product_interests` | Pendiente |
-| Email lists | `email_subscriptions` | Pendiente |
 | Automatización email | `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries` | Pendiente |
-| Analytics | `user_events` | Pendiente |
 | Contenido | `content_items` | Pendiente |
-| Admin | `admin_notes` | Pendiente |
+| Admin | `admin_notes` | Pendiente (UI Warhome) |
 
 ---
 
-## Fase 2 — Backend Integration & Lead Capture
+## Fase 2 — Backend Integration & Lead Capture (captación pública)
 
-**Estado: Siguiente**
+**Estado: Completado**
 
-Conectar el esquema a la aplicación FlyPath con capa servidor segura.
+Conexión del esquema a la aplicación FlyPath con capa servidor segura y cuatro flujos públicos validados en producción.
 
-### Objetivos
+### Completado
 
-1. Arquitectura servidor: `service_role`, env vars, helpers, validación.
-2. Primer formulario real → lead + interés + suscripción + evento.
-3. Idempotencia por email; normalización; errores definidos.
-4. Pruebas locales del flujo.
+- Cliente Supabase servidor (`lib/supabase/admin.ts`, `service_role` aislado).
+- Helpers compartidos (`lib/leads/capture-shared.ts`, `normalize-email.ts`).
+- Rutas API en `app/api/leads/*`.
+- Cuatro superficies conectadas:
 
-### Pendiente
+| Superficie | API | Integración |
+|------------|-----|-------------|
+| Career Planner | `/api/leads/career-planner-report` | Completado |
+| Newsletter home | `/api/leads/home-newsletter` | Completado |
+| Pre-PPL (lista de espera) | `/api/leads/preppl-waitlist` | Completado |
+| Acompañamiento | `/api/leads/mentorship-support` | Completado |
 
-- Rutas API de captación.
-- Cliente Supabase servidor.
-- Conexión de formularios existentes (newsletter home, career planner, etc.).
-- Vista pública de productos.
+### Integración app — captación
+
+| Dominio | Tablas | Integración app |
+|---------|--------|-----------------|
+| Captación | `leads`, `lead_product_interests` | **Completado** (4 flujos) |
+| Email lists | `email_subscriptions` | **Completado** (3 flujos con suscripción) |
+| Analytics | `user_events` | **Completado** (ingesta desde captación) |
 
 ---
 
 ## Fase 3 — Warhome MVP
 
-**Estado: Pendiente**
+**Estado: Siguiente**
 
 Panel interno mínimo para operar el Backend Core.
 
@@ -84,6 +89,7 @@ Panel interno mínimo para operar el Backend Core.
 - Autenticación/admin privado.
 - Leads: listado y detalle.
 - Intereses de producto y suscripciones por lead.
+- Eventos recientes por lead.
 - Notas internas (`admin_notes`).
 - Sin Command Center completo aún.
 
@@ -126,11 +132,10 @@ Panel interno mínimo para operar el Backend Core.
 ### Preparado
 
 - `content_items` — catálogo editorial.
-- `user_events` — registro append-only.
+- `user_events` — registro append-only (ingesta activa desde captación).
 
 ### Pendiente
 
-- Pipeline de ingesta de eventos desde web y servidor.
 - Dashboards y agregaciones.
 - Publicación de contenido vía Next.js (no acceso directo Supabase).
 - Agentes AI sobre datos operativos.
@@ -142,10 +147,10 @@ Panel interno mínimo para operar el Backend Core.
 
 **Estado: Pendiente**
 
-- Más productos en `products` y flujos de captación por producto.
+- Más productos en `products` y flujos de captación adicionales.
 - Secuencias por producto/lista (`on_subscription`, `on_product_interest`, etc.).
 - Integración AeroComms ↔ leads/eventos (progreso, paywall, onboarding).
-- Mentoring, career planner, escuelas, informes premium.
+- Escuelas, informes premium, más formularios.
 - Warhome como Command Center completo.
 - Automatizaciones cross-producto.
 
@@ -156,8 +161,8 @@ Panel interno mínimo para operar el Backend Core.
 ```
 Fase 0  AeroComms en FlyPath     ████████████  Completado
 Fase 1  Backend Core (Supabase)  ████████████  Completado (esquema)
-Fase 2  Lead Capture + Server    ░░░░░░░░░░░░  Siguiente
-Fase 3  Warhome MVP              ░░░░░░░░░░░░  Pendiente
+Fase 2  Lead Capture (público)   ████████████  Completado
+Fase 3  Warhome MVP              ░░░░░░░░░░░░  Siguiente
 Fase 4  Email Automation         ░░░░░░░░░░░░  Pendiente (tablas listas)
 Fase 5  Content / Analytics / AI ░░░░░░░░░░░░  Pendiente (tablas parciales)
 ```

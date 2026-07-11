@@ -4,21 +4,62 @@
 
 **FlyPath** — plataforma de carrera y productos para aspirantes a piloto. **AeroComms** es uno de sus productos (entrenamiento de radiotelefonía), no el proyecto completo.
 
-## Fase completada
+## Fases completadas
 
-**Backend Core Phase 1** — completada, auditada, aplicada en Supabase y fusionada en `main` (2026-07-11).
+### Backend Core Phase 1
 
-## Fase actual siguiente
+Completada, auditada, aplicada en Supabase y fusionada en `main` (2026-07-11, merge `61a0df6`).
 
-**Backend Integration / Warhome Foundation**
+### Fase 2 — Captación pública de leads
 
-### Objetivo inmediato
-
-Conectar el esquema existente en Supabase a una **primera entrada real de leads** y establecer una **capa servidor segura** (`service_role` solo en servidor, sin exposición al navegador).
+Completada en su alcance: cuatro superficies conectadas al Backend Core, validadas en local y en producción, fusionadas en `main`.
 
 ---
 
-## Completado (Backend Core Phase 1)
+## Fase actual
+
+**Warhome MVP**
+
+### Objetivo inmediato
+
+Panel interno mínimo para **listar y operar leads** capturados: detalle, intereses, suscripciones, eventos recientes y notas internas básicas.
+
+---
+
+## Captación pública — flujos operativos
+
+| Superficie | API | `product_key` | `email_subscriptions` | Persiste |
+|------------|-----|---------------|----------------------|----------|
+| Career Planner | `/api/leads/career-planner-report` | `career_planner` | `career_planner` | lead, interés, suscripción, evento |
+| Newsletter home | `/api/leads/home-newsletter` | — | `home_newsletter` | lead, suscripción, evento |
+| Pre-PPL (lista de espera) | `/api/leads/preppl-waitlist` | `preppl_guide` | `preppl` | lead, interés (`waitlist`), suscripción, evento |
+| Acompañamiento | `/api/leads/mentorship-support` | `flypath_accompaniment` | — | lead, interés (`interested`), evento |
+
+### Decisiones actuales — acompañamiento
+
+- `leads.source` = `mentoring` (valor permitido en CHECK del esquema).
+- `user_events.source` = `mentorship`.
+- `lead_product_interests.status` = `interested`; intención comercial `inquiry` en `user_events.metadata.interest_intent`.
+- Teléfono, situación y texto de ayuda en `user_events.metadata`.
+- Consentimiento de **contacto** en metadata; **no** suscripción a marketing ni modificación de `marketing_consent` en leads existentes.
+
+---
+
+## Infraestructura de captación (existente)
+
+| Componente | Ubicación |
+|------------|-----------|
+| Cliente Supabase admin (`service_role`) | `lib/supabase/admin.ts` (`import "server-only"`) |
+| Helpers compartidos | `lib/leads/capture-shared.ts` |
+| Normalización de email | `lib/leads/normalize-email.ts` |
+| Rutas API | `app/api/leads/*` |
+| Variables de entorno | `.env.example` — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
+
+`SUPABASE_SERVICE_ROLE_KEY` solo en servidor; nunca expuesta al navegador.
+
+---
+
+## Completado (Backend Core Phase 1 — esquema)
 
 ### Tablas en Supabase
 
@@ -52,96 +93,68 @@ Conectar el esquema existente en Supabase a una **primera entrada real de leads*
 10. `20260711270000_create_content_items.sql`
 11. `20260711280000_create_admin_notes.sql`
 12. `20260712000000_harden_products_permissions.sql`
+13. `20260712010000_add_home_newsletter_sources.sql`
 
-### Seguridad
+### Seguridad (esquema)
 
 - Tablas internas con **RLS activado**.
 - **`anon` y `authenticated` revocados** en tablas internas.
 - **`profiles`**: acceso limitado al propietario (`auth.uid() = user_id`).
-- **Sin policies públicas accidentales** en tablas internas.
-- Operaciones internas futuras vía **`service_role`** en rutas servidor.
+- Captación vía **`service_role`** en rutas servidor.
 - **`products` endurecida** con migración correctiva de permisos.
-
-### Git
-
-- Desarrollo en rama `backend-core-phase-1`.
-- Auditoría sin problemas críticos.
-- Merge en `main` (`61a0df6`).
-- `main` sincronizada con remoto; working tree limpio.
 
 ---
 
-## Realidad actual (importante)
-
-Lo siguiente **existe como esquema**, no como producto operativo:
+## Realidad actual
 
 | Área | Estado |
 |------|--------|
-| Formularios FlyPath → Backend Core | **No conectados** |
-| Warhome | **No existe** |
+| Captación pública FlyPath → Backend Core | **Operativa** (4 flujos) |
+| Warhome (UI admin) | **No existe** |
 | Worker de email | **No existe** |
 | Proveedor SMTP/API | **No conectado** |
 | Cron / jobs automáticos | **No existe** |
-| Rutas internas de gestión | **No completas** |
 | Automatizaciones de email | **Solo tablas** — no presentar como funcionales |
-
-Ejemplo concreto: `components/home/HomeNewsletterForm.tsx` es un placeholder local; no persiste en Supabase.
+| Vista pública de `products` | **Pendiente** |
 
 ---
 
 ## Siguiente orden de trabajo
 
-1. **Arquitectura segura de servidor**
-   - Cliente Supabase `service_role` solo en servidor.
-   - Variables de entorno documentadas.
-   - Helpers internos reutilizables.
-   - Separación estricta browser/server.
-   - Validación de entradas en rutas API.
-
-2. **Primera fuente real de leads**
-   - Elegir un formulario sencillo (recomendado: newsletter home).
-   - Flujo: formulario → lead → product interest → subscription/consent → `user_event`.
-   - Normalizar email; evitar duplicados.
-
-3. **Warhome MVP mínimo**
-   - Acceso privado (admin).
-   - Listado y detalle de leads.
-   - Intereses, suscripciones y notas internas.
-
-4. **Después**
-   - Más formularios.
-   - Gestión de secuencias.
-   - Worker + proveedor de email.
-   - Contenido y analytics.
-   - Ampliar Warhome hacia Command Center.
+1. **Warhome MVP** — listado y detalle de leads; intereses, suscripciones, eventos y notas.
+2. **Después** — worker + proveedor de email; gestión de secuencias; analytics; Command Center.
 
 ---
 
 ## Limitaciones conocidas
 
-- El esquema no sustituye integración de aplicación.
 - `email_*` prepara automatización futura; sin worker ni proveedor no envía nada.
 - `content_items` y `admin_notes` son editables solo vía `service_role` hasta Warhome.
-- `user_events` es append-only; sin pipeline de ingesta aún.
-- Vista pública de `products` (sin `internal_notes`) sigue pendiente.
+- `user_events` es append-only; ingesta desde captación pública activa; sin dashboards aún.
+- Teléfono de leads comerciales vive en `user_events.metadata`, no en columna dedicada de `leads`.
 
 ---
 
-## Definition of done — Backend Integration / Warhome Foundation
+## Definition of done — Fase 2 (captación pública)
 
-La fase actual se considerará completada cuando:
+- [x] Cliente Supabase servidor con `service_role` aislado del bundle cliente.
+- [x] Formularios reales persisten lead, interés y/o suscripción y evento según flujo.
+- [x] Emails normalizados; duplicados gestionados por email (upsert).
+- [x] Respuestas API claras (éxito, validación, error interno).
+- [x] Validación local y producción de los cuatro flujos.
+- [x] Sin exponer `service_role` al navegador.
+- [x] Sin copy que implique automatizaciones de email activas.
 
-- [ ] Exista cliente Supabase servidor con `service_role` aislado del bundle cliente.
-- [ ] Al menos **un formulario real** persista: lead, interés, suscripción y evento.
-- [ ] Emails normalizados; duplicados gestionados por email (upsert/idempotencia).
-- [ ] Respuestas API claras (éxito, validación, error interno).
-- [ ] Prueba local documentada del flujo end-to-end.
-- [ ] Warhome MVP con listado/detalle de leads y datos relacionados básicos.
-- [ ] Sin exponer `service_role` al navegador.
-- [ ] Sin afirmar en UI que las automatizaciones de email están activas.
+## Definition of done — Warhome MVP (fase actual)
+
+- [ ] Acceso privado (admin).
+- [ ] Listado y detalle de leads.
+- [ ] Intereses de producto y suscripciones por lead.
+- [ ] Eventos recientes asociados al lead.
+- [ ] Notas internas básicas (`admin_notes`).
 
 ---
 
 ## Nota sobre AeroComms
 
-AeroComms sigue siendo un **producto de FlyPath** (app en `/aerocomms/app`, integrada en `main`). Esta fase **no** es desarrollo de contenido Cadet ni expansión del curriculum AeroComms; es la capa operativa compartida del Backend Core.
+AeroComms sigue siendo un **producto de FlyPath** (app en `/aerocomms/app`, integrada en `main`). Warhome MVP **no** es desarrollo de contenido Cadet ni expansión del curriculum AeroComms.
