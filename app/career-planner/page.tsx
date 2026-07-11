@@ -128,6 +128,11 @@ import type {
   School,
   YesNoUnknown,
 } from "@/lib/reporting/types/shared";
+import { captureCareerPlannerReportLead } from "@/lib/leads/capture-career-planner-report-client";
+import {
+  CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE,
+  CAREER_PLANNER_MARKETING_CONSENT_TEXT,
+} from "@/lib/leads/career-planner-consent";
 const REPORT_EMAIL_STORAGE_KEY = "flypath_report_email";
 
 function isValidReportEmail(email: string): boolean {
@@ -1240,6 +1245,9 @@ export function FlyPathApp({
   const [parentsPdfExporting, setParentsPdfExporting] = useState(false);
   const [reportEmail, setReportEmail] = useState("");
   const [reportEmailDownloadHint, setReportEmailDownloadHint] = useState(false);
+  const [reportLeadCaptureError, setReportLeadCaptureError] = useState<string | null>(null);
+  const [reportMarketingConsent, setReportMarketingConsent] = useState(false);
+  const [reportMarketingConsentHint, setReportMarketingConsentHint] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
@@ -1625,7 +1633,6 @@ export function FlyPathApp({
     try {
       if (trimmed) {
         localStorage.setItem(REPORT_EMAIL_STORAGE_KEY, trimmed);
-        // TODO: enviar email al backend de captura de leads cuando exista endpoint.
       } else {
         localStorage.removeItem(REPORT_EMAIL_STORAGE_KEY);
       }
@@ -2341,9 +2348,26 @@ export function FlyPathApp({
 
   const handleFreeReportDownload = async () => {
     if (!requireReportEmailForDownload()) return;
+    if (!reportMarketingConsent) {
+      setReportMarketingConsentHint(true);
+      setReportLeadCaptureError(null);
+      return;
+    }
+    setReportMarketingConsentHint(false);
     if (freePdfExporting) return;
     setFreePdfExporting(true);
+    setReportLeadCaptureError(null);
     try {
+      const captureResult = await captureCareerPlannerReportLead(
+        reportEmail,
+        reportMarketingConsent,
+      );
+      if (!captureResult.ok) {
+        setReportLeadCaptureError(captureResult.message);
+        showToast(captureResult.message);
+        return;
+      }
+
       const { downloadFreeCareerReportPdf } = await import("@/lib/freeCareerReportPdf");
       await downloadFreeCareerReportPdf(reportSnapshot);
       showToast("Informe descargado");
@@ -2957,21 +2981,21 @@ export function FlyPathApp({
                     className="relative scroll-mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E1729]/82 px-4 py-3 sm:px-5 sm:py-3.5"
                   >
                     <DashSectionHeader number={6} title="Tu informe" Icon={FileText} />
-                    <div className="mt-2.5 flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,0.62fr)_minmax(0,0.38fr)] lg:items-start lg:gap-x-4 lg:gap-y-2.5">
+                    <div className="mt-2.5 flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,0.62fr)_minmax(0,0.38fr)] lg:items-start lg:gap-x-4 lg:gap-y-1">
                         <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:gap-3 lg:gap-4">
                         {/* Informe gratuito */}
-                        <div className="flex min-w-0 flex-col rounded-xl border border-white/[0.08] bg-[#101B35]/60 p-4">
+                        <div className="flex min-w-0 flex-col rounded-xl border border-white/[0.08] bg-[#101B35]/60 p-3">
                           <div className="flex items-center gap-3">
                             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#1B2947] ring-1 ring-[#3B5AA6]/30 shadow-[0_0_18px_rgba(59,90,166,0.25)]">
                               <FileText className="h-5 w-5 text-slate-200" aria-hidden />
                             </span>
                             <p className="text-[15px] font-semibold text-white">Informe gratuito</p>
                           </div>
-                          <p className="mt-2 text-[13.5px] leading-relaxed text-slate-400">
+                          <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate-400">
                             Resumen inicial con tu ruta recomendada y costes estimados.
                           </p>
                           {!plannerPremiumContentVisible ? (
-                            <div className="mt-3">
+                            <div className="mt-2">
                               <div className="relative">
                                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" aria-hidden />
                                 <input
@@ -2981,20 +3005,55 @@ export function FlyPathApp({
                                   value={reportEmail}
                                   onChange={(e) => {
                                     setReportEmail(e.target.value);
-                                    if (isValidReportEmail(e.target.value)) setReportEmailDownloadHint(false);
+                                    if (isValidReportEmail(e.target.value)) {
+                                      setReportEmailDownloadHint(false);
+                                      setReportLeadCaptureError(null);
+                                    }
                                   }}
                                   placeholder="tu@email.com"
                                   className="w-full rounded-lg border border-white/12 bg-[#101B35] py-2 pl-9 pr-3 text-[13px] text-white outline-none transition placeholder:text-slate-500 focus:border-[#D6AE4F]/50 focus:ring-2 focus:ring-[#D6AE4F]/20"
                                 />
                               </div>
                               {reportEmailDownloadHint && !reportEmailValid ? (
-                                <p className="mt-1.5 text-[13px] text-amber-300" role="status">
+                                <p className="mt-1 text-[13px] text-amber-300" role="status">
                                   Introduce un email válido para descargar.
+                                </p>
+                              ) : null}
+                              {reportLeadCaptureError ? (
+                                <p className="mt-1 text-[13px] text-rose-300" role="alert">
+                                  {reportLeadCaptureError}
                                 </p>
                               ) : null}
                             </div>
                           ) : null}
-                          <div className="mt-auto pt-3">
+                          {!plannerPremiumContentVisible ? (
+                            <div className="mt-1.5">
+                              <label className="flex items-start gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={reportMarketingConsent}
+                                  onChange={(event) => {
+                                    setReportMarketingConsent(event.target.checked);
+                                    if (event.target.checked) {
+                                      setReportMarketingConsentHint(false);
+                                    }
+                                  }}
+                                  className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-white/20 bg-[#101B35] text-[#D6AE4F] focus:ring-[#D6AE4F]/30"
+                                />
+                                <span className="text-[12px] leading-snug text-slate-400">
+                                  {CAREER_PLANNER_MARKETING_CONSENT_TEXT}
+                                </span>
+                              </label>
+                              <p
+                                className={`mt-1 text-[13px] text-amber-300 ${reportMarketingConsentHint ? "" : "invisible"}`}
+                                role="alert"
+                                aria-hidden={!reportMarketingConsentHint}
+                              >
+                                {CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE}
+                              </p>
+                            </div>
+                          ) : null}
+                          <div className="mt-auto pt-2">
                             <button
                               type="button"
                               disabled={freePdfExporting}
@@ -3014,7 +3073,7 @@ export function FlyPathApp({
                               disabled={parentsPdfExporting}
                               onClick={handleParentsReportDownload}
                               aria-disabled={!plannerPremiumContentVisible && !reportEmailValid}
-                              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-[13px] font-semibold text-slate-300 transition hover:border-white/30 hover:text-white"
+                              className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-[13px] font-semibold text-slate-300 transition hover:border-white/30 hover:text-white"
                             >
                               <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
                               {parentsPdfExporting ? "Generando PDF…" : "Descargar resumen para padres"}
@@ -3022,7 +3081,7 @@ export function FlyPathApp({
                           </div>
                         </div>
                         {/* Informe premium */}
-                        <div className="flex min-w-0 flex-col rounded-xl border border-[#D6AE4F]/35 bg-gradient-to-br from-[#1B2947] to-[#141F3C] p-4">
+                        <div className="flex min-w-0 flex-col rounded-xl border border-[#D6AE4F]/35 bg-gradient-to-br from-[#1B2947] to-[#141F3C] p-3">
                           <div className="flex items-center gap-3">
                             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#D6AE4F]/14 ring-1 ring-[#D6AE4F]/40 shadow-[0_0_20px_rgba(214,174,79,0.35)]">
                               {plannerPremiumContentVisible ? (
@@ -3031,9 +3090,9 @@ export function FlyPathApp({
                                 <Lock className="h-5 w-5 text-[#D6AE4F]" aria-hidden />
                               )}
                             </span>
-                            <p className="text-[15px] font-semibold text-white">Informe premium</p>
+                            <p className="text-[16px] font-semibold leading-snug text-white">Informe premium</p>
                           </div>
-                          <ul className="mt-2 space-y-1">
+                          <ul className="mt-2.5 space-y-1.5">
                             {[
                               "Veredicto FlyPath para tu caso",
                               "Escuela más sólida entre tus candidatas",
@@ -3042,13 +3101,13 @@ export function FlyPathApp({
                               "Qué pedir a cada escuela antes de pagar",
                               "Decisión FlyPath y próximos pasos recomendados",
                             ].map((item) => (
-                              <li key={item} className="flex items-start gap-2 text-[13px] leading-snug text-slate-300">
+                              <li key={item} className="flex items-start gap-2 text-[14px] leading-normal text-slate-300">
                                 <span aria-hidden className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-[#D6AE4F]" />
                                 {item}
                               </li>
                             ))}
                           </ul>
-                          <div className="mt-auto pt-3">
+                          <div className="mt-auto pt-2">
                             {plannerPremiumContentVisible ? (
                               <button
                                 type="button"
@@ -3082,7 +3141,7 @@ export function FlyPathApp({
                           className="h-auto w-full max-h-[min(420px,55vh)] max-w-[min(100%,520px)] object-contain object-center drop-shadow-[0_16px_36px_rgba(0,0,0,0.42)] lg:max-h-full lg:max-w-none"
                         />
                       </div>
-                        <div className="rounded-xl border border-[#D6AE4F]/28 bg-[#16223F]/80 p-2.5">
+                        <div className="lg:-mt-14 rounded-xl border border-[#D6AE4F]/28 bg-[#16223F]/80 p-2.5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
@@ -3261,7 +3320,10 @@ export function FlyPathApp({
                           value={reportEmail}
                           onChange={(e) => {
                             setReportEmail(e.target.value);
-                            if (isValidReportEmail(e.target.value)) setReportEmailDownloadHint(false);
+                            if (isValidReportEmail(e.target.value)) {
+                              setReportEmailDownloadHint(false);
+                              setReportLeadCaptureError(null);
+                            }
                           }}
                           placeholder="tu@email.com"
                           className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-[15px] text-[#0f1a33] shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#c9a454]/60 focus:ring-2 focus:ring-[#c9a454]/25"
@@ -3270,6 +3332,11 @@ export function FlyPathApp({
                       {reportEmailDownloadHint && !reportEmailValid ? (
                         <p className="mt-1.5 text-[13px] text-amber-700" role="status">
                           Introduce un email válido para descargar.
+                        </p>
+                      ) : null}
+                      {reportLeadCaptureError ? (
+                        <p className="mt-1.5 text-[13px] text-rose-700" role="alert">
+                          {reportLeadCaptureError}
                         </p>
                       ) : null}
                     </div>
