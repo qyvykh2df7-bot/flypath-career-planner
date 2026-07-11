@@ -1,6 +1,8 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import type { TrackingContext } from "@/lib/tracking/events";
+import { getTrackingContextMetadata } from "@/lib/tracking/server";
 
 export type LeadCaptureAdminClient = ReturnType<typeof getSupabaseAdmin>;
 
@@ -10,6 +12,8 @@ export class LeadCaptureError extends Error {
     this.name = "LeadCaptureError";
   }
 }
+
+export type UserEventInsertResult = "inserted" | "duplicate";
 
 const SUBSCRIPTION_STATUS = "subscribed";
 const DEFAULT_FUNNEL_STAGE = "interested";
@@ -213,20 +217,43 @@ export async function insertUserEvent(
     eventCategory: string;
     source: string;
     metadata?: Record<string, unknown>;
+    trackingContext?: TrackingContext | null;
+    idempotencyKey?: string;
     occurredAt: string;
   },
-): Promise<void> {
+): Promise<UserEventInsertResult> {
+  const trackingContext = options.trackingContext ?? null;
   const { error: insertError } = await admin.from("user_events").insert({
     lead_id: options.leadId,
     product_id: options.productId ?? null,
     event_name: options.eventName,
     event_category: options.eventCategory,
     source: options.source,
-    metadata: options.metadata ?? {},
+    session_id: trackingContext?.session_id ?? null,
+    anonymous_id: trackingContext?.anonymous_id ?? null,
+    page_path: trackingContext?.page_path ?? null,
+    referrer: trackingContext?.referrer ?? null,
+    idempotency_key: options.idempotencyKey ?? null,
+    metadata: {
+      ...getTrackingContextMetadata(trackingContext),
+      ...(options.metadata ?? {}),
+    },
     occurred_at: options.occurredAt,
   });
+
+  if (
+    insertError &&
+    typeof insertError === "object" &&
+    "code" in insertError &&
+    insertError.code === "23505" &&
+    options.idempotencyKey
+  ) {
+    return "duplicate";
+  }
 
   if (insertError) {
     throw new LeadCaptureError();
   }
+
+  return "inserted";
 }

@@ -1,3 +1,5 @@
+import type { TrackingContext } from "@/lib/tracking/events";
+
 type CaptureHomeNewsletterResult =
   | { ok: true }
   | { ok: false; message: string };
@@ -7,6 +9,8 @@ const GENERIC_ERROR_MESSAGE =
 
 export async function captureHomeNewsletterLead(
   email: string,
+  trackingContext?: TrackingContext | null,
+  idempotencyKey?: string,
 ): Promise<CaptureHomeNewsletterResult> {
   let response: Response;
 
@@ -14,7 +18,11 @@ export async function captureHomeNewsletterLead(
     response = await fetch("/api/leads/home-newsletter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        email,
+        tracking: trackingContext ?? undefined,
+        idempotency_key: idempotencyKey,
+      }),
     });
   } catch {
     return { ok: false, message: GENERIC_ERROR_MESSAGE };

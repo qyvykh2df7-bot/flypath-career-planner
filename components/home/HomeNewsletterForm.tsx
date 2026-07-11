@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { captureHomeNewsletterLead } from "@/lib/leads/capture-home-newsletter-client";
+import { trackEventOncePerSession } from "@/lib/tracking/client";
+import {
+  createTrackingUuid,
+  getTrackingContext,
+  initializeTrackingContext,
+} from "@/lib/tracking/session";
 
 type HomeNewsletterFormProps = {
   variant?: "light" | "dark";
@@ -14,7 +20,12 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const subscriptionEventIdRef = useRef<string | null>(null);
   const isDark = variant === "dark";
+
+  useEffect(() => {
+    initializeTrackingContext();
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,7 +34,13 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
     setIsLoading(true);
     setErrorMessage(null);
 
-    const result = await captureHomeNewsletterLead(email);
+    const idempotencyKey = subscriptionEventIdRef.current ?? createTrackingUuid();
+    subscriptionEventIdRef.current = idempotencyKey;
+    const result = await captureHomeNewsletterLead(
+      email,
+      getTrackingContext(),
+      idempotencyKey,
+    );
 
     setIsLoading(false);
 
@@ -69,6 +86,9 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
           required
           disabled={isLoading}
           value={email}
+          onFocus={() =>
+            trackEventOncePerSession("form_started", { form_id: "home_newsletter" })
+          }
           onChange={(event) => setEmail(event.target.value)}
           placeholder="tu@email.com"
           className={

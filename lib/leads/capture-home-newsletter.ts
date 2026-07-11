@@ -8,6 +8,7 @@ import {
 } from "@/lib/leads/capture-shared";
 import { HOME_NEWSLETTER_MARKETING_CONSENT_TEXT } from "@/lib/leads/home-newsletter-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import type { TrackingContext } from "@/lib/tracking/events";
 
 const SOURCE = "home_newsletter";
 const LIST_KEY = "home_newsletter";
@@ -29,12 +30,15 @@ export class HomeNewsletterLeadCaptureError extends LeadCaptureError {
  */
 export async function captureHomeNewsletterSubscription(
   normalizedEmail: string,
+  idempotencyKey: string,
+  trackingContext?: TrackingContext | null,
 ): Promise<void> {
   const admin = getSupabaseAdmin();
   const now = new Date().toISOString();
+  let leadId: string;
 
   try {
-    const leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
+    leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
       source: SOURCE,
       marketingConsent: true,
     });
@@ -45,17 +49,25 @@ export async function captureHomeNewsletterSubscription(
       consentText: HOME_NEWSLETTER_MARKETING_CONSENT_TEXT,
     });
 
-    await insertUserEvent(admin, {
-      leadId,
-      eventName: EVENT_NAME,
-      eventCategory: EVENT_CATEGORY,
-      source: SOURCE,
-      occurredAt: now,
-    });
   } catch (error) {
     if (error instanceof LeadCaptureError) {
       throw new HomeNewsletterLeadCaptureError();
     }
     throw error;
+  }
+
+  try {
+    await insertUserEvent(admin, {
+      leadId,
+      eventName: EVENT_NAME,
+      eventCategory: EVENT_CATEGORY,
+      source: SOURCE,
+      metadata: { form_id: "home_newsletter" },
+      trackingContext,
+      idempotencyKey,
+      occurredAt: now,
+    });
+  } catch {
+    console.error("[FlyPath] Newsletter conversion event persistence failed.");
   }
 }

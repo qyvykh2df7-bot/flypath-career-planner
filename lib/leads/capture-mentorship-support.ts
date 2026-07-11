@@ -6,10 +6,7 @@ import {
   upsertLeadByEmail,
   upsertLeadProductInterest,
 } from "@/lib/leads/capture-shared";
-import {
-  MENTORSHIP_SUPPORT_CONTACT_CONSENT_TEXT,
-  type MentorshipSupportSituation,
-} from "@/lib/leads/mentorship-support-consent";
+import type { MentorshipSupportSituation } from "@/lib/leads/mentorship-support-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const LEAD_SOURCE = "mentoring";
@@ -77,13 +74,8 @@ export async function captureMentorshipSupportRequest(
       eventCategory: EVENT_CATEGORY,
       source: EVENT_SOURCE,
       metadata: {
-        full_name: input.fullName.trim(),
-        phone: input.phone?.trim() || null,
-        situation: input.situation,
-        help_text: input.helpText.trim(),
-        contact_consent: true,
-        contact_consent_text: MENTORSHIP_SUPPORT_CONTACT_CONSENT_TEXT,
         interest_intent: "inquiry",
+        form_id: "mentorship_support",
       },
       occurredAt: now,
     });
