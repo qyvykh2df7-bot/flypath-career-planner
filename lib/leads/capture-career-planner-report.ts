@@ -1,18 +1,22 @@
 import "server-only";
 
 import { CAREER_PLANNER_MARKETING_CONSENT_TEXT } from "@/lib/leads/career-planner-consent";
+import {
+  insertUserEvent,
+  LeadCaptureError,
+  upsertEmailSubscriptionForLead,
+  upsertLeadByEmail,
+} from "@/lib/leads/capture-shared";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const SOURCE = "career_planner";
 const PRODUCT_KEY = "career_planner";
 const LIST_KEY = "career_planner";
-const FUNNEL_STAGE = "interested";
 const INTEREST_STATUS = "interested";
-const SUBSCRIPTION_STATUS = "subscribed";
 const EVENT_NAME = "career_planner_report_download_requested";
 const EVENT_CATEGORY = "lead";
 
-export class CareerPlannerLeadCaptureError extends Error {
+export class CareerPlannerLeadCaptureError extends LeadCaptureError {
   constructor(message = "Career Planner lead capture failed") {
     super(message);
     this.name = "CareerPlannerLeadCaptureError";
@@ -31,79 +35,51 @@ export async function captureCareerPlannerReportDownload(
   const admin = getSupabaseAdmin();
   const now = new Date().toISOString();
 
-  const { data: product, error: productError } = await admin
-    .from("products")
-    .select("id")
-    .eq("product_key", PRODUCT_KEY)
-    .maybeSingle();
-
-  if (productError || !product) {
-    throw new CareerPlannerLeadCaptureError();
-  }
-
-  const leadId = await upsertLead(admin, normalizedEmail, now);
-  await upsertLeadProductInterest(admin, leadId, product.id, now);
-  await upsertEmailSubscription(admin, leadId, now);
-  await insertDownloadRequestEvent(admin, leadId, product.id, now);
-}
-
-type AdminClient = ReturnType<typeof getSupabaseAdmin>;
-
-async function upsertLead(
-  admin: AdminClient,
-  normalizedEmail: string,
-  now: string,
-): Promise<string> {
-  const { data: existingLead, error: selectError } = await admin
-    .from("leads")
-    .select("id")
-    .eq("email", normalizedEmail)
-    .maybeSingle();
-
-  if (selectError) {
-    throw new CareerPlannerLeadCaptureError();
-  }
-
-  if (existingLead) {
-    const { data: updatedLead, error: updateError } = await admin
-      .from("leads")
-      .update({
-        latest_source: SOURCE,
-        funnel_stage: FUNNEL_STAGE,
-        last_seen_at: now,
-        marketing_consent: true,
-      })
-      .eq("id", existingLead.id)
+  try {
+    const { data: product, error: productError } = await admin
+      .from("products")
       .select("id")
-      .single();
+      .eq("product_key", PRODUCT_KEY)
+      .maybeSingle();
 
-    if (updateError || !updatedLead) {
+    if (productError || !product) {
       throw new CareerPlannerLeadCaptureError();
     }
 
-    return updatedLead.id;
+    const leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
+      source: SOURCE,
+      marketingConsent: true,
+    });
+
+    await upsertLeadProductInterest(admin, leadId, product.id, now);
+    await upsertEmailSubscriptionForLead(admin, leadId, now, {
+      listKey: LIST_KEY,
+      source: SOURCE,
+      consentText: CAREER_PLANNER_MARKETING_CONSENT_TEXT,
+    });
+    await insertUserEvent(admin, {
+      leadId,
+      productId: product.id,
+      eventName: EVENT_NAME,
+      eventCategory: EVENT_CATEGORY,
+      source: SOURCE,
+      metadata: {
+        download_type: "free_report",
+      },
+      occurredAt: now,
+    });
+  } catch (error) {
+    if (error instanceof CareerPlannerLeadCaptureError) {
+      throw error;
+    }
+    if (error instanceof LeadCaptureError) {
+      throw new CareerPlannerLeadCaptureError();
+    }
+    throw error;
   }
-
-  const { data: insertedLead, error: insertError } = await admin
-    .from("leads")
-    .insert({
-      email: normalizedEmail,
-      first_source: SOURCE,
-      latest_source: SOURCE,
-      funnel_stage: FUNNEL_STAGE,
-      first_seen_at: now,
-      last_seen_at: now,
-      marketing_consent: true,
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !insertedLead) {
-    throw new CareerPlannerLeadCaptureError();
-  }
-
-  return insertedLead.id;
 }
+
+type AdminClient = ReturnType<typeof getSupabaseAdmin>;
 
 async function upsertLeadProductInterest(
   admin: AdminClient,
@@ -146,80 +122,6 @@ async function upsertLeadProductInterest(
     status: INTEREST_STATUS,
     first_seen_at: now,
     last_seen_at: now,
-  });
-
-  if (insertError) {
-    throw new CareerPlannerLeadCaptureError();
-  }
-}
-
-async function upsertEmailSubscription(
-  admin: AdminClient,
-  leadId: string,
-  now: string,
-): Promise<void> {
-  const { data: existingSubscription, error: selectError } = await admin
-    .from("email_subscriptions")
-    .select("id")
-    .eq("lead_id", leadId)
-    .eq("list_key", LIST_KEY)
-    .maybeSingle();
-
-  if (selectError) {
-    throw new CareerPlannerLeadCaptureError();
-  }
-
-  if (existingSubscription) {
-    const { error: updateError } = await admin
-      .from("email_subscriptions")
-      .update({
-        status: SUBSCRIPTION_STATUS,
-        source: SOURCE,
-        consented_at: now,
-        consent_text: CAREER_PLANNER_MARKETING_CONSENT_TEXT,
-        unsubscribed_at: null,
-        bounced_at: null,
-        complained_at: null,
-        blocked_at: null,
-      })
-      .eq("id", existingSubscription.id);
-
-    if (updateError) {
-      throw new CareerPlannerLeadCaptureError();
-    }
-    return;
-  }
-
-  const { error: insertError } = await admin.from("email_subscriptions").insert({
-    lead_id: leadId,
-    list_key: LIST_KEY,
-    status: SUBSCRIPTION_STATUS,
-    source: SOURCE,
-    consented_at: now,
-    consent_text: CAREER_PLANNER_MARKETING_CONSENT_TEXT,
-  });
-
-  if (insertError) {
-    throw new CareerPlannerLeadCaptureError();
-  }
-}
-
-async function insertDownloadRequestEvent(
-  admin: AdminClient,
-  leadId: string,
-  productId: string,
-  now: string,
-): Promise<void> {
-  const { error: insertError } = await admin.from("user_events").insert({
-    lead_id: leadId,
-    product_id: productId,
-    event_name: EVENT_NAME,
-    event_category: EVENT_CATEGORY,
-    source: SOURCE,
-    metadata: {
-      download_type: "free_report",
-    },
-    occurred_at: now,
   });
 
   if (insertError) {
