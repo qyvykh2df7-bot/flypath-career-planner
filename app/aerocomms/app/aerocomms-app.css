@@ -103,6 +103,129 @@
   }
 }
 
+/* ── Desktop (lg+) train-session containment ─────────────────────────────── */
+/*
+ * Same class of fix as the phone block above, but for desktop viewports.
+ * The session root is a fixed h-dvh overflow-hidden column. Several exercise
+ * screen bodies are `flex flex-1 flex-col` without min-h-0, so on short
+ * desktop windows they refuse to shrink, overflow the bounded root and the
+ * mt-auto action footer gets clipped below the viewport with no way to
+ * scroll. Desktop-only (>=1024px), mobile is untouched:
+ *
+ * 1. Bound every exercise screen column (min-height: 0 + overflow: hidden)
+ *    so overflow stays contained inside the exercise area. Columns that
+ *    manage their own scrolling (overflow-y-auto) are excluded and keep it.
+ * 2. Pin the action footer (.mt-auto rows / SP Continue button) to the
+ *    visible bottom edge of its exercise column via position: sticky — a
+ *    no-op when content already fits, and it guarantees the primary action
+ *    is always visible without any page-level scroll when it doesn't.
+ */
+@media (min-width: 1024px) {
+  .aerocomms-app-root .train-session > div > div.flex.flex-col:not([class*="overflow"]) {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .aerocomms-app-root .train-session .mt-auto {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: #07111f;
+  }
+}
+
+/*
+ * Desktop compact vertical rhythm — mirrors the phone compact block above,
+ * but for short desktop viewports (laptop windows at 1440x900 / 1440x800
+ * have ~720-820px of inner height). Applied in normal AND feedback states so
+ * exercises fit inside the viewport without any scrolling: same design,
+ * tighter spacing. Taller desktop viewports (>900px) are untouched.
+ */
+@media (min-width: 1024px) and (max-height: 900px) {
+  .aerocomms-app-root .train-session :is(.mt-6, .mt-7, .mt-8) {
+    margin-top: 0.875rem;
+  }
+  .aerocomms-app-root .train-session :is(.mt-4, .mt-5) {
+    margin-top: 0.625rem;
+  }
+  .aerocomms-app-root .train-session .mt-3 {
+    margin-top: 0.5rem;
+  }
+  .aerocomms-app-root .train-session .step-header h1 {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+  }
+  .aerocomms-app-root .train-session :is(.big-play-btn, .mic-btn) {
+    height: 4.5rem;
+    width: 4.5rem;
+  }
+  .aerocomms-app-root .train-session :is(.big-play-btn, .mic-btn) svg {
+    height: 2rem;
+    width: 2rem;
+  }
+  .aerocomms-app-root .train-session
+    :is([class*="min-h-[58px]"], [class*="min-h-[60px]"]) {
+    min-height: 48px;
+  }
+  .aerocomms-app-root .train-session .result-feedback {
+    padding: 0.75rem 1rem;
+  }
+  .aerocomms-app-root .train-session :is(.pt-4, .pt-5, .pt-6) {
+    padding-top: 0.625rem;
+  }
+  .aerocomms-app-root .train-session .primary-btn {
+    min-height: 48px;
+  }
+  .aerocomms-app-root .train-session {
+    padding-bottom: 1rem;
+  }
+}
+
+/*
+ * Very short desktop viewports (e.g. 1280x720 windows → ~620-650px of inner
+ * height): one step tighter so options, feedback AND the action button all
+ * fit with no scrolling and nothing covered by the sticky footer.
+ */
+@media (min-width: 1024px) and (max-height: 700px) {
+  .aerocomms-app-root .train-session :is(.mt-6, .mt-7, .mt-8) {
+    margin-top: 0.5rem;
+  }
+  .aerocomms-app-root .train-session :is(.mt-4, .mt-5) {
+    margin-top: 0.5rem;
+  }
+  .aerocomms-app-root .train-session .mt-3 {
+    margin-top: 0.375rem;
+  }
+  .aerocomms-app-root .train-session .step-header h1 {
+    font-size: 1.25rem;
+    line-height: 1.625rem;
+  }
+  .aerocomms-app-root .train-session :is(.big-play-btn, .mic-btn) {
+    height: 3.5rem;
+    width: 3.5rem;
+  }
+  .aerocomms-app-root .train-session :is(.big-play-btn, .mic-btn) svg {
+    height: 1.5rem;
+    width: 1.5rem;
+  }
+  .aerocomms-app-root .train-session
+    :is([class*="min-h-[58px]"], [class*="min-h-[60px]"]) {
+    min-height: 42px;
+  }
+  .aerocomms-app-root .train-session .result-feedback {
+    padding: 0.5rem 0.75rem;
+  }
+  .aerocomms-app-root .train-session :is(.pt-4, .pt-5, .pt-6) {
+    padding-top: 0.5rem;
+  }
+  .aerocomms-app-root .train-session .primary-btn {
+    min-height: 44px;
+  }
+  .aerocomms-app-root .train-session {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
 /* ── Mission Detail page ─────────────────────────────────────────────────── */
 /*
  * Mobile: shell gets an explicit height so it always fills the space above

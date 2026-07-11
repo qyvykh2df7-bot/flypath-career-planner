@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Check } from "lucide-react";
 import { scrollCarouselToIndex } from "@/components/aerocomms/aerocomms-carousel";
 
@@ -59,16 +60,18 @@ function TabletChecklistChip({
 type MobileShowcaseSlide = {
   key: string;
   src: string;
+  width: number;
+  height: number;
   /** carrousel1/2 tienen más margen en el PNG; escala mínima para igualar 3–5. */
   imageScaleClass?: string;
 };
 
 const MOBILE_SHOWCASE_SLIDES: readonly MobileShowcaseSlide[] = [
-  { key: "carrousel-1", src: "/aerocomms/mockups/carrousel1.webp", imageScaleClass: "scale-[1.08]" },
-  { key: "carrousel-2", src: "/aerocomms/mockups/carrousel2.webp", imageScaleClass: "scale-[1.08]" },
-  { key: "carrousel-3", src: "/aerocomms/mockups/carrousel3.webp" },
-  { key: "carrousel-4", src: "/aerocomms/mockups/carrousel4.webp" },
-  { key: "carrousel-5", src: "/aerocomms/mockups/carrousel5.webp" },
+  { key: "carrousel-1", src: "/aerocomms/mockups/carrousel1.webp", width: 1014, height: 1550, imageScaleClass: "scale-[1.08]" },
+  { key: "carrousel-2", src: "/aerocomms/mockups/carrousel2.webp", width: 1024, height: 1536, imageScaleClass: "scale-[1.08]" },
+  { key: "carrousel-3", src: "/aerocomms/mockups/carrousel3.webp", width: 1024, height: 1536 },
+  { key: "carrousel-4", src: "/aerocomms/mockups/carrousel4.webp", width: 1024, height: 1536 },
+  { key: "carrousel-5", src: "/aerocomms/mockups/carrousel5.webp", width: 941, height: 1672 },
 ];
 
 const MOBILE_CAROUSEL_SLIDE_CLASS =
@@ -197,12 +200,14 @@ export function AeroCommsTrainingShowcase() {
           >
             {MOBILE_SHOWCASE_SLIDES.map((slide) => (
               <div key={slide.key} className={MOBILE_CAROUSEL_SLIDE_CLASS}>
-                <img
+                <Image
                   src={slide.src}
                   alt={`AeroComms — ${slide.key}`}
+                  width={slide.width}
+                  height={slide.height}
+                  sizes="(max-width: 767px) 68vw, (max-width: 1279px) 54vw, 300px"
                   className={`${MOBILE_CAROUSEL_IMAGE_CLASS} ${slide.imageScaleClass ?? ""}`}
                   loading="lazy"
-                  decoding="async"
                   draggable={false}
                 />
               </div>

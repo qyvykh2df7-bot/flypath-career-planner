@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { getMissionLevelImage, LEVELS, type AtcLevelId } from "@/lib/aerocomms/atcSim";
 
 type MissionLevelImageProps = {
@@ -9,6 +10,8 @@ type MissionLevelImageProps = {
   className?: string;
   style?: React.CSSProperties;
   fallback?: React.ReactNode;
+  sizes?: string;
+  preload?: boolean;
 };
 
 export default function MissionLevelImage({
@@ -17,6 +20,8 @@ export default function MissionLevelImage({
   className,
   style,
   fallback = null,
+  sizes = "(max-width: 1023px) 100vw, 185px",
+  preload = false,
 }: MissionLevelImageProps) {
   const [failed, setFailed] = useState(false);
 
@@ -25,9 +30,12 @@ export default function MissionLevelImage({
   }
 
   return (
-    <img
+    <Image
       src={getMissionLevelImage(level)}
       alt={alt ?? `${LEVELS[level].label} mission`}
+      fill
+      sizes={sizes}
+      preload={preload}
       className={className}
       style={{
         objectFit: "cover",

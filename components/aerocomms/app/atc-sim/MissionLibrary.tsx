@@ -120,6 +120,7 @@ function MissionCard({ m }: { m: AtcMission }) {
             <MissionLevelImage
               level={m.level}
               className="h-full w-full"
+              sizes="44px"
               fallback={
                 <div className="flex h-full w-full items-center justify-center">
                   <MissionCardIconFallback accent={accent} locked={false} />

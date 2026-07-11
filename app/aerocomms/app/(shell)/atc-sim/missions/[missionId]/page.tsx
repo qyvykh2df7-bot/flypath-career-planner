@@ -116,6 +116,7 @@ export default function MissionDetailPage() {
           <MissionLevelImage
             level={mission.level}
             className="absolute inset-0 h-full w-full"
+            sizes="(max-width: 1023px) 100vw, 760px"
             style={{ objectPosition: "center" }}
             fallback={<MissionDetailHeroFallback accent={accent} />}
           />

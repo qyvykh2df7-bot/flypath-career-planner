@@ -17,8 +17,8 @@ export function AeroCommsHero() {
           src="/aerocomms/mockups/herodesktop-white-2x.webp"
           alt=""
           fill
-          preload
-          sizes="100vw"
+          fetchPriority="high"
+          sizes="(min-width: 1280px) 100vw, 0vw"
           className="object-cover"
           style={{ objectPosition: "center 58%" }}
         />
@@ -52,7 +52,7 @@ export function AeroCommsHero() {
               height={1168}
               className="mx-auto mt-1 h-auto w-full max-w-[370px] object-contain md:hidden"
               sizes="(max-width: 768px) min(100vw, 370px)"
-              priority
+              fetchPriority="high"
             />
 
             {/* Tablet (768px–1279px) — centered mockup between headline and copy */}
@@ -64,7 +64,7 @@ export function AeroCommsHero() {
                 height={1168}
                 className="mx-auto h-auto w-full object-contain"
                 sizes="(max-width: 1280px) min(100vw, 540px)"
-                priority
+                fetchPriority="high"
               />
             </div>
 

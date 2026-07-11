@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState, type SkillStats } from "@/lib/aerocomms/appState";
@@ -879,12 +880,14 @@ export default function TodayPage() {
       {/* Pro CTA — full-width bottom banner below dashboard grid */}
       <section className="relative z-10 mt-4 flex min-h-[124px] w-full shrink-0 items-stretch overflow-hidden rounded-[20px] border border-white/[0.08] bg-[#0B1322]/90 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.75)] backdrop-blur-sm">
         {/* Thumbnail */}
-        <div className="w-[120px] shrink-0 self-stretch overflow-hidden xl:w-[148px]">
-          <img
+        <div className="relative w-[120px] shrink-0 self-stretch overflow-hidden xl:w-[148px]">
+          <Image
             src="/images/aerocomms/opsmission.png"
             alt=""
             aria-hidden
-            className="h-full min-h-[124px] w-full object-cover object-[20%_center]"
+            fill
+            sizes="(max-width: 1279px) 120px, 148px"
+            className="object-cover object-[20%_center]"
           />
         </div>
 

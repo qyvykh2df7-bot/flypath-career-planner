@@ -116,10 +116,14 @@ function CallChip({ text }: { text: string }) {
 
 /** Green continue button. */
 function ContinueButton({ onContinue, label = "Continue" }: { onContinue: () => void; label?: string }) {
+  // lg:sticky — several SP blocks scroll the whole column with this button
+  // in-flow; on short desktop viewports it pins to the visible bottom edge so
+  // the primary action never needs scrolling. No-op on mobile and when the
+  // content already fits.
   return (
     <button
       onClick={onContinue}
-      className="w-full rounded-2xl bg-[#FACC15] py-3.5 text-[16px] font-bold text-[#07111F] active:opacity-80"
+      className="w-full rounded-2xl bg-[#FACC15] py-3.5 text-[16px] font-bold text-[#07111F] active:opacity-80 lg:sticky lg:bottom-0 lg:z-10"
     >
       {label}
     </button>
