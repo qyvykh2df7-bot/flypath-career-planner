@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickFlyPathNextSteps } from "./flypath-next-step-engine";
+import { pickFlyPathNextSteps, type PickFlyPathNextStepsInput } from "./flypath-next-step-engine";
 
 const baseInput = {
   profile: {
@@ -16,11 +16,11 @@ const baseInput = {
   costInputs: { atplTheory: 0 },
   costs: { riesgoFinanciero: "Bajo", coverage: 90 },
   riskDiagnosis: [{ label: "Riesgo médico", nivel: "Bajo" }],
-};
+} satisfies PickFlyPathNextStepsInput;
 
 describe("flypath-next-step-engine", () => {
   it("nunca recomienda Comparador (escuelas) como principal", () => {
-    const scenarios = [
+    const scenarios: PickFlyPathNextStepsInput[] = [
       {
         ...baseInput,
         profile: { ...baseInput.profile, class1: "no" as const, objetivo: "no_lo_se" as const },
