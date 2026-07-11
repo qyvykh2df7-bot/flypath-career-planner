@@ -14,11 +14,11 @@ import {
 import { persistTrainLevelId, resolveTrainLevelIndex, trainHref, levelIndexFromId } from "@/lib/aerocomms/trainLevel";
 
 const LEVEL_TRAIN_BACKGROUNDS: Record<string, string> = {
-  cadet: "/images/aerocomms/cadetrain.png",
-  "student-pilot": "/images/aerocomms/studentrain.png",
-  "ready-for-radio": "/images/aerocomms/readytrain.png?v=2",
-  "airline-prep": "/images/aerocomms/airtrain.png",
-  "advanced-ops": "/images/aerocomms/adtrain.png",
+  cadet: "/images/aerocomms/cadetrain.webp",
+  "student-pilot": "/images/aerocomms/studentrain.webp",
+  "ready-for-radio": "/images/aerocomms/readytrain.webp?v=2",
+  "airline-prep": "/images/aerocomms/airtrain.webp",
+  "advanced-ops": "/images/aerocomms/adtrain.webp",
 };
 
 type ModuleStatus = "done" | "current" | "available" | "locked";

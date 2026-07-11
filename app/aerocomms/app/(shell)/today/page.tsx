@@ -348,7 +348,7 @@ export default function TodayPage() {
           aria-hidden
           className="pointer-events-none absolute inset-0 scale-x-[-1] bg-cover opacity-[0.78]"
           style={{
-            backgroundImage: "url('/images/aerocomms/today.png')",
+            backgroundImage: "url('/images/aerocomms/today.webp')",
             backgroundPosition: "65% center",
           }}
         />
@@ -539,7 +539,7 @@ export default function TodayPage() {
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/aerocomms/fondoweb.png')" }}
+        style={{ backgroundImage: "url('/images/aerocomms/fondoweb.webp')" }}
       />
       <div
         aria-hidden
@@ -572,7 +572,7 @@ export default function TodayPage() {
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 scale-x-[-1] bg-cover opacity-[0.65]"
-              style={{ backgroundImage: "url('/images/aerocomms/today.png')", backgroundPosition: "70% center" }}
+              style={{ backgroundImage: "url('/images/aerocomms/today.webp')", backgroundPosition: "70% center" }}
             />
             <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#020B18]/92 via-[#020B18]/55 to-transparent" />
 
@@ -658,7 +658,7 @@ export default function TodayPage() {
                 aria-hidden
                 className="pointer-events-none absolute inset-0 z-0 scale-x-[-1] bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: "url('/images/aerocomms/trainweb.png')",
+                  backgroundImage: "url('/images/aerocomms/trainweb.webp')",
                 }}
               />
               <div className="relative z-10 flex items-center gap-3">
@@ -690,7 +690,7 @@ export default function TodayPage() {
                 aria-hidden
                 className="pointer-events-none absolute inset-0 z-0 scale-x-[-1] bg-cover bg-no-repeat"
                 style={{
-                  backgroundImage: "url('/images/aerocomms/atcweb.png')",
+                  backgroundImage: "url('/images/aerocomms/atcweb.webp')",
                   backgroundPosition: "center center",
                 }}
               />
@@ -882,7 +882,7 @@ export default function TodayPage() {
         {/* Thumbnail */}
         <div className="relative w-[120px] shrink-0 self-stretch overflow-hidden xl:w-[148px]">
           <Image
-            src="/images/aerocomms/opsmission.png"
+            src="/images/aerocomms/opsmission.webp"
             alt=""
             aria-hidden
             fill

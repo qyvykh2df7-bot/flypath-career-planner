@@ -50,7 +50,7 @@ export default function AtcSimPage() {
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "linear-gradient(to bottom, rgba(2,8,20,0.08) 0%, rgba(2,8,20,0.28) 30%, rgba(2,8,20,0.62) 62%, rgba(2,8,20,0.86) 82%, rgba(2,8,20,0.96) 100%), url('/images/aerocomms/atcsimfondo.png')",
+              "linear-gradient(to bottom, rgba(2,8,20,0.08) 0%, rgba(2,8,20,0.28) 30%, rgba(2,8,20,0.62) 62%, rgba(2,8,20,0.86) 82%, rgba(2,8,20,0.96) 100%), url('/images/aerocomms/atcsimfondo.webp')",
             backgroundSize: "cover",
             backgroundRepeat: "no-repeat",
             backgroundPosition: "top center",

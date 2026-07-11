@@ -31,7 +31,7 @@ export default function MissionLevelImage({
 
   return (
     <Image
-      src={getMissionLevelImage(level)}
+      src={getMissionLevelImage(level).replace(/\.png$/, ".webp")}
       alt={alt ?? `${LEVELS[level].label} mission`}
       fill
       sizes={sizes}

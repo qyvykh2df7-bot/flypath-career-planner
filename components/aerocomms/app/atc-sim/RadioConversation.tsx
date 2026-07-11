@@ -584,7 +584,7 @@ export default function RadioConversation({ descriptor, onComplete, onExit }: Ra
         className="pointer-events-none absolute inset-0 z-0 lg:fixed lg:inset-0"
         style={{
           backgroundImage:
-            "linear-gradient(to bottom, rgba(2,8,20,0.32) 0%, rgba(2,8,20,0.48) 45%, rgba(2,8,20,0.70) 100%), url('/images/aerocomms/fondofreef.png')",
+            "linear-gradient(to bottom, rgba(2,8,20,0.32) 0%, rgba(2,8,20,0.48) 45%, rgba(2,8,20,0.70) 100%), url('/images/aerocomms/fondofreef.webp')",
           backgroundSize: "cover",
           backgroundPosition: "center 62%",
           backgroundRepeat: "no-repeat",

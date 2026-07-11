@@ -39,7 +39,7 @@ function EnableRadioAudioGate({
         className="pointer-events-none absolute inset-0 z-0 lg:fixed lg:inset-0"
         style={{
           backgroundImage:
-            "linear-gradient(to bottom, rgba(2,8,20,0.40) 0%, rgba(2,8,20,0.58) 45%, rgba(2,8,20,0.82) 100%), url('/images/aerocomms/fondofreef.png')",
+            "linear-gradient(to bottom, rgba(2,8,20,0.40) 0%, rgba(2,8,20,0.58) 45%, rgba(2,8,20,0.82) 100%), url('/images/aerocomms/fondofreef.webp')",
           backgroundSize: "cover",
           backgroundPosition: "center 62%",
           backgroundRepeat: "no-repeat",
