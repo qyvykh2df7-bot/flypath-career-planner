@@ -133,6 +133,58 @@ export async function upsertEmailSubscriptionForLead(
   }
 }
 
+export async function upsertLeadProductInterest(
+  admin: LeadCaptureAdminClient,
+  leadId: string,
+  productId: string,
+  now: string,
+  options: {
+    source: string;
+    status: string;
+  },
+): Promise<void> {
+  const { data: existingInterest, error: selectError } = await admin
+    .from("lead_product_interests")
+    .select("id")
+    .eq("lead_id", leadId)
+    .eq("product_id", productId)
+    .maybeSingle();
+
+  if (selectError) {
+    throw new LeadCaptureError();
+  }
+
+  if (existingInterest) {
+    const { error: updateError } = await admin
+      .from("lead_product_interests")
+      .update({
+        latest_source: options.source,
+        status: options.status,
+        last_seen_at: now,
+      })
+      .eq("id", existingInterest.id);
+
+    if (updateError) {
+      throw new LeadCaptureError();
+    }
+    return;
+  }
+
+  const { error: insertError } = await admin.from("lead_product_interests").insert({
+    lead_id: leadId,
+    product_id: productId,
+    first_source: options.source,
+    latest_source: options.source,
+    status: options.status,
+    first_seen_at: now,
+    last_seen_at: now,
+  });
+
+  if (insertError) {
+    throw new LeadCaptureError();
+  }
+}
+
 export async function insertUserEvent(
   admin: LeadCaptureAdminClient,
   options: {

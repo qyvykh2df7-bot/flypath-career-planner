@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { PrePplWaitlistModal } from "@/components/home/PrePplWaitlistModal";
 
 type ResourceType = "HERRAMIENTA" | "GUÍA" | "APP" | "MENTORÍA";
 
@@ -12,9 +16,9 @@ type HomeResource = {
   href: string;
   mockupSrc: string;
   mockupAlt: string;
+  waitlist?: boolean;
 };
 
-// TODO: sustituir href cuando exista landing de Guía Pre-PPL
 const HOME_RESOURCES: HomeResource[] = [
   {
     id: "career-planner",
@@ -41,8 +45,9 @@ const HOME_RESOURCES: HomeResource[] = [
     type: "GUÍA",
     title: "Pre-PPL",
     description: "Conceptos básicos antes de empezar tu formación.",
-    cta: "Próximamente",
+    cta: "Unirme a la lista de espera",
     href: "#",
+    waitlist: true,
     mockupSrc: "/aerocomms/mockups/preppl.png",
     mockupAlt: "Portada de la guía Pre-PPL",
   },
@@ -92,7 +97,13 @@ function ResourceTypeChip({ type }: { type: ResourceType }) {
   );
 }
 
-function ResourceCard({ resource }: { resource: HomeResource }) {
+function ResourceCard({
+  resource,
+  onWaitlistClick,
+}: {
+  resource: HomeResource;
+  onWaitlistClick?: () => void;
+}) {
   const isPlaceholderLink = resource.href === "#";
   const mockupAreaClass =
     "relative flex min-h-[260px] items-center justify-center bg-[#F8F9FA] px-2 py-2 sm:min-h-[280px]";
@@ -124,7 +135,20 @@ function ResourceCard({ resource }: { resource: HomeResource }) {
         <p className="mt-2 flex-1 text-[14px] leading-relaxed text-[#4B5563]">
           {resource.description}
         </p>
-        {isPlaceholderLink ? (
+        {resource.waitlist && onWaitlistClick ? (
+          <button
+            type="button"
+            onClick={onWaitlistClick}
+            className={`mt-4 inline-flex w-fit items-center gap-1.5 text-left text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}
+          >
+            <span className="leading-snug">
+              Unirme a la
+              <br />
+              lista de espera
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-current" aria-hidden />
+          </button>
+        ) : isPlaceholderLink ? (
           <span className={`mt-4 inline-flex w-fit items-center gap-1.5 text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}>
             {resource.cta}
             <ArrowRight className="h-4 w-4 shrink-0 text-current" aria-hidden />
@@ -144,6 +168,8 @@ function ResourceCard({ resource }: { resource: HomeResource }) {
 }
 
 export function HomeResourcesShowcase() {
+  const [waitlistModalOpen, setWaitlistModalOpen] = useState(false);
+
   return (
     <section className="overflow-hidden border-t border-[#071224]/[0.06] bg-[#F7F8FA]">
       <div className="mx-auto max-w-[76rem] px-6 py-12 lg:px-8 lg:py-14">
@@ -160,12 +186,23 @@ export function HomeResourcesShowcase() {
           <div className="-mx-6 overflow-x-auto overflow-y-hidden px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
             <div className="flex w-max gap-4 sm:gap-5">
               {HOME_RESOURCES.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} />
+                <ResourceCard
+                  key={resource.id}
+                  resource={resource}
+                  onWaitlistClick={
+                    resource.waitlist ? () => setWaitlistModalOpen(true) : undefined
+                  }
+                />
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      <PrePplWaitlistModal
+        open={waitlistModalOpen}
+        onClose={() => setWaitlistModalOpen(false)}
+      />
     </section>
   );
 }
