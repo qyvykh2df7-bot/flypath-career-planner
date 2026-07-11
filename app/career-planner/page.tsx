@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -1289,60 +1290,77 @@ export function FlyPathApp({
     } catch {
       count = 0;
     }
-    setManualFormOpen(false);
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setManualFormOpen(false);
+    });
+    return () => {
+      active = false;
+    };
   }, [reviewMode]);
 
   useEffect(() => {
+    let active = true;
     if (reviewMode) {
-      setStorageHydrated(true);
-      return;
+      queueMicrotask(() => {
+        if (active) setStorageHydrated(true);
+      });
+      return () => {
+        active = false;
+      };
     }
-    try {
-      const p = localStorage.getItem("flypath_profile");
-      const c = localStorage.getItem("flypath_cost_inputs");
-      const s = localStorage.getItem("flypath_schools");
-      const o = localStorage.getItem("flypath_onboarding_completed");
-      const reportEmailStored = localStorage.getItem(REPORT_EMAIL_STORAGE_KEY);
-      if (reportEmailStored) setReportEmail(reportEmailStored);
-      if (p) {
-        const parsed = JSON.parse(p) as Partial<Profile>;
-        setProfile({
-          ...defaultProfile,
-          ...parsed,
-          costEstimateSource: parsed.costEstimateSource === "user_approx" ? "user_approx" : "flypath_base",
-        });
-      }
-      if (c) setCostInputs({ ...defaultCostInputs, ...JSON.parse(c) });
-      if (s) {
-        const parsedSchools = JSON.parse(s) as unknown;
-        if (Array.isArray(parsedSchools)) setSchools(parsedSchools as School[]);
-      }
-      if (o) {
-        // Lectura robusta: aceptamos JSON booleano `true` o el string literal "true".
-        const done = JSON.parse(o) === true || o === "true";
-        setOnboardingCompleted(done);
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const p = localStorage.getItem("flypath_profile");
+        const c = localStorage.getItem("flypath_cost_inputs");
+        const s = localStorage.getItem("flypath_schools");
+        const o = localStorage.getItem("flypath_onboarding_completed");
+        const reportEmailStored = localStorage.getItem(REPORT_EMAIL_STORAGE_KEY);
+        if (reportEmailStored) setReportEmail(reportEmailStored);
+        if (p) {
+          const parsed = JSON.parse(p) as Partial<Profile>;
+          setProfile({
+            ...defaultProfile,
+            ...parsed,
+            costEstimateSource: parsed.costEstimateSource === "user_approx" ? "user_approx" : "flypath_base",
+          });
+        }
+        if (c) setCostInputs({ ...defaultCostInputs, ...JSON.parse(c) });
+        if (s) {
+          const parsedSchools = JSON.parse(s) as unknown;
+          if (Array.isArray(parsedSchools)) setSchools(parsedSchools as School[]);
+        }
+        if (o) {
+          // Lectura robusta: aceptamos JSON booleano `true` o el string literal "true".
+          const done = JSON.parse(o) === true || o === "true";
+          setOnboardingCompleted(done);
 
-        // Si la URL trae un deep-link (?source=schools-comparator o ?review=dashboard) la
-        // decisión de pantalla la toma el efecto del deep-link de más abajo. Aquí solo
-        // decidimos cuando NO hay deep-link: dashboard si onboarding está hecho, perfil si no.
-        const params = new URLSearchParams(window.location.search);
-        const isSchoolsComparatorSource = params.get("source") === "schools-comparator";
-        const reviewParam = params.get("review");
-        if (!isSchoolsComparatorSource && reviewParam !== "dashboard") {
-          if (done) {
-            setScreen("dashboard");
-            setPlannerStep("diagnosis");
-            setTab("diagnosis");
-          } else {
-            setScreen("onboarding");
-            setPlannerStep("profile");
+          // Si la URL trae un deep-link (?source=schools-comparator o ?review=dashboard) la
+          // decisión de pantalla la toma el efecto del deep-link de más abajo. Aquí solo
+          // decidimos cuando NO hay deep-link: dashboard si onboarding está hecho, perfil si no.
+          const params = new URLSearchParams(window.location.search);
+          const isSchoolsComparatorSource = params.get("source") === "schools-comparator";
+          const reviewParam = params.get("review");
+          if (!isSchoolsComparatorSource && reviewParam !== "dashboard") {
+            if (done) {
+              setScreen("dashboard");
+              setPlannerStep("diagnosis");
+              setTab("diagnosis");
+            } else {
+              setScreen("onboarding");
+              setPlannerStep("profile");
+            }
           }
         }
+        setStorageHydrated(true);
+      } catch {
+        setStorageHydrated(true);
       }
-      setStorageHydrated(true);
-    } catch {
-      setStorageHydrated(true);
-    }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Public deep-link mode via query params (legacy): disabled in review routes
@@ -1377,21 +1395,23 @@ export function FlyPathApp({
     }
 
     if (reviewParam === "dashboard") {
-      setOnboardingCompleted(true);
-      setScreen("dashboard");
-      if (tabParam) {
-        const requestedTab = normalizeDashboardTab(tabParam);
-        if (validTabs.includes(requestedTab)) {
-          setTab(requestedTab);
-          setPlannerStep(requestedTab);
+      queueMicrotask(() => {
+        setOnboardingCompleted(true);
+        setScreen("dashboard");
+        if (tabParam) {
+          const requestedTab = normalizeDashboardTab(tabParam);
+          if (validTabs.includes(requestedTab)) {
+            setTab(requestedTab);
+            setPlannerStep(requestedTab);
+          } else {
+            setPlannerStep("diagnosis");
+            setTab("diagnosis");
+          }
         } else {
           setPlannerStep("diagnosis");
           setTab("diagnosis");
         }
-      } else {
-        setPlannerStep("diagnosis");
-        setTab("diagnosis");
-      }
+      });
     }
 
     // Slugs pueden venir por query (preferente) o por localStorage de respaldo
@@ -1420,68 +1440,72 @@ export function FlyPathApp({
     }
 
     if (slugs.length > 0) {
-      setSchools((current) => {
-        // Las escuelas manuales se preservan. Las escuelas importadas desde el
-        // comparador ocupan hasta 2 slots de análisis separados y reemplazan
-        // importaciones anteriores del comparador.
-        const manualSchools = current.filter(
-          (school) => !school.enlaceReferencia.startsWith("comparador:"),
-        );
-        const previousComparatorSlugs = current
-          .map((school) => parsePlannerSchoolLink(school.enlaceReferencia)?.slug)
-          .filter((slug): slug is string => Boolean(slug));
+      queueMicrotask(() => {
+        setSchools((current) => {
+          // Las escuelas manuales se preservan. Las escuelas importadas desde el
+          // comparador ocupan hasta 2 slots de análisis separados y reemplazan
+          // importaciones anteriores del comparador.
+          const manualSchools = current.filter(
+            (school) => !school.enlaceReferencia.startsWith("comparador:"),
+          );
+          const previousComparatorSlugs = current
+            .map((school) => parsePlannerSchoolLink(school.enlaceReferencia)?.slug)
+            .filter((slug): slug is string => Boolean(slug));
 
-        // Idempotencia: si los slugs entrantes coinciden exactamente con los que ya
-        // estaban importados desde comparador, no hacer nada (evita duplicados al
-        // pulsar varias veces o al recargar la URL).
-        const incomingSet = new Set(slugs);
-        const previousSet = new Set(previousComparatorSlugs);
-        const sameAsBefore =
-          incomingSet.size > 0 &&
-          incomingSet.size === previousSet.size &&
-          [...incomingSet].every((slug) => previousSet.has(slug));
-        if (sameAsBefore) {
-          return current;
-        }
+          // Idempotencia: si los slugs entrantes coinciden exactamente con los que ya
+          // estaban importados desde comparador, no hacer nada (evita duplicados al
+          // pulsar varias veces o al recargar la URL).
+          const incomingSet = new Set(slugs);
+          const previousSet = new Set(previousComparatorSlugs);
+          const sameAsBefore =
+            incomingSet.size > 0 &&
+            incomingSet.size === previousSet.size &&
+            [...incomingSet].every((slug) => previousSet.has(slug));
+          if (sameAsBefore) {
+            return current;
+          }
 
-        const existingNames = new Set(
-          manualSchools.map((school) => school.nombre.trim().toLowerCase()),
-        );
-        const maxComparatorSlots = 2;
+          const existingNames = new Set(
+            manualSchools.map((school) => school.nombre.trim().toLowerCase()),
+          );
+          const maxComparatorSlots = 2;
 
-        const schoolsToImport: School[] = [];
-        let nextId = current.length > 0 ? Math.max(...current.map((school) => school.id)) + 1 : 1;
+          const schoolsToImport: School[] = [];
+          let nextId = current.length > 0 ? Math.max(...current.map((school) => school.id)) + 1 : 1;
 
-        for (const slug of slugs) {
-          if (schoolsToImport.length >= maxComparatorSlots) break;
-          const comparatorSchool = getSchoolBySlug(slug);
-          if (!comparatorSchool) continue;
-          const normalizedName = comparatorSchool.name.trim().toLowerCase();
-          if (existingNames.has(normalizedName)) continue;
-          schoolsToImport.push(mapComparatorSchoolToPlannerSchool(comparatorSchool, nextId));
-          existingNames.add(normalizedName);
-          nextId += 1;
-        }
+          for (const slug of slugs) {
+            if (schoolsToImport.length >= maxComparatorSlots) break;
+            const comparatorSchool = getSchoolBySlug(slug);
+            if (!comparatorSchool) continue;
+            const normalizedName = comparatorSchool.name.trim().toLowerCase();
+            if (existingNames.has(normalizedName)) continue;
+            schoolsToImport.push(mapComparatorSchoolToPlannerSchool(comparatorSchool, nextId));
+            existingNames.add(normalizedName);
+            nextId += 1;
+          }
 
-        if (schoolsToImport.length === 0) {
-          return current;
-        }
+          if (schoolsToImport.length === 0) {
+            return current;
+          }
 
-        setToast("Escuelas importadas desde el comparador.");
-        window.setTimeout(
-          () =>
-            setToast((currentToast) =>
-              currentToast === "Escuelas importadas desde el comparador." ? null : currentToast,
-            ),
-          2300,
-        );
-        return [...manualSchools, ...schoolsToImport];
+          setToast("Escuelas importadas desde el comparador.");
+          window.setTimeout(
+            () =>
+              setToast((currentToast) =>
+                currentToast === "Escuelas importadas desde el comparador." ? null : currentToast,
+              ),
+            2300,
+          );
+          return [...manualSchools, ...schoolsToImport];
+        });
       });
     }
 
     if (isSchoolsComparatorSource) {
-      setCameFromSchoolsComparator(true);
-      setProfile((current) => ({ ...current, costEstimateSource: "flypath_base" }));
+      queueMicrotask(() => {
+        setCameFromSchoolsComparator(true);
+        setProfile((current) => ({ ...current, costEstimateSource: "flypath_base" }));
+      });
       // Limpieza del respaldo en localStorage tras consumirlo: la siguiente
       // navegación al planner sin query ya no debe re-importar nada.
       try {
@@ -1512,33 +1536,51 @@ export function FlyPathApp({
     }
 
     if (isSchoolsComparatorSource && onboardingDone) {
-      setOnboardingCompleted(true);
-      setScreen("dashboard");
-      setTab("schools");
-      setPlannerStep("schools");
+      queueMicrotask(() => {
+        setOnboardingCompleted(true);
+        setScreen("dashboard");
+        setTab("schools");
+        setPlannerStep("schools");
+      });
     } else if (startParam === "onboarding" || (isSchoolsComparatorSource && !onboardingDone)) {
-      setScreen("onboarding");
-      setPlannerStep("profile");
-      setOnboardingStep(1);
+      queueMicrotask(() => {
+        setScreen("onboarding");
+        setPlannerStep("profile");
+        setOnboardingStep(1);
+      });
     }
   }, [reviewMode, onboardingCompleted]);
 
   useEffect(() => {
     if (screen !== "onboarding" || onboardingStep !== 3) return;
     if (profile.costEstimateSource !== "user_approx") return;
-    setOnboardingApproxDraft({
-      precioFormacion: sumFormationParts(costInputs),
-      extrasEstimados: sumExtrasParts(costInputs),
-      vidaLogistica: sumVidaParts(costInputs),
-      bufferPct: costInputs.bufferPct,
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setOnboardingApproxDraft({
+        precioFormacion: sumFormationParts(costInputs),
+        extrasEstimados: sumExtrasParts(costInputs),
+        vidaLogistica: sumVidaParts(costInputs),
+        bufferPct: costInputs.bufferPct,
+      });
     });
+    return () => {
+      active = false;
+    };
   }, [screen, onboardingStep, profile.costEstimateSource]);
 
   useEffect(() => {
     if (!reviewMode) return;
-    setScreen("dashboard");
-    setTab(initialTab);
-    setPlannerStep(normalizePlannerStep(initialTab));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setScreen("dashboard");
+      setTab(initialTab);
+      setPlannerStep(normalizePlannerStep(initialTab));
+    });
+    return () => {
+      active = false;
+    };
   }, [reviewMode, initialTab]);
 
   // Las cuatro escrituras a localStorage están bloqueadas hasta que el efecto de
@@ -1966,6 +2008,40 @@ export function FlyPathApp({
     setScreen("onboarding");
   };
 
+  /**
+   * Navegación de tabs del dashboard activada por el USUARIO (clicks en sidebar o
+   * en CTAs visibles tipo "Siguiente paso", "Comparar escuelas", "Ver informe final",
+   * etc.). Cambia el tab y hace scroll a la parte superior del nuevo contenido.
+   *
+   * Solo se usa para clicks visibles. Las navegaciones automáticas (efectos de
+   * deep-link, importación desde el comparador, finishOnboarding, review mode,
+   * carga inicial) siguen llamando a setTab(...) directamente: en esos casos no
+   * hay que tocar el scroll porque el usuario aún no estaba navegando dentro del
+   * dashboard.
+   */
+  function goToDashboardTab(nextTab: Tab | "route" | "cost") {
+    const normalized = normalizeDashboardTab(nextTab);
+    setTab(normalized);
+    setPlannerStep(normalized);
+    if (typeof window === "undefined") return;
+    // Esperamos al siguiente frame para que la nueva sección ya esté en el DOM antes
+    // de mover el scroll: si lo hacemos sincrónicamente, el scrollTop puede aplicarse
+    // sobre el layout viejo y queda inconsistente.
+    window.requestAnimationFrame(() => {
+      // Dashboard normal = una sola página larga: navegamos haciendo scroll a la
+      // sección correspondiente. En modo review seguimos mostrando un único tab,
+      // así que volvemos arriba como antes.
+      if (!reviewMode) {
+        const section = document.getElementById(`planner-${normalized}`);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
   const goToPlannerStep = (step: PlannerStepId) => {
     if (step !== "profile" && !onboardingCompleted && !reviewMode) {
       showToast("Completa tu perfil antes de continuar.");
@@ -2012,40 +2088,6 @@ export function FlyPathApp({
         return null;
     }
   })();
-
-  /**
-   * Navegación de tabs del dashboard activada por el USUARIO (clicks en sidebar o
-   * en CTAs visibles tipo "Siguiente paso", "Comparar escuelas", "Ver informe final",
-   * etc.). Cambia el tab y hace scroll a la parte superior del nuevo contenido.
-   *
-   * Solo se usa para clicks visibles. Las navegaciones automáticas (efectos de
-   * deep-link, importación desde el comparador, finishOnboarding, review mode,
-   * carga inicial) siguen llamando a setTab(...) directamente: en esos casos no
-   * hay que tocar el scroll porque el usuario aún no estaba navegando dentro del
-   * dashboard.
-   */
-  const goToDashboardTab = (nextTab: Tab | "route" | "cost") => {
-    const normalized = normalizeDashboardTab(nextTab);
-    setTab(normalized);
-    setPlannerStep(normalized);
-    if (typeof window === "undefined") return;
-    // Esperamos al siguiente frame para que la nueva sección ya esté en el DOM antes
-    // de mover el scroll: si lo hacemos sincrónicamente, el scrollTop puede aplicarse
-    // sobre el layout viejo y queda inconsistente.
-    window.requestAnimationFrame(() => {
-      // Dashboard normal = una sola página larga: navegamos haciendo scroll a la
-      // sección correspondiente. En modo review seguimos mostrando un único tab,
-      // así que volvemos arriba como antes.
-      if (!reviewMode) {
-        const section = document.getElementById(`planner-${normalized}`);
-        if (section) {
-          section.scrollIntoView({ behavior: "smooth", block: "start" });
-          return;
-        }
-      }
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  };
 
   const handleOnboardingNext = () => {
     if (onboardingStep === 3 && cameFromSchoolsComparator) {
@@ -2876,13 +2918,13 @@ export function FlyPathApp({
                         })}
                       </div>
                       <div className="mt-3.5 flex justify-center">
-                        <a
+                        <Link
                           href="/schools"
                           className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#D6AE4F] transition hover:brightness-110"
                         >
                           Ver comparador completo
                           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                        </a>
+                        </Link>
                       </div>
                     </>
                   )}

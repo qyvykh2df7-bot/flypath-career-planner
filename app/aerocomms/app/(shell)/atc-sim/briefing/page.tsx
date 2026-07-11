@@ -18,12 +18,18 @@ export default function BriefingPage() {
   const [descriptor, setDescriptor] = useState<AtcSessionDescriptor | null>(null);
 
   useEffect(() => {
+    let active = true;
     const d = loadDescriptor();
     if (!d || d.source !== "mission") {
       router.replace("/aerocomms/app/atc-sim");
       return;
     }
-    setDescriptor(d);
+    queueMicrotask(() => {
+      if (active) setDescriptor(d);
+    });
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   if (!descriptor) return null;

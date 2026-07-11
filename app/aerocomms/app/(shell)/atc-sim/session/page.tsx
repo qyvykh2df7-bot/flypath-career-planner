@@ -119,12 +119,18 @@ export default function AtcSessionPage() {
   const finishedRef = useRef(false);
 
   useEffect(() => {
+    let active = true;
     const d = loadDescriptor();
     if (!d || d.source !== "mission" || !d.missionId) {
       router.replace("/aerocomms/app/atc-sim");
       return;
     }
-    setDescriptor(d);
+    queueMicrotask(() => {
+      if (active) setDescriptor(d);
+    });
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   if (!descriptor) return null;

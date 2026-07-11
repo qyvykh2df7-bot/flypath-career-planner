@@ -335,34 +335,41 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<AppState>;
-        const zeroStat: SkillStats = { totalScore: 0, count: 0 };
-        setState(normalizeDailyState({
-          ...DEFAULT_STATE,
-          ...parsed,
-          skills: { ...DEFAULT_STATE.skills, ...parsed.skills },
-          // Guarantee new fields exist even in old localStorage blobs.
-          completedMissions: parsed.completedMissions ?? DEFAULT_STATE.completedMissions,
-          missionResults: parsed.missionResults ?? DEFAULT_STATE.missionResults,
-          scoredCount: parsed.scoredCount ?? DEFAULT_STATE.scoredCount,
-          // skillStats: new field. Legacy blobs without it start empty (correct — no EMA data to inherit).
-          skillStats: {
-            listening:   { ...zeroStat, ...(parsed.skillStats?.listening   ?? {}) },
-            readbacks:   { ...zeroStat, ...(parsed.skillStats?.readbacks   ?? {}) },
-            phraseology: { ...zeroStat, ...(parsed.skillStats?.phraseology ?? {}) },
-            // speaking is new — old localStorage blobs without it start at zero (correct).
-            speaking:    { ...zeroStat, ...(parsed.skillStats?.speaking    ?? {}) },
-            confidence:  { ...zeroStat, ...(parsed.skillStats?.confidence  ?? {}) },
-          },
-        }));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<AppState>;
+          const zeroStat: SkillStats = { totalScore: 0, count: 0 };
+          setState(normalizeDailyState({
+            ...DEFAULT_STATE,
+            ...parsed,
+            skills: { ...DEFAULT_STATE.skills, ...parsed.skills },
+            // Guarantee new fields exist even in old localStorage blobs.
+            completedMissions: parsed.completedMissions ?? DEFAULT_STATE.completedMissions,
+            missionResults: parsed.missionResults ?? DEFAULT_STATE.missionResults,
+            scoredCount: parsed.scoredCount ?? DEFAULT_STATE.scoredCount,
+            // skillStats: new field. Legacy blobs without it start empty (correct — no EMA data to inherit).
+            skillStats: {
+              listening:   { ...zeroStat, ...(parsed.skillStats?.listening   ?? {}) },
+              readbacks:   { ...zeroStat, ...(parsed.skillStats?.readbacks   ?? {}) },
+              phraseology: { ...zeroStat, ...(parsed.skillStats?.phraseology ?? {}) },
+              // speaking is new — old localStorage blobs without it start at zero (correct).
+              speaking:    { ...zeroStat, ...(parsed.skillStats?.speaking    ?? {}) },
+              confidence:  { ...zeroStat, ...(parsed.skillStats?.confidence  ?? {}) },
+            },
+          }));
+        }
+      } catch {
+        // ignore corrupted storage
       }
-    } catch {
-      // ignore corrupted storage
-    }
-    setHydrated(true);
+      setHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {

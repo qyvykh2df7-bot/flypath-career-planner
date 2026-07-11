@@ -200,10 +200,19 @@ export default function TodayPage() {
   const [greeting, setGreeting] = useState("Good morning");
   const [proModalOpen, setProModalOpen] = useState(false);
   useEffect(() => {
+    let active = true;
     const h = new Date().getHours();
-    if (h >= 5 && h < 12) setGreeting("Good morning");
-    else if (h >= 12 && h < 18) setGreeting("Good afternoon");
-    else setGreeting("Good evening");
+    const nextGreeting = h >= 5 && h < 12
+      ? "Good morning"
+      : h >= 12 && h < 18
+        ? "Good afternoon"
+        : "Good evening";
+    queueMicrotask(() => {
+      if (active) setGreeting(nextGreeting);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {

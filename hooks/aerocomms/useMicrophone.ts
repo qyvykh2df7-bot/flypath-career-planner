@@ -62,9 +62,16 @@ export function useMicrophone(): UseMicrophoneResult {
 
   // Check real browser support after mount so SSR HTML matches first client render.
   useEffect(() => {
-    const ok = hasGetUserMedia();
-    setIsSupported(ok);
-    if (!ok) setStatus("unsupported");
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      const ok = hasGetUserMedia();
+      setIsSupported(ok);
+      if (!ok) setStatus("unsupported");
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => stop, [stop]);

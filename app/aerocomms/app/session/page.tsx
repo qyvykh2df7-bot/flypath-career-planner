@@ -245,7 +245,7 @@ function shuffledOptions(rawOptions: string[] | undefined, correct: string | und
     if (opt != null && !unique.includes(opt)) unique.push(opt);
   }
   if (correct && !unique.includes(correct)) unique.unshift(correct);
-  let four = unique.slice(0, 4);
+  const four = unique.slice(0, 4);
   // Guarantee the correct answer survives the cap.
   if (correct && !four.includes(correct)) four[four.length - 1] = correct;
   const rng = mulberry32(hashSeed(seed));
@@ -267,11 +267,18 @@ function useDrillSet(drills: Drill[], cap = 10): Drill[] {
   const capped = drills.length > cap ? drills.slice(0, cap) : drills;
   const [order, setOrder] = useState<Drill[]>(capped);
   useEffect(() => {
-    if (drills.length <= cap) {
-      setOrder([...drills].sort(() => Math.random() - 0.5));
-      return;
-    }
-    setOrder([...drills].sort(() => Math.random() - 0.5).slice(0, cap));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      if (drills.length <= cap) {
+        setOrder([...drills].sort(() => Math.random() - 0.5));
+        return;
+      }
+      setOrder([...drills].sort(() => Math.random() - 0.5).slice(0, cap));
+    });
+    return () => {
+      active = false;
+    };
   }, [drills, cap]);
   return order;
 }

@@ -21,9 +21,15 @@ export default function TranscriptPage() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    let active = true;
     const r = loadResult();
     if (!r || r.source !== "mission") { router.replace("/aerocomms/app/atc-sim"); return; }
-    setResult(r);
+    queueMicrotask(() => {
+      if (active) setResult(r);
+    });
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);

@@ -372,9 +372,9 @@ export function getCompletedTopics(completedExercises: string[]): Set<string> {
   const completedSet = new Set(completedExercises);
   const result = new Set<string>();
   for (const level of LEVELS) {
-    for (const module of level.modules) {
-      if (!module.topics) continue;
-      for (const topic of module.topics) {
+    for (const trainingModule of level.modules) {
+      if (!trainingModule.topics) continue;
+      for (const topic of trainingModule.topics) {
         if (topicCompletion(topic, completedSet) === 100) {
           result.add(topic.id);
         }

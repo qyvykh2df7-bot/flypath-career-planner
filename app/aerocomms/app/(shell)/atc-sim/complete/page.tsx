@@ -26,9 +26,15 @@ export default function CompletePage() {
   const [result, setResult] = useState<AtcSessionResult | null>(null);
 
   useEffect(() => {
+    let active = true;
     const r = loadResult();
     if (!r || r.source !== "mission") { router.replace("/aerocomms/app/atc-sim"); return; }
-    setResult(r);
+    queueMicrotask(() => {
+      if (active) setResult(r);
+    });
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   if (!result) return null;

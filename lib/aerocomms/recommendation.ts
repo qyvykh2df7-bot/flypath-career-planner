@@ -85,21 +85,21 @@ function recommendNextCadetInterleaved(
   // ── Pass 1: Continue any in-progress TOPIC ─────────────────────────────
   // We iterate topic-by-topic so that a finished topic inside a Foundation
   // module doesn't prevent Core Practice from surfacing at the next session.
-  for (const module of allModules) {
-    if (module.topics) {
-      for (const topic of module.topics) {
+  for (const trainingModule of allModules) {
+    if (trainingModule.topics) {
+      for (const topic of trainingModule.topics) {
         const done = topic.exercises.filter((e) => completed.has(e.id)).length;
         if (done > 0 && done < topic.exercises.length) {
           const ex = topic.exercises.find((e) => !completed.has(e.id));
-          if (ex) return { level: cadetLevel, module, topic, exercise: ex, reason: "continue" };
+          if (ex) return { level: cadetLevel, module: trainingModule, topic, exercise: ex, reason: "continue" };
         }
       }
     } else {
       // Flat module (no topic grouping) — use module-level completion.
-      const c = moduleCompletion(module, completed);
+      const c = moduleCompletion(trainingModule, completed);
       if (c > 0 && c < 100) {
-        const hit = firstIncompleteExercise(module, completed);
-        if (hit) return { level: cadetLevel, module, exercise: hit.exercise, reason: "continue" };
+        const hit = firstIncompleteExercise(trainingModule, completed);
+        if (hit) return { level: cadetLevel, module: trainingModule, exercise: hit.exercise, reason: "continue" };
       }
     }
   }
@@ -107,26 +107,26 @@ function recommendNextCadetInterleaved(
   // ── Pass 2: Start first unlocked Core Practice topic ───────────────────
   // "Unlocked" means ALL required skills in TOPIC_REQUIREMENTS are in
   // learnedSkills. No dev-unlock bypass.
-  for (const module of coreModules) {
-    if (!module.topics) continue;
-    for (const topic of module.topics) {
+  for (const trainingModule of coreModules) {
+    if (!trainingModule.topics) continue;
+    for (const topic of trainingModule.topics) {
       const reqs = TOPIC_REQUIREMENTS[topic.id] ?? [];
       if (!reqs.every((skill) => learnedSkills.has(skill))) continue;
       const ex = topic.exercises.find((e) => !completed.has(e.id));
-      if (ex) return { level: cadetLevel, module, topic, exercise: ex, reason: "start" };
+      if (ex) return { level: cadetLevel, module: trainingModule, topic, exercise: ex, reason: "start" };
     }
   }
 
   // ── Pass 3: Start next Foundation topic not yet touched ────────────────
-  for (const module of foundationModules) {
-    const hit = firstIncompleteExercise(module, completed);
-    if (hit) return { level: cadetLevel, module, topic: hit.topic, exercise: hit.exercise, reason: "start" };
+  for (const trainingModule of foundationModules) {
+    const hit = firstIncompleteExercise(trainingModule, completed);
+    if (hit) return { level: cadetLevel, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "start" };
   }
 
   // ── Pass 4: Safety net — any remaining incomplete Cadet content ─────────
-  for (const module of allModules) {
-    const hit = firstIncompleteExercise(module, completed);
-    if (hit) return { level: cadetLevel, module, topic: hit.topic, exercise: hit.exercise, reason: "start" };
+  for (const trainingModule of allModules) {
+    const hit = firstIncompleteExercise(trainingModule, completed);
+    if (hit) return { level: cadetLevel, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "start" };
   }
 
   // ── Pass 5: Weakest-skill practice fallback ────────────────────────────

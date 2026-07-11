@@ -51,18 +51,25 @@ export function VoiceSpeakingScreen({ title, content, onComplete }: VoiceSpeakin
   const [drills, setDrills] = useState<Drill[]>([FALLBACK_DRILL]);
 
   useEffect(() => {
-    setMounted(true);
-    const micOk = browserMicSupported();
-    const browserOk = micOk && provider.stt.isSupported();
-    const serverOk = micOk && typeof MediaRecorder !== "undefined";
-    setBrowserSttOk(browserOk);
-    setServerSttOk(serverOk);
-    if (!micOk) setState("unsupported");
-    // Shuffle and pick 10 drills client-side only — Math.random() never runs during SSR,
-    // so server and client produce identical first-render HTML (no hydration mismatch).
-    // content is captured at mount time from the closure; it is stable for the session.
-    const source = content?.drills?.length ? content.drills : [FALLBACK_DRILL];
-    setDrills(shuffleAndPick(source, 10));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setMounted(true);
+      const micOk = browserMicSupported();
+      const browserOk = micOk && provider.stt.isSupported();
+      const serverOk = micOk && typeof MediaRecorder !== "undefined";
+      setBrowserSttOk(browserOk);
+      setServerSttOk(serverOk);
+      if (!micOk) setState("unsupported");
+      // Shuffle and pick 10 drills client-side only — Math.random() never runs during SSR,
+      // so server and client produce identical first-render HTML (no hydration mismatch).
+      // content is captured at mount time from the closure; it is stable for the session.
+      const source = content?.drills?.length ? content.drills : [FALLBACK_DRILL];
+      setDrills(shuffleAndPick(source, 10));
+    });
+    return () => {
+      active = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider]); // provider is the stable mount trigger; content captured via closure
 

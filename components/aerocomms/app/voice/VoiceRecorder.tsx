@@ -116,7 +116,15 @@ export function VoiceRecorder({
   const stopReasonRef = useRef<StopReason>("manual");
   const recordingStartedAtRef = useRef(0);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setMounted(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const stopSilenceMonitor = () => {
     if (silenceRafRef.current !== null) {

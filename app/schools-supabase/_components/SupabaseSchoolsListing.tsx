@@ -126,9 +126,16 @@ export function SupabaseSchoolsListing({ schools, profilesBySlug }: Props) {
 
   // Hidratación inicial: leer sessionStorage y filtrar contra la lista actual.
   useEffect(() => {
+    let active = true;
     const restored = readStoredSelectedIds(validIds);
-    setSelectedIds(restored);
-    setSelectionHydrated(true);
+    queueMicrotask(() => {
+      if (!active) return;
+      setSelectedIds(restored);
+      setSelectionHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
     // Solo en montaje: si la lista de escuelas cambia, lo gestionamos en el efecto siguiente.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -136,10 +143,17 @@ export function SupabaseSchoolsListing({ schools, profilesBySlug }: Props) {
   // Si la lista de escuelas cambia, eliminamos seleccionados que dejen de existir.
   useEffect(() => {
     if (!selectionHydrated) return;
-    setSelectedIds((current) => {
-      const filtered = current.filter((id) => validIds.has(id));
-      return filtered.length === current.length ? current : filtered;
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setSelectedIds((current) => {
+        const filtered = current.filter((id) => validIds.has(id));
+        return filtered.length === current.length ? current : filtered;
+      });
     });
+    return () => {
+      active = false;
+    };
   }, [validIds, selectionHydrated]);
 
   // Persistencia.

@@ -30,8 +30,15 @@ export function useQaPremiumMode(): {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setQaPremiumMode(getInitialQaPremiumMode());
-    setHydrated(true);
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setQaPremiumMode(getInitialQaPremiumMode());
+      setHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {

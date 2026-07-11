@@ -126,9 +126,16 @@ function SchoolsPageContent() {
   }, []);
 
   useEffect(() => {
+    let active = true;
     const stored = readStoredSelectedIds();
-    setSelectedIds(stored);
-    setSelectionHydrated(true);
+    queueMicrotask(() => {
+      if (!active) return;
+      setSelectedIds(stored);
+      setSelectionHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -161,18 +168,25 @@ function SchoolsPageContent() {
     const school = findSchoolInDataset(schoolsDataset, slug);
     if (!school) return;
 
-    setSelectedIds((current) => {
-      if (current.includes(school.id)) return current;
-      if (current.length >= MAX_SELECTED) {
-        queueMicrotask(() => showToast("Máximo 2 escuelas en comparación"));
-        return current;
-      }
-      return [...current, school.id];
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setSelectedIds((current) => {
+        if (current.includes(school.id)) return current;
+        if (current.length >= MAX_SELECTED) {
+          queueMicrotask(() => showToast("Máximo 2 escuelas en comparación"));
+          return current;
+        }
+        return [...current, school.id];
+      });
     });
 
     queueMicrotask(() => {
       searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+    return () => {
+      active = false;
+    };
   }, [searchParams, router, showToast, selectionHydrated, schoolsDataset]);
 
   useEffect(() => {
@@ -192,16 +206,23 @@ function SchoolsPageContent() {
     router.replace(pathWithoutReviewsParams, { scroll: false });
 
     const school = findSchoolInDataset(schoolsDataset, slug);
+    let active = true;
 
     if (school) {
-      setSelectedIds((current) =>
-        ensureSelectedSchoolFromReviewsQuery(current, school.id),
-      );
+      queueMicrotask(() => {
+        if (!active) return;
+        setSelectedIds((current) =>
+          ensureSelectedSchoolFromReviewsQuery(current, school.id),
+        );
+      });
     }
 
     queueMicrotask(() => {
       searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+    return () => {
+      active = false;
+    };
   }, [searchParams, router, selectionHydrated, schoolsDataset]);
 
   const notifyMentoring = () => {

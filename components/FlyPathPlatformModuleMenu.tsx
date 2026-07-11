@@ -223,10 +223,16 @@ export function FlyPathPlatformModuleMenu({
 
   useEffect(() => {
     if (!open) return;
+    let active = true;
     const activeIds = PLATFORM_NAV_SECTIONS.filter(
       (section) => section.items.length > 0 && isSectionActive(currentModuleId, section),
     ).map((section) => section.id);
-    setExpandedSectionIds(new Set(activeIds));
+    queueMicrotask(() => {
+      if (active) setExpandedSectionIds(new Set(activeIds));
+    });
+    return () => {
+      active = false;
+    };
   }, [open, currentModuleId]);
 
   const handleNavigate = (href: string, status: PlatformModuleStatus) => {

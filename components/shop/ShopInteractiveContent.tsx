@@ -119,7 +119,13 @@ function ProductImageSlot({
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    setFailed(false);
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setFailed(false);
+    });
+    return () => {
+      active = false;
+    };
   }, [src]);
 
   return (

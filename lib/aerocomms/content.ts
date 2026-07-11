@@ -1137,8 +1137,8 @@ function applyGating(level: Level) {
 
 // Attach the concrete Cadet exercise content (the exercise bank) by id.
 function attachContent(level: Level) {
-  for (const module of level.modules) {
-    for (const ex of module.exercises) {
+  for (const trainingModule of level.modules) {
+    for (const ex of trainingModule.exercises) {
       const c = CADET_BANK[ex.id];
       if (c) ex.content = c;
     }
@@ -1155,8 +1155,8 @@ export function getLevel(id: string): Level | undefined {
 
 export function findModule(moduleId: string): { level: Level; module: Module } | undefined {
   for (const level of LEVELS) {
-    const module = level.modules.find((m) => m.id === moduleId);
-    if (module) return { level, module };
+    const trainingModule = level.modules.find((m) => m.id === moduleId);
+    if (trainingModule) return { level, module: trainingModule };
   }
   return undefined;
 }
@@ -1165,18 +1165,18 @@ export function findExercise(exerciseId: string):
   | { level: Level; module: Module; topic?: Topic; exercise: Exercise; index: number; total: number }
   | undefined {
   for (const level of LEVELS) {
-    for (const module of level.modules) {
-      if (module.topics) {
-        for (const topic of module.topics) {
+    for (const trainingModule of level.modules) {
+      if (trainingModule.topics) {
+        for (const topic of trainingModule.topics) {
           const idx = topic.exercises.findIndex((e) => e.id === exerciseId);
           if (idx >= 0) {
-            return { level, module, topic, exercise: topic.exercises[idx], index: idx, total: topic.exercises.length };
+            return { level, module: trainingModule, topic, exercise: topic.exercises[idx], index: idx, total: topic.exercises.length };
           }
         }
       } else {
-        const idx = module.exercises.findIndex((e) => e.id === exerciseId);
+        const idx = trainingModule.exercises.findIndex((e) => e.id === exerciseId);
         if (idx >= 0) {
-          return { level, module, exercise: module.exercises[idx], index: idx, total: module.exercises.length };
+          return { level, module: trainingModule, exercise: trainingModule.exercises[idx], index: idx, total: trainingModule.exercises.length };
         }
       }
     }
@@ -1186,9 +1186,9 @@ export function findExercise(exerciseId: string):
 
 export function findTopic(topicId: string): { level: Level; module: Module; topic: Topic } | undefined {
   for (const level of LEVELS) {
-    for (const module of level.modules) {
-      const topic = module.topics?.find((t) => t.id === topicId);
-      if (topic) return { level, module, topic };
+    for (const trainingModule of level.modules) {
+      const topic = trainingModule.topics?.find((t) => t.id === topicId);
+      if (topic) return { level, module: trainingModule, topic };
     }
   }
   return undefined;
@@ -1217,10 +1217,10 @@ export function trainSections(level: Level): Section[] {
     .filter((sec) => sec.modules.length > 0);
 }
 
-export function moduleCompletion(module: Module, completed: Set<string>): number {
-  if (module.exercises.length === 0) return 0;
-  const done = module.exercises.filter((e) => completed.has(e.id)).length;
-  return Math.round((done / module.exercises.length) * 100);
+export function moduleCompletion(trainingModule: Module, completed: Set<string>): number {
+  if (trainingModule.exercises.length === 0) return 0;
+  const done = trainingModule.exercises.filter((e) => completed.has(e.id)).length;
+  return Math.round((done / trainingModule.exercises.length) * 100);
 }
 
 export function levelCompletion(level: Level, completed: Set<string>): number {
@@ -1276,15 +1276,15 @@ export function modulesRemaining(level: Level, completed: Set<string>): number {
   return trainModules(level).filter((m) => moduleCompletion(m, completed) < 100).length;
 }
 
-export function firstIncompleteExercise(module: Module, completed: Set<string>): { topic?: Topic; exercise: Exercise } | undefined {
-  if (module.topics) {
-    for (const topic of module.topics) {
+export function firstIncompleteExercise(trainingModule: Module, completed: Set<string>): { topic?: Topic; exercise: Exercise } | undefined {
+  if (trainingModule.topics) {
+    for (const topic of trainingModule.topics) {
       const ex = topic.exercises.find((e) => !completed.has(e.id));
       if (ex) return { topic, exercise: ex };
     }
     return undefined;
   }
-  const ex = module.exercises.find((e) => !completed.has(e.id));
+  const ex = trainingModule.exercises.find((e) => !completed.has(e.id));
   return ex ? { exercise: ex } : undefined;
 }
 
@@ -1310,17 +1310,17 @@ export type Recommendation = {
  * 3) if the level is complete, practise the weakest skill.
  */
 export function recommendNext(level: Level, completed: Set<string>, skills: Record<PracticeSkill, number>): Recommendation | undefined {
-  for (const module of trainModules(level)) {
-    const c = moduleCompletion(module, completed);
+  for (const trainingModule of trainModules(level)) {
+    const c = moduleCompletion(trainingModule, completed);
     if (c > 0 && c < 100) {
-      const hit = firstIncompleteExercise(module, completed);
-      if (hit) return { level, module, topic: hit.topic, exercise: hit.exercise, reason: "continue" };
+      const hit = firstIncompleteExercise(trainingModule, completed);
+      if (hit) return { level, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "continue" };
     }
   }
-  for (const module of trainModules(level)) {
-    if (moduleCompletion(module, completed) === 0) {
-      const hit = firstIncompleteExercise(module, completed);
-      if (hit) return { level, module, topic: hit.topic, exercise: hit.exercise, reason: "start" };
+  for (const trainingModule of trainModules(level)) {
+    if (moduleCompletion(trainingModule, completed) === 0) {
+      const hit = firstIncompleteExercise(trainingModule, completed);
+      if (hit) return { level, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "start" };
     }
   }
   const skillMod = trainModules(level).find((m) => m.id === SKILL_MODULE[weakestSkill(skills)]) ?? trainModules(level)[0];
