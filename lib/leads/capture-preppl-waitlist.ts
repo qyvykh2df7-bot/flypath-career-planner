@@ -9,6 +9,7 @@ import {
 } from "@/lib/leads/capture-shared";
 import { PREPPL_WAITLIST_CONSENT_TEXT } from "@/lib/leads/preppl-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import type { TrackingContext } from "@/lib/tracking/events";
 
 const SOURCE = "preppl";
 const PRODUCT_KEY = "preppl_guide";
@@ -30,9 +31,15 @@ export class PrepplWaitlistLeadCaptureError extends LeadCaptureError {
  * Nota: Supabase JS no ofrece transacciones multi-tabla sin RPC.
  * Si un paso posterior falla, los anteriores pueden quedar escritos.
  */
-export async function capturePrepplWaitlistJoin(normalizedEmail: string): Promise<void> {
+export async function capturePrepplWaitlistJoin(
+  normalizedEmail: string,
+  idempotencyKey: string,
+  trackingContext?: TrackingContext | null,
+): Promise<void> {
   const admin = getSupabaseAdmin();
   const now = new Date().toISOString();
+  let leadId: string;
+  let productId: string;
 
   try {
     const { data: product, error: productError } = await admin
@@ -45,12 +52,13 @@ export async function capturePrepplWaitlistJoin(normalizedEmail: string): Promis
       throw new PrepplWaitlistLeadCaptureError();
     }
 
-    const leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
+    productId = product.id;
+    leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
       source: SOURCE,
       marketingConsent: true,
     });
 
-    await upsertLeadProductInterest(admin, leadId, product.id, now, {
+    await upsertLeadProductInterest(admin, leadId, productId, now, {
       source: SOURCE,
       status: INTEREST_STATUS,
     });
@@ -61,18 +69,30 @@ export async function capturePrepplWaitlistJoin(normalizedEmail: string): Promis
       consentText: PREPPL_WAITLIST_CONSENT_TEXT,
     });
 
-    await insertUserEvent(admin, {
-      leadId,
-      productId: product.id,
-      eventName: EVENT_NAME,
-      eventCategory: EVENT_CATEGORY,
-      source: SOURCE,
-      occurredAt: now,
-    });
   } catch (error) {
     if (error instanceof LeadCaptureError) {
       throw new PrepplWaitlistLeadCaptureError();
     }
     throw error;
+  }
+
+  try {
+    await insertUserEvent(admin, {
+      leadId,
+      productId,
+      eventName: EVENT_NAME,
+      eventCategory: EVENT_CATEGORY,
+      source: SOURCE,
+      metadata: {
+        popup_id: "preppl_waitlist",
+        form_id: "preppl_waitlist",
+        product_key: PRODUCT_KEY,
+      },
+      trackingContext,
+      idempotencyKey,
+      occurredAt: now,
+    });
+  } catch {
+    console.error("[FlyPath] Pre-PPL conversion event persistence failed.");
   }
 }

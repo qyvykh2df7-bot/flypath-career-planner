@@ -1,4 +1,5 @@
 import { CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE } from "@/lib/leads/career-planner-consent";
+import type { TrackingContext } from "@/lib/tracking/events";
 
 type CaptureCareerPlannerReportResult =
   | { ok: true }
@@ -10,6 +11,8 @@ const GENERIC_ERROR_MESSAGE =
 export async function captureCareerPlannerReportLead(
   email: string,
   marketingConsent: boolean,
+  trackingContext: TrackingContext | null,
+  idempotencyKey: string,
 ): Promise<CaptureCareerPlannerReportResult> {
   let response: Response;
 
@@ -21,6 +24,8 @@ export async function captureCareerPlannerReportLead(
         email,
         downloadType: "free_report",
         marketingConsent,
+        idempotency_key: idempotencyKey,
+        ...(trackingContext ? { tracking: trackingContext } : {}),
       }),
     });
   } catch {

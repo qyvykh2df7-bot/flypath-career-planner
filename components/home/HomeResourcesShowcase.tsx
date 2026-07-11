@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { PrePplWaitlistModal } from "@/components/home/PrePplWaitlistModal";
+import { initializeTrackingContext } from "@/lib/tracking/session";
 
 type ResourceType = "HERRAMIENTA" | "GUÍA" | "APP" | "MENTORÍA";
 
@@ -169,6 +170,10 @@ function ResourceCard({
 
 export function HomeResourcesShowcase() {
   const [waitlistModalOpen, setWaitlistModalOpen] = useState(false);
+
+  useEffect(() => {
+    initializeTrackingContext();
+  }, []);
 
   return (
     <section className="overflow-hidden border-t border-[#071224]/[0.06] bg-[#F7F8FA]">

@@ -66,6 +66,29 @@ describe("tracking server validation", () => {
     expect(event.context.referrer).toBe("https://www.google.com");
   });
 
+  it("acepta únicamente el popup Pre-PPL permitido y rechaza PII en metadata", () => {
+    expect(
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "popup_opened",
+          metadata: { popup_id: "preppl_waitlist" },
+        },
+        "https://flypath.test",
+      ).metadata,
+    ).toMatchObject({ popup_id: "preppl_waitlist" });
+
+    expect(() =>
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          metadata: { form_id: "pilot@example.com" },
+        },
+        "https://flypath.test",
+      ),
+    ).toThrow(TrackingPayloadError);
+  });
+
   it("requiere cookie de consentimiento y origen propio", () => {
     const request = new Request("https://flypath.test/api/tracking/events", {
       headers: {

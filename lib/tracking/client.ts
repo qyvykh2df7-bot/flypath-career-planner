@@ -13,8 +13,13 @@ const EVENT_STORAGE_PREFIX = "flypath_tracking_event";
 const sentEvents = new Set<string>();
 const pendingEvents = new Set<string>();
 
-function supportsFormId(formIds: readonly string[], formId: string): boolean {
-  return formIds.includes(formId);
+function getMetadataIdentifier(
+  metadata: TrackingEventMetadata,
+  metadataKey: "form_id" | "popup_id",
+): string | null {
+  if (metadataKey === "form_id" && "form_id" in metadata) return metadata.form_id;
+  if (metadataKey === "popup_id" && "popup_id" in metadata) return metadata.popup_id;
+  return null;
 }
 
 function wasEventTrackedThisSession(key: string): boolean {
@@ -48,15 +53,17 @@ export function trackEventOncePerSession(
   if (typeof window === "undefined" || !hasAnalyticsConsent()) return;
 
   const eventDefinition = TRACKING_EVENT_DEFINITIONS[eventName];
-  if (!supportsFormId(eventDefinition.formIds, metadata.form_id)) return;
+  const metadataIdentifier = getMetadataIdentifier(metadata, eventDefinition.metadataKey);
+  const allowedMetadataIds: readonly string[] = eventDefinition.metadataIds;
+  if (!metadataIdentifier || !allowedMetadataIds.includes(metadataIdentifier)) return;
 
   const context = getTrackingContext();
   if (!context) return;
 
-  const storageKey = `${EVENT_STORAGE_PREFIX}:${context.session_id}:${eventName}:${metadata.form_id}`;
+  const storageKey = `${EVENT_STORAGE_PREFIX}:${context.session_id}:${eventName}:${metadataIdentifier}`;
   if (wasEventTrackedThisSession(storageKey) || pendingEvents.has(storageKey)) return;
 
-  const idempotencyKey = getTrackingEventId(eventName, metadata.form_id);
+  const idempotencyKey = getTrackingEventId(eventName, metadataIdentifier);
   if (!idempotencyKey) return;
 
   pendingEvents.add(storageKey);

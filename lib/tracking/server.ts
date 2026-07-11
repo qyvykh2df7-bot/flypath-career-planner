@@ -17,6 +17,8 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const TRACKING_REQUEST_MAX_BODY_SIZE = 8_192;
 export const HOME_NEWSLETTER_REQUEST_MAX_BODY_SIZE = 8_192;
+export const CAREER_PLANNER_REPORT_REQUEST_MAX_BODY_SIZE = 8_192;
+export const PREPPL_WAITLIST_REQUEST_MAX_BODY_SIZE = 8_192;
 
 const TRACKING_RATE_LIMIT_WINDOW_MS = 60_000;
 const TRACKING_RATE_LIMIT_MAX_REQUESTS = 12;
@@ -55,10 +57,6 @@ type TrackingEventInsertResult = "inserted" | "duplicate";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function supportsFormId(formIds: readonly string[], formId: string): boolean {
-  return formIds.includes(formId);
 }
 
 function readSafeUtm(value: unknown): string | null | undefined {
@@ -140,17 +138,20 @@ export function sanitizeTrackingContext(
   };
 }
 
-function parseFormMetadata(value: unknown): { form_id: string } {
+function parseTrackingMetadata(
+  value: unknown,
+  metadataKey: "form_id" | "popup_id",
+): Record<"form_id" | "popup_id", string> {
   if (!isRecord(value) || Object.keys(value).length !== 1) {
     throw new TrackingPayloadError();
   }
 
-  const formId = value.form_id;
-  if (typeof formId !== "string" || hasSensitiveAnalyticValue(formId)) {
+  const metadataId = value[metadataKey];
+  if (typeof metadataId !== "string" || hasSensitiveAnalyticValue(metadataId)) {
     throw new TrackingPayloadError();
   }
 
-  return { form_id: formId };
+  return { [metadataKey]: metadataId } as Record<"form_id" | "popup_id", string>;
 }
 
 export async function readJsonBodyWithinLimit(
@@ -269,8 +270,10 @@ export function parseTrackingEventPayload(
     throw new TrackingPayloadError();
   }
 
-  const metadata = parseFormMetadata(value.metadata);
-  if (!supportsFormId(eventDefinition.formIds, metadata.form_id)) {
+  const metadata = parseTrackingMetadata(value.metadata, eventDefinition.metadataKey);
+  const metadataId = metadata[eventDefinition.metadataKey];
+  const allowedMetadataIds: readonly string[] = eventDefinition.metadataIds;
+  if (!allowedMetadataIds.includes(metadataId)) {
     throw new TrackingPayloadError();
   }
 
@@ -281,7 +284,7 @@ export function parseTrackingEventPayload(
     context,
     metadata: {
       ...getTrackingContextMetadata(context),
-      form_id: metadata.form_id,
+      [eventDefinition.metadataKey]: metadataId,
     },
   };
 }

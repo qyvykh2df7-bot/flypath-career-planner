@@ -58,4 +58,53 @@ describe("trackEventOncePerSession", () => {
     trackEventOncePerSession("form_started", { form_id: "home_newsletter" });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("persiste los inicios y la apertura Pre-PPL una sola vez por sesión", async () => {
+    const localStorage = createStorage();
+    const sessionStorage = createStorage();
+    localStorage.setItem("flypath_analytics_consent", "granted");
+    vi.stubGlobal("window", {
+      localStorage,
+      sessionStorage,
+      location: {
+        href: "https://flypath.test/career-planner",
+        origin: "https://flypath.test",
+        pathname: "/career-planner",
+      },
+    });
+    vi.stubGlobal("document", { referrer: "" });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.resetModules();
+
+    const { trackEventOncePerSession } = await import("./client");
+    trackEventOncePerSession("form_started", { form_id: "career_planner_report" });
+    trackEventOncePerSession("form_started", { form_id: "career_planner_report" });
+    trackEventOncePerSession("popup_opened", { popup_id: "preppl_waitlist" });
+    trackEventOncePerSession("popup_opened", { popup_id: "preppl_waitlist" });
+    trackEventOncePerSession("form_started", { form_id: "preppl_waitlist" });
+    trackEventOncePerSession("form_started", { form_id: "preppl_waitlist" });
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+
+    const payloads = fetchMock.mock.calls.map(([, options]) =>
+      JSON.parse((options as RequestInit).body as string),
+    );
+    expect(payloads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event_name: "form_started",
+          metadata: { form_id: "career_planner_report" },
+        }),
+        expect.objectContaining({
+          event_name: "popup_opened",
+          metadata: { popup_id: "preppl_waitlist" },
+        }),
+        expect.objectContaining({
+          event_name: "form_started",
+          metadata: { form_id: "preppl_waitlist" },
+        }),
+      ]),
+    );
+  });
 });

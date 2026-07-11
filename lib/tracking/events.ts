@@ -51,13 +51,20 @@ export function isSafeUtmValue(value: string): boolean {
 export const TRACKING_EVENT_DEFINITIONS = {
   form_started: {
     category: "engagement",
-    formIds: ["home_newsletter"],
+    metadataKey: "form_id",
+    metadataIds: ["home_newsletter", "career_planner_report", "preppl_waitlist"],
+  },
+  popup_opened: {
+    category: "engagement",
+    metadataKey: "popup_id",
+    metadataIds: ["preppl_waitlist"],
   },
 } as const satisfies Record<
   string,
   {
     category: TrackingEventCategory;
-    formIds: readonly string[];
+    metadataKey: "form_id" | "popup_id";
+    metadataIds: readonly string[];
   }
 >;
 
@@ -76,6 +83,6 @@ export type TrackingContext = {
   utm_term: string | null;
 };
 
-export type TrackingEventMetadata = {
-  form_id: string;
-};
+export type TrackingEventMetadata =
+  | { form_id: string }
+  | { popup_id: string };

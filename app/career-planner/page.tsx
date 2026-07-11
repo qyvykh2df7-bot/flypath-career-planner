@@ -133,6 +133,12 @@ import {
   CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE,
   CAREER_PLANNER_MARKETING_CONSENT_TEXT,
 } from "@/lib/leads/career-planner-consent";
+import { trackEventOncePerSession } from "@/lib/tracking/client";
+import {
+  createTrackingUuid,
+  getTrackingContext,
+  initializeTrackingContext,
+} from "@/lib/tracking/session";
 const REPORT_EMAIL_STORAGE_KEY = "flypath_report_email";
 
 function isValidReportEmail(email: string): boolean {
@@ -1248,6 +1254,7 @@ export function FlyPathApp({
   const [reportLeadCaptureError, setReportLeadCaptureError] = useState<string | null>(null);
   const [reportMarketingConsent, setReportMarketingConsent] = useState(false);
   const [reportMarketingConsentHint, setReportMarketingConsentHint] = useState(false);
+  const [reportConversionId, setReportConversionId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
@@ -1271,6 +1278,10 @@ export function FlyPathApp({
     premiumUnlockedPlanner,
     qaPremiumMode,
   );
+
+  useEffect(() => {
+    initializeTrackingContext();
+  }, []);
 
   // Decide la apertura inicial del acordeón manual una sola vez, leyendo síncronamente
   // localStorage y los slugs del deep-link. Posteriores cambios de schools.length no afectan.
@@ -2358,15 +2369,20 @@ export function FlyPathApp({
     setFreePdfExporting(true);
     setReportLeadCaptureError(null);
     try {
+      const idempotencyKey = reportConversionId ?? createTrackingUuid();
+      if (!reportConversionId) setReportConversionId(idempotencyKey);
       const captureResult = await captureCareerPlannerReportLead(
         reportEmail,
         reportMarketingConsent,
+        getTrackingContext(),
+        idempotencyKey,
       );
       if (!captureResult.ok) {
         setReportLeadCaptureError(captureResult.message);
         showToast(captureResult.message);
         return;
       }
+      setReportConversionId(null);
 
       const { downloadFreeCareerReportPdf } = await import("@/lib/freeCareerReportPdf");
       await downloadFreeCareerReportPdf(reportSnapshot);
@@ -3003,6 +3019,11 @@ export function FlyPathApp({
                                   type="email"
                                   autoComplete="email"
                                   value={reportEmail}
+                                  onFocus={() =>
+                                    trackEventOncePerSession("form_started", {
+                                      form_id: "career_planner_report",
+                                    })
+                                  }
                                   onChange={(e) => {
                                     setReportEmail(e.target.value);
                                     if (isValidReportEmail(e.target.value)) {
@@ -3318,6 +3339,11 @@ export function FlyPathApp({
                           type="email"
                           autoComplete="email"
                           value={reportEmail}
+                          onFocus={() =>
+                            trackEventOncePerSession("form_started", {
+                              form_id: "career_planner_report",
+                            })
+                          }
                           onChange={(e) => {
                             setReportEmail(e.target.value);
                             if (isValidReportEmail(e.target.value)) {

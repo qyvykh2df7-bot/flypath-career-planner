@@ -6,8 +6,10 @@ import {
   LeadCaptureError,
   upsertEmailSubscriptionForLead,
   upsertLeadByEmail,
+  upsertLeadProductInterest,
 } from "@/lib/leads/capture-shared";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import type { TrackingContext } from "@/lib/tracking/events";
 
 const SOURCE = "career_planner";
 const PRODUCT_KEY = "career_planner";
@@ -31,9 +33,13 @@ export class CareerPlannerLeadCaptureError extends LeadCaptureError {
  */
 export async function captureCareerPlannerReportDownload(
   normalizedEmail: string,
+  idempotencyKey: string,
+  trackingContext?: TrackingContext | null,
 ): Promise<void> {
   const admin = getSupabaseAdmin();
   const now = new Date().toISOString();
+  let leadId: string;
+  let productId: string;
 
   try {
     const { data: product, error: productError } = await admin
@@ -46,27 +52,20 @@ export async function captureCareerPlannerReportDownload(
       throw new CareerPlannerLeadCaptureError();
     }
 
-    const leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
+    productId = product.id;
+    leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
       source: SOURCE,
       marketingConsent: true,
     });
 
-    await upsertLeadProductInterest(admin, leadId, product.id, now);
+    await upsertLeadProductInterest(admin, leadId, productId, now, {
+      source: SOURCE,
+      status: INTEREST_STATUS,
+    });
     await upsertEmailSubscriptionForLead(admin, leadId, now, {
       listKey: LIST_KEY,
       source: SOURCE,
       consentText: CAREER_PLANNER_MARKETING_CONSENT_TEXT,
-    });
-    await insertUserEvent(admin, {
-      leadId,
-      productId: product.id,
-      eventName: EVENT_NAME,
-      eventCategory: EVENT_CATEGORY,
-      source: SOURCE,
-      metadata: {
-        download_type: "free_report",
-      },
-      occurredAt: now,
     });
   } catch (error) {
     if (error instanceof CareerPlannerLeadCaptureError) {
@@ -77,54 +76,23 @@ export async function captureCareerPlannerReportDownload(
     }
     throw error;
   }
-}
 
-type AdminClient = ReturnType<typeof getSupabaseAdmin>;
-
-async function upsertLeadProductInterest(
-  admin: AdminClient,
-  leadId: string,
-  productId: string,
-  now: string,
-): Promise<void> {
-  const { data: existingInterest, error: selectError } = await admin
-    .from("lead_product_interests")
-    .select("id")
-    .eq("lead_id", leadId)
-    .eq("product_id", productId)
-    .maybeSingle();
-
-  if (selectError) {
-    throw new CareerPlannerLeadCaptureError();
-  }
-
-  if (existingInterest) {
-    const { error: updateError } = await admin
-      .from("lead_product_interests")
-      .update({
-        latest_source: SOURCE,
-        status: INTEREST_STATUS,
-        last_seen_at: now,
-      })
-      .eq("id", existingInterest.id);
-
-    if (updateError) {
-      throw new CareerPlannerLeadCaptureError();
-    }
-    return;
-  }
-
-  const { error: insertError } = await admin.from("lead_product_interests").insert({
-    lead_id: leadId,
-    product_id: productId,
-    first_source: SOURCE,
-    latest_source: SOURCE,
-    status: INTEREST_STATUS,
-    first_seen_at: now,
-    last_seen_at: now,
-  });
-
-  if (insertError) {
-    throw new CareerPlannerLeadCaptureError();
+  try {
+    await insertUserEvent(admin, {
+      leadId,
+      productId,
+      eventName: EVENT_NAME,
+      eventCategory: EVENT_CATEGORY,
+      source: SOURCE,
+      metadata: {
+        download_type: "free_report",
+        form_id: "career_planner_report",
+      },
+      trackingContext,
+      idempotencyKey,
+      occurredAt: now,
+    });
+  } catch {
+    console.error("[FlyPath] Career Planner conversion event persistence failed.");
   }
 }

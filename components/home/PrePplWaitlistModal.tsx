@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Loader2, X } from "lucide-react";
 import { capturePrepplWaitlistLead } from "@/lib/leads/capture-preppl-waitlist-client";
+import { trackEventOncePerSession } from "@/lib/tracking/client";
+import {
+  createTrackingUuid,
+  getTrackingContext,
+  initializeTrackingContext,
+} from "@/lib/tracking/session";
 
 type PrePplWaitlistModalProps = {
   open: boolean;
@@ -19,17 +25,22 @@ export function PrePplWaitlistModal({ open, onClose }: PrePplWaitlistModalProps)
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const submissionIdRef = useRef<string | null>(null);
 
   const handleClose = useCallback(() => {
     setEmail("");
     setIsLoading(false);
     setErrorMessage(null);
     setSubmitted(false);
+    submissionIdRef.current = null;
     onClose();
   }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
+
+    initializeTrackingContext();
+    trackEventOncePerSession("popup_opened", { popup_id: "preppl_waitlist" });
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") handleClose();
@@ -48,7 +59,13 @@ export function PrePplWaitlistModal({ open, onClose }: PrePplWaitlistModalProps)
     setIsLoading(true);
     setErrorMessage(null);
 
-    const result = await capturePrepplWaitlistLead(email);
+    const idempotencyKey = submissionIdRef.current ?? createTrackingUuid();
+    submissionIdRef.current = idempotencyKey;
+    const result = await capturePrepplWaitlistLead(
+      email,
+      getTrackingContext(),
+      idempotencyKey,
+    );
 
     setIsLoading(false);
 
@@ -114,6 +131,9 @@ export function PrePplWaitlistModal({ open, onClose }: PrePplWaitlistModalProps)
                     required
                     disabled={isLoading}
                     value={email}
+                    onFocus={() =>
+                      trackEventOncePerSession("form_started", { form_id: "preppl_waitlist" })
+                    }
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="tu@email.com"
                     className="w-full rounded-xl border border-[#071224]/15 bg-white px-3.5 py-2.5 text-[14px] text-[#071224] placeholder:text-[#071224]/40 focus:border-[#D6AE4F]/50 focus:outline-none focus:ring-2 focus:ring-[#D6AE4F]/25 disabled:opacity-60"

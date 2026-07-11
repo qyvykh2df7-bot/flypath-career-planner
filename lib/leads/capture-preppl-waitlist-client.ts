@@ -1,3 +1,5 @@
+import type { TrackingContext } from "@/lib/tracking/events";
+
 type CapturePrepplWaitlistResult =
   | { ok: true }
   | { ok: false; message: string };
@@ -7,6 +9,8 @@ const GENERIC_ERROR_MESSAGE =
 
 export async function capturePrepplWaitlistLead(
   email: string,
+  trackingContext: TrackingContext | null,
+  idempotencyKey: string,
 ): Promise<CapturePrepplWaitlistResult> {
   let response: Response;
 
@@ -14,7 +18,11 @@ export async function capturePrepplWaitlistLead(
     response = await fetch("/api/leads/preppl-waitlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        email,
+        idempotency_key: idempotencyKey,
+        ...(trackingContext ? { tracking: trackingContext } : {}),
+      }),
     });
   } catch {
     return { ok: false, message: GENERIC_ERROR_MESSAGE };
