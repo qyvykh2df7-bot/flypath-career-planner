@@ -22,9 +22,12 @@ export async function upsertLeadByEmail(
     source: string;
     marketingConsent: boolean;
     funnelStage?: string;
+    fullName?: string;
+    touchMarketingConsent?: boolean;
   },
 ): Promise<string> {
   const funnelStage = options.funnelStage ?? DEFAULT_FUNNEL_STAGE;
+  const normalizedFullName = options.fullName?.trim() || null;
 
   const { data: existingLead, error: selectError } = await admin
     .from("leads")
@@ -37,14 +40,29 @@ export async function upsertLeadByEmail(
   }
 
   if (existingLead) {
+    const updatePayload: {
+      latest_source: string;
+      funnel_stage: string;
+      last_seen_at: string;
+      marketing_consent?: boolean;
+      full_name?: string;
+    } = {
+      latest_source: options.source,
+      funnel_stage: funnelStage,
+      last_seen_at: now,
+    };
+
+    if (options.touchMarketingConsent !== false) {
+      updatePayload.marketing_consent = options.marketingConsent;
+    }
+
+    if (normalizedFullName) {
+      updatePayload.full_name = normalizedFullName;
+    }
+
     const { data: updatedLead, error: updateError } = await admin
       .from("leads")
-      .update({
-        latest_source: options.source,
-        funnel_stage: funnelStage,
-        last_seen_at: now,
-        marketing_consent: options.marketingConsent,
-      })
+      .update(updatePayload)
       .eq("id", existingLead.id)
       .select("id")
       .single();
@@ -60,6 +78,7 @@ export async function upsertLeadByEmail(
     .from("leads")
     .insert({
       email: normalizedEmail,
+      full_name: normalizedFullName,
       first_source: options.source,
       latest_source: options.source,
       funnel_stage: funnelStage,

@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { Calendar, CheckCircle2, ShieldCheck, User } from "lucide-react";
+import { MentorshipSupportModal } from "@/components/mentorias/MentorshipSupportModal";
 
 const TOAST_MS = 2800;
 const MAIN_TOAST = "Reserva de mentoría próximamente";
-const ACOMPANAMIENTO_TOAST = "Solicitud de acompañamiento próximamente";
 
-/** Sustituir por URLs reales de Cal.com cuando estén disponibles */
+/** Sustituir por URL real de Cal.com cuando esté disponible */
 const CALCOM_MENTORIA_URL = "#";
-const CALCOM_ACOMPANAMIENTO_URL = "#";
 
 const MENTORIA_IDEAL_FOR = [
   "Dudas concretas",
@@ -29,6 +28,7 @@ const SECTION_LIGHT_BG = "bg-[#F7F8FA]";
 
 export function MentoriasPricingSection() {
   const [toast, setToast] = useState<string | null>(null);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
 
   const handleCalLinkClick = useCallback(
     (e: MouseEvent<HTMLAnchorElement>, href: string, toastMessage?: string) => {
@@ -153,20 +153,23 @@ export function MentoriasPricingSection() {
                 ))}
               </ul>
               <div className="mt-auto pt-5">
-                <a
-                  href={CALCOM_ACOMPANAMIENTO_URL}
-                  onClick={(e) =>
-                    handleCalLinkClick(e, CALCOM_ACOMPANAMIENTO_URL, ACOMPANAMIENTO_TOAST)
-                  }
+                <button
+                  type="button"
+                  onClick={() => setSupportModalOpen(true)}
                   className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-[0_10px_28px_rgba(201,164,84,0.3)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
                 >
                   Solicitar acompañamiento
-                </a>
+                </button>
               </div>
             </article>
           </div>
         </div>
       </section>
+
+      <MentorshipSupportModal
+        open={supportModalOpen}
+        onClose={() => setSupportModalOpen(false)}
+      />
     </>
   );
 }
