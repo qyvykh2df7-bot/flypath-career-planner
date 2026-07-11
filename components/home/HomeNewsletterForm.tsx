@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { captureHomeNewsletterLead } from "@/lib/leads/capture-home-newsletter-client";
 
 type HomeNewsletterFormProps = {
   variant?: "light" | "dark";
@@ -10,13 +12,27 @@ type HomeNewsletterFormProps = {
 export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProps) {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isDark = variant === "dark";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!email.trim()) return;
-    // Placeholder: pendiente de conectar con proveedor de email real.
-    setSubmitted(true);
+    if (!email.trim() || isLoading) return;
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    const result = await captureHomeNewsletterLead(email);
+
+    setIsLoading(false);
+
+    if (result.ok) {
+      setSubmitted(true);
+      return;
+    }
+
+    setErrorMessage(result.message);
   }
 
   if (submitted) {
@@ -51,23 +67,42 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
           name="email"
           type="email"
           required
+          disabled={isLoading}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="tu@email.com"
           className={
             isDark
-              ? "min-w-0 flex-1 rounded-lg bg-transparent px-3 py-2.5 text-[14px] text-[#071224] placeholder:text-[#071224]/45 focus:outline-none"
-              : "min-w-0 flex-1 rounded-xl bg-transparent px-3.5 py-2.5 text-[14px] text-[#071224] placeholder:text-[#071224]/40 focus:outline-none"
+              ? "min-w-0 flex-1 rounded-lg bg-transparent px-3 py-2.5 text-[14px] text-[#071224] placeholder:text-[#071224]/45 focus:outline-none disabled:opacity-60"
+              : "min-w-0 flex-1 rounded-xl bg-transparent px-3.5 py-2.5 text-[14px] text-[#071224] placeholder:text-[#071224]/40 focus:outline-none disabled:opacity-60"
           }
         />
         <button
           type="submit"
+          disabled={isLoading}
           aria-label="Suscribirme a la newsletter"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#D6AE4F] text-[#071224] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/45 sm:h-11 sm:w-11 sm:rounded-xl"
+          aria-busy={isLoading}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#D6AE4F] text-[#071224] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/45 disabled:cursor-not-allowed disabled:opacity-70 sm:h-11 sm:w-11 sm:rounded-xl"
         >
-          <ArrowRight className="h-[18px] w-[18px]" aria-hidden />
+          {isLoading ? (
+            <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden />
+          ) : (
+            <ArrowRight className="h-[18px] w-[18px]" aria-hidden />
+          )}
         </button>
       </div>
+      {errorMessage ? (
+        <p
+          role="alert"
+          className={
+            isDark
+              ? "rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2 text-[12px] font-medium text-red-100"
+              : "rounded-lg border border-red-300/60 bg-red-50 px-3 py-2 text-[12px] font-medium text-red-700"
+          }
+        >
+          {errorMessage}
+        </p>
+      ) : null}
       <p
         className={
           isDark
@@ -76,7 +111,20 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
         }
       >
         {isDark ? <Check className="h-3 w-3 shrink-0 text-white/85" aria-hidden /> : null}
-        Sin spam. Cancela cuando quieras.
+        <span>
+          Al suscribirte, aceptas recibir emails de FlyPath. Puedes darte de baja en cualquier momento. Consulta la{" "}
+          <Link
+            href="/politica-de-privacidad"
+            className={
+              isDark
+                ? "inline underline underline-offset-2 transition hover:text-white/85"
+                : "inline underline underline-offset-2 transition hover:text-[#071224]/70"
+            }
+          >
+            Política de Privacidad
+          </Link>
+          .
+        </span>
       </p>
     </form>
   );
