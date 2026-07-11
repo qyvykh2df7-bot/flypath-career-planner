@@ -2,62 +2,58 @@
 
 ## Resumen
 
-La **captación pública de leads** está completada: cuatro superficies conectadas al Backend Core de Supabase, validadas en local y en producción, fusionadas en `main`. Working tree limpio.
+- **Backend Core** (Fase 1) y **captación pública de leads** (Fase 2) completados y validados en producción.
+- **AeroComms** integrada en FlyPath (Fase 0); producto prácticamente terminado.
+- Documentación operativa alineada con roadmap definitivo (fases 3–11).
+- **Fase inmediata:** Tracking y analítica básica (Fase 3).
 
 ---
 
-## Captación pública completada
+## Estado del proyecto
 
-| Superficie | Commit principal en `main` |
-|------------|------------------------------|
-| Career Planner | `7b95c04` Connect Career Planner lead capture |
-| Newsletter home | `2a1e261` Connect home newsletter lead capture |
-| Pre-PPL (lista de espera) | `44ae869` Add Pre-PPL waitlist lead capture |
-| Acompañamiento | `23a40bb` Add mentorship support lead capture |
-
-### Flujos
-
-| Superficie | API | `product_key` | Suscripción | Persiste |
-|------------|-----|---------------|-------------|----------|
-| Career Planner | `/api/leads/career-planner-report` | `career_planner` | `career_planner` | lead, interés, suscripción, evento |
-| Newsletter home | `/api/leads/home-newsletter` | — | `home_newsletter` | lead, suscripción, evento |
-| Pre-PPL | `/api/leads/preppl-waitlist` | `preppl_guide` | `preppl` | lead, interés (`waitlist`), suscripción, evento |
-| Acompañamiento | `/api/leads/mentorship-support` | `flypath_accompaniment` | — | lead, interés (`interested`), evento |
-
-### Infraestructura
-
-- `lib/supabase/admin.ts` — cliente `service_role`, solo servidor.
-- `lib/leads/capture-shared.ts` — upsert lead, suscripción, interés, eventos.
-- `lib/leads/normalize-email.ts`
-- Rutas: `app/api/leads/career-planner-report`, `home-newsletter`, `preppl-waitlist`, `mentorship-support`
-- Migración adicional aplicada: `20260712010000_add_home_newsletter_sources.sql`
-- Variables: `.env.example` (`SUPABASE_SERVICE_ROLE_KEY`, URL pública Supabase)
-
-### Acompañamiento — decisiones actuales
-
-- `leads.source` = `mentoring`; `user_events.source` = `mentorship`.
-- `interest_intent` = `inquiry` en `user_events.metadata`.
-- Teléfono y campos del formulario en `user_events.metadata`.
-- Sin `email_subscriptions`; no modifica `marketing_consent`.
+| Área | Estado |
+|------|--------|
+| AeroComms en `/aerocomms/app` | Operativa (Fase 0) |
+| Captación pública (4 flujos) | Operativa (Fase 2) |
+| Tracking web ampliado | Pendiente (Fase 3 — actual) |
+| Warhome MVP | Pendiente (Fase 4) |
 
 ---
 
-## Estado Git
+## Captación pública (Fase 2 — referencia)
 
-- Rama: `main`
-- Sincronizada con `origin/main`
-- Working tree: limpio
+| Superficie | API |
+|------------|-----|
+| Career Planner | `/api/leads/career-planner-report` |
+| Newsletter home | `/api/leads/home-newsletter` |
+| Pre-PPL | `/api/leads/preppl-waitlist` |
+| Acompañamiento | `/api/leads/mentorship-support` |
+
+Infra: `lib/supabase/admin.ts`, `lib/leads/capture-shared.ts`, `app/api/leads/*`.
 
 ---
 
 ## Próximo trabajo
 
-Ver `ACTIVE_TASK.md`: **Warhome MVP — listado y detalle de leads**.
+Ver `ACTIVE_TASK.md`: **Tracking y analítica básica** (Fase 3).
 
-No iniciar worker de email ni automatizaciones antes de tener operación básica de leads en Warhome.
+### Roadmap — fases siguientes
+
+| Fase | Nombre |
+|------|--------|
+| 4 | Warhome MVP |
+| 5 | Emails operativos |
+| 6 | Login y cuentas FlyPath |
+| 7 | Persistencia de AeroComms |
+| 8 | Revisión final de AeroComms |
+| 9 | Pagos y monetización |
+| 10 | CRM y automatizaciones |
+| 11 | Warhome / Warboard completo |
+
+Detalle en `ROADMAP.md`. AeroComms **no** tiene fase futura de migración; persistencia (7), calidad de producto (8) y pagos Pro (9) son fases distintas.
 
 ---
 
 ## Referencia histórica — Backend Core Phase 1
 
-Previamente (2026-07-11): diseño, auditoría, aplicación manual en Supabase y merge del esquema completo del Backend Core (`61a0df6`). Doce migraciones base + endurecimiento de `products`. Detalle de tablas, RLS y decisiones técnicas en commits `007d7d0` → `61a0df6` de la rama `backend-core-phase-1`.
+Previamente (2026-07-11): esquema Supabase diseñado, auditado y fusionado en `main` (`61a0df6`). Migraciones `007d7d0` → `61a0df6`.

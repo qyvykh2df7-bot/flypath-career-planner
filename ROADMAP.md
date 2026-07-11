@@ -9,17 +9,30 @@ Roadmap del **proyecto FlyPath** (plataforma + productos). AeroComms es un produ
 | **Completado** | Entregado y en `main` (o aplicado en Supabase cuando aplica). |
 | **Preparado** | Esquema o base técnica lista; sin integración operativa. |
 | **Pendiente** | No iniciado o sin wiring de aplicación. |
+| **Siguiente** | Fase actual de trabajo. |
+
+**Elementos transversales** (aplican en todas las fases): seguridad, privacidad, RLS y permisos, logs y errores, backups, entornos dev/preview/production, pruebas, accesibilidad, rendimiento, documentación y migraciones.
 
 ---
 
-## Fase 0 — Migración e integración AeroComms en FlyPath
+## Fase 0 — AeroComms en FlyPath
 
 **Estado: Completado**
 
-- AeroComms migrado desde repositorio alpha a `/aerocomms/app` dentro de FlyPath.
+AeroComms ya vive **dentro de FlyPath** (`/aerocomms/app`). No hay fase futura de migración, repositorio separado ni elección de dominio pendiente.
+
+### Completado
+
+- App en `/aerocomms/app` dentro del monorepo FlyPath.
 - Rutas, componentes, lib, hooks, assets y APIs de voz integrados.
 - Landing AeroComms con CTA hacia la app.
-- Build y validación TypeScript en verde.
+- Producto **prácticamente terminado** en alcance funcional actual.
+
+### Pendiente de AeroComms (fases posteriores, no migración)
+
+- Persistencia de usuario y progreso en Supabase (Fase 7).
+- Revisión general, voces, transcripción, evaluación y QA (Fase 8).
+- Límites Free / Pro y desbloqueo tras pago (Fases 7 y 9).
 
 ---
 
@@ -36,19 +49,20 @@ Base de datos compartida para captación, perfiles, email, eventos, contenido y 
 - `profiles` con acceso por propietario.
 - Merge `backend-core-phase-1` → `main`.
 
-### Preparado (esquema, sin integración app)
+### Preparado (esquema, integración app en fases posteriores)
 
-| Dominio | Tablas | Integración app |
-|---------|--------|-----------------|
-| Catálogo | `products` | Pendiente (vista pública futura) |
-| Usuarios | `profiles` | Pendiente (alta manual / auth flow) |
-| Automatización email | `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries` | Pendiente |
-| Contenido | `content_items` | Pendiente |
-| Admin | `admin_notes` | Pendiente (UI Warhome) |
+| Dominio | Tablas | Fase prevista |
+|---------|--------|---------------|
+| Catálogo | `products` | Fase 9 (pagos) |
+| Usuarios | `profiles` | Fase 6 (login) |
+| Eventos / analítica | `user_events` | Fase 3 (tracking ampliado) |
+| Automatización email | `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries` | Fase 10 (CRM) |
+| Contenido | `content_items` | Fase 11 (Warboard) |
+| Admin | `admin_notes` | Fase 4 (Warhome MVP) |
 
 ---
 
-## Fase 2 — Backend Integration & Lead Capture (captación pública)
+## Fase 2 — Captación pública de leads
 
 **Estado: Completado**
 
@@ -68,101 +82,255 @@ Conexión del esquema a la aplicación FlyPath con capa servidor segura y cuatro
 | Pre-PPL (lista de espera) | `/api/leads/preppl-waitlist` | Completado |
 | Acompañamiento | `/api/leads/mentorship-support` | Completado |
 
-### Integración app — captación
-
-| Dominio | Tablas | Integración app |
-|---------|--------|-----------------|
-| Captación | `leads`, `lead_product_interests` | **Completado** (4 flujos) |
-| Email lists | `email_subscriptions` | **Completado** (3 flujos con suscripción) |
-| Analytics | `user_events` | **Completado** (ingesta desde captación) |
-
 ---
 
-## Fase 3 — Warhome MVP
+## Fase 3 — Tracking y analítica básica
 
 **Estado: Siguiente**
 
-Panel interno mínimo para operar el Backend Core.
+Medición de comportamiento en web y productos sin dashboards avanzados.
 
 ### Objetivos
 
-- Autenticación/admin privado.
-- Leads: listado y detalle.
-- Intereses de producto y suscripciones por lead.
-- Eventos recientes por lead.
-- Notas internas (`admin_notes`).
-- Sin Command Center completo aún.
+- Páginas visitadas.
+- Clics en CTA.
+- Comparador → Career Planner.
+- Apertura y envío de popups.
+- Formularios iniciados, completados y abandonados.
+- UTMs, referer y fuente.
+- Conversiones.
+- Sesiones anónimas.
+- Consentimiento de cookies y analítica cuando corresponda.
+- No guardar datos sensibles en eventos.
+
+### Fuera de alcance en esta fase
+
+- Dashboards avanzados.
+- Warhome / Warboard.
+- CRM, campañas o IA.
 
 ### Preparado (esquema)
 
-- `admin_notes`, `content_items`, tablas de leads y email ya existen.
-
-### Pendiente
-
-- UI Warhome.
-- Rutas protegidas.
-- Permisos de admin.
+- Tabla `user_events` (append-only); ingesta activa desde captación de leads (Fase 2).
 
 ---
 
-## Fase 4 — Email Automation Engine
-
-**Estado: Pendiente** (esquema **preparado**)
-
-### Preparado
-
-- Definición de secuencias y pasos.
-- Inscripciones, jobs y deliveries.
-
-### Pendiente
-
-- Worker que procese `email_jobs`.
-- Proveedor SMTP/API (Resend, Postmark, etc.).
-- Cron o scheduler.
-- Webhooks de entrega/rebote.
-- UI Warhome para secuencias.
-- **No presentar como funcional hasta Fase 4.**
-
----
-
-## Fase 5 — Content OS / Analytics / AI Agents
-
-**Estado: Pendiente** (partes del esquema **preparadas**)
-
-### Preparado
-
-- `content_items` — catálogo editorial.
-- `user_events` — registro append-only (ingesta activa desde captación).
-
-### Pendiente
-
-- Dashboards y agregaciones.
-- Publicación de contenido vía Next.js (no acceso directo Supabase).
-- Agentes AI sobre datos operativos.
-- Materialized views, retención, particionado.
-
----
-
-## Fase posterior — Ampliación de productos y automatizaciones
+## Fase 4 — Warhome MVP
 
 **Estado: Pendiente**
 
-- Más productos en `products` y flujos de captación adicionales.
-- Secuencias por producto/lista (`on_subscription`, `on_product_interest`, etc.).
-- Integración AeroComms ↔ leads/eventos (progreso, paywall, onboarding).
-- Escuelas, informes premium, más formularios.
-- Warhome como Command Center completo.
-- Automatizaciones cross-producto.
+Panel interno mínimo para operar leads y solicitudes.
+
+### Objetivos
+
+- Acceso administrativo seguro.
+- Listado de leads.
+- Búsqueda y filtros.
+- Detalle de lead.
+- Intereses.
+- Suscripciones.
+- Eventos y recorrido.
+- Solicitudes de acompañamiento.
+- Notas internas.
+- Estado operativo básico.
+
+### Fuera de alcance en esta fase
+
+- CRM avanzado.
+- Campañas.
+- IA.
+- Warboard completo.
+
+### Preparado (esquema)
+
+- `admin_notes`, tablas de leads, email y eventos ya existen.
+
+---
+
+## Fase 5 — Emails operativos
+
+**Estado: Pendiente**
+
+Envíos transaccionales y avisos internos; no automatizaciones avanzadas.
+
+### Objetivos
+
+- Proveedor de email.
+- Dominio remitente.
+- SPF, DKIM y DMARC.
+- Plantillas.
+- Confirmación Career Planner.
+- Confirmación Pre-PPL.
+- Confirmación acompañamiento.
+- Aviso interno.
+- Registro de envíos, errores y reintentos.
+- Bajas y consentimientos.
+
+### Preparado (esquema)
+
+- Tablas `email_jobs`, `email_deliveries` y suscripciones existen; sin proveedor operativo aún.
+
+---
+
+## Fase 6 — Login y cuentas FlyPath
+
+**Estado: Pendiente**
+
+Identidad común para FlyPath y AeroComms.
+
+### Objetivos
+
+- Supabase Auth.
+- Registro.
+- Login.
+- Recuperación de contraseña.
+- Perfiles.
+- Sesiones.
+- Permisos.
+- Relación lead–usuario.
+- Prevención de duplicados.
+- Cuenta común FlyPath y AeroComms.
+
+### Preparado (esquema)
+
+- Tabla `profiles` vinculada a `auth.users`.
+- `leads.user_id` opcional en esquema.
+
+---
+
+## Fase 7 — Persistencia de AeroComms
+
+**Estado: Pendiente**
+
+Progreso de usuario en backend; AeroComms ya está en FlyPath (Fase 0).
+
+### Objetivos
+
+- Progreso por usuario en Supabase.
+- Ejercicios completados.
+- Misiones.
+- Niveles.
+- Estadísticas.
+- Sincronización entre dispositivos.
+- Sustitución o migración de `localStorage`.
+- Preparación de límites Free y Pro.
+
+### Nota
+
+No implica mover AeroComms a otro repo ni dominio. Solo **persistencia y sincronización** del producto ya integrado.
+
+---
+
+## Fase 8 — Revisión final de AeroComms
+
+**Estado: Pendiente**
+
+Calidad de producto, voz y evaluación. Puede solaparse parcialmente con Fases 6 y 7.
+
+### Objetivos
+
+- Auditoría completa.
+- Voces naturales.
+- Voces de radio y ATIS cuando corresponda.
+- Transcripción.
+- Micrófono.
+- Evaluación robusta de speaking.
+- Respuestas aceptadas y tolerancia.
+- Scoring real.
+- Estrellas y porcentajes.
+- QA móvil y escritorio.
+- Responsive.
+- Rendimiento.
+
+---
+
+## Fase 9 — Pagos y monetización
+
+**Estado: Pendiente**
+
+Monetización vía Stripe.
+
+### Objetivos
+
+- Stripe.
+- Compras únicas.
+- Suscripciones.
+- Checkout.
+- Productos y precios.
+- Webhooks.
+- Facturación.
+- Cancelaciones y reembolsos.
+- Desbloqueo de acceso.
+- Mentorías.
+- Pre-PPL.
+- AeroComms Pro.
+
+---
+
+## Fase 10 — CRM y automatizaciones
+
+**Estado: Pendiente** (esquema de email **preparado**)
+
+### Objetivos
+
+- Estados comerciales.
+- Responsables.
+- Próximas acciones.
+- Seguimiento.
+- Segmentaciones.
+- Recordatorios.
+- Secuencias.
+- Journeys.
+- Campañas.
+- Automatizaciones.
+- Control de consentimiento y frecuencia.
+
+### Preparado (esquema)
+
+- `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries`.
+
+---
+
+## Fase 11 — Warhome / Warboard completo
+
+**Estado: Pendiente**
+
+Centro operativo completo de FlyPath.
+
+### Objetivos
+
+- Leads.
+- Usuarios.
+- Productos.
+- Ventas.
+- Suscripciones.
+- Analítica y funnels.
+- Contenido.
+- Redes sociales.
+- Campañas y anuncios.
+- Tareas.
+- Soporte.
+- FlyPath.
+- AeroComms.
+- PilotFeliu.
+- Agentes de IA.
+- Costes y actividad de agentes.
 
 ---
 
 ## Resumen visual
 
 ```
-Fase 0  AeroComms en FlyPath     ████████████  Completado
-Fase 1  Backend Core (Supabase)  ████████████  Completado (esquema)
-Fase 2  Lead Capture (público)   ████████████  Completado
-Fase 3  Warhome MVP              ░░░░░░░░░░░░  Siguiente
-Fase 4  Email Automation         ░░░░░░░░░░░░  Pendiente (tablas listas)
-Fase 5  Content / Analytics / AI ░░░░░░░░░░░░  Pendiente (tablas parciales)
+Fase 0   AeroComms en FlyPath           ████████████  Completado (producto integrado)
+Fase 1   Backend Core (Supabase)        ████████████  Completado (esquema)
+Fase 2   Captación pública de leads     ████████████  Completado
+Fase 3   Tracking y analítica básica    ░░░░░░░░░░░░  Siguiente
+Fase 4   Warhome MVP                    ░░░░░░░░░░░░  Pendiente
+Fase 5   Emails operativos              ░░░░░░░░░░░░  Pendiente
+Fase 6   Login y cuentas FlyPath        ░░░░░░░░░░░░  Pendiente
+Fase 7   Persistencia de AeroComms      ░░░░░░░░░░░░  Pendiente
+Fase 8   Revisión final de AeroComms    ░░░░░░░░░░░░  Pendiente
+Fase 9   Pagos y monetización           ░░░░░░░░░░░░  Pendiente
+Fase 10  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (tablas listas)
+Fase 11  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente
 ```
