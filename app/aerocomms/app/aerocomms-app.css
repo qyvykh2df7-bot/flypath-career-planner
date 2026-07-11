@@ -1,0 +1,147 @@
+/*
+ * Scoped styles for the AeroComms app island (/aerocomms/app/**).
+ *
+ * Everything here is namespaced under `.aerocomms-app-root` (set on the
+ * wrapper in app/aerocomms/app/layout.tsx) so it can never leak into or
+ * collide with FlyPath's shared app/globals.css. Ported from the AeroComms
+ * source app/globals.css, adapted to plain CSS (no @utility/@custom-variant)
+ * so it does not need its own `@import "tailwindcss"` build entry — standard
+ * Tailwind utility classes used inside AeroComms components are already
+ * picked up by FlyPath's root Tailwind build via automatic content detection.
+ */
+
+.aerocomms-app-root {
+  --flypath-yellow: #facc15;
+  --flypath-yellow-hover: #eab308;
+  --flypath-yellow-light: #fde047;
+  --flypath-yellow-muted: rgba(250, 204, 21, 0.15);
+  --flypath-yellow-glow: rgba(250, 204, 21, 0.7);
+
+  background: #07111f;
+  color: #f8fafc;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* pb-safe: bottom padding that clears the iPhone home indicator. */
+.aerocomms-app-root .pb-safe {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+}
+
+.aerocomms-app-root .primary-btn {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 14px;
+  background: var(--flypath-yellow);
+  color: #07111f;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 16px 36px -10px var(--flypath-yellow-glow);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.aerocomms-app-root .primary-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.aerocomms-app-root .primary-btn:hover:not(:disabled) {
+  background: var(--flypath-yellow-hover);
+}
+
+/* ── Train session exercise screens ──────────────────────────────────────── */
+/*
+ * The session root is a fixed h-dvh column with overflow-hidden (no scroll by
+ * design). Exercise screens place their action button in an `mt-auto` footer.
+ * When the feedback/result card (.result-feedback) appears after Check, the
+ * column's intrinsic height can exceed short phone viewports and the button
+ * gets clipped. In that state only, compact the vertical rhythm so the
+ * feedback card AND the button always fit — same design, tighter spacing.
+ * Scoped to phones; desktop and taller screens are untouched.
+ */
+@media (max-width: 480px) and (max-height: 899px) {
+  .aerocomms-app-root .train-session:has(.result-feedback) :is(.mt-6, .mt-7, .mt-8) {
+    margin-top: 0.875rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) :is(.mt-4, .mt-5) {
+    margin-top: 0.625rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) .mt-3 {
+    margin-top: 0.5rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) .step-header h1 {
+    font-size: 1.25rem;
+    line-height: 1.625rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) :is(.big-play-btn, .mic-btn) {
+    height: 4.25rem;
+    width: 4.25rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) :is(.big-play-btn, .mic-btn) svg {
+    height: 2rem;
+    width: 2rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback)
+    :is([class*="min-h-[58px]"], [class*="min-h-[60px]"]) {
+    min-height: 46px;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) .result-feedback {
+    padding: 0.625rem 0.875rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) :is(.pt-4, .pt-6) {
+    padding-top: 0.625rem;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) .primary-btn {
+    min-height: 48px;
+  }
+  .aerocomms-app-root .train-session:has(.result-feedback) {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Mission Detail page ─────────────────────────────────────────────────── */
+/*
+ * Mobile: shell gets an explicit height so it always fills the space above
+ * the BottomNav regardless of Safari's flex/h-full chain resolution.
+ * 120px = pt-6 (24px) + pb-24 (96px) from the app layout <main>.
+ * Content is flex-none — shell's own bg fills the rest cleanly below the button.
+ */
+@media (max-width: 1023px) {
+  .aerocomms-app-root .mission-detail-shell {
+    min-height: 0;
+    flex-shrink: 0;
+  }
+  .aerocomms-app-root .mission-detail-content {
+    flex: none;
+  }
+  .aerocomms-app-root .mission-detail-practice {
+    flex-shrink: 0;
+    overflow: visible;
+  }
+  .aerocomms-app-root .mission-detail-button {
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+}
+
+/*
+ * short-mobile replacement (was a Tailwind @custom-variant in the source app):
+ * @media (max-height: 760px) and (max-width: 480px) — used only on the ATC
+ * mission detail page to hide the description and clamp the task line on
+ * very short phone viewports.
+ */
+@media (max-height: 760px) and (max-width: 480px) {
+  .aerocomms-app-root .mission-detail-desc {
+    display: none;
+  }
+  .aerocomms-app-root .mission-detail-task {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
