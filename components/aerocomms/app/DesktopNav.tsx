@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SVGProps } from "react";
@@ -40,13 +41,15 @@ export default function DesktopNav() {
   return (
     <header className="relative z-50 hidden shrink-0 border-b border-white/10 bg-[#0A1526]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0A1526]/80 lg:block">
       <div className="mx-auto flex h-16 max-w-[1360px] items-center gap-8 px-8">
-        <Link href="/aerocomms/app/today" className="flex shrink-0 items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FACC15] text-[#07111F]">
-            <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="currentColor">
-              <path d="M12 2 2 8.5 12 15l10-6.5z" />
-              <path d="M4 12.2 12 17l8-4.8v3.1L12 20l-8-4.7z" opacity={0.85} />
-            </svg>
-          </span>
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          <Image
+            src="/flypath-logo-white.webp"
+            alt="FlyPath"
+            width={120}
+            height={32}
+            className="h-8 w-auto object-contain object-left"
+            sizes="120px"
+          />
           <span className="text-[15px] font-extrabold tracking-tight text-white">AeroComms</span>
         </Link>
 
