@@ -15,6 +15,7 @@ export type EmailConfiguration = {
 
 type EmailEnvironment = {
   RESEND_API_KEY?: string;
+  RESEND_WEBHOOK_SECRET?: string;
   EMAIL_FROM?: string;
   EMAIL_REPLY_TO?: string;
   INTERNAL_ALERT_EMAIL?: string;
@@ -58,4 +59,14 @@ export function getInternalAlertEmail(
   }
 
   return internalAlertEmail;
+}
+
+export function getResendWebhookSecret(
+  environment: EmailEnvironment = process.env as EmailEnvironment,
+): string {
+  const webhookSecret = readRequiredEnvironmentValue(environment.RESEND_WEBHOOK_SECRET);
+
+  if (!webhookSecret) throw new EmailConfigurationError();
+
+  return webhookSecret;
 }

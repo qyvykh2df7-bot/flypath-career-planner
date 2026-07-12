@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { EmailConfigurationError, getEmailConfiguration, getInternalAlertEmail } from "./config";
+import {
+  EmailConfigurationError,
+  getEmailConfiguration,
+  getInternalAlertEmail,
+  getResendWebhookSecret,
+} from "./config";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -35,5 +40,10 @@ describe("email configuration", () => {
     expect(getInternalAlertEmail({ INTERNAL_ALERT_EMAIL: "operaciones@flypath.es" })).toBe(
       "operaciones@flypath.es",
     );
+  });
+
+  it("requires a server-only Resend webhook secret", () => {
+    expect(() => getResendWebhookSecret({})).toThrow(EmailConfigurationError);
+    expect(getResendWebhookSecret({ RESEND_WEBHOOK_SECRET: "whsec_test" })).toBe("whsec_test");
   });
 });

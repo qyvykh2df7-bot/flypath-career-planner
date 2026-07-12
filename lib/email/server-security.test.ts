@@ -10,6 +10,7 @@ const emailFiles = [
   "lib/email/jobs.ts",
   "lib/email/deliveries.ts",
   "lib/email/send-transactional-email.ts",
+  "lib/email/resend-webhooks.ts",
   "lib/email/templates/index.ts",
   "lib/email/templates/career-planner-confirmation.ts",
   "lib/email/templates/preppl-waitlist-confirmation.ts",
@@ -105,5 +106,23 @@ describe("email server security", () => {
     expect(deliveries).not.toContain("phone");
     expect(capture).not.toContain("console.error(input");
     expect(capture).not.toContain("console.error(input.");
+  });
+
+  it("keeps the Resend webhook route server-only and free of secrets or payload persistence", () => {
+    const route = fs.readFileSync(
+      path.join(process.cwd(), "app/api/webhooks/resend/route.ts"),
+      "utf8",
+    );
+    const helper = fs.readFileSync(
+      path.join(process.cwd(), "lib/email/resend-webhooks.ts"),
+      "utf8",
+    );
+
+    expect(route).toContain('export const runtime = "nodejs"');
+    expect(route).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(route).not.toContain("NEXT_PUBLIC_RESEND");
+    expect(helper).toContain('import "server-only"');
+    expect(helper).not.toContain("recipient_email");
+    expect(helper).not.toContain("provider_response");
   });
 });
