@@ -59,7 +59,7 @@ describe("trackEventOncePerSession", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("persiste los inicios y la apertura Pre-PPL una sola vez por sesión", async () => {
+  it("persiste los inicios y aperturas de formularios una sola vez por sesión", async () => {
     const localStorage = createStorage();
     const sessionStorage = createStorage();
     localStorage.setItem("flypath_analytics_consent", "granted");
@@ -84,8 +84,12 @@ describe("trackEventOncePerSession", () => {
     trackEventOncePerSession("popup_opened", { popup_id: "preppl_waitlist" });
     trackEventOncePerSession("form_started", { form_id: "preppl_waitlist" });
     trackEventOncePerSession("form_started", { form_id: "preppl_waitlist" });
+    trackEventOncePerSession("popup_opened", { popup_id: "mentorship_support" });
+    trackEventOncePerSession("popup_opened", { popup_id: "mentorship_support" });
+    trackEventOncePerSession("form_started", { form_id: "mentorship_support" });
+    trackEventOncePerSession("form_started", { form_id: "mentorship_support" });
 
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
 
     const payloads = fetchMock.mock.calls.map(([, options]) =>
       JSON.parse((options as RequestInit).body as string),
@@ -103,6 +107,14 @@ describe("trackEventOncePerSession", () => {
         expect.objectContaining({
           event_name: "form_started",
           metadata: { form_id: "preppl_waitlist" },
+        }),
+        expect.objectContaining({
+          event_name: "popup_opened",
+          metadata: { popup_id: "mentorship_support" },
+        }),
+        expect.objectContaining({
+          event_name: "form_started",
+          metadata: { form_id: "mentorship_support" },
         }),
       ]),
     );

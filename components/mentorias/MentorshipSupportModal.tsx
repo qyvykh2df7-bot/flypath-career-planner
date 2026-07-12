@@ -5,6 +5,12 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { Loader2, X } from "lucide-react";
 import { captureMentorshipSupportLead } from "@/lib/leads/capture-mentorship-support-client";
 import { MENTORSHIP_SUPPORT_SITUATIONS } from "@/lib/leads/mentorship-support-consent";
+import { trackEventOncePerSession } from "@/lib/tracking/client";
+import {
+  createTrackingUuid,
+  getTrackingContext,
+  initializeTrackingContext,
+} from "@/lib/tracking/session";
 
 type MentorshipSupportModalProps = {
   open: boolean;
@@ -28,6 +34,7 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const submissionIdRef = useRef<string | null>(null);
 
   const handleClose = useCallback(() => {
     setFullName("");
@@ -38,11 +45,15 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
     setIsLoading(false);
     setErrorMessage(null);
     setSubmitted(false);
+    submissionIdRef.current = null;
     onClose();
   }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
+
+    initializeTrackingContext();
+    trackEventOncePerSession("popup_opened", { popup_id: "mentorship_support" });
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") handleClose();
@@ -66,13 +77,15 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
     setIsLoading(true);
     setErrorMessage(null);
 
+    const idempotencyKey = submissionIdRef.current ?? createTrackingUuid();
+    submissionIdRef.current = idempotencyKey;
     const result = await captureMentorshipSupportLead({
       fullName,
       email,
       phone: phone.trim() || undefined,
       situation,
       helpText,
-    });
+    }, getTrackingContext(), idempotencyKey);
 
     setIsLoading(false);
 
@@ -139,6 +152,11 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
                     required
                     disabled={isLoading}
                     value={fullName}
+                    onFocus={() =>
+                      trackEventOncePerSession("form_started", {
+                        form_id: "mentorship_support",
+                      })
+                    }
                     onChange={(event) => setFullName(event.target.value)}
                     placeholder="Nombre"
                     className={FIELD_CLASS}

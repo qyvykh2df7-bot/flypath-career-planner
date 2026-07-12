@@ -8,6 +8,7 @@ import {
 } from "@/lib/leads/capture-shared";
 import type { MentorshipSupportSituation } from "@/lib/leads/mentorship-support-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import type { TrackingContext } from "@/lib/tracking/events";
 
 const LEAD_SOURCE = "mentoring";
 const EVENT_SOURCE = "mentorship";
@@ -39,9 +40,13 @@ export class MentorshipSupportLeadCaptureError extends LeadCaptureError {
  */
 export async function captureMentorshipSupportRequest(
   input: MentorshipSupportCaptureInput,
+  idempotencyKey: string,
+  trackingContext?: TrackingContext | null,
 ): Promise<void> {
   const admin = getSupabaseAdmin();
   const now = new Date().toISOString();
+  let leadId: string;
+  let productId: string;
 
   try {
     const { data: product, error: productError } = await admin
@@ -54,7 +59,8 @@ export async function captureMentorshipSupportRequest(
       throw new MentorshipSupportLeadCaptureError();
     }
 
-    const leadId = await upsertLeadByEmail(admin, input.normalizedEmail, now, {
+    productId = product.id;
+    leadId = await upsertLeadByEmail(admin, input.normalizedEmail, now, {
       source: LEAD_SOURCE,
       marketingConsent: false,
       touchMarketingConsent: false,
@@ -62,27 +68,34 @@ export async function captureMentorshipSupportRequest(
       funnelStage: "qualified",
     });
 
-    await upsertLeadProductInterest(admin, leadId, product.id, now, {
+    await upsertLeadProductInterest(admin, leadId, productId, now, {
       source: LEAD_SOURCE,
       status: INTEREST_STATUS,
-    });
-
-    await insertUserEvent(admin, {
-      leadId,
-      productId: product.id,
-      eventName: EVENT_NAME,
-      eventCategory: EVENT_CATEGORY,
-      source: EVENT_SOURCE,
-      metadata: {
-        interest_intent: "inquiry",
-        form_id: "mentorship_support",
-      },
-      occurredAt: now,
     });
   } catch (error) {
     if (error instanceof LeadCaptureError) {
       throw new MentorshipSupportLeadCaptureError();
     }
     throw error;
+  }
+
+  try {
+    await insertUserEvent(admin, {
+      leadId,
+      productId,
+      eventName: EVENT_NAME,
+      eventCategory: EVENT_CATEGORY,
+      source: EVENT_SOURCE,
+      metadata: {
+        interest_intent: "inquiry",
+        popup_id: "mentorship_support",
+        form_id: "mentorship_support",
+      },
+      trackingContext,
+      idempotencyKey,
+      occurredAt: now,
+    });
+  } catch {
+    console.error("[FlyPath] Mentorship conversion event persistence failed.");
   }
 }

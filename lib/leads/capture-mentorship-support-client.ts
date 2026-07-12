@@ -1,3 +1,5 @@
+import type { TrackingContext } from "@/lib/tracking/events";
+
 export type MentorshipSupportFormInput = {
   fullName: string;
   email: string;
@@ -15,6 +17,8 @@ const GENERIC_ERROR_MESSAGE =
 
 export async function captureMentorshipSupportLead(
   input: MentorshipSupportFormInput,
+  trackingContext: TrackingContext | null,
+  idempotencyKey: string,
 ): Promise<CaptureMentorshipSupportResult> {
   let response: Response;
 
@@ -22,7 +26,11 @@ export async function captureMentorshipSupportLead(
     response = await fetch("/api/leads/mentorship-support", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        ...input,
+        idempotency_key: idempotencyKey,
+        ...(trackingContext ? { tracking: trackingContext } : {}),
+      }),
     });
   } catch {
     return { ok: false, message: GENERIC_ERROR_MESSAGE };

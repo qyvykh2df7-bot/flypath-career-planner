@@ -6,6 +6,14 @@ import {
   isMentorshipSupportSituation,
 } from "@/lib/leads/mentorship-support-consent";
 import { normalizeLeadEmail } from "@/lib/leads/normalize-email";
+import { isTrackingUuid } from "@/lib/tracking/events";
+import {
+  getRequestOrigin,
+  MENTORSHIP_SUPPORT_REQUEST_MAX_BODY_SIZE,
+  readJsonBodyWithinLimit,
+  RequestBodyTooLargeError,
+  sanitizeTrackingContext,
+} from "@/lib/tracking/server";
 
 const INVALID_REQUEST_MESSAGE = "Solicitud inválida.";
 const INVALID_NAME_MESSAGE = "Introduce tu nombre.";
@@ -21,6 +29,8 @@ type MentorshipSupportPayload = {
   phone?: unknown;
   situation?: unknown;
   helpText?: unknown;
+  tracking?: unknown;
+  idempotency_key?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -37,8 +47,11 @@ export async function POST(request: Request) {
   let body: unknown;
 
   try {
-    body = await request.json();
-  } catch {
+    body = await readJsonBodyWithinLimit(request, MENTORSHIP_SUPPORT_REQUEST_MAX_BODY_SIZE);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 413 });
+    }
     return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
   }
 
@@ -81,14 +94,30 @@ export async function POST(request: Request) {
     return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
   }
 
+  if (!isTrackingUuid(payload.idempotency_key)) {
+    return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
+  }
+
+  const trackingContext =
+    payload.tracking === undefined
+      ? null
+      : sanitizeTrackingContext(payload.tracking, getRequestOrigin(request));
+  if (payload.tracking !== undefined && !trackingContext) {
+    return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
+  }
+
   try {
-    await captureMentorshipSupportRequest({
-      fullName: payload.fullName.trim(),
-      normalizedEmail,
-      phone,
-      situation: payload.situation,
-      helpText: payload.helpText.trim(),
-    });
+    await captureMentorshipSupportRequest(
+      {
+        fullName: payload.fullName.trim(),
+        normalizedEmail,
+        phone,
+        situation: payload.situation,
+        helpText: payload.helpText.trim(),
+      },
+      payload.idempotency_key,
+      trackingContext,
+    );
     return Response.json({ ok: true }, { status: 200 });
   } catch (error) {
     if (process.env.NODE_ENV === "development") {

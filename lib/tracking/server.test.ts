@@ -66,7 +66,7 @@ describe("tracking server validation", () => {
     expect(event.context.referrer).toBe("https://www.google.com");
   });
 
-  it("acepta únicamente el popup Pre-PPL permitido y rechaza PII en metadata", () => {
+  it("acepta únicamente los popups permitidos y rechaza PII en metadata", () => {
     expect(
       parseTrackingEventPayload(
         {
@@ -77,6 +77,17 @@ describe("tracking server validation", () => {
         "https://flypath.test",
       ).metadata,
     ).toMatchObject({ popup_id: "preppl_waitlist" });
+
+    expect(
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "popup_opened",
+          metadata: { popup_id: "mentorship_support" },
+        },
+        "https://flypath.test",
+      ).metadata,
+    ).toMatchObject({ popup_id: "mentorship_support" });
 
     expect(() =>
       parseTrackingEventPayload(

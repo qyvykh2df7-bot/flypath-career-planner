@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { Calendar, CheckCircle2, ShieldCheck, User } from "lucide-react";
 import { MentorshipSupportModal } from "@/components/mentorias/MentorshipSupportModal";
+import { initializeTrackingContext } from "@/lib/tracking/session";
 
 const TOAST_MS = 2800;
 const MAIN_TOAST = "Reserva de mentoría próximamente";
@@ -45,6 +46,10 @@ export function MentoriasPricingSection() {
     const id = window.setTimeout(() => setToast((t) => (t === toast ? null : t)), TOAST_MS);
     return () => window.clearTimeout(id);
   }, [toast]);
+
+  useEffect(() => {
+    initializeTrackingContext();
+  }, []);
 
   return (
     <>

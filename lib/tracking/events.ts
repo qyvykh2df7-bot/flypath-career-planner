@@ -52,12 +52,17 @@ export const TRACKING_EVENT_DEFINITIONS = {
   form_started: {
     category: "engagement",
     metadataKey: "form_id",
-    metadataIds: ["home_newsletter", "career_planner_report", "preppl_waitlist"],
+    metadataIds: [
+      "home_newsletter",
+      "career_planner_report",
+      "preppl_waitlist",
+      "mentorship_support",
+    ],
   },
   popup_opened: {
     category: "engagement",
     metadataKey: "popup_id",
-    metadataIds: ["preppl_waitlist"],
+    metadataIds: ["preppl_waitlist", "mentorship_support"],
   },
 } as const satisfies Record<
   string,

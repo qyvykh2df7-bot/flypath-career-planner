@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { captureCareerPlannerReportLead } from "./capture-career-planner-report-client";
+import { captureMentorshipSupportLead } from "./capture-mentorship-support-client";
 import { capturePrepplWaitlistLead } from "./capture-preppl-waitlist-client";
 
 const ID = "4d3c2b1a-1234-4abc-8def-1234567890ab";
@@ -33,6 +34,18 @@ describe("tracked conversion clients", () => {
     await expect(capturePrepplWaitlistLead("pilot@example.com", CONTEXT, ID)).resolves.toEqual({
       ok: true,
     });
+    await expect(
+      captureMentorshipSupportLead(
+        {
+          fullName: "Pilot Example",
+          email: "pilot@example.com",
+          situation: "not_started",
+          helpText: "Necesito ayuda.",
+        },
+        CONTEXT,
+        ID,
+      ),
+    ).resolves.toEqual({ ok: true });
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
@@ -42,6 +55,11 @@ describe("tracked conversion clients", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       "/api/leads/preppl-waitlist",
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "/api/leads/mentorship-support",
       expect.any(Object),
     );
     expect(fetchMock.mock.calls.some(([url]) => url === "/api/tracking/events")).toBe(false);

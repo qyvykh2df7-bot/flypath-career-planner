@@ -17,10 +17,10 @@ const admin = {
 function eventOptions(idempotencyKey: string) {
   return {
     leadId: "lead-id",
-    eventName: "career_planner_report_download_requested",
+    eventName: "mentorship_support_requested",
     eventCategory: "lead",
-    source: "career_planner",
-    metadata: { form_id: "career_planner_report" },
+    source: "mentorship",
+    metadata: { form_id: "mentorship_support" },
     idempotencyKey,
     occurredAt: "2026-07-12T00:00:00.000Z",
   };
