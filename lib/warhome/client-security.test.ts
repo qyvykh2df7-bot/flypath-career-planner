@@ -6,6 +6,9 @@ const root = process.cwd();
 const clientFiles = [
   "lib/supabase/browser.ts",
   "app/warhome/login/WarhomeLoginForm.tsx",
+  "components/warhome/WarhomeHeader.tsx",
+  "components/warhome/WarhomeNavItem.tsx",
+  "components/warhome/WarhomeSidebar.tsx",
 ];
 
 describe("Warhome client security", () => {
