@@ -7,8 +7,11 @@ const clientFiles = [
   "lib/supabase/browser.ts",
   "app/warhome/login/WarhomeLoginForm.tsx",
   "components/warhome/WarhomeHeader.tsx",
+  "components/warhome/WarhomeLeadActivity.tsx",
+  "components/warhome/WarhomeLeadsTable.tsx",
   "components/warhome/WarhomeNavItem.tsx",
   "components/warhome/WarhomeSidebar.tsx",
+  "app/warhome/(protected)/leads/[leadId]/page.tsx",
 ];
 
 describe("Warhome client security", () => {

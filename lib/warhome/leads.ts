@@ -227,6 +227,11 @@ export function getWarhomeLeadsUrl(filters: WarhomeLeadFilters, page: number): s
   return query ? `/warhome/leads?${query}` : "/warhome/leads";
 }
 
+export function getWarhomeLeadDetailUrl(leadId: string, filters: WarhomeLeadFilters): string {
+  const returnTo = getWarhomeLeadsUrl(filters, filters.page);
+  return `/warhome/leads/${leadId}?return=${encodeURIComponent(returnTo)}`;
+}
+
 export function getWarhomeLeadsRange(page: number): { from: number; to: number } {
   const normalizedPage = Math.min(Math.max(page, 1), MAX_PAGE_NUMBER);
   const from = (normalizedPage - 1) * WARHOME_LEADS_PAGE_SIZE;

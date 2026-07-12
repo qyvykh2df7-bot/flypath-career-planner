@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Mail, UsersRound } from "lucide-react";
 import {
   getWarhomeLeadsDisplayState,
+  getWarhomeLeadDetailUrl,
   getWarhomeLeadsUrl,
   WARHOME_EMAIL_SUBSCRIPTION_LABELS,
   WARHOME_LEAD_SOURCE_LABELS,
@@ -78,7 +79,13 @@ export function WarhomeLeadsTable({
             {rows.map((lead) => (
               <tr key={lead.id} className="transition hover:bg-white/[0.02]">
                 <td className="px-5 py-4 text-sm font-medium text-slate-100">
-                  {lead.fullName ?? <span className="text-slate-500">Sin nombre</span>}
+                  <Link
+                    href={getWarhomeLeadDetailUrl(lead.id, filters)}
+                    className="rounded-sm text-left transition hover:text-[#e3bc62] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6ae4f]/45"
+                  >
+                    {lead.fullName ?? <span className="text-slate-500">Sin nombre</span>}
+                    <span className="sr-only">, ver ficha de lead</span>
+                  </Link>
                 </td>
                 <td className="px-5 py-4 text-sm text-slate-300">{lead.email}</td>
                 <td className="px-5 py-4 text-sm text-slate-300">
