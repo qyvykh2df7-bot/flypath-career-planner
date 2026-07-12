@@ -20,7 +20,7 @@ import {
 import { getResendEmailProvider, type TransactionalEmailProvider } from "./provider";
 import { getTransactionalEmailTemplate } from "./templates";
 
-const CAREER_PLANNER_EMAIL_WORKER = "career_planner_request";
+const TRANSACTIONAL_EMAIL_WORKER = "lead_capture_request";
 
 export type TransactionalEmailDispatchResult = "sent" | "pending" | "cancelled" | "not_claimed";
 
@@ -75,10 +75,25 @@ export async function queueCareerPlannerConfirmation(
   admin: EmailAdminClient,
   input: { leadId: string; idempotencyKey: string },
 ): Promise<TransactionalEmailDispatchResult> {
-  const template = getTransactionalEmailTemplate("career_planner_confirmation");
+  return queueTransactionalTemplate(admin, "career_planner_confirmation", input);
+}
+
+export async function queuePrepplWaitlistConfirmation(
+  admin: EmailAdminClient,
+  input: { leadId: string; idempotencyKey: string },
+): Promise<TransactionalEmailDispatchResult> {
+  return queueTransactionalTemplate(admin, "preppl_waitlist_confirmation", input);
+}
+
+async function queueTransactionalTemplate(
+  admin: EmailAdminClient,
+  templateKey: TransactionalEmailJob["templateKey"],
+  input: { leadId: string; idempotencyKey: string },
+): Promise<TransactionalEmailDispatchResult> {
+  const template = getTransactionalEmailTemplate(templateKey);
   const { job } = await createTransactionalEmailJob(admin, {
     leadId: input.leadId,
-    templateKey: template.key,
+    templateKey,
     idempotencyKey: input.idempotencyKey,
   });
 
@@ -104,7 +119,7 @@ export async function sendTransactionalEmail(
   // Validar la configuración antes de tomar el lock evita dejar un job en processing
   // cuando el entorno aún no tiene proveedor configurado.
   const configuration = getEmailConfiguration();
-  const claimedJob = await claimTransactionalEmailJob(admin, job, CAREER_PLANNER_EMAIL_WORKER, now());
+  const claimedJob = await claimTransactionalEmailJob(admin, job, TRANSACTIONAL_EMAIL_WORKER, now());
   if (!claimedJob) return "not_claimed";
 
   let deliveryId: string;

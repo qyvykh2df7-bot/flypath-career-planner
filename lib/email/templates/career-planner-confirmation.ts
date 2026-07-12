@@ -3,11 +3,11 @@ import "server-only";
 export const CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY = "career_planner_confirmation";
 
 export type TransactionalEmailTemplate = {
-  key: typeof CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY;
+  key: string;
   subject: string;
   html: string;
   text: string;
-  subscriptionListKey: "career_planner";
+  subscriptionListKey: "career_planner" | "preppl";
 };
 
 export function getCareerPlannerConfirmationTemplate(): TransactionalEmailTemplate {

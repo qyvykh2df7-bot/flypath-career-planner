@@ -5,9 +5,14 @@ import {
   getCareerPlannerConfirmationTemplate,
   type TransactionalEmailTemplate,
 } from "./career-planner-confirmation";
+import {
+  getPrepplWaitlistConfirmationTemplate,
+  PREPPL_WAITLIST_CONFIRMATION_TEMPLATE_KEY,
+} from "./preppl-waitlist-confirmation";
 
 export const TRANSACTIONAL_TEMPLATE_KEYS = [
   CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY,
+  PREPPL_WAITLIST_CONFIRMATION_TEMPLATE_KEY,
 ] as const;
 
 export type TransactionalTemplateKey = (typeof TRANSACTIONAL_TEMPLATE_KEYS)[number];
@@ -22,7 +27,12 @@ export function getTransactionalEmailTemplate(
   switch (templateKey) {
     case CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY:
       return getCareerPlannerConfirmationTemplate();
+    case PREPPL_WAITLIST_CONFIRMATION_TEMPLATE_KEY:
+      return getPrepplWaitlistConfirmationTemplate();
   }
 }
 
-export { CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY };
+export {
+  CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY,
+  PREPPL_WAITLIST_CONFIRMATION_TEMPLATE_KEY,
+};

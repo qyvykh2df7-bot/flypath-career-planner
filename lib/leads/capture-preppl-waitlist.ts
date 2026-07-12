@@ -10,6 +10,7 @@ import {
 import { PREPPL_WAITLIST_CONSENT_TEXT } from "@/lib/leads/preppl-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { TrackingContext } from "@/lib/tracking/events";
+import { queuePrepplWaitlistConfirmation } from "@/lib/email/send-transactional-email";
 
 const SOURCE = "preppl";
 const PRODUCT_KEY = "preppl_guide";
@@ -40,6 +41,7 @@ export async function capturePrepplWaitlistJoin(
   const now = new Date().toISOString();
   let leadId: string;
   let productId: string;
+  let subscriptionStatus: string;
 
   try {
     const { data: product, error: productError } = await admin
@@ -63,10 +65,11 @@ export async function capturePrepplWaitlistJoin(
       status: INTEREST_STATUS,
     });
 
-    await upsertEmailSubscriptionForLead(admin, leadId, now, {
+    subscriptionStatus = await upsertEmailSubscriptionForLead(admin, leadId, now, {
       listKey: LIST_KEY,
       source: SOURCE,
       consentText: PREPPL_WAITLIST_CONSENT_TEXT,
+      preserveSuppressedStatus: true,
     });
 
   } catch (error) {
@@ -94,5 +97,13 @@ export async function capturePrepplWaitlistJoin(
     });
   } catch {
     console.error("[FlyPath] Pre-PPL conversion event persistence failed.");
+  }
+
+  if (subscriptionStatus !== "subscribed") return;
+
+  try {
+    await queuePrepplWaitlistConfirmation(admin, { leadId, idempotencyKey });
+  } catch {
+    console.error("[FlyPath] Pre-PPL confirmation email processing failed.");
   }
 }

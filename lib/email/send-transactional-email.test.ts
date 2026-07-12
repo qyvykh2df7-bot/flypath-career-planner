@@ -31,16 +31,23 @@ vi.mock("@/lib/email/jobs", () => ({
 }));
 vi.mock("@/lib/email/provider", () => ({ getResendEmailProvider: mocks.getResendEmailProvider }));
 vi.mock("@/lib/email/templates", () => ({
-  getTransactionalEmailTemplate: vi.fn(() => ({
-    key: "career_planner_confirmation",
-    subject: "Tu Career Planner de FlyPath está listo",
+  getTransactionalEmailTemplate: vi.fn((templateKey: string) => ({
+    key: templateKey,
+    subject:
+      templateKey === "preppl_waitlist_confirmation"
+        ? "Tu plaza en la lista Pre-PPL está confirmada"
+        : "Tu Career Planner de FlyPath está listo",
     html: "<p>Fijo</p>",
     text: "Fijo",
-    subscriptionListKey: "career_planner",
+    subscriptionListKey: templateKey === "preppl_waitlist_confirmation" ? "preppl" : "career_planner",
   })),
 }));
 
-import { queueCareerPlannerConfirmation, sendTransactionalEmail } from "./send-transactional-email";
+import {
+  queueCareerPlannerConfirmation,
+  queuePrepplWaitlistConfirmation,
+  sendTransactionalEmail,
+} from "./send-transactional-email";
 
 const JOB = {
   id: "job-id",
@@ -179,6 +186,26 @@ describe("transactional email dispatch", () => {
     expect(mocks.createTransactionalEmailJob).toHaveBeenCalledWith(
       admin,
       expect.objectContaining({ idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab" }),
+    );
+  });
+
+  it("uses the same idempotent job infrastructure for the Pre-PPL waitlist template", async () => {
+    mocks.createTransactionalEmailJob.mockResolvedValue({ job: { ...JOB, status: "sent" }, created: false });
+    const admin = createAdmin("subscribed");
+
+    await expect(
+      queuePrepplWaitlistConfirmation(admin as never, {
+        leadId: "lead-id",
+        idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab",
+      }),
+    ).resolves.toBe("not_claimed");
+
+    expect(mocks.createTransactionalEmailJob).toHaveBeenCalledWith(
+      admin,
+      expect.objectContaining({
+        templateKey: "preppl_waitlist_confirmation",
+        idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab",
+      }),
     );
   });
 });
