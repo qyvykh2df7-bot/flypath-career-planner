@@ -1,0 +1,38 @@
+import "server-only";
+
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+function getSupabaseServerConfig(): { url: string; anonKey: string } {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error("Missing Supabase server configuration");
+  }
+
+  return { url, anonKey };
+}
+
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
+  const { url, anonKey } = getSupabaseServerConfig();
+
+  return createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // Los Server Components solo pueden leer cookies. Login y middleware
+          // podrán actualizar la sesión desde Route Handlers en el bloque siguiente.
+        }
+      },
+    },
+  });
+}
