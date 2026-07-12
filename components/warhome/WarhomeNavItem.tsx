@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Megaphone,
+  Mail,
   NotebookPen,
   Package,
   Settings,
@@ -17,6 +18,7 @@ import type { WarhomeNavigationIcon, WarhomeNavigationItem } from "@/lib/warhome
 const NAVIGATION_ICONS: Record<WarhomeNavigationIcon, LucideIcon> = {
   summary: LayoutDashboard,
   leads: UsersRound,
+  emails: Mail,
   notes: NotebookPen,
   settings: Settings,
   analytics: BarChart3,

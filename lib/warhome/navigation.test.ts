@@ -6,15 +6,17 @@ import {
 } from "./navigation";
 
 describe("Warhome navigation", () => {
-  it("marca Resumen y Leads según el pathname", () => {
+  it("marca Resumen, Leads y Emails según el pathname", () => {
     expect(getActiveWarhomeNavigationId("/warhome")).toBe("summary");
     expect(getActiveWarhomeNavigationId("/warhome/leads")).toBe("leads");
     expect(getActiveWarhomeNavigationId("/warhome/leads/example")).toBe("leads");
+    expect(getActiveWarhomeNavigationId("/warhome/emails")).toBe("emails");
   });
 
   it("expone títulos estables para las rutas disponibles", () => {
     expect(getWarhomePageDetails("/warhome").title).toBe("Resumen");
     expect(getWarhomePageDetails("/warhome/leads").title).toBe("Leads");
+    expect(getWarhomePageDetails("/warhome/emails").title).toBe("Emails");
   });
 
   it("mantiene los módulos deshabilitados sin enlaces a rutas inexistentes", () => {

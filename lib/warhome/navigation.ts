@@ -1,6 +1,7 @@
 export type WarhomeNavigationIcon =
   | "summary"
   | "leads"
+  | "emails"
   | "notes"
   | "settings"
   | "analytics"
@@ -35,6 +36,14 @@ export const WARHOME_NAVIGATION: readonly WarhomeNavigationItem[] = [
     availability: "available",
     group: "mvp",
     icon: "leads",
+  },
+  {
+    id: "emails",
+    label: "Emails",
+    href: "/warhome/emails",
+    availability: "available",
+    group: "mvp",
+    icon: "emails",
   },
   {
     id: "notes",
@@ -115,6 +124,10 @@ const WARHOME_PAGE_DETAILS: Record<string, WarhomePageDetails> = {
   "/warhome/leads": {
     title: "Leads",
     subtitle: "Captación, seguimiento y contexto comercial.",
+  },
+  "/warhome/emails": {
+    title: "Emails",
+    subtitle: "Envíos operativos y estado de entrega.",
   },
 };
 
