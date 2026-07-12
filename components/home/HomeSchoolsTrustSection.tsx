@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, Check, Star, Table2 } from "lucide-react";
+import { createTrackingCtaMetadata, trackCtaClicked } from "@/lib/tracking/client";
 
 const COMPARATOR_HREF = "/schools";
 const OPINIONS_HREF = "/opiniones-escuelas";
@@ -177,7 +180,14 @@ function SchoolsComparatorCard() {
         </div>
       </div>
 
-      <Link href={COMPARATOR_HREF} className={CARD_CTA_CLASS}>
+      <Link
+        href={COMPARATOR_HREF}
+        onClick={() => {
+          const metadata = createTrackingCtaMetadata("home_schools_open_comparator");
+          if (metadata) trackCtaClicked(metadata);
+        }}
+        className={CARD_CTA_CLASS}
+      >
         Comparar escuelas
         <ArrowRight className="h-4 w-4 shrink-0 text-current transition group-hover:translate-x-0.5" aria-hidden />
       </Link>

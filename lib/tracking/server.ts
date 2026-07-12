@@ -3,6 +3,7 @@ import "server-only";
 import {
   ANALYTICS_CONSENT_COOKIE_NAME,
   hasSensitiveAnalyticValue,
+  isTrackingCtaMetadata,
   isSafeTrackingPath,
   isSafeUtmValue,
   isTrackingUuid,
@@ -51,7 +52,7 @@ type TrackingEventInput = {
   eventCategory: TrackingEventCategory;
   idempotencyKey: string;
   context: TrackingContext;
-  metadata: Record<string, string | null>;
+  metadata: Record<string, string | number | null>;
 };
 
 type TrackingEventInsertResult = "inserted" | "duplicate";
@@ -271,12 +272,19 @@ export function parseTrackingEventPayload(
     throw new TrackingPayloadError();
   }
 
-  const metadata = parseTrackingMetadata(value.metadata, eventDefinition.metadataKey);
-  const metadataId = metadata[eventDefinition.metadataKey];
-  const allowedMetadataIds: readonly string[] = eventDefinition.metadataIds;
-  if (!allowedMetadataIds.includes(metadataId)) {
-    throw new TrackingPayloadError();
-  }
+  const metadata =
+    eventDefinition.metadataKind === "cta"
+      ? (() => {
+          if (!isTrackingCtaMetadata(value.metadata)) throw new TrackingPayloadError();
+          return value.metadata;
+        })()
+      : (() => {
+          const identifierMetadata = parseTrackingMetadata(value.metadata, eventDefinition.metadataKey);
+          const metadataId = identifierMetadata[eventDefinition.metadataKey];
+          const allowedMetadataIds: readonly string[] = eventDefinition.metadataIds;
+          if (!allowedMetadataIds.includes(metadataId)) throw new TrackingPayloadError();
+          return identifierMetadata;
+        })();
 
   return {
     eventName: typedEventName,
@@ -285,7 +293,7 @@ export function parseTrackingEventPayload(
     context,
     metadata: {
       ...getTrackingContextMetadata(context),
-      [eventDefinition.metadataKey]: metadataId,
+      ...metadata,
     },
   };
 }

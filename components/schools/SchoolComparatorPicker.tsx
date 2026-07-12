@@ -14,6 +14,7 @@ type Props = {
   selectedSchools: SchoolEntry[];
   maxSelected: number;
   onAddSchool: (id: string) => void;
+  onSchoolSelected?: (selectionStep: 1 | 2) => void;
   onRemoveSchool: (id: string) => void;
   onSelectionLimit?: () => void;
 };
@@ -82,12 +83,14 @@ export function SchoolComparatorPicker({
   selectedSchools,
   maxSelected,
   onAddSchool,
+  onSchoolSelected,
   onRemoveSchool,
   onSelectionLimit,
 }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
+  const pendingSchoolIdsRef = useRef(new Set<string>());
 
   const selectedIdSet = useMemo(
     () => new Set(selectedSchools.map((s) => s.id)),
@@ -114,6 +117,12 @@ export function SchoolComparatorPicker({
   const selectionFull = selectedSchools.length >= maxSelected;
 
   useEffect(() => {
+    for (const schoolId of selectedIdSet) {
+      pendingSchoolIdsRef.current.delete(schoolId);
+    }
+  }, [selectedIdSet]);
+
+  useEffect(() => {
     if (!pickerOpen) return;
     const handlePointerDown = (event: MouseEvent) => {
       if (!pickerRef.current?.contains(event.target as Node)) {
@@ -125,13 +134,15 @@ export function SchoolComparatorPicker({
   }, [pickerOpen]);
 
   const handleAddSchool = (school: SchoolEntry) => {
-    if (selectedIdSet.has(school.id)) return;
+    if (selectedIdSet.has(school.id) || pendingSchoolIdsRef.current.has(school.id)) return;
     if (selectionFull) {
       onSelectionLimit?.();
       return;
     }
     const willReachMax = selectedSchools.length + 1 >= maxSelected;
+    pendingSchoolIdsRef.current.add(school.id);
     onAddSchool(school.id);
+    onSchoolSelected?.((selectedSchools.length + 1) as 1 | 2);
     if (willReachMax) {
       setPickerOpen(false);
       setPickerQuery("");

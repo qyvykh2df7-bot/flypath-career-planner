@@ -20,6 +20,8 @@ import {
 import type { SchoolEntry } from "@/types/schools";
 import { QaPremiumFloatingToggle } from "@/components/dev/QaPremiumFloatingToggle";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
+import { createTrackingCtaMetadata, trackCtaClicked } from "@/lib/tracking/client";
+import { initializeTrackingContext } from "@/lib/tracking/session";
 
 const MAX_SELECTED = 2;
 const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
@@ -83,6 +85,10 @@ function SchoolsPageContent() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    initializeTrackingContext();
   }, []);
 
   const router = useRouter();
@@ -226,10 +232,19 @@ function SchoolsPageContent() {
   }, [searchParams, router, selectionHydrated, schoolsDataset]);
 
   const notifyMentoring = () => {
+    const metadata = createTrackingCtaMetadata("schools_comparator_request_mentorship", {
+      school_count: selectedSchools.length as 0 | 1 | 2,
+    });
+    if (metadata) trackCtaClicked(metadata);
     showToast("Mentoría FlyPath próximamente");
   };
 
   const handleOpenCareerPlanner = useCallback(() => {
+    const metadata = createTrackingCtaMetadata("schools_comparator_open_career_planner", {
+      school_count: selectedSchools.length as 0 | 1 | 2,
+    });
+    if (metadata) trackCtaClicked(metadata);
+
     const slugs = selectedSchools.map((school) => school.slug).filter(Boolean);
     if (slugs.length === 0) {
       router.push("/career-planner?source=schools-comparator");
@@ -249,6 +264,14 @@ function SchoolsPageContent() {
     });
     router.push(`/career-planner?${query.toString()}`);
   }, [router, selectedSchools]);
+
+  const handleSchoolSelected = useCallback((selectionStep: 1 | 2) => {
+    const metadata = createTrackingCtaMetadata("schools_comparator_select_school", {
+      selection_step: selectionStep,
+      school_count: selectionStep,
+    });
+    if (metadata) trackCtaClicked(metadata);
+  }, []);
 
   const comparisonHelpText =
     selectedSchools.length === 0
@@ -359,6 +382,7 @@ function SchoolsPageContent() {
               selectedSchools={selectedSchools}
               maxSelected={MAX_SELECTED}
               onAddSchool={addSchool}
+              onSchoolSelected={handleSchoolSelected}
               onRemoveSchool={removeSchool}
               onSelectionLimit={() => showToast("Máximo 2 escuelas en comparación")}
             />

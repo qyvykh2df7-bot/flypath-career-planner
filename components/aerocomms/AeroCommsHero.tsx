@@ -1,11 +1,20 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect } from "react";
 import { ArrowRight, Play, ShieldCheck } from "lucide-react";
+import { createTrackingCtaMetadata, trackCtaClicked } from "@/lib/tracking/client";
+import { initializeTrackingContext } from "@/lib/tracking/session";
 
 const DESKTOP_HERO_OVERLAY =
   "linear-gradient(to right, #faf9f5 0%, rgba(250, 249, 245, 0.98) 24%, rgba(250, 249, 245, 0.72) 34%, rgba(250, 249, 245, 0.22) 43%, rgba(250, 249, 245, 0) 52%)";
 
 export function AeroCommsHero() {
+  useEffect(() => {
+    initializeTrackingContext();
+  }, []);
+
   return (
     <section className="relative overflow-hidden bg-[#faf9f5] pt-8 pb-8 md:py-14 xl:min-h-[680px] xl:py-16 xl:pt-[72px] xl:pb-12 2xl:min-h-[720px] 2xl:pb-10 [@media(min-width:1280px)_and_(min-height:850px)]:min-h-[740px]">
       {/* Layer 0 — desktop hero background (xl+ only, full section width) */}
@@ -76,6 +85,10 @@ export function AeroCommsHero() {
             <div className="flex flex-col gap-2.5 sm:flex-row md:mt-6 md:gap-4 xl:mt-8 xl:gap-3">
               <Link
                 href="/aerocomms/app"
+                onClick={() => {
+                  const metadata = createTrackingCtaMetadata("aerocomms_hero_try_app");
+                  if (metadata) trackCtaClicked(metadata);
+                }}
                 className="inline-flex h-auto items-center justify-center gap-2 rounded-[14px] bg-[#D6AE4F] px-7 py-3.5 text-[15px] font-bold tracking-tight text-[#071224] transition duration-200 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6AE4F]/45 md:h-[56px] md:px-8 md:text-base xl:h-auto xl:px-7 xl:py-3.5 xl:text-[15px] 2xl:h-[56px] 2xl:px-8 2xl:text-[16px]"
               >
                 Probar AeroComms
@@ -83,6 +96,10 @@ export function AeroCommsHero() {
               </Link>
               <Link
                 href="#training"
+                onClick={() => {
+                  const metadata = createTrackingCtaMetadata("aerocomms_hero_how_it_works");
+                  if (metadata) trackCtaClicked(metadata);
+                }}
                 className="inline-flex h-auto items-center justify-center gap-2 rounded-[14px] border border-[#071224]/15 bg-white px-7 py-3.5 text-[15px] font-semibold text-[#071224] transition duration-200 hover:border-[#071224]/30 hover:bg-[#f8fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071224]/20 md:h-[56px] md:px-8 md:text-base xl:h-auto xl:px-7 xl:py-3.5 xl:text-[15px] 2xl:h-[56px] 2xl:px-8 2xl:text-[16px]"
               >
                 <Play className="h-4 w-4 shrink-0" aria-hidden />

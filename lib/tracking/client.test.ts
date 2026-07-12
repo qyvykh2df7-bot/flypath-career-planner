@@ -120,3 +120,56 @@ describe("trackEventOncePerSession", () => {
     );
   });
 });
+
+describe("trackCtaClicked", () => {
+  it("envía una vez por clic real, con una clave nueva y sin bloquear ante un fallo", async () => {
+    const localStorage = createStorage();
+    const sessionStorage = createStorage();
+    localStorage.setItem("flypath_analytics_consent", "granted");
+    vi.stubGlobal("window", {
+      localStorage,
+      sessionStorage,
+      location: {
+        href: "https://flypath.test/schools",
+        origin: "https://flypath.test",
+        pathname: "/schools",
+      },
+    });
+    vi.stubGlobal("document", { referrer: "" });
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce(new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.resetModules();
+
+    const { createTrackingCtaMetadata, trackCtaClicked } = await import("./client");
+    const metadata = createTrackingCtaMetadata("schools_comparator_open_career_planner", {
+      school_count: 2,
+    });
+    expect(metadata).not.toBeNull();
+
+    expect(() => trackCtaClicked(metadata!)).not.toThrow();
+    expect(() => trackCtaClicked(metadata!)).not.toThrow();
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const payloads = fetchMock.mock.calls.map(([, options]) =>
+      JSON.parse((options as RequestInit).body as string),
+    );
+    expect(payloads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event_name: "cta_clicked",
+          event_category: "engagement",
+          metadata: {
+            cta_id: "schools_comparator_open_career_planner",
+            target: "career_planner",
+            source_context: "schools_comparator",
+            school_count: 2,
+          },
+        }),
+      ]),
+    );
+    expect(payloads[0].idempotency_key).not.toBe(payloads[1].idempotency_key);
+  });
+});

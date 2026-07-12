@@ -19,6 +19,7 @@ import {
   RequestBodyTooLargeError,
   TrackingPayloadError,
 } from "./server";
+import { createTrackingCtaMetadata } from "./events";
 
 const ID = "4d3c2b1a-1234-4abc-8def-1234567890ab";
 const CONTEXT = {
@@ -94,6 +95,90 @@ describe("tracking server validation", () => {
         {
           ...validPayload(),
           metadata: { form_id: "pilot@example.com" },
+        },
+        "https://flypath.test",
+      ),
+    ).toThrow(TrackingPayloadError);
+  });
+
+  it("acepta CTAs cerrados y conserva solo su metadata permitida", () => {
+    const schoolSelection = createTrackingCtaMetadata("schools_comparator_select_school", {
+      selection_step: 1,
+      school_count: 1,
+    });
+    const careerPlanner = createTrackingCtaMetadata("schools_comparator_open_career_planner", {
+      school_count: 2,
+    });
+    const homeCtas = [
+      "home_schools_open_comparator",
+      "home_quick_access_career_planner",
+      "home_quick_access_guides",
+      "home_quick_access_aerocomms",
+      "home_quick_access_mentorship",
+      "home_resource_career_planner",
+      "home_resource_pilot_guide",
+      "home_resource_preppl_waitlist",
+      "home_resource_aerocomms",
+      "home_resource_mentorship",
+      "aerocomms_hero_try_app",
+      "aerocomms_hero_how_it_works",
+    ] as const;
+
+    expect(schoolSelection).toMatchObject({ selection_step: 1, school_count: 1 });
+    expect(careerPlanner).toMatchObject({
+      cta_id: "schools_comparator_open_career_planner",
+      target: "career_planner",
+      school_count: 2,
+    });
+
+    for (const ctaId of homeCtas) {
+      const metadata = createTrackingCtaMetadata(ctaId);
+      expect(metadata).not.toBeNull();
+      expect(
+        parseTrackingEventPayload(
+          {
+            ...validPayload(),
+            event_name: "cta_clicked",
+            metadata,
+          },
+          "https://flypath.test",
+        ).metadata,
+      ).toMatchObject(metadata ?? {});
+    }
+  });
+
+  it("rechaza CTAs desconocidos, metadata adicional y PII disfrazada", () => {
+    const metadata = createTrackingCtaMetadata("aerocomms_hero_try_app");
+    expect(metadata).not.toBeNull();
+
+    expect(() =>
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "cta_clicked",
+          metadata: { ...metadata, cta_id: "unknown_cta" },
+        },
+        "https://flypath.test",
+      ),
+    ).toThrow(TrackingPayloadError);
+
+    expect(() =>
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "cta_clicked",
+          metadata: { ...metadata, school_name: "Escuela privada" },
+        },
+        "https://flypath.test",
+      ),
+    ).toThrow(TrackingPayloadError);
+
+    expect(() =>
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "cta_clicked",
+          metadata: { ...metadata, target: "pilot@example.com" },
         },
         "https://flypath.test",
       ),

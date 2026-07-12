@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { PrePplWaitlistModal } from "@/components/home/PrePplWaitlistModal";
+import { createTrackingCtaMetadata, trackCtaClicked } from "@/lib/tracking/client";
+import type { TrackingCtaId } from "@/lib/tracking/events";
 import { initializeTrackingContext } from "@/lib/tracking/session";
 
 type ResourceType = "HERRAMIENTA" | "GUÍA" | "APP" | "MENTORÍA";
@@ -17,6 +19,7 @@ type HomeResource = {
   href: string;
   mockupSrc: string;
   mockupAlt: string;
+  ctaId: TrackingCtaId;
   waitlist?: boolean;
 };
 
@@ -28,6 +31,7 @@ const HOME_RESOURCES: HomeResource[] = [
     description: "Descubre tu ruta ideal según edad, presupuesto, tiempo e inglés.",
     cta: "Probar ahora",
     href: "/career-planner",
+    ctaId: "home_resource_career_planner",
     mockupSrc: "/aerocomms/mockups/plannerhome.png",
     mockupAlt: "Mockup del Career Planner de FlyPath",
   },
@@ -38,6 +42,7 @@ const HOME_RESOURCES: HomeResource[] = [
     description: "La guía completa para entender el proceso desde cero.",
     cta: "Ver guía",
     href: "/guia-como-ser-piloto",
+    ctaId: "home_resource_pilot_guide",
     mockupSrc: "/aerocomms/mockups/pilotohome.png",
     mockupAlt: "Portada de la guía Cómo ser Piloto",
   },
@@ -48,6 +53,7 @@ const HOME_RESOURCES: HomeResource[] = [
     description: "Conceptos básicos antes de empezar tu formación.",
     cta: "Unirme a la lista de espera",
     href: "#",
+    ctaId: "home_resource_preppl_waitlist",
     waitlist: true,
     mockupSrc: "/aerocomms/mockups/preppl.png",
     mockupAlt: "Portada de la guía Pre-PPL",
@@ -59,6 +65,7 @@ const HOME_RESOURCES: HomeResource[] = [
     description: "Practica radio real en inglés con escenarios ATC.",
     cta: "Descubrir app",
     href: "/aerocomms",
+    ctaId: "home_resource_aerocomms",
     mockupSrc: "/aerocomms/mockups/aerohome.png",
     mockupAlt: "Mockup móvil de la app AeroComms",
   },
@@ -69,6 +76,7 @@ const HOME_RESOURCES: HomeResource[] = [
     description: "Sesiones personalizadas para resolver dudas y avanzar con seguridad.",
     cta: "Saber más",
     href: "/mentorias",
+    ctaId: "home_resource_mentorship",
     mockupSrc: "/aerocomms/mockups/mentoriahome.png",
     mockupAlt: "Mockup de sesión de mentoría 1 a 1 con un piloto",
   },
@@ -106,6 +114,10 @@ function ResourceCard({
   onWaitlistClick?: () => void;
 }) {
   const isPlaceholderLink = resource.href === "#";
+  const trackResourceClick = () => {
+    const metadata = createTrackingCtaMetadata(resource.ctaId);
+    if (metadata) trackCtaClicked(metadata);
+  };
   const mockupAreaClass =
     "relative flex min-h-[260px] items-center justify-center bg-[#F8F9FA] px-2 py-2 sm:min-h-[280px]";
 
@@ -123,6 +135,7 @@ function ResourceCard({
       ) : (
         <Link
           href={resource.href}
+          onClick={trackResourceClick}
           aria-label={`${resource.cta}: ${resource.title}`}
           className={`${mockupAreaClass} block cursor-pointer transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/30 focus-visible:ring-offset-2`}
         >
@@ -139,7 +152,10 @@ function ResourceCard({
         {resource.waitlist && onWaitlistClick ? (
           <button
             type="button"
-            onClick={onWaitlistClick}
+            onClick={() => {
+              trackResourceClick();
+              onWaitlistClick();
+            }}
             className={`mt-4 inline-flex w-fit items-center gap-1.5 text-left text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}
           >
             <span className="leading-snug">
@@ -157,6 +173,7 @@ function ResourceCard({
         ) : (
           <Link
             href={resource.href}
+            onClick={trackResourceClick}
             className={`group mt-4 inline-flex w-fit items-center gap-1.5 text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}
           >
             {resource.cta}

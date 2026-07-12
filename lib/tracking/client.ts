@@ -1,9 +1,13 @@
 import {
+  createTrackingCtaMetadata,
+  isTrackingCtaMetadata,
   TRACKING_EVENT_DEFINITIONS,
+  type TrackingCtaMetadata,
   type TrackingEventMetadata,
-  type TrackingEventName,
+  type SessionTrackingEventName,
 } from "@/lib/tracking/events";
 import {
+  createTrackingUuid,
   getTrackingContext,
   getTrackingEventId,
   hasAnalyticsConsent,
@@ -47,7 +51,7 @@ function markEventTrackedThisSession(key: string): void {
  * La petición es deliberadamente best-effort y nunca bloquea la interacción.
  */
 export function trackEventOncePerSession(
-  eventName: TrackingEventName,
+  eventName: SessionTrackingEventName,
   metadata: TrackingEventMetadata,
 ): void {
   if (typeof window === "undefined" || !hasAnalyticsConsent()) return;
@@ -88,3 +92,31 @@ export function trackEventOncePerSession(
       pendingEvents.delete(storageKey);
     });
 }
+
+/**
+ * Registra un clic de CTA explícito. Cada clic real usa una clave nueva y no
+ * comparte la deduplicación por sesión reservada para formularios y popups.
+ */
+export function trackCtaClicked(metadata: TrackingCtaMetadata): void {
+  if (typeof window === "undefined" || !hasAnalyticsConsent() || !isTrackingCtaMetadata(metadata)) {
+    return;
+  }
+
+  const context = getTrackingContext();
+  if (!context) return;
+
+  void fetch("/api/tracking/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event_name: "cta_clicked",
+      event_category: TRACKING_EVENT_DEFINITIONS.cta_clicked.category,
+      idempotency_key: createTrackingUuid(),
+      ...context,
+      metadata,
+    }),
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
+export { createTrackingCtaMetadata };
