@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { Calendar, CheckCircle2, ShieldCheck, User } from "lucide-react";
 import { MentorshipSupportModal } from "@/components/mentorias/MentorshipSupportModal";
+import { trackPageViewed } from "@/lib/tracking/client";
 import { initializeTrackingContext } from "@/lib/tracking/session";
 
 const TOAST_MS = 2800;
@@ -49,6 +50,7 @@ export function MentoriasPricingSection() {
 
   useEffect(() => {
     initializeTrackingContext();
+    trackPageViewed("mentorship");
   }, []);
 
   return (

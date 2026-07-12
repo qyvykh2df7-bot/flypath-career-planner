@@ -1,4 +1,5 @@
 import type { TrackingContext } from "@/lib/tracking/events";
+import { trackFormCompleted } from "@/lib/tracking/client";
 
 export type MentorshipSupportFormInput = {
   fullName: string;
@@ -37,6 +38,7 @@ export async function captureMentorshipSupportLead(
   }
 
   if (response.ok) {
+    trackFormCompleted("mentorship_support");
     return { ok: true };
   }
 

@@ -1,4 +1,5 @@
 import type { TrackingContext } from "@/lib/tracking/events";
+import { trackFormCompleted } from "@/lib/tracking/client";
 
 type CapturePrepplWaitlistResult =
   | { ok: true }
@@ -29,6 +30,7 @@ export async function capturePrepplWaitlistLead(
   }
 
   if (response.ok) {
+    trackFormCompleted("preppl_waitlist");
     return { ok: true };
   }
 

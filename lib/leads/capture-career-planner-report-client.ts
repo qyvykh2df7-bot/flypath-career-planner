@@ -1,5 +1,6 @@
 import { CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE } from "@/lib/leads/career-planner-consent";
 import type { TrackingContext } from "@/lib/tracking/events";
+import { trackFormCompleted } from "@/lib/tracking/client";
 
 type CaptureCareerPlannerReportResult =
   | { ok: true }
@@ -33,6 +34,7 @@ export async function captureCareerPlannerReportLead(
   }
 
   if (response.ok) {
+    trackFormCompleted("career_planner_report");
     return { ok: true };
   }
 

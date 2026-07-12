@@ -133,7 +133,7 @@ import {
   CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE,
   CAREER_PLANNER_MARKETING_CONSENT_TEXT,
 } from "@/lib/leads/career-planner-consent";
-import { trackEventOncePerSession } from "@/lib/tracking/client";
+import { trackEventOncePerSession, trackPageViewed } from "@/lib/tracking/client";
 import {
   createTrackingUuid,
   getTrackingContext,
@@ -1281,6 +1281,7 @@ export function FlyPathApp({
 
   useEffect(() => {
     initializeTrackingContext();
+    trackPageViewed("career_planner");
   }, []);
 
   // Decide la apertura inicial del acordeón manual una sola vez, leyendo síncronamente

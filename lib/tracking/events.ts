@@ -48,17 +48,37 @@ export function isSafeUtmValue(value: string): boolean {
   );
 }
 
+export const TRACKING_FORM_IDS = [
+  "home_newsletter",
+  "career_planner_report",
+  "preppl_waitlist",
+  "mentorship_support",
+] as const;
+
+export type TrackingFormId = (typeof TRACKING_FORM_IDS)[number];
+
+export const TRACKING_PAGE_IDS = [
+  "home",
+  "schools",
+  "mentorship",
+  "career_planner",
+  "aerocomms",
+] as const;
+
+export type TrackingPageId = (typeof TRACKING_PAGE_IDS)[number];
+
 const IDENTIFIER_TRACKING_EVENT_DEFINITIONS = {
   form_started: {
     category: "engagement",
     metadataKind: "identifier",
     metadataKey: "form_id",
-    metadataIds: [
-      "home_newsletter",
-      "career_planner_report",
-      "preppl_waitlist",
-      "mentorship_support",
-    ],
+    metadataIds: TRACKING_FORM_IDS,
+  },
+  form_completed: {
+    category: "engagement",
+    metadataKind: "identifier",
+    metadataKey: "form_id",
+    metadataIds: TRACKING_FORM_IDS,
   },
   popup_opened: {
     category: "engagement",
@@ -66,12 +86,18 @@ const IDENTIFIER_TRACKING_EVENT_DEFINITIONS = {
     metadataKey: "popup_id",
     metadataIds: ["preppl_waitlist", "mentorship_support"],
   },
+  page_viewed: {
+    category: "navigation",
+    metadataKind: "identifier",
+    metadataKey: "page_id",
+    metadataIds: TRACKING_PAGE_IDS,
+  },
 } as const satisfies Record<
   string,
   {
     category: TrackingEventCategory;
     metadataKind: "identifier";
-    metadataKey: "form_id" | "popup_id";
+    metadataKey: "form_id" | "popup_id" | "page_id";
     metadataIds: readonly string[];
   }
 >;
@@ -262,4 +288,5 @@ export type TrackingContext = {
 export type TrackingEventMetadata =
   | { form_id: string }
   | { popup_id: string }
+  | { page_id: string }
   | TrackingCtaMetadata;

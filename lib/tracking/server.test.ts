@@ -101,6 +101,66 @@ describe("tracking server validation", () => {
     ).toThrow(TrackingPayloadError);
   });
 
+  it("acepta page_viewed y form_completed solo con identificadores cerrados", () => {
+    expect(
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "page_viewed",
+          event_category: "navigation",
+          metadata: { page_id: "career_planner" },
+        },
+        "https://flypath.test",
+      ).metadata,
+    ).toMatchObject({ page_id: "career_planner" });
+
+    expect(
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "form_completed",
+          metadata: { form_id: "mentorship_support" },
+        },
+        "https://flypath.test",
+      ).metadata,
+    ).toMatchObject({ form_id: "mentorship_support" });
+
+    expect(() =>
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "page_viewed",
+          event_category: "navigation",
+          metadata: { page_id: "unknown_page" },
+        },
+        "https://flypath.test",
+      ),
+    ).toThrow(TrackingPayloadError);
+
+    expect(() =>
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "page_viewed",
+          event_category: "navigation",
+          metadata: { page_id: "pilot@example.com" },
+        },
+        "https://flypath.test",
+      ),
+    ).toThrow(TrackingPayloadError);
+
+    expect(() =>
+      parseTrackingEventPayload(
+        {
+          ...validPayload(),
+          event_name: "form_completed",
+          metadata: { form_id: "home_newsletter", email: "pilot@example.com" },
+        },
+        "https://flypath.test",
+      ),
+    ).toThrow(TrackingPayloadError);
+  });
+
   it("acepta CTAs cerrados y conserva solo su metadata permitida", () => {
     const schoolSelection = createTrackingCtaMetadata("schools_comparator_select_school", {
       selection_step: 1,

@@ -142,8 +142,8 @@ export function sanitizeTrackingContext(
 
 function parseTrackingMetadata(
   value: unknown,
-  metadataKey: "form_id" | "popup_id",
-): Record<"form_id" | "popup_id", string> {
+  metadataKey: "form_id" | "popup_id" | "page_id",
+): Record<"form_id" | "popup_id" | "page_id", string> {
   if (!isRecord(value) || Object.keys(value).length !== 1) {
     throw new TrackingPayloadError();
   }
@@ -153,7 +153,7 @@ function parseTrackingMetadata(
     throw new TrackingPayloadError();
   }
 
-  return { [metadataKey]: metadataId } as Record<"form_id" | "popup_id", string>;
+  return { [metadataKey]: metadataId } as Record<"form_id" | "popup_id" | "page_id", string>;
 }
 
 export async function readJsonBodyWithinLimit(

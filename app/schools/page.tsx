@@ -20,7 +20,11 @@ import {
 import type { SchoolEntry } from "@/types/schools";
 import { QaPremiumFloatingToggle } from "@/components/dev/QaPremiumFloatingToggle";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
-import { createTrackingCtaMetadata, trackCtaClicked } from "@/lib/tracking/client";
+import {
+  createTrackingCtaMetadata,
+  trackCtaClicked,
+  trackPageViewed,
+} from "@/lib/tracking/client";
 import { initializeTrackingContext } from "@/lib/tracking/session";
 
 const MAX_SELECTED = 2;
@@ -89,6 +93,7 @@ function SchoolsPageContent() {
 
   useEffect(() => {
     initializeTrackingContext();
+    trackPageViewed("schools");
   }, []);
 
   const router = useRouter();

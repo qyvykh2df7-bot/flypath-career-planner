@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { PrePplWaitlistModal } from "@/components/home/PrePplWaitlistModal";
-import { createTrackingCtaMetadata, trackCtaClicked } from "@/lib/tracking/client";
+import {
+  createTrackingCtaMetadata,
+  trackCtaClicked,
+  trackPageViewed,
+} from "@/lib/tracking/client";
 import type { TrackingCtaId } from "@/lib/tracking/events";
 import { initializeTrackingContext } from "@/lib/tracking/session";
 
@@ -190,6 +194,7 @@ export function HomeResourcesShowcase() {
 
   useEffect(() => {
     initializeTrackingContext();
+    trackPageViewed("home");
   }, []);
 
   return (

@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
 import { ArrowRight, Play, ShieldCheck } from "lucide-react";
-import { createTrackingCtaMetadata, trackCtaClicked } from "@/lib/tracking/client";
+import {
+  createTrackingCtaMetadata,
+  trackCtaClicked,
+  trackPageViewed,
+} from "@/lib/tracking/client";
 import { initializeTrackingContext } from "@/lib/tracking/session";
 
 const DESKTOP_HERO_OVERLAY =
@@ -13,6 +17,7 @@ const DESKTOP_HERO_OVERLAY =
 export function AeroCommsHero() {
   useEffect(() => {
     initializeTrackingContext();
+    trackPageViewed("aerocomms");
   }, []);
 
   return (

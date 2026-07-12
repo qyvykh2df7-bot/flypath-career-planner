@@ -1,4 +1,5 @@
 import type { TrackingContext } from "@/lib/tracking/events";
+import { trackFormCompleted } from "@/lib/tracking/client";
 
 type CaptureHomeNewsletterResult =
   | { ok: true }
@@ -29,6 +30,7 @@ export async function captureHomeNewsletterLead(
   }
 
   if (response.ok) {
+    trackFormCompleted("home_newsletter");
     return { ok: true };
   }
 

@@ -119,6 +119,88 @@ describe("trackEventOncePerSession", () => {
       ]),
     );
   });
+
+  it("envía page_viewed una vez por sesión y página, y distingue páginas distintas", async () => {
+    const localStorage = createStorage();
+    const sessionStorage = createStorage();
+    const location = {
+      href: "https://flypath.test/",
+      origin: "https://flypath.test",
+      pathname: "/",
+    };
+    localStorage.setItem("flypath_analytics_consent", "granted");
+    vi.stubGlobal("window", { localStorage, sessionStorage, location });
+    vi.stubGlobal("document", { referrer: "" });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.resetModules();
+
+    const { trackPageViewed } = await import("./client");
+    trackPageViewed("home");
+    trackPageViewed("home");
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    location.href = "https://flypath.test/schools";
+    location.pathname = "/schools";
+    trackPageViewed("schools");
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    const payloads = fetchMock.mock.calls.map(([, options]) =>
+      JSON.parse((options as RequestInit).body as string),
+    );
+    expect(payloads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event_name: "page_viewed", metadata: { page_id: "home" } }),
+        expect.objectContaining({ event_name: "page_viewed", metadata: { page_id: "schools" } }),
+      ]),
+    );
+  });
+});
+
+describe("trackFormCompleted", () => {
+  it("permite conversiones confirmadas distintas y absorbe un fallo de tracking", async () => {
+    const localStorage = createStorage();
+    const sessionStorage = createStorage();
+    localStorage.setItem("flypath_analytics_consent", "granted");
+    vi.stubGlobal("window", {
+      localStorage,
+      sessionStorage,
+      location: {
+        href: "https://flypath.test/",
+        origin: "https://flypath.test",
+        pathname: "/",
+      },
+    });
+    vi.stubGlobal("document", { referrer: "" });
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error("network");
+      })
+      .mockResolvedValueOnce(new Response(null, { status: 202 }))
+      .mockResolvedValueOnce(new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.resetModules();
+
+    const { trackFormCompleted } = await import("./client");
+    expect(() => trackFormCompleted("home_newsletter")).not.toThrow();
+    trackFormCompleted("home_newsletter");
+    trackFormCompleted("home_newsletter");
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    const payloads = fetchMock.mock.calls.map(([, options]) =>
+      JSON.parse((options as RequestInit).body as string),
+    );
+    expect(payloads.slice(1)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event_name: "form_completed",
+          metadata: { form_id: "home_newsletter" },
+        }),
+      ]),
+    );
+    expect(payloads[1].idempotency_key).not.toBe(payloads[2].idempotency_key);
+  });
 });
 
 describe("trackCtaClicked", () => {

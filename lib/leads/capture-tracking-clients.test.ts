@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const tracking = vi.hoisted(() => ({
+  trackFormCompleted: vi.fn(),
+}));
+
+vi.mock("@/lib/tracking/client", () => tracking);
+
+import { captureHomeNewsletterLead } from "./capture-home-newsletter-client";
 import { captureCareerPlannerReportLead } from "./capture-career-planner-report-client";
 import { captureMentorshipSupportLead } from "./capture-mentorship-support-client";
 import { capturePrepplWaitlistLead } from "./capture-preppl-waitlist-client";
@@ -21,13 +28,17 @@ const CONTEXT = {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("tracked conversion clients", () => {
-  it("envía cada conversión exclusivamente a su ruta server-side", async () => {
+  it("registra form_completed solo después de una captación confirmada", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
+    await expect(captureHomeNewsletterLead("pilot@example.com", CONTEXT, ID)).resolves.toEqual({
+      ok: true,
+    });
     await expect(
       captureCareerPlannerReportLead("pilot@example.com", true, CONTEXT, ID),
     ).resolves.toEqual({ ok: true });
@@ -49,19 +60,40 @@ describe("tracked conversion clients", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "/api/leads/career-planner-report",
+      "/api/leads/home-newsletter",
       expect.any(Object),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "/api/leads/preppl-waitlist",
+      "/api/leads/career-planner-report",
       expect.any(Object),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
+      "/api/leads/preppl-waitlist",
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
       "/api/leads/mentorship-support",
       expect.any(Object),
     );
     expect(fetchMock.mock.calls.some(([url]) => url === "/api/tracking/events")).toBe(false);
+    expect(tracking.trackFormCompleted).toHaveBeenCalledTimes(4);
+    expect(tracking.trackFormCompleted).toHaveBeenCalledWith("home_newsletter");
+    expect(tracking.trackFormCompleted).toHaveBeenCalledWith("career_planner_report");
+    expect(tracking.trackFormCompleted).toHaveBeenCalledWith("preppl_waitlist");
+    expect(tracking.trackFormCompleted).toHaveBeenCalledWith("mentorship_support");
+  });
+
+  it("no registra form_completed si la captación falla", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 500 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(captureHomeNewsletterLead("pilot@example.com", CONTEXT, ID)).resolves.toMatchObject({
+      ok: false,
+    });
+
+    expect(tracking.trackFormCompleted).not.toHaveBeenCalled();
   });
 });

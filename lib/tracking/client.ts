@@ -4,6 +4,8 @@ import {
   TRACKING_EVENT_DEFINITIONS,
   type TrackingCtaMetadata,
   type TrackingEventMetadata,
+  type TrackingFormId,
+  type TrackingPageId,
   type SessionTrackingEventName,
 } from "@/lib/tracking/events";
 import {
@@ -19,10 +21,11 @@ const pendingEvents = new Set<string>();
 
 function getMetadataIdentifier(
   metadata: TrackingEventMetadata,
-  metadataKey: "form_id" | "popup_id",
+  metadataKey: "form_id" | "popup_id" | "page_id",
 ): string | null {
   if (metadataKey === "form_id" && "form_id" in metadata) return metadata.form_id;
   if (metadataKey === "popup_id" && "popup_id" in metadata) return metadata.popup_id;
+  if (metadataKey === "page_id" && "page_id" in metadata) return metadata.page_id;
   return null;
 }
 
@@ -72,25 +75,65 @@ export function trackEventOncePerSession(
 
   pendingEvents.add(storageKey);
 
-  void fetch("/api/tracking/events", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      event_name: eventName,
-      event_category: eventDefinition.category,
-      idempotency_key: idempotencyKey,
-      ...context,
-      metadata,
-    }),
-    keepalive: true,
-  })
-    .then((response) => {
-      if (response.ok) markEventTrackedThisSession(storageKey);
+  try {
+    void fetch("/api/tracking/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_name: eventName,
+        event_category: eventDefinition.category,
+        idempotency_key: idempotencyKey,
+        ...context,
+        metadata,
+      }),
+      keepalive: true,
     })
-    .catch(() => undefined)
-    .finally(() => {
-      pendingEvents.delete(storageKey);
-    });
+      .then((response) => {
+        if (response.ok) markEventTrackedThisSession(storageKey);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        pendingEvents.delete(storageKey);
+      });
+  } catch {
+    pendingEvents.delete(storageKey);
+  }
+}
+
+export function trackPageViewed(pageId: TrackingPageId): void {
+  trackEventOncePerSession("page_viewed", { page_id: pageId });
+}
+
+/**
+ * Completa la analítica solo después de que la captación haya respondido bien.
+ * Usa una clave propia para no compartir la idempotencia de la conversión de servidor.
+ */
+export function trackFormCompleted(formId: TrackingFormId): void {
+  try {
+    if (typeof window === "undefined" || !hasAnalyticsConsent()) return;
+
+    const eventDefinition = TRACKING_EVENT_DEFINITIONS.form_completed;
+    const allowedFormIds: readonly string[] = eventDefinition.metadataIds;
+    if (!allowedFormIds.includes(formId)) return;
+
+    const context = getTrackingContext();
+    if (!context) return;
+
+    void fetch("/api/tracking/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_name: "form_completed",
+        event_category: eventDefinition.category,
+        idempotency_key: createTrackingUuid(),
+        ...context,
+        metadata: { form_id: formId },
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
+  } catch {
+    // La analítica no puede alterar una conversión ya confirmada.
+  }
 }
 
 /**
