@@ -18,15 +18,19 @@ Esquema Supabase aplicado y fusionado en `main` (2026-07-11, merge `61a0df6`).
 
 Cuatro superficies conectadas al Backend Core, validadas en local y en producción.
 
+### Fase 3 — Tracking y analítica básica
+
+Tracking implementado en `main` (`996d3fc`): infraestructura en `lib/tracking/`, ingesta cliente vía `/api/tracking/events` y conversiones server-side en rutas de leads. Las conversiones server-side históricas de captación sí existen en producción; los eventos cliente (`page_viewed`, `form_completed`, `cta_clicked`, `form_started`, `popup_opened`) siguen sin registros observados en Supabase remoto. Migración `20260712020000` aplicada; `20260712030000` aplicada en remoto con archivo pendiente de commit en `chore/close-tracking-phase-3`.
+
 ---
 
 ## Fase actual
 
-**Fase 3 — Tracking y analítica básica**
+**Fase 4 — Warhome MVP**
 
 ### Objetivo inmediato
 
-Registrar comportamiento en web y productos (páginas, CTAs, popups, formularios, UTMs, conversiones, sesiones anónimas) vía `user_events`, sin dashboards avanzados y sin datos sensibles en eventos.
+Panel interno mínimo para operar leads, solicitudes de acompañamiento, suscripciones, eventos y notas internas, con acceso administrativo seguro.
 
 ---
 
@@ -43,8 +47,29 @@ Registrar comportamiento en web y productos (páginas, CTAs, popups, formularios
 
 - `leads.source` = `mentoring`; `user_events.source` = `mentorship`.
 - `interest_intent` = `inquiry` en `user_events.metadata`.
-- Teléfono y campos del formulario en `user_events.metadata`.
+- Metadata de eventos sin PII: solo `interest_intent`, `popup_id` y `form_id`.
+- Eventos históricos con PII saneados por migración `20260712030000`.
 - Sin `email_subscriptions`; no modifica `marketing_consent`.
+
+---
+
+## Tracking — infraestructura (Fase 3)
+
+| Componente | Ubicación |
+|------------|-----------|
+| Cliente de tracking (consentimiento, sesión, eventos) | `lib/tracking/client.ts` |
+| Contexto de sesión (`anonymous_id`, UTMs, referrer) | `lib/tracking/session.ts` |
+| Definiciones y validación de eventos | `lib/tracking/events.ts` |
+| Validación servidor e ingesta | `lib/tracking/server.ts` |
+| API de eventos cliente | `app/api/tracking/events/route.ts` |
+
+**Contexto capturado:** `anonymous_id`, `session_id`, `landing_page`, `referrer` saneado, UTMs, `page_path`.
+
+**Eventos instrumentados:** `form_started`, `popup_opened`, `cta_clicked`, `page_viewed`, `form_completed` y conversiones server-side por flujo de captación.
+
+**Producción:** conversiones server-side observadas; eventos cliente instrumentados pero sin registros observados en remoto aún.
+
+**Exclusiones conscientes:** `form_abandoned`, blog, páginas individuales de escuelas, navegación global, AeroComms in-app.
 
 ---
 
@@ -66,8 +91,8 @@ Registrar comportamiento en web y productos (páginas, CTAs, popups, formularios
 |------|--------|
 | AeroComms en FlyPath (`/aerocomms/app`) | **Operativa** (Fase 0 — completada) |
 | Captación pública de leads | **Operativa** (Fase 2 — 4 flujos) |
-| Tracking / analítica web ampliada | **No existe** (Fase 3 — actual) |
-| Warhome (UI admin) | **No existe** (Fase 4) |
+| Tracking / analítica web básica | **Implementado en `main`** (Fase 3 — completada; eventos cliente sin observar en producción) |
+| Warhome (UI admin) | **No existe** (Fase 4 — actual) |
 | Emails operativos | **No existe** (Fase 5) |
 | Login y cuentas FlyPath | **No existe** (Fase 6) |
 | Persistencia AeroComms en Supabase | **No existe** (Fase 7; progreso en `localStorage`) |
@@ -78,12 +103,11 @@ Registrar comportamiento en web y productos (páginas, CTAs, popups, formularios
 
 ---
 
-## Roadmap — fases 3 a 11
+## Roadmap — fases 4 a 11
 
 | Fase | Nombre | Estado |
 |------|--------|--------|
-| 3 | Tracking y analítica básica | **Actual** |
-| 4 | Warhome MVP | Pendiente |
+| 4 | Warhome MVP | **Actual** |
 | 5 | Emails operativos | Pendiente |
 | 6 | Login y cuentas FlyPath | Pendiente |
 | 7 | Persistencia de AeroComms | Pendiente |
@@ -98,32 +122,30 @@ Detalle en `ROADMAP.md`.
 
 ## Limitaciones conocidas
 
-- `user_events` es append-only; captación de leads activa; tracking web ampliado pendiente (Fase 3).
+- `user_events` es append-only; tracking implementado en `main`; eventos cliente sin observar en producción; sin `form_abandoned` ni dashboards.
 - Progreso AeroComms principalmente en cliente (`localStorage`) hasta Fase 7.
 - `email_*` y proveedor SMTP sin operar hasta Fase 5.
 - `admin_notes` editables vía `service_role` hasta Warhome MVP (Fase 4).
 
 ---
 
-## Definition of done — Fase 2 (captación pública)
+## Definition of done — Fase 3 (tracking — completada)
 
-- [x] Cliente Supabase servidor con `service_role` aislado del bundle cliente.
-- [x] Cuatro formularios persisten lead, interés y/o suscripción y evento según flujo.
-- [x] Emails normalizados; duplicados gestionados por email.
-- [x] Validación local y producción.
-- [x] Sin exponer `service_role` al navegador.
+**Implementación (completada):**
 
-## Definition of done — Fase 3 (tracking — fase actual)
+- [x] Infraestructura de tracking en `lib/tracking/` y `/api/tracking/events`.
+- [x] Instrumentación de navegación, CTAs, popups y formularios en flujos clave.
+- [x] UTMs, referer y sesión anónima capturados en contexto.
+- [x] Conversiones server-side por flujo de captación.
+- [x] Consentimiento de cookies/analítica respetado en eventos cliente.
+- [x] Sin datos sensibles en eventos (validación + saneamiento histórico).
+- [x] Sin dashboards avanzados.
 
-- [ ] Eventos de navegación y CTA registrados en `user_events`.
-- [ ] Popups y formularios: iniciado, completado, abandonado.
-- [ ] UTMs, referer y fuente capturados cuando aplique.
-- [ ] Sesiones anónimas y conversiones básicas.
-- [ ] Consentimiento de cookies/analítica respetado.
-- [ ] Sin datos sensibles en eventos.
-- [ ] Sin dashboards avanzados.
+**Observación en producción (no requerida para cerrar la fase):**
 
-## Definition of done — Fase 4 (Warhome MVP — siguiente)
+- [ ] Eventos cliente (`page_viewed`, `form_completed`, `cta_clicked`, `form_started`, `popup_opened`) con registros observados en Supabase remoto.
+
+## Definition of done — Fase 4 (Warhome MVP — actual)
 
 - [ ] Acceso administrativo seguro.
 - [ ] Listado, búsqueda, filtros y detalle de leads.

@@ -25,6 +25,6 @@ Copia `.env.example` a `.env.local` y rellena:
 | Documento | Contenido |
 |-----------|-----------|
 | [CURRENT_PHASE.md](./CURRENT_PHASE.md) | Fase actual, flujos de captación, estado real |
-| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa (Tracking y analítica básica — Fase 3) |
+| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa (Warhome MVP — Fase 4) |
 | [ROADMAP.md](./ROADMAP.md) | Roadmap por fases |
 | [LAST_SESSION.md](./LAST_SESSION.md) | Último handoff operativo |

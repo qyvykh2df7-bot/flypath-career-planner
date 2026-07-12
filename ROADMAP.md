@@ -55,7 +55,7 @@ Base de datos compartida para captación, perfiles, email, eventos, contenido y 
 |---------|--------|---------------|
 | Catálogo | `products` | Fase 9 (pagos) |
 | Usuarios | `profiles` | Fase 6 (login) |
-| Eventos / analítica | `user_events` | Fase 3 (tracking ampliado) |
+| Eventos / analítica | `user_events` | Fase 3 (completada) |
 | Automatización email | `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries` | Fase 10 (CRM) |
 | Contenido | `content_items` | Fase 11 (Warboard) |
 | Admin | `admin_notes` | Fase 4 (Warhome MVP) |
@@ -86,38 +86,68 @@ Conexión del esquema a la aplicación FlyPath con capa servidor segura y cuatro
 
 ## Fase 3 — Tracking y analítica básica
 
-**Estado: Siguiente**
+**Estado: Completado**
 
-Medición de comportamiento en web y productos sin dashboards avanzados.
+Medición de comportamiento en web pública vía `user_events`, sin dashboards avanzados.
 
-### Objetivos
+### Completado
 
-- Páginas visitadas.
-- Clics en CTA.
-- Comparador → Career Planner.
-- Apertura y envío de popups.
-- Formularios iniciados, completados y abandonados.
-- UTMs, referer y fuente.
-- Conversiones.
-- Sesiones anónimas.
-- Consentimiento de cookies y analítica cuando corresponda.
-- No guardar datos sensibles en eventos.
+**Infraestructura** (`lib/tracking/`):
 
-### Fuera de alcance en esta fase
+- `anonymous_id` y `session_id`.
+- `landing_page`, `referrer` saneado y `page_path` en contexto.
+- UTMs (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`).
+- Consentimiento analítico explícito antes de eventos cliente.
+- Idempotencia de conversiones server-side (`idempotency_key` + migración `20260712020000`).
+- Validación de privacidad en servidor (metadata cerrada, sin PII).
+- Límites de body en rutas de leads y `/api/tracking/events`.
+- API cliente `/api/tracking/events` y helpers `lib/tracking/client.ts`.
+
+**Instrumentación por bloques:**
+
+| Bloque | Eventos / superficies |
+|--------|------------------------|
+| Newsletter home | `form_started`, `form_completed`; conversión `home_newsletter_subscribed` |
+| Career Planner | `form_started`, `form_completed`; conversión `career_planner_report_download_requested` |
+| Pre-PPL | `popup_opened`, `form_started`, `form_completed`; conversión `preppl_waitlist_joined` |
+| Mentorías | `popup_opened`, `form_started`, `form_completed`; conversión `mentorship_support_requested` |
+| Comparador de escuelas | `cta_clicked` (selección, Career Planner, mentorías) |
+| CTAs públicos de alto valor | `cta_clicked` (home, recursos, AeroComms hero) |
+| Páginas principales | `page_viewed` (`home`, `schools`, `mentorship`, `career_planner`, `aerocomms`) |
+| Formularios instrumentados | `form_completed` tras captación confirmada (cliente, best-effort) |
+
+**Implementado en `main` vs observado en producción:**
+
+- **Implementado en `main`:** infraestructura, instrumentación y rutas de ingesta descritas arriba.
+- **Observado en producción:** conversiones server-side históricas de captación (Fase 2); eventos cliente (`page_viewed`, `form_completed`, `cta_clicked`, `form_started`, `popup_opened`) **sin registros observados** en Supabase remoto aún.
+- La observación de eventos cliente no es requisito para cerrar esta fase.
+
+**Supabase:**
+
+- Migración `20260712020000_add_user_events_idempotency.sql` aplicada.
+- Migración `20260712030000_sanitize_mentorship_event_metadata.sql` aplicada en remoto.
+- 2 eventos históricos `mentorship_support_requested` saneados (PII eliminada de `metadata`).
+- `20260712030000` ya está aplicada en Supabase; su archivo sigue pendiente de commit e integración en la rama `chore/close-tracking-phase-3` (Git y remoto no están completamente alineados hasta el merge).
+
+### Exclusiones conscientes (fuera de alcance Fase 3)
+
+- `form_abandoned`.
+- Blog y artículos.
+- Páginas individuales de escuelas (`/schools/[slug]`).
+- Navegación global (shell, menús transversales).
+- AeroComms in-app (`/aerocomms/app/*`).
+
+### Fuera de alcance en esta fase (sin cambio)
 
 - Dashboards avanzados.
 - Warhome / Warboard.
 - CRM, campañas o IA.
 
-### Preparado (esquema)
-
-- Tabla `user_events` (append-only); ingesta activa desde captación de leads (Fase 2).
-
 ---
 
 ## Fase 4 — Warhome MVP
 
-**Estado: Pendiente**
+**Estado: Siguiente**
 
 Panel interno mínimo para operar leads y solicitudes.
 
@@ -324,8 +354,8 @@ Centro operativo completo de FlyPath.
 Fase 0   AeroComms en FlyPath           ████████████  Completado (producto integrado)
 Fase 1   Backend Core (Supabase)        ████████████  Completado (esquema)
 Fase 2   Captación pública de leads     ████████████  Completado
-Fase 3   Tracking y analítica básica    ░░░░░░░░░░░░  Siguiente
-Fase 4   Warhome MVP                    ░░░░░░░░░░░░  Pendiente
+Fase 3   Tracking y analítica básica    ████████████  Completado
+Fase 4   Warhome MVP                    ░░░░░░░░░░░░  Siguiente
 Fase 5   Emails operativos              ░░░░░░░░░░░░  Pendiente
 Fase 6   Login y cuentas FlyPath        ░░░░░░░░░░░░  Pendiente
 Fase 7   Persistencia de AeroComms      ░░░░░░░░░░░░  Pendiente
