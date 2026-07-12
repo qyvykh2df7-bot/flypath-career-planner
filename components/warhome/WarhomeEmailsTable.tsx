@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { CheckCircle2, ChevronLeft, ChevronRight, MailWarning, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, MailWarning } from "lucide-react";
 
 import {
   getWarhomeEmailsDisplayState,
+  getWarhomeEmailActivityDateLines,
+  getWarhomeEmailActivitySummary,
   getWarhomeEmailsUrl,
   WARHOME_EMAIL_DELIVERY_STATUS_LABELS,
   WARHOME_EMAIL_JOB_STATUS_LABELS,
@@ -53,7 +55,7 @@ export function WarhomeEmailsTable({ rows, filters, totalResults, totalPages }: 
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="min-w-[1120px] w-full border-collapse text-left">
+        <table className="min-w-[1240px] w-full border-collapse text-left">
           <caption className="sr-only">Listado de emails operativos de FlyPath Warhome</caption>
           <thead className="border-y border-white/[0.07] bg-white/[0.018] text-xs font-medium text-slate-500">
             <tr>
@@ -62,6 +64,7 @@ export function WarhomeEmailsTable({ rows, filters, totalResults, totalPages }: 
               <th scope="col" className="px-5 py-3.5">Plantilla</th>
               <th scope="col" className="px-5 py-3.5">Estado del envío</th>
               <th scope="col" className="px-5 py-3.5">Estado de entrega</th>
+              <th scope="col" className="px-5 py-3.5">Actividad</th>
               <th scope="col" className="px-5 py-3.5">Intentos</th>
               <th scope="col" className="px-5 py-3.5">Proveedor</th>
             </tr>
@@ -71,6 +74,7 @@ export function WarhomeEmailsTable({ rows, filters, totalResults, totalPages }: 
               const delivery = row.delivery;
               const recipient = delivery?.recipientEmail ?? row.leadEmail;
               const date = delivery?.attemptedAt ?? row.sentAt ?? row.failedAt ?? row.createdAt;
+              const activityDates = getWarhomeEmailActivityDateLines(delivery);
               return (
                 <tr key={`${row.templateKey}-${row.createdAt}-${index}`} className="transition hover:bg-white/[0.02]">
                   <td className="px-5 py-4 text-sm text-slate-400">{formatDate(date)}</td>
@@ -85,11 +89,24 @@ export function WarhomeEmailsTable({ rows, filters, totalResults, totalPages }: 
                   </td>
                   <td className="px-5 py-4">
                     {delivery ? (
-                      <div className="flex items-center gap-1.5 text-sm text-slate-300">
+                      <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-300">
                         <span className={`inline-flex rounded border px-2 py-1 text-xs font-medium ${statusClasses(delivery.status)}`}>{WARHOME_EMAIL_DELIVERY_STATUS_LABELS[delivery.status]}</span>
-                        {delivery.hasProviderMessageId ? <CheckCircle2 className="h-4 w-4 text-emerald-300" aria-label="ID del proveedor registrado" /> : null}
+                        {delivery.complainedAt ? <span className="inline-flex rounded border border-rose-400/20 bg-rose-400/10 px-2 py-1 text-xs font-medium text-rose-100">Queja</span> : null}
+                        {delivery.suppressedAt ? <span className="inline-flex rounded border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-xs font-medium text-slate-300">Suprimido</span> : null}
                       </div>
                     ) : <span className="text-sm text-slate-500">Sin entrega registrada</span>}
+                  </td>
+                  <td className="px-5 py-4 text-sm text-slate-300">
+                    <p>{getWarhomeEmailActivitySummary(delivery)}</p>
+                    {activityDates.length > 0 ? (
+                      <div className="mt-1.5 space-y-1 text-xs leading-5 text-slate-500">
+                        {activityDates.map((activityDate) => (
+                          <p key={`${activityDate.label}-${activityDate.value}`}>
+                            {activityDate.label}: {formatDate(activityDate.value)}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-400">{delivery ? `${delivery.attemptNumber} / ${row.maxAttempts}` : `${row.attemptCount} / ${row.maxAttempts}`}</td>
                   <td className="px-5 py-4 text-sm text-slate-400">{delivery?.provider ?? "-"}</td>

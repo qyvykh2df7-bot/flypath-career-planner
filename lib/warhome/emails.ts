@@ -32,9 +32,17 @@ export const WARHOME_EMAIL_DELIVERY_STATUSES = [
   "failed",
 ] as const;
 
+export const WARHOME_EMAIL_ACTIVITY_FILTERS = [
+  "opened",
+  "clicked",
+  "complained",
+  "suppressed",
+] as const;
+
 export type WarhomeEmailTemplateKey = (typeof WARHOME_EMAIL_TEMPLATE_KEYS)[number];
 export type WarhomeEmailJobStatus = (typeof WARHOME_EMAIL_JOB_STATUSES)[number];
 export type WarhomeEmailDeliveryStatus = (typeof WARHOME_EMAIL_DELIVERY_STATUSES)[number];
+export type WarhomeEmailActivityFilter = (typeof WARHOME_EMAIL_ACTIVITY_FILTERS)[number];
 
 export const WARHOME_EMAIL_TEMPLATE_LABELS: Record<WarhomeEmailTemplateKey, string> = {
   career_planner_confirmation: "Career Planner",
@@ -59,6 +67,13 @@ export const WARHOME_EMAIL_DELIVERY_STATUS_LABELS: Record<WarhomeEmailDeliverySt
   failed: "Fallido",
 };
 
+export const WARHOME_EMAIL_ACTIVITY_FILTER_LABELS: Record<WarhomeEmailActivityFilter, string> = {
+  opened: "Abiertos",
+  clicked: "Con clic",
+  complained: "Con queja",
+  suppressed: "Suprimidos",
+};
+
 const WARHOME_EMAIL_ERROR_LABELS: Record<string, string> = {
   email_provider_send_failed: "Error del proveedor",
   email_delivery_persistence_failed: "Error al registrar la entrega",
@@ -70,6 +85,7 @@ export type WarhomeEmailFilters = {
   templateKey: WarhomeEmailTemplateKey | null;
   jobStatus: WarhomeEmailJobStatus | null;
   deliveryStatus: WarhomeEmailDeliveryStatus | null;
+  activity: WarhomeEmailActivityFilter | null;
   page: number;
 };
 
@@ -85,6 +101,14 @@ export type WarhomeEmailDelivery = {
   deliveredAt: string | null;
   bouncedAt: string | null;
   failedAt: string | null;
+  firstOpenedAt: string | null;
+  lastOpenedAt: string | null;
+  openCount: number;
+  firstClickedAt: string | null;
+  lastClickedAt: string | null;
+  clickCount: number;
+  complainedAt: string | null;
+  suppressedAt: string | null;
   hasProviderMessageId: boolean;
 };
 
@@ -133,7 +157,7 @@ export class WarhomeEmailsDataError extends Error {
 }
 
 export const WARHOME_EMAILS_SELECT =
-  "id,lead_id,template_key,status,attempt_count,max_attempts,scheduled_for,sent_at,failed_at,last_error,created_at,leads!inner(full_name,email),email_deliveries(job_id,provider,status,attempt_number,provider_message_id,recipient_email,subject,from_email,attempted_at,accepted_at,delivered_at,bounced_at,failed_at)";
+  "id,lead_id,template_key,status,attempt_count,max_attempts,scheduled_for,sent_at,failed_at,last_error,created_at,leads!inner(full_name,email),email_deliveries(job_id,provider,status,attempt_number,provider_message_id,recipient_email,subject,from_email,attempted_at,accepted_at,delivered_at,bounced_at,failed_at,first_opened_at,last_opened_at,open_count,first_clicked_at,last_clicked_at,click_count,complained_at,suppressed_at)";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type RawRecord = Record<string, unknown>;
@@ -160,6 +184,10 @@ function isIsoTimestamp(value: unknown): value is string {
   return typeof value === "string" && !Number.isNaN(new Date(value).getTime());
 }
 
+function isNonnegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
 export function sanitizeWarhomeEmailSearch(value: string): string {
   return value
     .replace(/[^\p{L}\p{N}@.+\-\s]/gu, "")
@@ -179,6 +207,7 @@ export function parseWarhomeEmailFilters(searchParams: SearchParams): WarhomeEma
   const templateKey = getSingleSearchParam(searchParams.template);
   const jobStatus = getSingleSearchParam(searchParams.job_status);
   const deliveryStatus = getSingleSearchParam(searchParams.delivery_status);
+  const activity = getSingleSearchParam(searchParams.activity);
 
   return {
     query: sanitizeWarhomeEmailSearch(getSingleSearchParam(searchParams.q)),
@@ -187,6 +216,7 @@ export function parseWarhomeEmailFilters(searchParams: SearchParams): WarhomeEma
     deliveryStatus: includesValue(WARHOME_EMAIL_DELIVERY_STATUSES, deliveryStatus)
       ? deliveryStatus
       : null,
+    activity: includesValue(WARHOME_EMAIL_ACTIVITY_FILTERS, activity) ? activity : null,
     page: parsePage(getSingleSearchParam(searchParams.page)),
   };
 }
@@ -197,6 +227,7 @@ export function getWarhomeEmailsUrl(filters: WarhomeEmailFilters, page: number):
   if (filters.templateKey) params.set("template", filters.templateKey);
   if (filters.jobStatus) params.set("job_status", filters.jobStatus);
   if (filters.deliveryStatus) params.set("delivery_status", filters.deliveryStatus);
+  if (filters.activity) params.set("activity", filters.activity);
   if (page > 1) params.set("page", String(page));
 
   const query = params.toString();
@@ -239,8 +270,63 @@ function toDelivery(value: RawRecord): WarhomeEmailDelivery | null {
     deliveredAt: isIsoTimestamp(value.delivered_at) ? value.delivered_at : null,
     bouncedAt: isIsoTimestamp(value.bounced_at) ? value.bounced_at : null,
     failedAt: isIsoTimestamp(value.failed_at) ? value.failed_at : null,
+    firstOpenedAt: isIsoTimestamp(value.first_opened_at) ? value.first_opened_at : null,
+    lastOpenedAt: isIsoTimestamp(value.last_opened_at) ? value.last_opened_at : null,
+    openCount: isNonnegativeInteger(value.open_count) ? value.open_count : 0,
+    firstClickedAt: isIsoTimestamp(value.first_clicked_at) ? value.first_clicked_at : null,
+    lastClickedAt: isIsoTimestamp(value.last_clicked_at) ? value.last_clicked_at : null,
+    clickCount: isNonnegativeInteger(value.click_count) ? value.click_count : 0,
+    complainedAt: isIsoTimestamp(value.complained_at) ? value.complained_at : null,
+    suppressedAt: isIsoTimestamp(value.suppressed_at) ? value.suppressed_at : null,
     hasProviderMessageId: typeof value.provider_message_id === "string" && Boolean(value.provider_message_id),
   };
+}
+
+export function getWarhomeEmailActivitySummary(
+  delivery: Pick<WarhomeEmailDelivery, "openCount" | "clickCount"> | null,
+): string {
+  if (!delivery || (delivery.openCount === 0 && delivery.clickCount === 0)) return "Sin actividad";
+
+  const activity: string[] = [];
+  if (delivery.openCount > 0) activity.push(`Abierto ${delivery.openCount}`);
+  if (delivery.clickCount > 0) activity.push(`Clic ${delivery.clickCount}`);
+  return activity.join(" · ");
+}
+
+export type WarhomeEmailActivityDateLine = {
+  label: "Apertura" | "Primera apertura" | "Última apertura" | "Clic" | "Primer clic" | "Último clic";
+  value: string;
+};
+
+export function getWarhomeEmailActivityDateLines(
+  delivery: Pick<
+    WarhomeEmailDelivery,
+    "openCount" | "clickCount" | "firstOpenedAt" | "lastOpenedAt" | "firstClickedAt" | "lastClickedAt"
+  > | null,
+): WarhomeEmailActivityDateLine[] {
+  if (!delivery) return [];
+
+  const lines: WarhomeEmailActivityDateLine[] = [];
+
+  if (delivery.openCount > 0) {
+    if (delivery.firstOpenedAt && delivery.firstOpenedAt === delivery.lastOpenedAt) {
+      lines.push({ label: "Apertura", value: delivery.firstOpenedAt });
+    } else {
+      if (delivery.firstOpenedAt) lines.push({ label: "Primera apertura", value: delivery.firstOpenedAt });
+      if (delivery.lastOpenedAt) lines.push({ label: "Última apertura", value: delivery.lastOpenedAt });
+    }
+  }
+
+  if (delivery.clickCount > 0) {
+    if (delivery.firstClickedAt && delivery.firstClickedAt === delivery.lastClickedAt) {
+      lines.push({ label: "Clic", value: delivery.firstClickedAt });
+    } else {
+      if (delivery.firstClickedAt) lines.push({ label: "Primer clic", value: delivery.firstClickedAt });
+      if (delivery.lastClickedAt) lines.push({ label: "Último clic", value: delivery.lastClickedAt });
+    }
+  }
+
+  return lines;
 }
 
 function selectLatestDelivery(value: unknown): WarhomeEmailDelivery | null {
@@ -289,13 +375,15 @@ export function toWarhomeEmailListRow(value: RawRecord): WarhomeEmailListRow | n
 }
 
 function getWarhomeEmailsSelect(filters: WarhomeEmailFilters): string {
-  if (!filters.deliveryStatus) return WARHOME_EMAILS_SELECT;
+  if (!filters.deliveryStatus && !filters.activity) return WARHOME_EMAILS_SELECT;
 
   return WARHOME_EMAILS_SELECT.replace("email_deliveries(", "email_deliveries!inner(");
 }
 
 function applyWarhomeEmailFilters<T extends {
   eq: (column: string, value: string) => T;
+  gt: (column: string, value: number) => T;
+  not: (column: string, operator: string, value: string) => T;
   or: (filters: string, options?: { foreignTable?: string }) => T;
 }>(query: T, filters: WarhomeEmailFilters): T {
   let filteredQuery = query.eq("job_type", "transactional");
@@ -309,6 +397,14 @@ function applyWarhomeEmailFilters<T extends {
   if (filters.jobStatus) filteredQuery = filteredQuery.eq("status", filters.jobStatus);
   if (filters.deliveryStatus) {
     filteredQuery = filteredQuery.eq("email_deliveries.status", filters.deliveryStatus);
+  }
+  if (filters.activity === "opened") filteredQuery = filteredQuery.gt("email_deliveries.open_count", 0);
+  if (filters.activity === "clicked") filteredQuery = filteredQuery.gt("email_deliveries.click_count", 0);
+  if (filters.activity === "complained") {
+    filteredQuery = filteredQuery.not("email_deliveries.complained_at", "is", "null");
+  }
+  if (filters.activity === "suppressed") {
+    filteredQuery = filteredQuery.not("email_deliveries.suppressed_at", "is", "null");
   }
   return filteredQuery;
 }
@@ -372,7 +468,7 @@ export function getWarhomeEmailsDisplayState(
   filters: WarhomeEmailFilters,
 ): "empty" | "filtered_empty" | "table" {
   if (rows.length) return "table";
-  return filters.query || filters.templateKey || filters.jobStatus || filters.deliveryStatus
+  return filters.query || filters.templateKey || filters.jobStatus || filters.deliveryStatus || filters.activity
     ? "filtered_empty"
     : "empty";
 }

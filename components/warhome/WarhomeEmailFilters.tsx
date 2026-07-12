@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Filter, Search, X } from "lucide-react";
 
 import {
+  WARHOME_EMAIL_ACTIVITY_FILTERS,
+  WARHOME_EMAIL_ACTIVITY_FILTER_LABELS,
   WARHOME_EMAIL_DELIVERY_STATUSES,
   WARHOME_EMAIL_DELIVERY_STATUS_LABELS,
   WARHOME_EMAIL_JOB_STATUSES,
@@ -17,11 +19,11 @@ type WarhomeEmailFiltersProps = {
 
 export function WarhomeEmailFilters({ filters }: WarhomeEmailFiltersProps) {
   const hasFilters = Boolean(
-    filters.query || filters.templateKey || filters.jobStatus || filters.deliveryStatus,
+    filters.query || filters.templateKey || filters.jobStatus || filters.deliveryStatus || filters.activity,
   );
 
   return (
-    <form action="/warhome/emails" className="grid gap-3 border-b border-white/[0.07] p-4 xl:grid-cols-[minmax(14rem,1.3fr)_repeat(3,minmax(9rem,1fr))_auto] xl:items-end xl:p-5">
+    <form action="/warhome/emails" className="grid gap-3 border-b border-white/[0.07] p-4 xl:grid-cols-[minmax(14rem,1.3fr)_repeat(4,minmax(9rem,1fr))_auto] xl:items-end xl:p-5">
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-400">Buscar</span>
         <span className="relative block">
@@ -35,6 +37,15 @@ export function WarhomeEmailFilters({ filters }: WarhomeEmailFiltersProps) {
             className="min-h-10 w-full rounded-lg border border-white/[0.09] bg-[#091524] py-2 pl-9 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-[#d6ae4f]/50 focus:ring-2 focus:ring-[#d6ae4f]/15"
           />
         </span>
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-medium text-slate-400">Actividad</span>
+        <select name="activity" defaultValue={filters.activity ?? ""} className="min-h-10 w-full rounded-lg border border-white/[0.09] bg-[#091524] px-3 text-sm text-slate-200 outline-none focus:border-[#d6ae4f]/50 focus:ring-2 focus:ring-[#d6ae4f]/15">
+          <option value="">Cualquiera</option>
+          {WARHOME_EMAIL_ACTIVITY_FILTERS.map((activity) => (
+            <option key={activity} value={activity}>{WARHOME_EMAIL_ACTIVITY_FILTER_LABELS[activity]}</option>
+          ))}
+        </select>
       </label>
       <label className="block">
         <span className="mb-1.5 block text-xs font-medium text-slate-400">Plantilla</span>
