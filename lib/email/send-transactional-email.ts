@@ -2,7 +2,7 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-import { getEmailConfiguration } from "./config";
+import { getEmailConfiguration, getInternalAlertEmail } from "./config";
 import {
   createPendingEmailDelivery,
   markEmailDeliveryAccepted,
@@ -18,7 +18,15 @@ import {
   type TransactionalEmailJob,
 } from "./jobs";
 import { getResendEmailProvider, type TransactionalEmailProvider } from "./provider";
-import { getTransactionalEmailTemplate } from "./templates";
+import {
+  getTransactionalEmailTemplate,
+  type TransactionalEmailTemplate,
+  type TransactionalTemplateKey,
+} from "./templates";
+import {
+  getMentorshipInternalAlertTemplate,
+  type MentorshipInternalAlertTemplateInput,
+} from "./templates/mentorship-internal-alert";
 
 const TRANSACTIONAL_EMAIL_WORKER = "lead_capture_request";
 
@@ -37,25 +45,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-async function getRecipientAndSubscription(
+async function getLeadRecipient(
   admin: EmailAdminClient,
   leadId: string,
-  listKey: string,
-): Promise<{ recipientEmail: string; subscriptionStatus: string | null }> {
-  const [{ data: lead, error: leadError }, { data: subscription, error: subscriptionError }] =
-    await Promise.all([
-      admin.from("leads").select("email").eq("id", leadId).maybeSingle(),
-      admin
-        .from("email_subscriptions")
-        .select("status")
-        .eq("lead_id", leadId)
-        .eq("list_key", listKey)
-        .maybeSingle(),
-    ]);
+  subscriptionListKey: "career_planner" | "preppl" | null,
+): Promise<string | null> {
+  const { data: lead, error: leadError } = await admin
+    .from("leads")
+    .select("email")
+    .eq("id", leadId)
+    .maybeSingle();
 
   if (
     leadError ||
-    subscriptionError ||
     !isRecord(lead) ||
     typeof lead.email !== "string" ||
     !lead.email.trim()
@@ -63,12 +65,17 @@ async function getRecipientAndSubscription(
     throw new TransactionalEmailDataError();
   }
 
-  return {
-    recipientEmail: lead.email,
-    subscriptionStatus: isRecord(subscription) && typeof subscription.status === "string"
-      ? subscription.status
-      : null,
-  };
+  if (!subscriptionListKey) return lead.email;
+
+  const { data: subscription, error: subscriptionError } = await admin
+    .from("email_subscriptions")
+    .select("status")
+    .eq("lead_id", leadId)
+    .eq("list_key", subscriptionListKey)
+    .maybeSingle();
+
+  if (subscriptionError) throw new TransactionalEmailDataError();
+  return isRecord(subscription) && subscription.status === "subscribed" ? lead.email : null;
 }
 
 export async function queueCareerPlannerConfirmation(
@@ -85,33 +92,63 @@ export async function queuePrepplWaitlistConfirmation(
   return queueTransactionalTemplate(admin, "preppl_waitlist_confirmation", input);
 }
 
-async function queueTransactionalTemplate(
+export async function queueMentorshipRequestConfirmation(
   admin: EmailAdminClient,
-  templateKey: TransactionalEmailJob["templateKey"],
   input: { leadId: string; idempotencyKey: string },
 ): Promise<TransactionalEmailDispatchResult> {
-  const template = getTransactionalEmailTemplate(templateKey);
+  return queueTransactionalTemplate(admin, "mentorship_request_confirmation", input);
+}
+
+export async function queueMentorshipInternalAlert(
+  admin: EmailAdminClient,
+  input: {
+    leadId: string;
+    idempotencyKey: string;
+    templateInput: MentorshipInternalAlertTemplateInput;
+  },
+): Promise<TransactionalEmailDispatchResult> {
+  const template = getMentorshipInternalAlertTemplate(input.templateInput);
+  return queueTransactionalTemplate(admin, template.key as TransactionalTemplateKey, input, {
+    template,
+    recipientEmail: getInternalAlertEmail(),
+  });
+}
+
+async function queueTransactionalTemplate(
+  admin: EmailAdminClient,
+  templateKey: TransactionalTemplateKey,
+  input: { leadId: string; idempotencyKey: string },
+  options: { template?: TransactionalEmailTemplate; recipientEmail?: string } = {},
+): Promise<TransactionalEmailDispatchResult> {
   const { job } = await createTransactionalEmailJob(admin, {
     leadId: input.leadId,
     templateKey,
     idempotencyKey: input.idempotencyKey,
   });
 
-  return sendTransactionalEmail(admin, job);
+  return sendTransactionalEmail(admin, job, options);
 }
 
 export async function sendTransactionalEmail(
   admin: EmailAdminClient,
   job: TransactionalEmailJob,
-  options: { provider?: TransactionalEmailProvider; now?: () => string } = {},
+  options: {
+    provider?: TransactionalEmailProvider;
+    now?: () => string;
+    template?: TransactionalEmailTemplate;
+    recipientEmail?: string;
+  } = {},
 ): Promise<TransactionalEmailDispatchResult> {
   const now = options.now ?? (() => new Date().toISOString());
   if (job.status !== "pending") return "not_claimed";
 
-  const template = getTransactionalEmailTemplate(job.templateKey);
-  const recipient = await getRecipientAndSubscription(admin, job.leadId, template.subscriptionListKey);
+  const template = options.template ?? getTransactionalEmailTemplate(job.templateKey);
+  const recipientEmail =
+    template.recipient.kind === "internal"
+      ? options.recipientEmail ?? null
+      : await getLeadRecipient(admin, job.leadId, template.recipient.subscriptionListKey);
 
-  if (recipient.subscriptionStatus !== "subscribed") {
+  if (!recipientEmail) {
     if (job.status === "pending") await cancelTransactionalEmailJob(admin, job.id, now());
     return "cancelled";
   }
@@ -127,7 +164,7 @@ export async function sendTransactionalEmail(
     deliveryId = await createPendingEmailDelivery(admin, {
       jobId: claimedJob.id,
       attemptNumber: claimedJob.attemptCount,
-      recipientEmail: recipient.recipientEmail,
+      recipientEmail,
       subject: template.subject,
       fromEmail: configuration.from,
       attemptedAt: now(),
@@ -147,7 +184,7 @@ export async function sendTransactionalEmail(
   let providerMessageId: string;
   try {
     ({ providerMessageId } = await provider.send({
-      to: recipient.recipientEmail,
+      to: recipientEmail,
       from: configuration.from,
       replyTo: configuration.replyTo,
       subject: template.subject,

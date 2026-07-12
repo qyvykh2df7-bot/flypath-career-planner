@@ -13,6 +13,8 @@ const emailFiles = [
   "lib/email/templates/index.ts",
   "lib/email/templates/career-planner-confirmation.ts",
   "lib/email/templates/preppl-waitlist-confirmation.ts",
+  "lib/email/templates/mentorship-request-confirmation.ts",
+  "lib/email/templates/mentorship-internal-alert.ts",
 ];
 
 describe("email server security", () => {
@@ -72,5 +74,36 @@ describe("email server security", () => {
     expect(prepplMigration).toContain("preppl_waitlist_confirmation");
     expect(prepplMigration).toContain("template_key IS NULL");
     expect(prepplMigration).not.toContain("CHECK (true)");
+  });
+
+  it("keeps mentorship template keys in a new closed catalog migration", () => {
+    const migration = fs.readFileSync(
+      path.join(process.cwd(), "supabase/migrations/20260712070000_add_mentorship_email_template_keys.sql"),
+      "utf8",
+    );
+
+    expect(migration).toContain("DROP CONSTRAINT IF EXISTS email_jobs_template_key_check");
+    expect(migration).toContain("career_planner_confirmation");
+    expect(migration).toContain("preppl_waitlist_confirmation");
+    expect(migration).toContain("mentorship_request_confirmation");
+    expect(migration).toContain("mentorship_internal_alert");
+    expect(migration).toContain("template_key IS NULL");
+    expect(migration).not.toContain("CHECK (true)");
+  });
+
+  it("keeps mentorship request PII out of provider responses and logs", () => {
+    const deliveries = fs.readFileSync(path.join(process.cwd(), "lib/email/deliveries.ts"), "utf8");
+    const capture = fs.readFileSync(
+      path.join(process.cwd(), "lib/leads/capture-mentorship-support.ts"),
+      "utf8",
+    );
+
+    expect(deliveries).toContain("provider_response: { message_id: providerMessageId }");
+    expect(deliveries).not.toContain("fullName");
+    expect(deliveries).not.toContain("helpText");
+    expect(deliveries).not.toContain("situation");
+    expect(deliveries).not.toContain("phone");
+    expect(capture).not.toContain("console.error(input");
+    expect(capture).not.toContain("console.error(input.");
   });
 });

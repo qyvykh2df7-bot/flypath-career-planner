@@ -9,6 +9,10 @@ import {
 import type { MentorshipSupportSituation } from "@/lib/leads/mentorship-support-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { TrackingContext } from "@/lib/tracking/events";
+import {
+  queueMentorshipInternalAlert,
+  queueMentorshipRequestConfirmation,
+} from "@/lib/email/send-transactional-email";
 
 const LEAD_SOURCE = "mentoring";
 const EVENT_SOURCE = "mentorship";
@@ -97,5 +101,28 @@ export async function captureMentorshipSupportRequest(
     });
   } catch {
     console.error("[FlyPath] Mentorship conversion event persistence failed.");
+  }
+
+  try {
+    await queueMentorshipRequestConfirmation(admin, { leadId, idempotencyKey });
+  } catch {
+    console.error("[FlyPath] Mentorship confirmation email processing failed.");
+  }
+
+  try {
+    await queueMentorshipInternalAlert(admin, {
+      leadId,
+      idempotencyKey,
+      templateInput: {
+        fullName: input.fullName,
+        email: input.normalizedEmail,
+        phone: input.phone ?? null,
+        situation: input.situation,
+        helpText: input.helpText,
+        receivedAt: now,
+      },
+    });
+  } catch {
+    console.error("[FlyPath] Mentorship internal alert email processing failed.");
   }
 }

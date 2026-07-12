@@ -35,13 +35,17 @@ vi.mock("@/lib/tracking/server", () => ({
   sanitizeTrackingContext: route.sanitizeTrackingContext,
 }));
 
-import { POST } from "@/app/api/leads/mentorship-support/route";
+import { POST, runtime } from "@/app/api/leads/mentorship-support/route";
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("mentorship support route", () => {
+  it("uses the Node.js runtime for server-side email delivery", () => {
+    expect(runtime).toBe("nodejs");
+  });
+
   it("rechaza un body excesivo antes de procesar la solicitud", async () => {
     route.readJsonBodyWithinLimit.mockRejectedValue(new route.RequestBodyTooLargeError());
 

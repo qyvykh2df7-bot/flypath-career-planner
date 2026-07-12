@@ -17,6 +17,7 @@ type EmailEnvironment = {
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
   EMAIL_REPLY_TO?: string;
+  INTERNAL_ALERT_EMAIL?: string;
 };
 
 const SAFE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,4 +46,16 @@ export function getEmailConfiguration(
   }
 
   return { apiKey, from, replyTo };
+}
+
+export function getInternalAlertEmail(
+  environment: EmailEnvironment = process.env as EmailEnvironment,
+): string {
+  const internalAlertEmail = readRequiredEnvironmentValue(environment.INTERNAL_ALERT_EMAIL);
+
+  if (!internalAlertEmail || !SAFE_EMAIL_PATTERN.test(internalAlertEmail)) {
+    throw new EmailConfigurationError();
+  }
+
+  return internalAlertEmail;
 }

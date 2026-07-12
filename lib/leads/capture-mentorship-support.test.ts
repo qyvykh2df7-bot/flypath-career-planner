@@ -6,6 +6,8 @@ const leadCapture = vi.hoisted(() => {
   return {
     LeadCaptureError: MockLeadCaptureError,
     insertUserEvent: vi.fn(),
+    queueMentorshipInternalAlert: vi.fn(),
+    queueMentorshipRequestConfirmation: vi.fn(),
     upsertLeadByEmail: vi.fn(),
     upsertLeadProductInterest: vi.fn(),
   };
@@ -16,6 +18,10 @@ const admin = vi.hoisted(() => ({ from: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/leads/capture-shared", () => leadCapture);
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: () => admin }));
+vi.mock("@/lib/email/send-transactional-email", () => ({
+  queueMentorshipInternalAlert: leadCapture.queueMentorshipInternalAlert,
+  queueMentorshipRequestConfirmation: leadCapture.queueMentorshipRequestConfirmation,
+}));
 
 import { captureMentorshipSupportRequest } from "./capture-mentorship-support";
 
@@ -43,6 +49,8 @@ function prepareSuccessfulLeadCapture(): void {
   });
   leadCapture.upsertLeadByEmail.mockResolvedValue("lead-id");
   leadCapture.upsertLeadProductInterest.mockResolvedValue(undefined);
+  leadCapture.queueMentorshipRequestConfirmation.mockResolvedValue("sent");
+  leadCapture.queueMentorshipInternalAlert.mockResolvedValue("sent");
 }
 
 const INPUT = {
@@ -92,6 +100,34 @@ describe("captureMentorshipSupportRequest", () => {
     expect(leadCapture.insertUserEvent).toHaveBeenCalledWith(
       admin,
       expect.objectContaining({ idempotencyKey: ID }),
+    );
+  });
+
+  it("intenta el aviso interno aunque falle la confirmación al solicitante", async () => {
+    prepareSuccessfulLeadCapture();
+    leadCapture.insertUserEvent.mockResolvedValue("inserted");
+    leadCapture.queueMentorshipRequestConfirmation.mockRejectedValue(new Error("user email failure"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(captureMentorshipSupportRequest(INPUT, ID, CONTEXT)).resolves.toBeUndefined();
+
+    expect(leadCapture.queueMentorshipInternalAlert).toHaveBeenCalledOnce();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[FlyPath] Mentorship confirmation email processing failed.",
+    );
+  });
+
+  it("intenta la confirmación al solicitante aunque falle el aviso interno", async () => {
+    prepareSuccessfulLeadCapture();
+    leadCapture.insertUserEvent.mockResolvedValue("inserted");
+    leadCapture.queueMentorshipInternalAlert.mockRejectedValue(new Error("internal email failure"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(captureMentorshipSupportRequest(INPUT, ID, CONTEXT)).resolves.toBeUndefined();
+
+    expect(leadCapture.queueMentorshipRequestConfirmation).toHaveBeenCalledOnce();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[FlyPath] Mentorship internal alert email processing failed.",
     );
   });
 });

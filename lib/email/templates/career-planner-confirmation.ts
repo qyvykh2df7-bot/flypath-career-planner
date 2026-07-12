@@ -7,14 +7,16 @@ export type TransactionalEmailTemplate = {
   subject: string;
   html: string;
   text: string;
-  subscriptionListKey: "career_planner" | "preppl";
+  recipient:
+    | { kind: "lead"; subscriptionListKey: "career_planner" | "preppl" | null }
+    | { kind: "internal" };
 };
 
 export function getCareerPlannerConfirmationTemplate(): TransactionalEmailTemplate {
   return {
     key: CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY,
     subject: "Tu Career Planner de FlyPath está listo",
-    subscriptionListKey: "career_planner",
+    recipient: { kind: "lead", subscriptionListKey: "career_planner" },
     text: [
       "Hemos recibido tu solicitud del informe gratuito de Career Planner.",
       "Tu informe se genera y descarga directamente desde Career Planner al completar la solicitud.",

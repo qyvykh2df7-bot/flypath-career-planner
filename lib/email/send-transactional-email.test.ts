@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getEmailConfiguration: vi.fn(),
+  getInternalAlertEmail: vi.fn(),
   createPendingEmailDelivery: vi.fn(),
   markEmailDeliveryAccepted: vi.fn(),
   markEmailDeliveryFailed: vi.fn(),
@@ -15,7 +16,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/email/config", () => ({ getEmailConfiguration: mocks.getEmailConfiguration }));
 vi.mock("@/lib/email/deliveries", () => ({
   createPendingEmailDelivery: mocks.createPendingEmailDelivery,
   markEmailDeliveryAccepted: mocks.markEmailDeliveryAccepted,
@@ -30,21 +30,44 @@ vi.mock("@/lib/email/jobs", () => ({
   releaseTransactionalEmailJobAfterFailure: mocks.releaseTransactionalEmailJobAfterFailure,
 }));
 vi.mock("@/lib/email/provider", () => ({ getResendEmailProvider: mocks.getResendEmailProvider }));
+vi.mock("@/lib/email/config", () => ({
+  getEmailConfiguration: mocks.getEmailConfiguration,
+  getInternalAlertEmail: mocks.getInternalAlertEmail,
+}));
 vi.mock("@/lib/email/templates", () => ({
   getTransactionalEmailTemplate: vi.fn((templateKey: string) => ({
     key: templateKey,
     subject:
       templateKey === "preppl_waitlist_confirmation"
         ? "Tu plaza en la lista Pre-PPL está confirmada"
+        : templateKey === "mentorship_request_confirmation"
+          ? "Hemos recibido tu solicitud de acompañamiento"
         : "Tu Career Planner de FlyPath está listo",
     html: "<p>Fijo</p>",
     text: "Fijo",
-    subscriptionListKey: templateKey === "preppl_waitlist_confirmation" ? "preppl" : "career_planner",
+    recipient:
+      templateKey === "mentorship_request_confirmation"
+        ? { kind: "lead", subscriptionListKey: null }
+        : {
+            kind: "lead",
+            subscriptionListKey: templateKey === "preppl_waitlist_confirmation" ? "preppl" : "career_planner",
+          },
+  })),
+}));
+vi.mock("@/lib/email/templates/mentorship-internal-alert", () => ({
+  getMentorshipInternalAlertTemplate: vi.fn(() => ({
+    key: "mentorship_internal_alert",
+    subject: "Nueva solicitud de acompañamiento en FlyPath",
+    html: "<p>Interno</p>",
+    text: "Interno",
+    recipient: { kind: "internal" },
   })),
 }));
 
 import {
   queueCareerPlannerConfirmation,
+  queueMentorshipInternalAlert,
+  queueMentorshipRequestConfirmation,
   queuePrepplWaitlistConfirmation,
   sendTransactionalEmail,
 } from "./send-transactional-email";
@@ -83,6 +106,7 @@ beforeEach(() => {
     from: "FlyPath <operaciones@flypath.es>",
     replyTo: "info@flypath.es",
   });
+  mocks.getInternalAlertEmail.mockReturnValue("operaciones@flypath.es");
   mocks.createPendingEmailDelivery.mockResolvedValue("delivery-id");
   mocks.claimTransactionalEmailJob.mockResolvedValue({ ...JOB, status: "processing", attemptCount: 1 });
   mocks.markEmailDeliveryAccepted.mockResolvedValue(undefined);
@@ -206,6 +230,50 @@ describe("transactional email dispatch", () => {
         templateKey: "preppl_waitlist_confirmation",
         idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab",
       }),
+    );
+  });
+
+  it("creates independent mentorship jobs with the same conversion idempotency key", async () => {
+    mocks.createTransactionalEmailJob.mockResolvedValue({ job: { ...JOB, status: "sent" }, created: false });
+    const admin = createAdmin("unsubscribed");
+    const idempotencyKey = "4d3c2b1a-1234-4abc-8def-1234567890ab";
+
+    await queueMentorshipRequestConfirmation(admin as never, { leadId: "lead-id", idempotencyKey });
+    await queueMentorshipInternalAlert(admin as never, {
+      leadId: "lead-id",
+      idempotencyKey,
+      templateInput: {
+        fullName: "Pilot Example",
+        email: "pilot@example.com",
+        phone: null,
+        situation: "not_started",
+        helpText: "Necesito ayuda.",
+        receivedAt: "2026-07-12T12:00:00.000Z",
+      },
+    });
+
+    expect(mocks.createTransactionalEmailJob).toHaveBeenNthCalledWith(
+      1,
+      admin,
+      expect.objectContaining({ templateKey: "mentorship_request_confirmation", idempotencyKey }),
+    );
+    expect(mocks.createTransactionalEmailJob).toHaveBeenNthCalledWith(
+      2,
+      admin,
+      expect.objectContaining({ templateKey: "mentorship_internal_alert", idempotencyKey }),
+    );
+    expect(mocks.getInternalAlertEmail).toHaveBeenCalledOnce();
+  });
+
+  it("sends the mentorship confirmation without querying a marketing subscription", async () => {
+    const provider = { send: vi.fn().mockResolvedValue({ providerMessageId: "resend-id" }) };
+    const admin = createAdmin("unsubscribed");
+    const mentorshipJob = { ...JOB, templateKey: "mentorship_request_confirmation" as const };
+
+    await expect(sendTransactionalEmail(admin as never, mentorshipJob, { provider })).resolves.toBe("sent");
+    expect(admin.from).not.toHaveBeenCalledWith("email_subscriptions");
+    expect(provider.send).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: "Hemos recibido tu solicitud de acompañamiento" }),
     );
   });
 });
