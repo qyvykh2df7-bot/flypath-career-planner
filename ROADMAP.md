@@ -58,7 +58,7 @@ Base de datos compartida para captación, perfiles, email, eventos, contenido y 
 | Eventos / analítica | `user_events` | Fase 3 (completada) |
 | Automatización email | `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries` | Fase 10 (CRM) |
 | Contenido | `content_items` | Fase 11 (Warboard) |
-| Admin | `admin_notes` | Fase 4 (Warhome MVP) |
+| Admin | `admin_notes` | Esquema listo; UI en backlog (Warhome / Warboard) |
 
 ---
 
@@ -125,9 +125,8 @@ Medición de comportamiento en web pública vía `user_events`, sin dashboards a
 **Supabase:**
 
 - Migración `20260712020000_add_user_events_idempotency.sql` aplicada.
-- Migración `20260712030000_sanitize_mentorship_event_metadata.sql` aplicada en remoto.
-- 2 eventos históricos `mentorship_support_requested` saneados (PII eliminada de `metadata`).
-- `20260712030000` ya está aplicada en Supabase; su archivo sigue pendiente de commit e integración en la rama `chore/close-tracking-phase-3` (Git y remoto no están completamente alineados hasta el merge).
+- Migración `20260712030000_sanitize_mentorship_event_metadata.sql` aplicada en remoto; 2 eventos históricos `mentorship_support_requested` saneados (PII eliminada de `metadata`).
+- Cierre documental en `main` (`779887a`).
 
 ### Exclusiones conscientes (fuera de alcance Fase 3)
 
@@ -147,22 +146,58 @@ Medición de comportamiento en web pública vía `user_events`, sin dashboards a
 
 ## Fase 4 — Warhome MVP
 
-**Estado: Siguiente**
+**Estado: Completado**
 
-Panel interno mínimo para operar leads y solicitudes.
+Panel interno mínimo para operar leads y solicitudes. Rama `feature/warhome-mvp` (`494f335`); pendiente de merge a `main`.
 
-### Objetivos
+### Completado
 
-- Acceso administrativo seguro.
-- Listado de leads.
-- Búsqueda y filtros.
-- Detalle de lead.
-- Intereses.
-- Suscripciones.
-- Eventos y recorrido.
-- Solicitudes de acompañamiento.
-- Notas internas.
-- Estado operativo básico.
+**Acceso y seguridad**
+
+- Supabase Auth para administradores.
+- Tabla `admin_users` (migración `20260712040000`, aplicada en Supabase).
+- Roles `owner` y `admin` (mismos permisos en el MVP).
+- Login (`/warhome/login`), logout y rutas protegidas (`/warhome/*`).
+- Proxy/middleware con validación de sesión SSR y autorización admin.
+- `service_role` solo en servidor; sin secretos en bundle cliente.
+
+**Shell y navegación**
+
+- Layout protegido, sidebar, header y navegación por módulos.
+- Resumen mínimo en `/warhome` (sin Overview redundante con Leads).
+- Rutas futuras deshabilitadas en nav (Notas, Ajustes, Analytics, etc.).
+
+**Operación de leads**
+
+- Listado real (`/warhome/leads`) con selects cerrados.
+- Búsqueda, filtros y paginación (20 por página).
+- Métricas globales básicas (no filtradas por listado).
+- Detalle ampliado (`/warhome/leads/[leadId]`).
+- Intereses (`lead_product_interests` + producto).
+- Suscripciones (`email_subscriptions`).
+- Actividad vinculada por `lead_id` (paginación 20, metadata whitelisted, referrer saneado).
+
+**Solicitudes de acompañamiento**
+
+- Cubiertas sin vista separada: leads con fuente `mentoring`, interés `flypath_accompaniment` y evento `mentorship_support_requested`.
+
+**Estado operativo básico**
+
+- Lectura de `status`, `funnel_stage` y estado de suscripción en listado y ficha (sin edición en UI).
+
+**Calidad**
+
+- 116 tests; TypeScript y build correctos.
+- Prerrequisitos operativos verificados: migración `admin_users`, primer owner activo, login/logout y acceso protegido probados manualmente.
+
+### Pospuesto conscientemente (fuera del MVP)
+
+- Notas internas (`admin_notes`) en UI.
+- Edición de etapa/estado de lead.
+- Recorrido anónimo completo (hasta eventos cliente en producción y consentimiento operativo).
+- Refinamiento visual avanzado.
+- Diferenciación funcional `owner` vs `admin`.
+- Vista dedicada de solicitudes de acompañamiento (operable vía filtros y detalle).
 
 ### Fuera de alcance en esta fase
 
@@ -170,16 +205,13 @@ Panel interno mínimo para operar leads y solicitudes.
 - Campañas.
 - IA.
 - Warboard completo.
-
-### Preparado (esquema)
-
-- `admin_notes`, tablas de leads, email y eventos ya existen.
+- Emails operativos (Fase 5).
 
 ---
 
 ## Fase 5 — Emails operativos
 
-**Estado: Pendiente**
+**Estado: Siguiente**
 
 Envíos transaccionales y avisos internos; no automatizaciones avanzadas.
 
@@ -355,8 +387,8 @@ Fase 0   AeroComms en FlyPath           ████████████  Co
 Fase 1   Backend Core (Supabase)        ████████████  Completado (esquema)
 Fase 2   Captación pública de leads     ████████████  Completado
 Fase 3   Tracking y analítica básica    ████████████  Completado
-Fase 4   Warhome MVP                    ░░░░░░░░░░░░  Siguiente
-Fase 5   Emails operativos              ░░░░░░░░░░░░  Pendiente
+Fase 4   Warhome MVP                    ████████████  Completado (pendiente merge)
+Fase 5   Emails operativos              ░░░░░░░░░░░░  Siguiente
 Fase 6   Login y cuentas FlyPath        ░░░░░░░░░░░░  Pendiente
 Fase 7   Persistencia de AeroComms      ░░░░░░░░░░░░  Pendiente
 Fase 8   Revisión final de AeroComms    ░░░░░░░░░░░░  Pendiente
