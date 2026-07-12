@@ -29,8 +29,8 @@ export async function createSupabaseServerClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Los Server Components solo pueden leer cookies. Login y middleware
-          // podrán actualizar la sesión desde Route Handlers en el bloque siguiente.
+          // Los Server Components solo pueden leer cookies. Las Server Actions
+          // y proxy.ts actualizan la sesión cuando Supabase necesita rotarla.
         }
       },
     },

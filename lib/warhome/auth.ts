@@ -49,10 +49,9 @@ export async function getAuthenticatedWarhomeUser(): Promise<AuthenticatedWarhom
   return { userId: user.id };
 }
 
-export async function getWarhomeAuthorization(): Promise<WarhomeAuthorizationResult> {
-  const authenticatedUser = await getAuthenticatedWarhomeUser();
-  if (!authenticatedUser) return { status: "unauthenticated" };
-
+export async function getWarhomeAuthorizationForAuthenticatedUser(
+  authenticatedUser: AuthenticatedWarhomeUser,
+): Promise<WarhomeAuthorizationResult> {
   const { data: adminUser, error } = await getSupabaseAdmin()
     .from("admin_users")
     .select("role, is_active")
@@ -75,6 +74,13 @@ export async function getWarhomeAuthorization(): Promise<WarhomeAuthorizationRes
       role: adminUser.role,
     },
   };
+}
+
+export async function getWarhomeAuthorization(): Promise<WarhomeAuthorizationResult> {
+  const authenticatedUser = await getAuthenticatedWarhomeUser();
+  if (!authenticatedUser) return { status: "unauthenticated" };
+
+  return getWarhomeAuthorizationForAuthenticatedUser(authenticatedUser);
 }
 
 export async function requireWarhomeAdmin(): Promise<WarhomeAdmin> {
