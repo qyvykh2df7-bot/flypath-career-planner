@@ -1,69 +1,69 @@
-# Tarea activa — Warhome MVP (Fase 4)
+# Tarea activa — Emails operativos (Fase 5)
 
 ## Objetivo
 
-Implementar el **panel interno mínimo (Warhome MVP)** para operar leads, solicitudes de acompañamiento, suscripciones, eventos y notas internas, con acceso administrativo seguro.
+Preparar e implementar **emails operativos** (Fase 5): envíos transaccionales, avisos internos y registro de entregas, sin automatizaciones avanzadas.
 
 ---
 
-## Alcance mínimo
+## Alcance previsto (Fase 5)
 
-- Acceso administrativo seguro.
-- Listado de leads.
-- Búsqueda y filtros.
-- Detalle de lead.
-- Intereses.
-- Suscripciones.
-- Eventos y recorrido.
-- Solicitudes de acompañamiento.
-- Notas internas (`admin_notes`).
-- Estado operativo básico.
+- Proveedor de email.
+- Dominio remitente.
+- SPF, DKIM y DMARC.
+- Plantillas.
+- Confirmación Career Planner.
+- Confirmación Pre-PPL.
+- Confirmación acompañamiento.
+- Aviso interno.
+- Registro de envíos, errores y reintentos.
+- Bajas y consentimientos.
 
 ---
 
-## Fuera de alcance (esta tarea — Fase 4)
+## Fuera de alcance (esta tarea — Fase 5)
 
-- CRM avanzado, campañas o IA (Fase 10).
-- Warboard completo (Fase 11).
-- Emails operativos (Fase 5).
+- Secuencias, journeys y campañas (Fase 10).
+- CRM avanzado.
+- Cambios amplios en Warhome (salvo lo mínimo para operar envíos).
 - Login y cuentas públicas (Fase 6).
 - Persistencia AeroComms (Fase 7).
 - Revisión final AeroComms (Fase 8).
 - Pagos (Fase 9).
-- Nuevos flujos de captación (Fase 2 — completada).
-- Ampliación de tracking web (Fase 3 — completada).
 
 ---
 
 ## Referencia de esquema
 
-| Migración / tabla | Uso en Warhome MVP |
-|-------------------|-------------------|
-| `leads`, `lead_interests`, `email_subscriptions` | Listado y detalle de leads |
-| `user_events` | Recorrido y eventos por lead |
-| `admin_notes` | Notas internas por lead |
-| `products` | Contexto de producto en intereses |
+| Migración / tabla | Uso en Fase 5 |
+|-------------------|---------------|
+| `email_jobs` | Cola de envíos |
+| `email_deliveries` | Registro de entregas y errores |
+| `email_subscriptions` | Estado de suscripción y bajas |
+| `leads` | Destinatarios y contexto de captación |
 
 ---
 
-## Pasos sugeridos
+## Pasos sugeridos (sin decisiones técnicas cerradas aún)
 
-1. Definir autenticación y autorización de acceso admin.
-2. Crear shell de Warhome (rutas protegidas, layout mínimo).
-3. Implementar listado de leads con búsqueda y filtros básicos.
-4. Implementar detalle: intereses, suscripciones, eventos y solicitudes de acompañamiento.
-5. Integrar notas internas (`admin_notes`) en detalle de lead.
-6. Validar en local con datos reales de Supabase (sin exponer `service_role` al cliente).
+1. Definir proveedor de email y dominio remitente.
+2. Configurar autenticación de dominio (SPF, DKIM, DMARC).
+3. Diseñar plantillas mínimas por flujo de captación.
+4. Implementar envío transaccional server-side con `service_role`.
+5. Registrar entregas, errores y reintentos en `email_deliveries`.
+6. Conectar bajas y consentimientos con `email_subscriptions`.
+7. Validar en entorno de prueba antes de producción.
 
 ---
 
 ## Definición de terminado
 
-- [ ] Solo usuarios autorizados acceden a Warhome.
-- [ ] Listado, búsqueda, filtros y detalle de leads operativos.
-- [ ] Intereses, suscripciones, eventos y solicitudes visibles en detalle.
-- [ ] Notas internas editables desde la UI admin.
-- [ ] Sin CRM avanzado ni Warboard completo.
+- [ ] Proveedor y dominio remitente operativos.
+- [ ] SPF, DKIM y DMARC verificados.
+- [ ] Confirmaciones Career Planner, Pre-PPL y acompañamiento enviadas.
+- [ ] Avisos internos operativos.
+- [ ] Registro de envíos, errores y reintentos.
+- [ ] Bajas y consentimientos integrados.
 
 ---
 
@@ -88,12 +88,32 @@ Esquema Supabase (13 migraciones base + `20260712010000`).
 
 ### Fase 3 — Tracking y analítica básica
 
-Infraestructura en `lib/tracking/`; eventos en flujos de captación, comparador, CTAs, `page_viewed` y `form_completed`. Migración `20260712020000` (idempotencia) aplicada; `20260712030000` (saneamiento mentorías) aplicada en remoto con archivo pendiente de commit e integración en esta rama. `main` en `996d3fc`.
+Infraestructura en `lib/tracking/`; eventos en flujos de captación, comparador, CTAs, `page_viewed` y `form_completed`. Migraciones `20260712020000` y `20260712030000` aplicadas. `main` en `779887a`.
+
+### Fase 4 — Warhome MVP
+
+| Bloque | Estado |
+|--------|--------|
+| Autorización (`admin_users`, roles, proxy) | Completado |
+| Login, logout y rutas protegidas | Completado |
+| Shell, sidebar y navegación | Completado |
+| Listado de leads (búsqueda, filtros, paginación, métricas) | Completado |
+| Detalle de lead (intereses, suscripciones, actividad) | Completado |
+| QA y cierre documental | Completado |
+
+Rama `feature/warhome-mvp` (`494f335`); pendiente merge a `main`.
+
+**Validaciones:** 116 tests; TypeScript, build y `git diff --check` correctos.
+
+**Prerrequisitos operativos:** migración `20260712040000` aplicada; primer `owner` activo; login/logout probados manualmente.
+
+**Pospuesto:** notas internas, edición de etapa/estado, recorrido anónimo completo, Overview redundante, refinamiento visual, diferenciación owner/admin.
 
 ---
 
 ## Referencias
 
 - `CURRENT_PHASE.md` — fase actual y estado real.
-- `ROADMAP.md` — fases 4–11.
+- `ROADMAP.md` — fases 5–11.
+- `BACKLOG.md` — mejoras Warhome pospuestas.
 - `LAST_SESSION.md` — handoff operativo.

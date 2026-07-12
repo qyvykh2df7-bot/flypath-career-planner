@@ -20,17 +20,62 @@ Cuatro superficies conectadas al Backend Core, validadas en local y en producci�
 
 ### Fase 3 — Tracking y analítica básica
 
-Tracking implementado en `main` (`996d3fc`): infraestructura en `lib/tracking/`, ingesta cliente vía `/api/tracking/events` y conversiones server-side en rutas de leads. Las conversiones server-side históricas de captación sí existen en producción; los eventos cliente (`page_viewed`, `form_completed`, `cta_clicked`, `form_started`, `popup_opened`) siguen sin registros observados en Supabase remoto. Migración `20260712020000` aplicada; `20260712030000` aplicada en remoto con archivo pendiente de commit en `chore/close-tracking-phase-3`.
+Tracking implementado en `main` (`779887a`): infraestructura en `lib/tracking/`, ingesta cliente vía `/api/tracking/events` y conversiones server-side en rutas de leads. Las conversiones server-side históricas de captación sí existen en producción; los eventos cliente (`page_viewed`, `form_completed`, `cta_clicked`, `form_started`, `popup_opened`) siguen sin registros observados en Supabase remoto. Migraciones `20260712020000` y `20260712030000` aplicadas en remoto.
+
+### Fase 4 — Warhome MVP
+
+Panel interno mínimo operativo en rama `feature/warhome-mvp` (`494f335`), pendiente de merge a `main`.
+
+**Entregado:**
+
+- Acceso administrativo seguro: Supabase Auth, `admin_users`, roles `owner`/`admin`, login, logout, proxy y rutas protegidas.
+- Shell, sidebar y navegación en `/warhome`.
+- Listado real de leads con búsqueda, filtros, paginación y métricas globales básicas.
+- Detalle ampliado: intereses, suscripciones y actividad por `lead_id`.
+- Solicitudes de acompañamiento cubiertas vía leads, intereses y eventos (sin vista separada).
+- Estado operativo básico en lectura (`status`, `funnel_stage`, suscripción).
+- 116 tests; TypeScript y build correctos.
+
+**Prerrequisitos operativos verificados:**
+
+- Migración `20260712040000_create_admin_users.sql` aplicada en Supabase.
+- Primer usuario Auth registrado como `owner` activo.
+- Login, logout y acceso protegido probados manualmente.
+
+**Pospuesto conscientemente:**
+
+- Notas internas en UI.
+- Edición de etapa/estado.
+- Recorrido anónimo completo.
+- Overview redundante con Leads.
+- Refinamiento visual avanzado.
+- Diferenciación `owner` vs `admin`.
 
 ---
 
 ## Fase actual
 
-**Fase 4 — Warhome MVP**
+**Fase 5 — Emails operativos**
 
 ### Objetivo inmediato
 
-Panel interno mínimo para operar leads, solicitudes de acompañamiento, suscripciones, eventos y notas internas, con acceso administrativo seguro.
+Conectar un proveedor de email y enviar mensajes transaccionales y avisos internos, con registro de entregas, errores, reintentos y gestión de bajas/consentimientos.
+
+### Alcance previsto
+
+- Proveedor de email y dominio remitente.
+- SPF, DKIM y DMARC.
+- Plantillas.
+- Confirmaciones: Career Planner, Pre-PPL y acompañamiento.
+- Avisos internos.
+- Registro de envíos, errores y reintentos.
+- Bajas y consentimientos.
+
+### Fuera de alcance (Fase 5)
+
+- Automatizaciones avanzadas, secuencias y campañas (Fase 10).
+- CRM comercial completo.
+- Cambios en Warhome más allá de lo necesario para operar envíos.
 
 ---
 
@@ -50,6 +95,24 @@ Panel interno mínimo para operar leads, solicitudes de acompañamiento, suscrip
 - Metadata de eventos sin PII: solo `interest_intent`, `popup_id` y `form_id`.
 - Eventos históricos con PII saneados por migración `20260712030000`.
 - Sin `email_subscriptions`; no modifica `marketing_consent`.
+- Visible en Warhome como lead + interés + evento (sin bandeja dedicada).
+
+---
+
+## Warhome — infraestructura (Fase 4)
+
+| Componente | Ubicación |
+|------------|-----------|
+| Autorización admin | `lib/warhome/auth.ts` |
+| Acceso y rutas | `lib/warhome/access.ts`, `proxy.ts` |
+| Login / logout | `lib/warhome/actions.ts`, `app/warhome/login/` |
+| Shell y navegación | `components/warhome/`, `lib/warhome/navigation.ts` |
+| Listado de leads | `lib/warhome/leads.ts`, `app/warhome/(protected)/leads/` |
+| Detalle y actividad | `lib/warhome/lead-detail.ts`, `app/warhome/(protected)/leads/[leadId]/` |
+
+**Rutas:** `/warhome/login`, `/warhome`, `/warhome/leads`, `/warhome/leads/[leadId]`.
+
+**Seguridad:** `getWarhomeAuthorization()` antes de consultas; `service_role` solo servidor; selects cerrados; metadata whitelisted en actividad.
 
 ---
 
@@ -62,10 +125,6 @@ Panel interno mínimo para operar leads, solicitudes de acompañamiento, suscrip
 | Definiciones y validación de eventos | `lib/tracking/events.ts` |
 | Validación servidor e ingesta | `lib/tracking/server.ts` |
 | API de eventos cliente | `app/api/tracking/events/route.ts` |
-
-**Contexto capturado:** `anonymous_id`, `session_id`, `landing_page`, `referrer` saneado, UTMs, `page_path`.
-
-**Eventos instrumentados:** `form_started`, `popup_opened`, `cta_clicked`, `page_viewed`, `form_completed` y conversiones server-side por flujo de captación.
 
 **Producción:** conversiones server-side observadas; eventos cliente instrumentados pero sin registros observados en remoto aún.
 
@@ -92,8 +151,8 @@ Panel interno mínimo para operar leads, solicitudes de acompañamiento, suscrip
 | AeroComms en FlyPath (`/aerocomms/app`) | **Operativa** (Fase 0 — completada) |
 | Captación pública de leads | **Operativa** (Fase 2 — 4 flujos) |
 | Tracking / analítica web básica | **Implementado en `main`** (Fase 3 — completada; eventos cliente sin observar en producción) |
-| Warhome (UI admin) | **No existe** (Fase 4 — actual) |
-| Emails operativos | **No existe** (Fase 5) |
+| Warhome (UI admin) | **Operativo en `feature/warhome-mvp`** (Fase 4 — completada; pendiente merge) |
+| Emails operativos | **No existe** (Fase 5 — actual) |
 | Login y cuentas FlyPath | **No existe** (Fase 6) |
 | Persistencia AeroComms en Supabase | **No existe** (Fase 7; progreso en `localStorage`) |
 | Revisión final AeroComms (voces, QA) | **Pendiente** (Fase 8) |
@@ -103,12 +162,11 @@ Panel interno mínimo para operar leads, solicitudes de acompañamiento, suscrip
 
 ---
 
-## Roadmap — fases 4 a 11
+## Roadmap — fases 5 a 11
 
 | Fase | Nombre | Estado |
 |------|--------|--------|
-| 4 | Warhome MVP | **Actual** |
-| 5 | Emails operativos | Pendiente |
+| 5 | Emails operativos | **Actual** |
 | 6 | Login y cuentas FlyPath | Pendiente |
 | 7 | Persistencia de AeroComms | Pendiente |
 | 8 | Revisión final de AeroComms | Pendiente |
@@ -122,34 +180,39 @@ Detalle en `ROADMAP.md`.
 
 ## Limitaciones conocidas
 
-- `user_events` es append-only; tracking implementado en `main`; eventos cliente sin observar en producción; sin `form_abandoned` ni dashboards.
+- `user_events` es append-only; eventos cliente sin observar en producción; actividad en Warhome solo por `lead_id`.
 - Progreso AeroComms principalmente en cliente (`localStorage`) hasta Fase 7.
 - `email_*` y proveedor SMTP sin operar hasta Fase 5.
-- `admin_notes` editables vía `service_role` hasta Warhome MVP (Fase 4).
+- `admin_notes` con esquema listo; UI pospuesta (ver `BACKLOG.md`).
+- Roles `owner` y `admin` equivalentes en Warhome MVP.
 
 ---
 
-## Definition of done — Fase 3 (tracking — completada)
+## Definition of done — Fase 4 (Warhome MVP — completada)
 
-**Implementación (completada):**
+- [x] Acceso administrativo seguro (`admin_users`, login, logout, proxy, `service_role` aislado).
+- [x] Listado, búsqueda, filtros y paginación de leads.
+- [x] Detalle: intereses, suscripciones y actividad por `lead_id`.
+- [x] Solicitudes de acompañamiento visibles vía leads/intereses/eventos.
+- [x] Estado operativo básico en lectura.
+- [x] 116 tests; TypeScript y build correctos.
+- [x] Prerrequisitos operativos Supabase verificados.
 
-- [x] Infraestructura de tracking en `lib/tracking/` y `/api/tracking/events`.
-- [x] Instrumentación de navegación, CTAs, popups y formularios en flujos clave.
-- [x] UTMs, referer y sesión anónima capturados en contexto.
-- [x] Conversiones server-side por flujo de captación.
-- [x] Consentimiento de cookies/analítica respetado en eventos cliente.
-- [x] Sin datos sensibles en eventos (validación + saneamiento histórico).
-- [x] Sin dashboards avanzados.
+**Pospuesto (no bloquea cierre):**
 
-**Observación en producción (no requerida para cerrar la fase):**
+- [ ] Notas internas en UI.
+- [ ] Edición de etapa/estado.
+- [ ] Recorrido anónimo completo en ficha.
 
-- [ ] Eventos cliente (`page_viewed`, `form_completed`, `cta_clicked`, `form_started`, `popup_opened`) con registros observados en Supabase remoto.
+## Definition of done — Fase 5 (emails operativos — actual)
 
-## Definition of done — Fase 4 (Warhome MVP — actual)
-
-- [ ] Acceso administrativo seguro.
-- [ ] Listado, búsqueda, filtros y detalle de leads.
-- [ ] Intereses, suscripciones, eventos, solicitudes de acompañamiento y notas.
+- [ ] Proveedor de email y dominio remitente configurados.
+- [ ] SPF, DKIM y DMARC.
+- [ ] Plantillas transaccionales.
+- [ ] Confirmaciones Career Planner, Pre-PPL y acompañamiento.
+- [ ] Avisos internos.
+- [ ] Registro de envíos, errores y reintentos.
+- [ ] Bajas y consentimientos operativos.
 
 ---
 
