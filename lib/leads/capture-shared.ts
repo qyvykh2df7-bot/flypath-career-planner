@@ -17,6 +17,49 @@ export type UserEventInsertResult = "inserted" | "duplicate";
 
 const SUBSCRIPTION_STATUS = "subscribed";
 const DEFAULT_FUNNEL_STAGE = "interested";
+const SUPPRESSED_EMAIL_SUBSCRIPTION_STATUSES = new Set([
+  "bounced",
+  "complained",
+  "blocked",
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export type EmailSubscriptionStatus =
+  | "subscribed"
+  | "unsubscribed"
+  | "bounced"
+  | "complained"
+  | "blocked";
+
+export type EmailSubscriptionEventType = "subscribed" | "resubscribed";
+
+async function insertEmailSubscriptionEvent(
+  admin: LeadCaptureAdminClient,
+  input: {
+    subscriptionId: string;
+    leadId: string;
+    listKey: string;
+    eventType: EmailSubscriptionEventType;
+    source: string;
+    consentText: string;
+    occurredAt: string;
+  },
+): Promise<void> {
+  const { error } = await admin.from("email_subscription_events").insert({
+    subscription_id: input.subscriptionId,
+    lead_id: input.leadId,
+    list_key: input.listKey,
+    event_type: input.eventType,
+    source: input.source,
+    consent_text: input.consentText,
+    occurred_at: input.occurredAt,
+  });
+
+  if (error) throw new LeadCaptureError();
+}
 
 export async function upsertLeadByEmail(
   admin: LeadCaptureAdminClient,
@@ -109,10 +152,10 @@ export async function upsertEmailSubscriptionForLead(
     source: string;
     consentText: string;
   },
-): Promise<void> {
+): Promise<EmailSubscriptionStatus> {
   const { data: existingSubscription, error: selectError } = await admin
     .from("email_subscriptions")
-    .select("id")
+    .select("id,status")
     .eq("lead_id", leadId)
     .eq("list_key", options.listKey)
     .maybeSingle();
@@ -122,6 +165,17 @@ export async function upsertEmailSubscriptionForLead(
   }
 
   if (existingSubscription) {
+    if (
+      typeof existingSubscription.status === "string" &&
+      SUPPRESSED_EMAIL_SUBSCRIPTION_STATUSES.has(existingSubscription.status)
+    ) {
+      return existingSubscription.status as EmailSubscriptionStatus;
+    }
+
+    if (existingSubscription.status === SUBSCRIPTION_STATUS) {
+      return SUBSCRIPTION_STATUS;
+    }
+
     const { error: updateError } = await admin
       .from("email_subscriptions")
       .update({
@@ -139,21 +193,47 @@ export async function upsertEmailSubscriptionForLead(
     if (updateError) {
       throw new LeadCaptureError();
     }
-    return;
+
+    await insertEmailSubscriptionEvent(admin, {
+      subscriptionId: existingSubscription.id,
+      leadId,
+      listKey: options.listKey,
+      eventType: "resubscribed",
+      source: options.source,
+      consentText: options.consentText,
+      occurredAt: now,
+    });
+    return SUBSCRIPTION_STATUS;
   }
 
-  const { error: insertError } = await admin.from("email_subscriptions").insert({
-    lead_id: leadId,
-    list_key: options.listKey,
-    status: SUBSCRIPTION_STATUS,
-    source: options.source,
-    consented_at: now,
-    consent_text: options.consentText,
-  });
+  const { data: insertedSubscription, error: insertError } = await admin
+    .from("email_subscriptions")
+    .insert({
+      lead_id: leadId,
+      list_key: options.listKey,
+      status: SUBSCRIPTION_STATUS,
+      source: options.source,
+      consented_at: now,
+      consent_text: options.consentText,
+    })
+    .select("id")
+    .single();
 
-  if (insertError) {
+  if (insertError || !isRecord(insertedSubscription) || typeof insertedSubscription.id !== "string") {
     throw new LeadCaptureError();
   }
+
+  await insertEmailSubscriptionEvent(admin, {
+    subscriptionId: insertedSubscription.id,
+    leadId,
+    listKey: options.listKey,
+    eventType: "subscribed",
+    source: options.source,
+    consentText: options.consentText,
+    occurredAt: now,
+  });
+
+  return SUBSCRIPTION_STATUS;
 }
 
 export async function upsertLeadProductInterest(

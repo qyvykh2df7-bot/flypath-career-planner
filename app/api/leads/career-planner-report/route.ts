@@ -13,6 +13,8 @@ import {
   sanitizeTrackingContext,
 } from "@/lib/tracking/server";
 
+export const runtime = "nodejs";
+
 const INVALID_REQUEST_MESSAGE = "Solicitud inválida.";
 const INVALID_EMAIL_MESSAGE = "Introduce un email válido.";
 const GENERIC_ERROR_MESSAGE =

@@ -1,119 +1,98 @@
-# Tarea activa — Emails operativos (Fase 5)
+# Tarea activa — Fase 6 (Login y cuentas FlyPath)
 
-## Objetivo
+## Estado de Fase 5
 
-Preparar e implementar **emails operativos** (Fase 5): envíos transaccionales, avisos internos y registro de entregas, sin automatizaciones avanzadas.
+**Fase 5 — Emails operativos: cerrada.**
 
----
+No quedan tareas activas de Fase 5. Todos los bloques (5A–5D) están implementados y validados en rama `feature/emails-operativos-phase-5`.
 
-## Alcance previsto (Fase 5)
+| Bloque | Contenido | Estado |
+|--------|-----------|--------|
+| 5A | Fundación transaccional (Resend, jobs, deliveries, Career Planner) | Completado (`aac5ceb`) |
+| 5B | Pre-PPL y Acompañamiento (confirmaciones + alerta interna) | Completado (`eacbe5d`, `40849ac`) |
+| 5C | Warhome Emails + webhooks Resend + engagement | Completado (`b8a6382`, `c4a9fb3`, `68a5918`) |
+| 5D | Separación transaccional/marketing, bajas, historial, supresiones | Implementado; **pendiente de commit** |
 
-- Proveedor de email.
-- Dominio remitente.
-- SPF, DKIM y DMARC.
-- Plantillas.
-- Confirmación Career Planner.
-- Confirmación Pre-PPL.
-- Confirmación acompañamiento.
-- Aviso interno.
-- Registro de envíos, errores y reintentos.
-- Bajas y consentimientos.
+**Pendiente operativo antes de cerrar la rama:**
 
----
-
-## Fuera de alcance (esta tarea — Fase 5)
-
-- Secuencias, journeys y campañas (Fase 10).
-- CRM avanzado.
-- Cambios amplios en Warhome (salvo lo mínimo para operar envíos).
-- Login y cuentas públicas (Fase 6).
-- Persistencia AeroComms (Fase 7).
-- Revisión final AeroComms (Fase 8).
-- Pagos (Fase 9).
+- Validación final del working tree 5D.
+- Commit y push de `feature/emails-operativos-phase-5`.
+- Merge a `main` (cuando se decida).
 
 ---
 
-## Referencia de esquema
+## Objetivo actual
 
-| Migración / tabla | Uso en Fase 5 |
-|-------------------|---------------|
-| `email_jobs` | Cola de envíos |
-| `email_deliveries` | Registro de entregas y errores |
-| `email_subscriptions` | Estado de suscripción y bajas |
-| `leads` | Destinatarios y contexto de captación |
+Definir el **alcance inicial de Fase 6 — Login y cuentas FlyPath**: autenticación, cuentas y perfiles.
 
 ---
 
-## Pasos sugeridos (sin decisiones técnicas cerradas aún)
+## Alcance previsto (Fase 6 — borrador)
 
-1. Definir proveedor de email y dominio remitente.
-2. Configurar autenticación de dominio (SPF, DKIM, DMARC).
-3. Diseñar plantillas mínimas por flujo de captación.
-4. Implementar envío transaccional server-side con `service_role`.
-5. Registrar entregas, errores y reintentos en `email_deliveries`.
-6. Conectar bajas y consentimientos con `email_subscriptions`.
-7. Validar en entorno de prueba antes de producción.
-
----
-
-## Definición de terminado
-
-- [ ] Proveedor y dominio remitente operativos.
-- [ ] SPF, DKIM y DMARC verificados.
-- [ ] Confirmaciones Career Planner, Pre-PPL y acompañamiento enviadas.
-- [ ] Avisos internos operativos.
-- [ ] Registro de envíos, errores y reintentos.
-- [ ] Bajas y consentimientos integrados.
+- Supabase Auth (registro, login, recuperación de contraseña).
+- Perfiles (`profiles`) vinculados a `auth.users`.
+- Sesiones y permisos básicos.
+- Relación opcional `leads.user_id` ↔ cuenta.
+- Prevención de duplicados lead/cuenta.
+- Cuenta común FlyPath y AeroComms (diseño inicial).
 
 ---
 
-## Ya completado
+## Fuera de alcance (Fase 6)
 
-### Fase 0 — AeroComms en FlyPath
+- Persistencia de progreso AeroComms (Fase 7).
+- Pagos y suscripciones (Fase 9).
+- CRM, campañas y secuencias (Fase 10).
+- Warboard completo (Fase 11).
 
-App en `/aerocomms/app`; producto prácticamente terminado. Sin migración pendiente.
+---
 
-### Fase 1 — Backend Core
+## Referencia — Fase 5 completada
 
-Esquema Supabase (13 migraciones base + `20260712010000`).
+### Infraestructura entregada
 
-### Fase 2 — Captación pública de leads
+| Componente | Ubicación / tabla |
+|------------|-------------------|
+| Envío transaccional | `lib/email/send-transactional-email.ts` |
+| Plantillas | `lib/email/templates/` |
+| Cola | `email_jobs` |
+| Entregas | `email_deliveries` |
+| Webhooks | `email_webhook_events`, RPC `apply_resend_email_webhook_event` |
+| Suscripciones | `email_subscriptions` |
+| Historial consentimiento | `email_subscription_events` |
+| Tokens de baja | `email_unsubscribe_tokens` |
+| Warhome Emails | `/warhome/emails` |
 
-| Superficie | API | `product_key` | Suscripción | Persiste |
-|------------|-----|---------------|-------------|----------|
-| Career Planner | `/api/leads/career-planner-report` | `career_planner` | `career_planner` | lead, interés, suscripción, evento |
-| Newsletter home | `/api/leads/home-newsletter` | — | `home_newsletter` | lead, suscripción, evento |
-| Pre-PPL | `/api/leads/preppl-waitlist` | `preppl_guide` | `preppl` | lead, interés (`waitlist`), suscripción, evento |
-| Acompañamiento | `/api/leads/mentorship-support` | `flypath_accompaniment` | — | lead, interés (`interested`), evento |
+### Migraciones aplicadas en remoto (hasta `20260712100000`)
 
-### Fase 3 — Tracking y analítica básica
+`20260712050000` → `20260712100000` (ver `CURRENT_PHASE.md`).
 
-Infraestructura en `lib/tracking/`; eventos en flujos de captación, comparador, CTAs, `page_viewed` y `form_completed`. Migraciones `20260712020000` y `20260712030000` aplicadas. `main` en `779887a`.
+### Validaciones finales Fase 5
 
-### Fase 4 — Warhome MVP
+- **218 tests** pasando.
+- TypeScript y build correctos.
+- Migraciones `12090000` y `12100000` revisadas (APROBADO).
+- Webhook Resend productivo.
+- Tracking open/click desactivado en Resend (decisión operativa).
 
-| Bloque | Estado |
-|--------|--------|
-| Autorización (`admin_users`, roles, proxy) | Completado |
-| Login, logout y rutas protegidas | Completado |
-| Shell, sidebar y navegación | Completado |
-| Listado de leads (búsqueda, filtros, paginación, métricas) | Completado |
-| Detalle de lead (intereses, suscripciones, actividad) | Completado |
-| QA y cierre documental | Completado |
+---
 
-Rama `feature/warhome-mvp` (`494f335`); pendiente merge a `main`.
+## Fases anteriores (referencia)
 
-**Validaciones:** 116 tests; TypeScript, build y `git diff --check` correctos.
-
-**Prerrequisitos operativos:** migración `20260712040000` aplicada; primer `owner` activo; login/logout probados manualmente.
-
-**Pospuesto:** notas internas, edición de etapa/estado, recorrido anónimo completo, Overview redundante, refinamiento visual, diferenciación owner/admin.
+| Fase | Estado |
+|------|--------|
+| 0 — AeroComms en FlyPath | Completada |
+| 1 — Backend Core | Completada (`main`) |
+| 2 — Captación pública | Completada |
+| 3 — Tracking | Completada (`main`) |
+| 4 — Warhome MVP | Completada (en rama; pendiente merge `main`) |
+| 5 — Emails operativos | Completada (en rama; 5D sin commit) |
 
 ---
 
 ## Referencias
 
 - `CURRENT_PHASE.md` — fase actual y estado real.
-- `ROADMAP.md` — fases 5–11.
+- `ROADMAP.md` — fases 6–11 y trabajo diferido.
+- `LAST_SESSION.md` — handoff de la sesión Fase 5.
 - `BACKLOG.md` — mejoras Warhome pospuestas.
-- `LAST_SESSION.md` — handoff operativo.

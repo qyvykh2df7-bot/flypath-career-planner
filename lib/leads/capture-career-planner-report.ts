@@ -10,6 +10,7 @@ import {
 } from "@/lib/leads/capture-shared";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { TrackingContext } from "@/lib/tracking/events";
+import { queueCareerPlannerConfirmation } from "@/lib/email/send-transactional-email";
 
 const SOURCE = "career_planner";
 const PRODUCT_KEY = "career_planner";
@@ -94,5 +95,11 @@ export async function captureCareerPlannerReportDownload(
     });
   } catch {
     console.error("[FlyPath] Career Planner conversion event persistence failed.");
+  }
+
+  try {
+    await queueCareerPlannerConfirmation(admin, { leadId, idempotencyKey });
+  } catch {
+    console.error("[FlyPath] Career Planner confirmation email processing failed.");
   }
 }

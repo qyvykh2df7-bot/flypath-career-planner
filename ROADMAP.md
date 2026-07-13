@@ -211,32 +211,75 @@ Panel interno mínimo para operar leads y solicitudes. Rama `feature/warhome-mvp
 
 ## Fase 5 — Emails operativos
 
-**Estado: Siguiente**
+**Estado: Completado**
 
-Envíos transaccionales y avisos internos; no automatizaciones avanzadas.
+Rama `feature/emails-operativos-phase-5`. Bloque 5D implementado y validado; **pendiente de commit final**. **No mergeada** a `main`.
 
-### Objetivos
+### Completado
 
-- Proveedor de email.
-- Dominio remitente.
-- SPF, DKIM y DMARC.
-- Plantillas.
-- Confirmación Career Planner.
-- Confirmación Pre-PPL.
-- Confirmación acompañamiento.
-- Aviso interno.
-- Registro de envíos, errores y reintentos.
-- Bajas y consentimientos.
+**Proveedor y entrega**
 
-### Preparado (esquema)
+- Resend configurado; dominio remitente con SPF, DKIM y DMARC.
+- Cola `email_jobs` y registro `email_deliveries` con idempotencia por conversión.
+- Plantillas transaccionales: Career Planner, Pre-PPL, Acompañamiento.
+- Alerta interna `mentorship_internal_alert` → `INTERNAL_ALERT_EMAIL`.
 
-- Tablas `email_jobs`, `email_deliveries` y suscripciones existen; sin proveedor operativo aún.
+**Webhooks y estados**
+
+- Webhook seguro `/api/webhooks/resend` con verificación Svix.
+- Deduplicación por `provider_event_id` en `email_webhook_events`.
+- Estados de entrega: `delivered`, `bounced`, `failed`.
+- Propagación de `bounced`, `complained` y `suppressed` a suscripciones existentes (`20260712100000`).
+
+**Warhome**
+
+- Vista `/warhome/emails` con filtros, entregas y engagement.
+- Vista separada de Leads; historial de email individual por lead previsto en fases posteriores.
+
+**Consentimiento y bajas**
+
+- Separación transaccional / marketing: transaccionales no dependen de `subscribed`.
+- `unsubscribed` no bloquea transaccionales; `bounced` / `complained` / `blocked` sí.
+- `email_subscriptions` gobierna marketing por lista.
+- Baja segura por lista: token opaco, hash SHA-256, GET confirmación + POST ejecución.
+- Historial append-only en `email_subscription_events` (`20260712090000`).
+
+**Migraciones Supabase (remoto, hasta `20260712100000`)**
+
+- `20260712050000` — jobs transaccionales.
+- `20260712060000` — template Pre-PPL.
+- `20260712070000` — templates mentoría.
+- `20260712080000` — webhooks Resend.
+- `20260712090000` — historial y tokens de baja.
+- `20260712100000` — propagación de supresiones.
+
+**Operativa**
+
+- Webhook Resend productivo funcionando.
+- Tracking de aperturas y clics **desactivado** en Resend (reputación del dominio); esquema y Warhome preparados.
+
+**Calidad**
+
+- 218 tests; TypeScript y build correctos.
+
+### Trabajo diferido (fuera de Fase 5)
+
+| Tema | Fase prevista |
+|------|---------------|
+| Reintentos automáticos de email | Post-volumen / Fase 10 |
+| Campañas y envíos masivos | Fase 10 |
+| Secuencias y journeys (`email_sequences`, `email_enrollments`) | Fase 10 |
+| Centro de preferencias multi-lista | Fase 10 |
+| Baja global (todas las listas) | Fase 10 |
+| Reactivación manual de suscripciones en Warhome | Fase 10 / Warboard |
+| Hardening de permisos de tablas de consentimiento | Post-auditoría |
+| Reactivar tracking open/click en Resend | Cuando reputación del dominio lo permita |
 
 ---
 
 ## Fase 6 — Login y cuentas FlyPath
 
-**Estado: Pendiente**
+**Estado: Siguiente**
 
 Identidad común para FlyPath y AeroComms.
 
@@ -388,8 +431,8 @@ Fase 1   Backend Core (Supabase)        ████████████  Co
 Fase 2   Captación pública de leads     ████████████  Completado
 Fase 3   Tracking y analítica básica    ████████████  Completado
 Fase 4   Warhome MVP                    ████████████  Completado (pendiente merge)
-Fase 5   Emails operativos              ░░░░░░░░░░░░  Siguiente
-Fase 6   Login y cuentas FlyPath        ░░░░░░░░░░░░  Pendiente
+Fase 5   Emails operativos              ████████████  Completado (rama; 5D sin commit)
+Fase 6   Login y cuentas FlyPath        ░░░░░░░░░░░░  Siguiente
 Fase 7   Persistencia de AeroComms      ░░░░░░░░░░░░  Pendiente
 Fase 8   Revisión final de AeroComms    ░░░░░░░░░░░░  Pendiente
 Fase 9   Pagos y monetización           ░░░░░░░░░░░░  Pendiente

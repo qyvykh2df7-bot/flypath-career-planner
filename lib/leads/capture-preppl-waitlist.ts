@@ -10,6 +10,7 @@ import {
 import { PREPPL_WAITLIST_CONSENT_TEXT } from "@/lib/leads/preppl-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { TrackingContext } from "@/lib/tracking/events";
+import { queuePrepplWaitlistConfirmation } from "@/lib/email/send-transactional-email";
 
 const SOURCE = "preppl";
 const PRODUCT_KEY = "preppl_guide";
@@ -94,5 +95,11 @@ export async function capturePrepplWaitlistJoin(
     });
   } catch {
     console.error("[FlyPath] Pre-PPL conversion event persistence failed.");
+  }
+
+  try {
+    await queuePrepplWaitlistConfirmation(admin, { leadId, idempotencyKey });
+  } catch {
+    console.error("[FlyPath] Pre-PPL confirmation email processing failed.");
   }
 }

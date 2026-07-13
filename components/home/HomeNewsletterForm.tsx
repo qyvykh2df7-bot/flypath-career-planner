@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { captureHomeNewsletterLead } from "@/lib/leads/capture-home-newsletter-client";
+import { HOME_NEWSLETTER_MARKETING_CONSENT_TEXT } from "@/lib/leads/home-newsletter-consent";
 import { trackEventOncePerSession } from "@/lib/tracking/client";
 import {
   createTrackingUuid,
@@ -132,7 +133,7 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
       >
         {isDark ? <Check className="h-3 w-3 shrink-0 text-white/85" aria-hidden /> : null}
         <span>
-          Al suscribirte, aceptas recibir emails de FlyPath. Puedes darte de baja en cualquier momento. Consulta la{" "}
+          {HOME_NEWSLETTER_MARKETING_CONSENT_TEXT} Consulta la{" "}
           <Link
             href="/politica-de-privacidad"
             className={
