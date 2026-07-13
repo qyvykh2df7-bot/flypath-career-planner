@@ -8,7 +8,7 @@ export function getPrepplWaitlistConfirmationTemplate(): TransactionalEmailTempl
   return {
     key: PREPPL_WAITLIST_CONFIRMATION_TEMPLATE_KEY,
     subject: "Tu plaza en la lista Pre-PPL está confirmada",
-    recipient: { kind: "lead", subscriptionListKey: "preppl" },
+    recipient: { kind: "lead" },
     text: [
       "Tu plaza en la lista de espera de Pre-PPL está confirmada.",
       "Te avisaremos cuando haya novedades relevantes sobre el producto.",

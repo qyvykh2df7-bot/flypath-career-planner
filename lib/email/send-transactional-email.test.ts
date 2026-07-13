@@ -46,12 +46,7 @@ vi.mock("@/lib/email/templates", () => ({
     html: "<p>Fijo</p>",
     text: "Fijo",
     recipient:
-      templateKey === "mentorship_request_confirmation"
-        ? { kind: "lead", subscriptionListKey: null }
-        : {
-            kind: "lead",
-            subscriptionListKey: templateKey === "preppl_waitlist_confirmation" ? "preppl" : "career_planner",
-          },
+      { kind: "lead" },
   })),
 }));
 vi.mock("@/lib/email/templates/mentorship-internal-alert", () => ({
@@ -82,20 +77,34 @@ const JOB = {
 };
 
 function createAdmin(subscriptionStatus: string | null) {
+  const technicalSuppression = ["bounced", "complained", "blocked"].includes(subscriptionStatus ?? "")
+    ? { status: subscriptionStatus }
+    : null;
+
   return {
-    from: vi.fn((table: string) => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: table === "leads" ? { email: "pilot@example.com" } : subscriptionStatus ? { status: subscriptionStatus } : null,
-              error: null,
-            }),
+    from: vi.fn((table: string) => {
+      if (table === "leads") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { email: "pilot@example.com" }, error: null }),
+            })),
           })),
-          maybeSingle: vi.fn().mockResolvedValue({ data: { email: "pilot@example.com" }, error: null }),
+        };
+      }
+
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            in: vi.fn(() => ({
+              limit: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({ data: technicalSuppression, error: null }),
+              })),
+            })),
+          })),
         })),
-      })),
-    })),
+      };
+    }),
   };
 }
 
@@ -143,8 +152,17 @@ describe("transactional email dispatch", () => {
     expect(mocks.markTransactionalEmailJobSent).toHaveBeenCalledOnce();
   });
 
-  it.each(["unsubscribed", "bounced", "complained", "blocked"])(
-    "does not send when the subscription is %s",
+  it("sends a transactional confirmation when the lead previously unsubscribed", async () => {
+    const provider = { send: vi.fn().mockResolvedValue({ providerMessageId: "resend-id" }) };
+
+    await expect(sendTransactionalEmail(createAdmin("unsubscribed") as never, JOB, { provider })).resolves.toBe(
+      "sent",
+    );
+    expect(provider.send).toHaveBeenCalledOnce();
+  });
+
+  it.each(["bounced", "complained", "blocked"])(
+    "does not send when a technical suppression is %s",
     async (status) => {
       await expect(sendTransactionalEmail(createAdmin(status) as never, JOB)).resolves.toBe("cancelled");
       expect(mocks.cancelTransactionalEmailJob).toHaveBeenCalledWith(expect.anything(), "job-id", expect.any(String));
@@ -271,7 +289,7 @@ describe("transactional email dispatch", () => {
     const mentorshipJob = { ...JOB, templateKey: "mentorship_request_confirmation" as const };
 
     await expect(sendTransactionalEmail(admin as never, mentorshipJob, { provider })).resolves.toBe("sent");
-    expect(admin.from).not.toHaveBeenCalledWith("email_subscriptions");
+    expect(admin.from).toHaveBeenCalledWith("email_subscriptions");
     expect(provider.send).toHaveBeenCalledWith(
       expect.objectContaining({ subject: "Hemos recibido tu solicitud de acompañamiento" }),
     );

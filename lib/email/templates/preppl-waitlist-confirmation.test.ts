@@ -10,7 +10,7 @@ describe("Pre-PPL waitlist confirmation template", () => {
     const template = getPrepplWaitlistConfirmationTemplate();
 
     expect(template.subject).toBe("Tu plaza en la lista Pre-PPL está confirmada");
-    expect(template.recipient).toEqual({ kind: "lead", subscriptionListKey: "preppl" });
+    expect(template.recipient).toEqual({ kind: "lead" });
     expect(template.text).toContain("lista de espera de Pre-PPL está confirmada");
     expect(template.text).toContain("novedades relevantes sobre el producto");
     expect(template.text).toContain("info@flypath.es");

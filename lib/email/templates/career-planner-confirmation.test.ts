@@ -10,7 +10,7 @@ describe("Career Planner confirmation template", () => {
     const template = getCareerPlannerConfirmationTemplate();
 
     expect(template.subject).toBe("Tu Career Planner de FlyPath está listo");
-    expect(template.recipient).toEqual({ kind: "lead", subscriptionListKey: "career_planner" });
+    expect(template.recipient).toEqual({ kind: "lead" });
     expect(template.html).toContain("Descargar informe gratuito");
     expect(template.html).not.toMatch(/https?:\/\//);
     expect(template.text).toContain("info@flypath.es");

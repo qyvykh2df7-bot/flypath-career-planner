@@ -11,6 +11,7 @@ const emailFiles = [
   "lib/email/deliveries.ts",
   "lib/email/send-transactional-email.ts",
   "lib/email/resend-webhooks.ts",
+  "lib/email/unsubscribe.ts",
   "lib/email/templates/index.ts",
   "lib/email/templates/career-planner-confirmation.ts",
   "lib/email/templates/preppl-waitlist-confirmation.ts",

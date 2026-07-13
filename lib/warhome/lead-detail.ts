@@ -24,7 +24,17 @@ export const WARHOME_LEAD_DETAIL_SELECT =
 export const WARHOME_LEAD_INTERESTS_SELECT =
   "product_id,status,first_seen_at,last_seen_at,products(name)";
 export const WARHOME_LEAD_SUBSCRIPTIONS_SELECT =
-  "list_key,status,source,consented_at,unsubscribed_at";
+  "list_key,status,source,consented_at,unsubscribed_at,bounced_at,complained_at,blocked_at,email_subscription_events(event_type,source,occurred_at)";
+
+export const WARHOME_EMAIL_SUBSCRIPTION_LIST_LABELS: Record<string, string> = {
+  newsletter: "Newsletter",
+  home_newsletter: "Newsletter Home",
+  career_planner: "Career Planner",
+  preppl: "Pre-PPL",
+  aerocomms: "AeroComms",
+  mentoring: "Mentorías",
+  general_marketing: "Marketing general",
+};
 
 export const WARHOME_ACTIVITY_METADATA_KEYS = [
   "form_id",
@@ -87,7 +97,22 @@ export type WarhomeLeadSubscription = {
   source: WarhomeLeadSource;
   consentedAt: string | null;
   unsubscribedAt: string | null;
+  bouncedAt: string | null;
+  complainedAt: string | null;
+  blockedAt: string | null;
+  statusChangedAt: string | null;
+  lastChange: {
+    eventType: "subscribed" | "resubscribed" | "unsubscribed" | "bounced" | "complained" | "blocked";
+    source: string | null;
+    occurredAt: string;
+  } | null;
 };
+
+export type WarhomeMarketingSummary =
+  | "Marketing activo"
+  | "Marketing parcialmente activo"
+  | "Marketing inactivo"
+  | "Sin suscripciones";
 
 export type WarhomeLeadActivity = {
   eventName: string;
@@ -110,6 +135,7 @@ export type WarhomeLeadDetail = {
   updatedAt: string;
   interests: WarhomeLeadInterest[];
   subscriptions: WarhomeLeadSubscription[];
+  marketingSummary: WarhomeMarketingSummary;
   activity: WarhomeLeadActivity[];
   activityPage: number;
   activityTotal: number;
@@ -162,6 +188,19 @@ const EMAIL_SUBSCRIPTION_STATUSES: readonly Exclude<WarhomeEmailSubscriptionStat
   "complained",
   "blocked",
 ];
+const EMAIL_SUBSCRIPTION_EVENT_TYPES = [
+  "subscribed",
+  "resubscribed",
+  "unsubscribed",
+  "bounced",
+  "complained",
+  "blocked",
+] as const;
+const LAST_CHANGE_SOURCES = new Set([
+  ...WARHOME_LEAD_SOURCES,
+  "unsubscribe_link",
+  "resend_webhook",
+]);
 
 function includesValue<T extends readonly string[]>(values: T, value: string): value is T[number] {
   return values.includes(value);
@@ -281,7 +320,7 @@ export function sanitizeWarhomeActivityMetadata(
   return metadata;
 }
 
-function mapLead(value: RawLead): Omit<WarhomeLeadDetail, "interests" | "subscriptions" | "activity" | "activityPage" | "activityTotal" | "activityTotalPages"> | null {
+function mapLead(value: RawLead): Omit<WarhomeLeadDetail, "interests" | "subscriptions" | "marketingSummary" | "activity" | "activityPage" | "activityTotal" | "activityTotalPages"> | null {
   const source = typeof value.latest_source === "string" ? value.latest_source : "";
   const stage = typeof value.funnel_stage === "string" ? value.funnel_stage : "";
   const status = typeof value.status === "string" ? value.status : "";
@@ -332,6 +371,43 @@ function mapInterest(value: RawInterest): WarhomeLeadInterest | null {
   };
 }
 
+function asTimestamp(value: unknown): string | null {
+  return typeof value === "string" && Number.isFinite(new Date(value).getTime()) ? value : null;
+}
+
+function mapLastSubscriptionChange(value: unknown): WarhomeLeadSubscription["lastChange"] {
+  const events = asRecords(value)
+    .map((event) => {
+      const eventType = typeof event.event_type === "string" ? event.event_type : "";
+      const occurredAt = asTimestamp(event.occurred_at);
+      if (!includesValue(EMAIL_SUBSCRIPTION_EVENT_TYPES, eventType) || !occurredAt) return null;
+
+      const source =
+        typeof event.source === "string" && LAST_CHANGE_SOURCES.has(event.source)
+          ? event.source
+          : null;
+      return { eventType, source, occurredAt };
+    })
+    .filter(
+      (
+        event,
+      ): event is NonNullable<WarhomeLeadSubscription["lastChange"]> => event !== null,
+    )
+    .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+
+  return events[0] ?? null;
+}
+
+export function getWarhomeMarketingSummary(
+  subscriptions: WarhomeLeadSubscription[],
+): WarhomeMarketingSummary {
+  if (!subscriptions.length) return "Sin suscripciones";
+
+  const activeCount = subscriptions.filter((subscription) => subscription.status === "subscribed").length;
+  if (activeCount === subscriptions.length) return "Marketing activo";
+  return activeCount > 0 ? "Marketing parcialmente activo" : "Marketing inactivo";
+}
+
 function mapSubscription(value: RawSubscription): WarhomeLeadSubscription | null {
   const status = typeof value.status === "string" ? value.status : "";
   const source = typeof value.source === "string" ? value.source : "";
@@ -348,8 +424,22 @@ function mapSubscription(value: RawSubscription): WarhomeLeadSubscription | null
     listKey: value.list_key,
     status,
     source,
-    consentedAt: typeof value.consented_at === "string" ? value.consented_at : null,
-    unsubscribedAt: typeof value.unsubscribed_at === "string" ? value.unsubscribed_at : null,
+    consentedAt: asTimestamp(value.consented_at),
+    unsubscribedAt: asTimestamp(value.unsubscribed_at),
+    bouncedAt: asTimestamp(value.bounced_at),
+    complainedAt: asTimestamp(value.complained_at),
+    blockedAt: asTimestamp(value.blocked_at),
+    statusChangedAt:
+      status === "subscribed"
+        ? asTimestamp(value.consented_at)
+        : status === "unsubscribed"
+          ? asTimestamp(value.unsubscribed_at)
+          : status === "bounced"
+            ? asTimestamp(value.bounced_at)
+            : status === "complained"
+              ? asTimestamp(value.complained_at)
+              : asTimestamp(value.blocked_at),
+    lastChange: mapLastSubscriptionChange(value.email_subscription_events),
   };
 }
 
@@ -449,15 +539,17 @@ export async function getWarhomeLeadDetail(
     activityPage === requestedActivityPage
       ? initialActivity
       : await getLeadActivity(leadId, activityPage);
+  const subscriptions = asRecords(subscriptionsResult.data)
+    .map(mapSubscription)
+    .filter((subscription): subscription is WarhomeLeadSubscription => subscription !== null);
 
   return {
     ...lead,
     interests: asRecords(interestsResult.data)
       .map(mapInterest)
       .filter((interest): interest is WarhomeLeadInterest => interest !== null),
-    subscriptions: asRecords(subscriptionsResult.data)
-      .map(mapSubscription)
-      .filter((subscription): subscription is WarhomeLeadSubscription => subscription !== null),
+    subscriptions,
+    marketingSummary: getWarhomeMarketingSummary(subscriptions),
     activity: activity.activity,
     activityPage,
     activityTotal: activity.total,

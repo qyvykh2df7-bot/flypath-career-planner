@@ -8,7 +8,7 @@ export function getMentorshipRequestConfirmationTemplate(): TransactionalEmailTe
   return {
     key: MENTORSHIP_REQUEST_CONFIRMATION_TEMPLATE_KEY,
     subject: "Hemos recibido tu solicitud de acompañamiento",
-    recipient: { kind: "lead", subscriptionListKey: null },
+    recipient: { kind: "lead" },
     text: [
       "Hemos recibido tu solicitud de acompañamiento.",
       "El equipo de FlyPath revisará la información que nos has enviado.",

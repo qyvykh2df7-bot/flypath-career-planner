@@ -60,7 +60,7 @@ describe("Pre-PPL operational email integration", () => {
       admin,
       "lead-id",
       expect.any(String),
-      expect.objectContaining({ preserveSuppressedStatus: true }),
+      expect.objectContaining({ listKey: "preppl" }),
     );
   });
 
@@ -76,13 +76,16 @@ describe("Pre-PPL operational email integration", () => {
   });
 
   it.each(["unsubscribed", "bounced", "complained", "blocked"])(
-    "does not queue an email when the existing subscription is %s",
+    "queues the operational confirmation regardless of the marketing subscription state %s",
     async (status) => {
       prepareCapture(status);
 
       await capturePrepplWaitlistJoin("pilot@example.com", IDEMPOTENCY_KEY);
 
-      expect(dependencies.queuePrepplWaitlistConfirmation).not.toHaveBeenCalled();
+      expect(dependencies.queuePrepplWaitlistConfirmation).toHaveBeenCalledWith(admin, {
+        leadId: "lead-id",
+        idempotencyKey: IDEMPOTENCY_KEY,
+      });
     },
   );
 });

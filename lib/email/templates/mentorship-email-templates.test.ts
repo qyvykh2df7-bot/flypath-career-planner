@@ -11,7 +11,7 @@ describe("mentorship email templates", () => {
     const content = `${template.subject}\n${template.text}\n${template.html}`.toLowerCase();
 
     expect(template.subject).toBe("Hemos recibido tu solicitud de acompañamiento");
-    expect(template.recipient).toEqual({ kind: "lead", subscriptionListKey: null });
+    expect(template.recipient).toEqual({ kind: "lead" });
     expect(content).toContain("revisará la información");
     expect(content).not.toContain("precio");
     expect(content).not.toContain("disponibilidad");

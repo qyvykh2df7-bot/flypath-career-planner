@@ -48,7 +48,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 async function getLeadRecipient(
   admin: EmailAdminClient,
   leadId: string,
-  subscriptionListKey: "career_planner" | "preppl" | null,
 ): Promise<string | null> {
   const { data: lead, error: leadError } = await admin
     .from("leads")
@@ -65,17 +64,16 @@ async function getLeadRecipient(
     throw new TransactionalEmailDataError();
   }
 
-  if (!subscriptionListKey) return lead.email;
-
-  const { data: subscription, error: subscriptionError } = await admin
+  const { data: technicalSuppression, error: subscriptionError } = await admin
     .from("email_subscriptions")
     .select("status")
     .eq("lead_id", leadId)
-    .eq("list_key", subscriptionListKey)
+    .in("status", ["bounced", "complained", "blocked"])
+    .limit(1)
     .maybeSingle();
 
   if (subscriptionError) throw new TransactionalEmailDataError();
-  return isRecord(subscription) && subscription.status === "subscribed" ? lead.email : null;
+  return technicalSuppression ? null : lead.email;
 }
 
 export async function queueCareerPlannerConfirmation(
@@ -146,7 +144,7 @@ export async function sendTransactionalEmail(
   const recipientEmail =
     template.recipient.kind === "internal"
       ? options.recipientEmail ?? null
-      : await getLeadRecipient(admin, job.leadId, template.recipient.subscriptionListKey);
+      : await getLeadRecipient(admin, job.leadId);
 
   if (!recipientEmail) {
     if (job.status === "pending") await cancelTransactionalEmailJob(admin, job.id, now());

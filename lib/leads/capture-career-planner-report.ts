@@ -41,7 +41,6 @@ export async function captureCareerPlannerReportDownload(
   const now = new Date().toISOString();
   let leadId: string;
   let productId: string;
-  let subscriptionStatus: string;
 
   try {
     const { data: product, error: productError } = await admin
@@ -64,11 +63,10 @@ export async function captureCareerPlannerReportDownload(
       source: SOURCE,
       status: INTEREST_STATUS,
     });
-    subscriptionStatus = await upsertEmailSubscriptionForLead(admin, leadId, now, {
+    await upsertEmailSubscriptionForLead(admin, leadId, now, {
       listKey: LIST_KEY,
       source: SOURCE,
       consentText: CAREER_PLANNER_MARKETING_CONSENT_TEXT,
-      preserveSuppressedStatus: true,
     });
   } catch (error) {
     if (error instanceof CareerPlannerLeadCaptureError) {
@@ -98,8 +96,6 @@ export async function captureCareerPlannerReportDownload(
   } catch {
     console.error("[FlyPath] Career Planner conversion event persistence failed.");
   }
-
-  if (subscriptionStatus !== "subscribed") return;
 
   try {
     await queueCareerPlannerConfirmation(admin, { leadId, idempotencyKey });

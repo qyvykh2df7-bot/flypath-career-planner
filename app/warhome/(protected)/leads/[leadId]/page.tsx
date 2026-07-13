@@ -13,6 +13,7 @@ import {
   getWarhomeLeadDetail,
   parseWarhomeActivityPage,
   type WarhomeLeadInterestStatus,
+  WARHOME_EMAIL_SUBSCRIPTION_LIST_LABELS,
   WarhomeLeadNotFoundError,
   WARHOME_EMAIL_SUBSCRIPTION_STATUS_LABELS,
 } from "@/lib/warhome/lead-detail";
@@ -47,6 +48,40 @@ function formatDate(value: string): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function getSubscriptionChangeSourceLabel(source: string | null): string | null {
+  if (!source) return null;
+  if (source === "unsubscribe_link") return "Enlace de baja";
+  if (source === "resend_webhook") return "Resend";
+  return source in WARHOME_LEAD_SOURCE_LABELS
+    ? WARHOME_LEAD_SOURCE_LABELS[source as keyof typeof WARHOME_LEAD_SOURCE_LABELS]
+    : null;
+}
+
+function getSubscriptionStatusDateLabel(
+  status: "subscribed" | "unsubscribed" | "bounced" | "complained" | "blocked",
+): string {
+  return {
+    subscribed: "Consentimiento",
+    unsubscribed: "Baja",
+    bounced: "Rebote",
+    complained: "Queja",
+    blocked: "Bloqueo",
+  }[status];
+}
+
+function getSubscriptionEventLabel(
+  eventType: "subscribed" | "resubscribed" | "unsubscribed" | "bounced" | "complained" | "blocked",
+): string {
+  return {
+    subscribed: "Suscripción",
+    resubscribed: "Nueva suscripción",
+    unsubscribed: "Baja",
+    bounced: "Rebote",
+    complained: "Queja",
+    blocked: "Bloqueo",
+  }[eventType];
 }
 
 export default async function WarhomeLeadDetailPage({
@@ -129,25 +164,38 @@ export default async function WarhomeLeadDetailPage({
           <section aria-labelledby="subscriptions-title" className="rounded-lg border border-white/[0.08] bg-[#0d192a]">
             <div className="flex items-center gap-3 border-b border-white/[0.07] px-5 py-4">
               <Mail className="h-5 w-5 text-[#d6ae4f]" aria-hidden />
-              <h3 id="subscriptions-title" className="text-lg font-semibold text-white">Suscripciones</h3>
+              <div>
+                <h3 id="subscriptions-title" className="text-lg font-semibold text-white">Suscripciones</h3>
+                <p className="mt-0.5 text-xs text-slate-500">{lead.marketingSummary}</p>
+              </div>
             </div>
             {lead.subscriptions.length ? (
               <ul className="divide-y divide-white/[0.07]">
                 {lead.subscriptions.map((subscription) => (
                   <li key={subscription.listKey} className="px-5 py-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <p className="font-medium text-slate-100">{subscription.listKey}</p>
+                      <p className="font-medium text-slate-100">
+                        {WARHOME_EMAIL_SUBSCRIPTION_LIST_LABELS[subscription.listKey] ?? "Lista de email"}
+                      </p>
                       <span className="rounded border border-white/[0.08] px-2 py-1 text-xs text-slate-400">
                         {WARHOME_EMAIL_SUBSCRIPTION_STATUS_LABELS[subscription.status]}
                       </span>
                     </div>
                     <p className="mt-2 text-xs text-slate-500">
                       Fuente: {WARHOME_LEAD_SOURCE_LABELS[subscription.source]}
-                      {subscription.consentedAt ? ` · Alta: ${formatDate(subscription.consentedAt)}` : ""}
-                      {subscription.unsubscribedAt
-                        ? ` · Baja: ${formatDate(subscription.unsubscribedAt)}`
+                      {subscription.consentedAt ? ` · Consentimiento: ${formatDate(subscription.consentedAt)}` : ""}
+                      {subscription.statusChangedAt
+                        ? ` · ${getSubscriptionStatusDateLabel(subscription.status)}: ${formatDate(subscription.statusChangedAt)}`
                         : ""}
                     </p>
+                    {subscription.lastChange ? (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Último cambio: {getSubscriptionEventLabel(subscription.lastChange.eventType)} · {formatDate(subscription.lastChange.occurredAt)}
+                        {getSubscriptionChangeSourceLabel(subscription.lastChange.source)
+                          ? ` · ${getSubscriptionChangeSourceLabel(subscription.lastChange.source)}`
+                          : ""}
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>

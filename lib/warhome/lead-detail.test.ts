@@ -18,6 +18,7 @@ import {
   getWarhomeActivityRange,
   getWarhomeLeadActivityUrl,
   getWarhomeLeadDetail,
+  getWarhomeMarketingSummary,
   isWarhomeLeadId,
   parseWarhomeActivityPage,
   sanitizeWarhomeActivityMetadata,
@@ -87,6 +88,16 @@ function configureSuccessfulDetail(options?: {
           source: "career_planner",
           consented_at: "2026-07-12T10:00:00.000Z",
           unsubscribed_at: null,
+          bounced_at: null,
+          complained_at: null,
+          blocked_at: null,
+          email_subscription_events: [
+            {
+              event_type: "subscribed",
+              source: "career_planner",
+              occurred_at: "2026-07-12T10:00:00.000Z",
+            },
+          ],
         },
       ],
     error: null,
@@ -184,6 +195,13 @@ describe("Warhome lead detail boundary", () => {
     expect(`${WARHOME_LEAD_DETAIL_SELECT},${WARHOME_LEAD_INTERESTS_SELECT}`).not.toMatch(
       /user_id|anonymous_id|session_id|internal_notes|consent_text/,
     );
+    expect(WARHOME_LEAD_SUBSCRIPTIONS_SELECT).toContain(
+      "email_subscription_events(event_type,source,occurred_at)",
+    );
+    expect(WARHOME_LEAD_SUBSCRIPTIONS_SELECT).not.toMatch(/(^|,)id(,|$)|token|consent_text/);
+    expect(detail.subscriptions[0]).toMatchObject({
+      lastChange: { eventType: "subscribed", source: "career_planner" },
+    });
   });
 
   it("filtra metadata desconocida y claves sensibles aunque estén presentes", () => {
@@ -252,6 +270,28 @@ describe("Warhome lead detail boundary", () => {
     expect(detail.subscriptions).toEqual([]);
     expect(detail.activity).toEqual([]);
     expect(detail.activityTotal).toBe(0);
+    expect(detail.marketingSummary).toBe("Sin suscripciones");
+  });
+
+  it("deriva el resumen de marketing solo desde suscripciones por lista", () => {
+    const subscription = (status: "subscribed" | "unsubscribed") => ({
+      listKey: "newsletter",
+      status,
+      source: "newsletter" as const,
+      consentedAt: null,
+      unsubscribedAt: null,
+      bouncedAt: null,
+      complainedAt: null,
+      blockedAt: null,
+      statusChangedAt: null,
+      lastChange: null,
+    });
+
+    expect(getWarhomeMarketingSummary([subscription("subscribed")])).toBe("Marketing activo");
+    expect(getWarhomeMarketingSummary([subscription("subscribed"), subscription("unsubscribed")])).toBe(
+      "Marketing parcialmente activo",
+    );
+    expect(getWarhomeMarketingSummary([subscription("unsubscribed")])).toBe("Marketing inactivo");
   });
 
   it("normaliza páginas de actividad inválidas", () => {

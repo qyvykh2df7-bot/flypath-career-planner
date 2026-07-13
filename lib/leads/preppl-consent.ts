@@ -1,2 +1,2 @@
 export const PREPPL_WAITLIST_CONSENT_TEXT =
-  "Al unirte a la lista de espera de Pre-PPL, aceptas recibir emails de FlyPath. Puedes darte de baja en cualquier momento.";
+  "Quiero recibir novedades sobre Pre-PPL por email. Puedo darme de baja en cualquier momento.";

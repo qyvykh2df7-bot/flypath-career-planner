@@ -24,7 +24,7 @@ Tracking implementado en `main` (`779887a`): infraestructura en `lib/tracking/`,
 
 ### Fase 4 — Warhome MVP
 
-Panel interno mínimo operativo en rama `feature/warhome-mvp` (`494f335`), pendiente de merge a `main`.
+Panel interno mínimo operativo. Integrado en rama `feature/emails-operativos-phase-5` (merge `b335d10` desde `feature/warhome-mvp`); **pendiente de merge a `main`**.
 
 **Entregado:**
 
@@ -34,7 +34,6 @@ Panel interno mínimo operativo en rama `feature/warhome-mvp` (`494f335`), pendi
 - Detalle ampliado: intereses, suscripciones y actividad por `lead_id`.
 - Solicitudes de acompañamiento cubiertas vía leads, intereses y eventos (sin vista separada).
 - Estado operativo básico en lectura (`status`, `funnel_stage`, suscripción).
-- 116 tests; TypeScript y build correctos.
 
 **Prerrequisitos operativos verificados:**
 
@@ -51,31 +50,73 @@ Panel interno mínimo operativo en rama `feature/warhome-mvp` (`494f335`), pendi
 - Refinamiento visual avanzado.
 - Diferenciación `owner` vs `admin`.
 
+### Fase 5 — Emails operativos
+
+Completada en rama `feature/emails-operativos-phase-5`. El bloque **5D** (consentimiento, bajas e historial) está implementado y validado, **pendiente de commit final**.
+
+**Entregado:**
+
+| Área | Detalle |
+|------|---------|
+| **Proveedor** | Resend configurado; dominio remitente operativo (SPF, DKIM, DMARC). |
+| **Transaccionales** | Confirmaciones Career Planner, Pre-PPL y Acompañamiento. |
+| **Alerta interna** | `mentorship_internal_alert` → `INTERNAL_ALERT_EMAIL`. |
+| **Cola y registro** | `email_jobs` + `email_deliveries` con idempotencia por conversión. |
+| **Webhooks** | Recepción segura Resend (`/api/webhooks/resend`); deduplicación por `provider_event_id`. |
+| **Estados de entrega** | `delivered`, `bounced`, `failed` y timestamps de engagement en `email_deliveries`. |
+| **Warhome Emails** | Vista `/warhome/emails` con filtros, entregas y engagement. |
+| **Consentimiento** | Marketing separado de transaccional; textos UI = servidor por flujo. |
+| **Bajas** | Baja segura por lista (`/email/unsubscribe` + token opaco hasheado). |
+| **Historial** | `email_subscription_events` append-only. |
+| **Supresiones** | Propagación webhook de `bounced` / `complained` / `suppressed` → suscripciones existentes. |
+
+**Migraciones Supabase (remoto, hasta `20260712100000`):**
+
+- `20260712050000` — jobs transaccionales.
+- `20260712060000` — template Pre-PPL.
+- `20260712070000` — templates mentoría.
+- `20260712080000` — webhooks Resend y engagement en deliveries.
+- `20260712090000` — historial de consentimiento y tokens de baja.
+- `20260712100000` — propagación de supresiones a suscripciones.
+
+**Operativa en producción:**
+
+- Webhook Resend productivo funcionando.
+- Tracking de aperturas y clics **desactivado** en Resend (reputación del dominio); el esquema y Warhome lo soportan cuando se reactive.
+
+**Commits principales (5A–5C, en rama):**
+
+| Commit | Descripción |
+|--------|-------------|
+| `aac5ceb` | Add Career Planner transactional email foundation |
+| `eacbe5d` | Add Pre-PPL transactional confirmation email |
+| `40849ac` | Add mentorship confirmation and internal alert emails |
+| `b8a6382` | Add Warhome operational email monitoring |
+| `c4a9fb3` | Add secure Resend webhook processing |
+| `68a5918` | Show email delivery and engagement in Warhome |
+
+**Aplazado conscientemente (ver `ROADMAP.md`):**
+
+- Reintentos automáticos.
+- Campañas, secuencias y centro de preferencias.
+- Baja global y reactivación manual en Warhome.
+- Hardening de permisos de tablas de consentimiento.
+- Reactivación de tracking open/click en Resend.
+
 ---
 
 ## Fase actual
 
-**Fase 5 — Emails operativos**
+**Fase 6 — Login y cuentas FlyPath**
 
 ### Objetivo inmediato
 
-Conectar un proveedor de email y enviar mensajes transaccionales y avisos internos, con registro de entregas, errores, reintentos y gestión de bajas/consentimientos.
+Definir e implementar el alcance inicial de autenticación, cuentas y perfiles: Supabase Auth, registro, login, recuperación de contraseña, perfiles y relación lead–usuario.
 
-### Alcance previsto
+### Preparado (esquema)
 
-- Proveedor de email y dominio remitente.
-- SPF, DKIM y DMARC.
-- Plantillas.
-- Confirmaciones: Career Planner, Pre-PPL y acompañamiento.
-- Avisos internos.
-- Registro de envíos, errores y reintentos.
-- Bajas y consentimientos.
-
-### Fuera de alcance (Fase 5)
-
-- Automatizaciones avanzadas, secuencias y campañas (Fase 10).
-- CRM comercial completo.
-- Cambios en Warhome más allá de lo necesario para operar envíos.
+- Tabla `profiles` vinculada a `auth.users`.
+- `leads.user_id` opcional en esquema.
 
 ---
 
@@ -88,18 +129,24 @@ Conectar un proveedor de email y enviar mensajes transaccionales y avisos intern
 | Pre-PPL (lista de espera) | `/api/leads/preppl-waitlist` | `preppl_guide` | `preppl` | lead, interés (`waitlist`), suscripción, evento |
 | Acompañamiento | `/api/leads/mentorship-support` | `flypath_accompaniment` | — | lead, interés (`interested`), evento |
 
-### Decisiones actuales — acompañamiento
+### Decisiones — acompañamiento
 
 - `leads.source` = `mentoring`; `user_events.source` = `mentorship`.
-- `interest_intent` = `inquiry` en `user_events.metadata`.
-- Metadata de eventos sin PII: solo `interest_intent`, `popup_id` y `form_id`.
-- Eventos históricos con PII saneados por migración `20260712030000`.
 - Sin `email_subscriptions`; no modifica `marketing_consent`.
-- Visible en Warhome como lead + interés + evento (sin bandeja dedicada).
+- Confirmación transaccional al lead e alerta interna; no dependen de consentimiento marketing.
+
+### Decisiones — consentimiento y email (Fase 5)
+
+- **Transaccionales** no dependen de `email_subscriptions.status = subscribed`.
+- **`unsubscribed`** no bloquea confirmaciones transaccionales.
+- **`bounced`**, **`complained`** y **`blocked`** sí bloquean envío al lead.
+- **`email_subscriptions`** gobierna marketing por lista (`list_key`).
+- Bajas por lista mediante token opaco (SHA-256 en BD).
+- Historial append-only en `email_subscription_events`.
 
 ---
 
-## Warhome — infraestructura (Fase 4)
+## Warhome — infraestructura
 
 | Componente | Ubicación |
 |------------|-----------|
@@ -109,8 +156,9 @@ Conectar un proveedor de email y enviar mensajes transaccionales y avisos intern
 | Shell y navegación | `components/warhome/`, `lib/warhome/navigation.ts` |
 | Listado de leads | `lib/warhome/leads.ts`, `app/warhome/(protected)/leads/` |
 | Detalle y actividad | `lib/warhome/lead-detail.ts`, `app/warhome/(protected)/leads/[leadId]/` |
+| Emails operativos | `lib/warhome/emails.ts`, `app/warhome/(protected)/emails/` |
 
-**Rutas:** `/warhome/login`, `/warhome`, `/warhome/leads`, `/warhome/leads/[leadId]`.
+**Rutas:** `/warhome/login`, `/warhome`, `/warhome/leads`, `/warhome/leads/[leadId]`, `/warhome/emails`.
 
 **Seguridad:** `getWarhomeAuthorization()` antes de consultas; `service_role` solo servidor; selects cerrados; metadata whitelisted en actividad.
 
@@ -128,19 +176,18 @@ Conectar un proveedor de email y enviar mensajes transaccionales y avisos intern
 
 **Producción:** conversiones server-side observadas; eventos cliente instrumentados pero sin registros observados en remoto aún.
 
-**Exclusiones conscientes:** `form_abandoned`, blog, páginas individuales de escuelas, navegación global, AeroComms in-app.
-
 ---
 
-## Infraestructura existente
+## Infraestructura de email (Fase 5)
 
 | Componente | Ubicación |
 |------------|-----------|
-| Cliente Supabase admin (`service_role`) | `lib/supabase/admin.ts` |
-| Helpers compartidos de leads | `lib/leads/capture-shared.ts` |
-| Normalización de email | `lib/leads/normalize-email.ts` |
-| Rutas API de captación | `app/api/leads/*` |
-| Variables de entorno | `.env.example` |
+| Envío transaccional | `lib/email/send-transactional-email.ts` |
+| Plantillas | `lib/email/templates/` |
+| Jobs y deliveries | `lib/email/jobs.ts`, `lib/email/deliveries.ts` |
+| Webhooks Resend | `lib/email/resend-webhooks.ts`, `app/api/webhooks/resend/route.ts` |
+| Bajas seguras | `lib/email/unsubscribe.ts`, `app/api/email/unsubscribe/route.ts`, `app/email/unsubscribe/` |
+| Captación y suscripciones | `lib/leads/capture-shared.ts` |
 
 ---
 
@@ -148,26 +195,25 @@ Conectar un proveedor de email y enviar mensajes transaccionales y avisos intern
 
 | Área | Estado |
 |------|--------|
-| AeroComms en FlyPath (`/aerocomms/app`) | **Operativa** (Fase 0 — completada) |
-| Captación pública de leads | **Operativa** (Fase 2 — 4 flujos) |
-| Tracking / analítica web básica | **Implementado en `main`** (Fase 3 — completada; eventos cliente sin observar en producción) |
-| Warhome (UI admin) | **Operativo en `feature/warhome-mvp`** (Fase 4 — completada; pendiente merge) |
-| Emails operativos | **No existe** (Fase 5 — actual) |
-| Login y cuentas FlyPath | **No existe** (Fase 6) |
-| Persistencia AeroComms en Supabase | **No existe** (Fase 7; progreso en `localStorage`) |
-| Revisión final AeroComms (voces, QA) | **Pendiente** (Fase 8) |
+| AeroComms en FlyPath (`/aerocomms/app`) | **Operativa** (Fase 0) |
+| Captación pública de leads | **Operativa** (Fase 2) |
+| Tracking / analítica web básica | **En `main`** (Fase 3; eventos cliente sin observar en producción) |
+| Warhome (UI admin) | **Operativo en `feature/emails-operativos-phase-5`** (Fase 4; pendiente merge a `main`) |
+| Emails operativos | **Completado en `feature/emails-operativos-phase-5`** (Fase 5; 5D pendiente de commit) |
+| Login y cuentas FlyPath | **Siguiente** (Fase 6) |
+| Persistencia AeroComms en Supabase | **No existe** (Fase 7) |
+| Revisión final AeroComms | **Pendiente** (Fase 8) |
 | Pagos (Stripe) | **No existe** (Fase 9) |
 | CRM y automatizaciones | **No existe** (Fase 10; tablas preparadas) |
 | Warboard completo | **No existe** (Fase 11) |
 
 ---
 
-## Roadmap — fases 5 a 11
+## Roadmap — fases 6 a 11
 
 | Fase | Nombre | Estado |
 |------|--------|--------|
-| 5 | Emails operativos | **Actual** |
-| 6 | Login y cuentas FlyPath | Pendiente |
+| 6 | Login y cuentas FlyPath | **Actual** |
 | 7 | Persistencia de AeroComms | Pendiente |
 | 8 | Revisión final de AeroComms | Pendiente |
 | 9 | Pagos y monetización | Pendiente |
@@ -180,39 +226,29 @@ Detalle en `ROADMAP.md`.
 
 ## Limitaciones conocidas
 
-- `user_events` es append-only; eventos cliente sin observar en producción; actividad en Warhome solo por `lead_id`.
+- `user_events` es append-only; eventos cliente sin observar en producción.
 - Progreso AeroComms principalmente en cliente (`localStorage`) hasta Fase 7.
-- `email_*` y proveedor SMTP sin operar hasta Fase 5.
+- Tracking open/click en Resend desactivado por reputación del dominio; esquema listo.
+- Reintentos automáticos de email aplazados hasta mayor volumen.
 - `admin_notes` con esquema listo; UI pospuesta (ver `BACKLOG.md`).
 - Roles `owner` y `admin` equivalentes en Warhome MVP.
+- Rama `feature/emails-operativos-phase-5` **no mergeada** a `main`.
 
 ---
 
-## Definition of done — Fase 4 (Warhome MVP — completada)
+## Definition of done — Fase 5 (completada)
 
-- [x] Acceso administrativo seguro (`admin_users`, login, logout, proxy, `service_role` aislado).
-- [x] Listado, búsqueda, filtros y paginación de leads.
-- [x] Detalle: intereses, suscripciones y actividad por `lead_id`.
-- [x] Solicitudes de acompañamiento visibles vía leads/intereses/eventos.
-- [x] Estado operativo básico en lectura.
-- [x] 116 tests; TypeScript y build correctos.
-- [x] Prerrequisitos operativos Supabase verificados.
-
-**Pospuesto (no bloquea cierre):**
-
-- [ ] Notas internas en UI.
-- [ ] Edición de etapa/estado.
-- [ ] Recorrido anónimo completo en ficha.
-
-## Definition of done — Fase 5 (emails operativos — actual)
-
-- [ ] Proveedor de email y dominio remitente configurados.
-- [ ] SPF, DKIM y DMARC.
-- [ ] Plantillas transaccionales.
-- [ ] Confirmaciones Career Planner, Pre-PPL y acompañamiento.
-- [ ] Avisos internos.
-- [ ] Registro de envíos, errores y reintentos.
-- [ ] Bajas y consentimientos operativos.
+- [x] Proveedor Resend y dominio remitente configurados.
+- [x] SPF, DKIM y DMARC.
+- [x] Plantillas transaccionales Career Planner, Pre-PPL y Acompañamiento.
+- [x] Aviso interno de mentoría.
+- [x] Registro de envíos en `email_jobs` y `email_deliveries`.
+- [x] Webhooks Resend seguros e idempotentes.
+- [x] Warhome `/warhome/emails`.
+- [x] Separación transaccional / marketing.
+- [x] Bajas seguras por lista e historial append-only.
+- [x] Propagación de supresiones técnicas vía webhook.
+- [ ] Commit final del bloque 5D (código en working tree, sin commit aún).
 
 ---
 

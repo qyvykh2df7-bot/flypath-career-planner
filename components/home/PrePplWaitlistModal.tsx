@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Loader2, X } from "lucide-react";
 import { capturePrepplWaitlistLead } from "@/lib/leads/capture-preppl-waitlist-client";
+import { PREPPL_WAITLIST_CONSENT_TEXT } from "@/lib/leads/preppl-consent";
 import { trackEventOncePerSession } from "@/lib/tracking/client";
 import {
   createTrackingUuid,
@@ -167,7 +168,7 @@ export function PrePplWaitlistModal({ open, onClose }: PrePplWaitlistModalProps)
           )}
 
           <p className="mt-4 text-[12px] leading-relaxed text-[#071224]/50">
-            Al unirte, aceptas recibir emails de FlyPath. Puedes darte de baja en cualquier momento.
+            {PREPPL_WAITLIST_CONSENT_TEXT}
             Consulta la{" "}
             <Link
               href="/politica-de-privacidad"

@@ -91,7 +91,7 @@ export const WARHOME_EMAIL_SUBSCRIPTION_LABELS: Record<
   string
 > = {
   subscribed: "Suscrito",
-  unsubscribed: "No suscrito",
+  unsubscribed: "Dado de baja",
   bounced: "Rebotado",
   complained: "Queja",
   blocked: "Bloqueado",
