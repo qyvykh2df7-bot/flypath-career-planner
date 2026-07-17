@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { KeyRound } from "lucide-react";
 import { getSafeFlyPathLoginNext } from "@/lib/auth/login-navigation";
-import { LoginOtpForm } from "./LoginOtpForm";
+import { LoginOtpVerifyForm } from "./LoginOtpVerifyForm";
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión | FlyPath",
+  title: "Verificar código | FlyPath",
   robots: { index: false, follow: false },
 };
 
-type LoginPageProps = {
+type LoginVerifyPageProps = {
   searchParams: Promise<{ next?: string | string[] }>;
 };
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginVerifyPage({ searchParams }: LoginVerifyPageProps) {
   const { next } = await searchParams;
   const nextPath = getSafeFlyPathLoginNext(next);
 
@@ -32,11 +32,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="mt-8 flex h-10 w-10 items-center justify-center rounded-lg border border-[#d6ae4f]/30 bg-[#d6ae4f]/10">
           <KeyRound className="h-5 w-5 text-[#f1d485]" aria-hidden />
         </div>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight text-white">Inicia sesión</h1>
+        <h1 className="mt-4 text-2xl font-semibold tracking-tight text-white">Verifica tu código</h1>
         <p className="mt-2 text-sm leading-6 text-slate-300">
-          Te enviaremos un código de acceso a tu email.
+          Introduce el código de seis dígitos que hemos enviado a tu email.
         </p>
-        <LoginOtpForm nextPath={nextPath} />
+        <LoginOtpVerifyForm nextPath={nextPath} />
       </section>
     </main>
   );
