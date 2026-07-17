@@ -4,6 +4,10 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 **Stack:** Next.js (App Router), TypeScript, Tailwind CSS, Supabase.
 
+## Estado actual
+
+**Fase 6 — Login, cuentas y perfiles.** Bloque 6A completado e integrado en `main`. Siguiente trabajo: **6B — Login OTP** (`/login`, `/login/verify`, código OTP y `next` seguro).
+
 ## Comandos
 
 ```bash
@@ -25,7 +29,7 @@ Copia `.env.example` a `.env.local` y rellena:
 | Documento | Contenido |
 |-----------|-----------|
 | [CURRENT_PHASE.md](./CURRENT_PHASE.md) | Fase actual, flujos de captación, estado real |
-| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa (Emails operativos — Fase 5) |
+| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa (6B — Login OTP) |
 | [ROADMAP.md](./ROADMAP.md) | Roadmap por fases |
 | [BACKLOG.md](./BACKLOG.md) | Mejoras pospuestas y pendientes |
 | [LAST_SESSION.md](./LAST_SESSION.md) | Último handoff operativo |

@@ -1,53 +1,58 @@
-# Tarea activa — Fase 6A.1 (arranque documental)
+# Tarea activa — Fase 6B (Login OTP)
 
 ## Estado de la plataforma
 
 - Fase 4 — Warhome MVP: completada e integrada en `main`.
 - Fase 5 — Emails operativos: completada e integrada en `main`.
-- Merge actual de `main`: `aa4f4fe Merge operational emails phase`.
+- **6A — Fundamentos de identidad y coexistencia con Warhome:** completado e integrado en `main`.
 - Fase actual: Fase 6 — Login, cuentas y perfiles.
+- Bloque activo: **6B — Login OTP** (no implementado).
 
-## Contrato de cuenta
+## Bloque 6A cerrado
 
-- Una única cuenta general FlyPath para toda la plataforma.
-- La cuenta no es un producto ni un plan gratuito.
-- Identidad en Supabase Auth.
-- Login público mediante email y código OTP, sin contraseña inicialmente.
-- Sesión persistente.
-- Warhome conserva autorización separada mediante `admin_users`.
+| Sub-bloque | Commit | Estado |
+|------------|--------|--------|
+| 6A.1 — Arranque documental | `687f579` | Completado |
+| 6A.2 — Coexistencia FlyPath / Warhome | `7d68608` | Completado |
+| 6A.3 — Helpers generales de sesión FlyPath | `ce3d8b7` | Completado |
 
-## Decisiones de producto
+Auditoría independiente de 6A.3: **APROBADO** — sin hallazgos Critical, Major ni Minor.
 
-### AeroComms
+## Alcance inicial de 6B — Login OTP
 
-- Se puede usar sin cuenta, con acceso gratuito aproximado al 30 % de Cadet y una misión gratuita.
-- El progreso permanece local en esta fase.
-- Crear una cuenta no desbloquea contenido; permitirá sincronizar progreso más adelante.
-- AeroComms Pro, cuenta obligatoria y Stripe quedan para una fase posterior.
+Implementar el flujo público de autenticación por email y código OTP, reutilizando los helpers de sesión de 6A.3.
 
-### Career Planner
+### Entregables previstos
 
-- El flujo gratuito sigue sin exigir login.
-- Guardar planes y funciones premium quedan fuera de Fase 6.
+- **`/login`:** formulario de email, envío del código OTP y manejo de errores sin exponer detalles internos.
+- **`/login/verify`:** validación del código, creación o restauración de sesión persistente y redirección segura.
+- **Parámetro `next`:** allowlist de rutas internas; rechazar URLs externas, protocol-relative y open redirects.
+- **Logout público:** reutilizar `signOutFlyPath()` donde corresponda en el flujo de login.
+- **Tests:** envío, verificación, `next` seguro, sesión persistente y casos de error.
 
-## División de Fase 6
+### Contrato que debe respetarse
 
-| Bloque | Alcance | Criterio de cierre |
-|--------|---------|--------------------|
-| 6A | Helpers de sesión, contrato de cuenta y coexistencia con Warhome | Un usuario normal conserva su sesión al visitar Warhome; `admin_users` sigue siendo autorización separada |
-| 6B | `/login`, `/login/verify`, OTP, `next` seguro, sesión persistente y logout | Login OTP usable y protegido sin contraseñas nuevas |
-| 6C | `profiles` idempotente y vínculo de lead por email verificado | Perfil reutilizado, lead existente vinculado solo cuando procede, sin crear leads |
-| 6D | `/account` y estados del header | Nombre, email y logout sin dashboard complejo |
-| 6E | Contrato versionado del progreso local de AeroComms | Datos sincronizables definidos; audio y transcripciones excluidos; sin sync remoto |
-| 6F | QA, documentación y merge | Desktop, móvil, Safari y coexistencia usuario/admin validados |
+- Supabase Auth como identidad única; email + OTP, sin contraseña en esta fase.
+- Server-side: `getFlyPathSessionState()` con `auth.getUser()`; nunca `getSession()` como validación de confianza.
+- Client-side: `initializeFlyPathAuthState()` y `signOutFlyPath()` como API pública de sesión.
+- Warhome y `admin_users` permanecen separados; 6B no modifica autorización admin ni `proxy.ts`.
+- Sin `service_role` en rutas públicas de login.
 
-## Fuera de alcance
+### Criterio de cierre de 6B
 
-- Stripe, compras, entitlements y AeroComms Pro real.
-- Persistencia remota de progreso y guardado real de Career Planner.
-- Google/Apple login, contraseñas, cambio de email y eliminación automática de cuenta.
-- Dashboard avanzado y notificaciones.
+Un usuario puede iniciar sesión con OTP, mantener sesión persistente, cerrar sesión explícitamente y ser redirigido de forma segura mediante `next`.
 
-## Próximo trabajo
+## Fuera de alcance de 6B
 
-Definir en 6A los helpers de sesión y el contrato compartido de cuenta, revisar la coexistencia con el proxy de Warhome y corregir el comportamiento de sesión antes de construir el login OTP.
+- `/account`, header con estados de sesión y UI de perfil (6D).
+- Creación idempotente de `profiles` y vínculo con leads (6C).
+- Contrato de progreso AeroComms (6E).
+- Stripe, compras, entitlements y AeroComms Pro.
+- Google/Apple login, contraseñas, cambio de email y eliminación de cuenta.
+- Modificaciones a Warhome, migraciones Supabase o configuración Vercel.
+
+## Referencias
+
+- `CURRENT_PHASE.md` — fase actual y estado de 6A/6B.
+- `ROADMAP.md` — división completa de Fase 6.
+- `LAST_SESSION.md` — handoff del cierre de 6A.

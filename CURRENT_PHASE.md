@@ -61,9 +61,15 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 
 **6A — Fundamentos de identidad y coexistencia con Warhome**
 
-Helpers de sesión, contrato de cuenta y corrección del cierre de sesión accidental de usuarios normales al visitar Warhome.
+#### 6A — Completado
 
-**6B — Login OTP**
+Integrado en `main`. Auditoría independiente de 6A.3: **APROBADO** — sin hallazgos Critical, Major ni Minor.
+
+- **6A.1 — Arranque documental:** `687f579` (`Start login and accounts phase`).
+- **6A.2 — Coexistencia FlyPath / Warhome:** `7d68608` (`Preserve FlyPath sessions outside Warhome`). Usuario autenticado sin rol admin → `/` sin perder sesión; anónimo en ruta protegida → `/warhome/login`; admin activo → acceso. Solo `logoutWarhome()` cierra sesión explícitamente.
+- **6A.3 — Helpers generales de sesión FlyPath:** `ce3d8b7` (`fix(auth): preserve unavailable state and prevent initial session races`). Contrato server-side con `getFlyPathSessionState()` (`authenticated` / `anonymous` / `unavailable`); client-side con `initializeFlyPathAuthState()` y `signOutFlyPath()`. Sin `admin_users`, sin `service_role`, sin cierre automático.
+
+#### Bloque actual — 6B — Login OTP (no implementado)
 
 `/login`, `/login/verify`, envío y validación del código, `next` seguro, sesión persistente y logout.
 
@@ -116,3 +122,4 @@ Stripe, compras, entitlements, AeroComms Pro real, persistencia remota de progre
 - El progreso de AeroComms permanece principalmente en cliente hasta una fase posterior.
 - No existen todavía compras, entitlements ni persistencia remota de progreso.
 - Los roles `owner` y `admin` tienen permisos equivalentes en el MVP de Warhome.
+- 6B (login OTP) aún no está implementado; `/account`, perfiles y vínculo con leads corresponden a 6C–6D.

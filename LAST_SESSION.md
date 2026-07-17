@@ -1,55 +1,54 @@
-# Última sesión — arranque documental Fase 6
+# Última sesión — cierre de Fase 6A
 
 **Fecha:** 2026-07-17
-**Rama:** `feature/login-accounts-phase-6`
-**Base:** `main` limpia y alineada con `origin/main`
-**Merge de referencia:** `aa4f4fe Merge operational emails phase`
+**Rama de trabajo:** `feature/login-accounts-phase-6` → merge a `main`
+**Rama siguiente:** `feature/login-otp-6b`
 
 ## Estado cerrado
 
-- Fase 4 — Warhome MVP: completada e integrada en `main`.
-- Fase 5 — Emails operativos: completada e integrada en `main`.
-- Fase 6 — Login, cuentas y perfiles: fase actual.
+- **6A — Fundamentos de identidad y coexistencia con Warhome:** completado e integrado en `main`.
+- Auditoría independiente de 6A.3: **APROBADO** — sin hallazgos Critical, Major ni Minor.
+- **6B — Login OTP:** siguiente bloque; no implementado.
 
-## Contrato de cuenta
+## Commits de 6A en la rama
 
-- Una única cuenta general FlyPath para toda la plataforma.
-- Identidad única en Supabase Auth.
-- Login mediante email y código OTP, sin contraseña inicialmente.
-- Sesión persistente.
-- La autorización de Warhome continúa separada mediante `admin_users`.
+| Sub-bloque | Hash | Mensaje |
+|------------|------|---------|
+| 6A.1 | `687f579` | Start login and accounts phase |
+| 6A.2 | `7d68608` | Preserve FlyPath sessions outside Warhome |
+| 6A.3 | `ce3d8b7` | fix(auth): preserve unavailable state and prevent initial session races |
+| Docs | (commit docs) | docs: close phase 6A and prepare login OTP |
 
-## Decisiones de producto
+## Entregables de 6A
 
-### AeroComms
+### 6A.2 — Coexistencia FlyPath / Warhome
 
-- Uso sin cuenta, con acceso gratuito aproximado al 30 % de Cadet y una misión gratuita.
-- Progreso local durante Fase 6.
-- La cuenta no desbloquea contenido; la sincronización se preparará para una fase posterior.
-- AeroComms Pro y Stripe quedan fuera de esta fase.
+- Usuario autenticado sin rol admin → redirigido a `/`, conserva sesión FlyPath.
+- Usuario anónimo en ruta protegida Warhome → `/warhome/login`.
+- Admin activo → acceso normal.
+- Solo `logoutWarhome()` cierra sesión explícitamente en el flujo Warhome.
 
-### Career Planner
+### 6A.3 — Helpers generales de sesión FlyPath
 
-- El flujo gratuito no exige login.
-- No se implementa guardado de planes en Fase 6.
+**Servidor:** `getFlyPathSessionState()` con `auth.getUser()`; estados `authenticated`, `anonymous`, `unavailable`.
 
-## Bloques de Fase 6
+**Cliente:** `initializeFlyPathAuthState(onStateChange)` y `signOutFlyPath()`; suscripción Auth antes de lectura inicial; sin carreras; cleanup; singleton de cliente browser.
 
-1. **6A — Fundamentos de identidad y coexistencia con Warhome:** helpers de sesión, contrato de cuenta y corrección del cierre de sesión accidental de usuarios normales al visitar Warhome.
-2. **6B — Login OTP:** `/login`, `/login/verify`, código, `next` seguro, sesión persistente y logout.
-3. **6C — Perfil y vínculo con leads:** `profiles` idempotente, vínculo por email verificado y sin creación automática de leads.
-4. **6D — Account y header:** `/account`, iniciar sesión / mi cuenta, nombre, email y cierre de sesión.
-5. **6E — Preparación AeroComms:** contrato versionado del progreso local, datos sincronizables y exclusión de audio/transcripciones; sin sync remoto.
-6. **6F — QA, documentación y merge:** desktop, móvil, Safari, coexistencia usuario/admin, validaciones y merge a `main`.
+**Archivos clave:** `lib/auth/session.ts`, `lib/auth/client.ts`, `lib/auth/types.ts`, `lib/supabase/browser.ts` y tests asociados.
 
-## Fuera de alcance
+## Validación previa al merge
 
-Stripe, compras, entitlements, AeroComms Pro real, persistencia remota de progreso, guardado real de Career Planner, Google/Apple login, contraseñas, cambio de email, eliminación automática de cuenta, dashboard avanzado y notificaciones.
+- `npm test`: 242 tests correctos.
+- `npx tsc --noEmit --pretty false`: correcto.
+- `npm run build`: correcto.
+- `git diff --check`: correcto.
 
-## Próximo paso
+## Siguiente tarea
 
-Revisar en 6A los helpers actuales de Supabase SSR y el proxy de Warhome, definir el contrato compartido de cuenta y corregir la coexistencia de sesiones antes de construir el login OTP.
+Crear rama `feature/login-otp-6b` e implementar **6B — Login OTP**: `/login`, `/login/verify`, envío y validación de código, `next` seguro, sesión persistente y logout.
 
-## Restricciones de este arranque
+## Restricciones
 
-No se modificó código de aplicación, esquema Supabase ni configuración de Vercel. No se crearon migraciones, commits ni pushes.
+- No implementar 6C–6F hasta cerrar 6B.
+- No tocar Warhome, migraciones Supabase ni Vercel en 6B salvo lo estrictamente necesario para OTP público.
+- Mantener separación identidad FlyPath / autorización Warhome.

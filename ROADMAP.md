@@ -297,11 +297,17 @@ Identidad común para FlyPath y AeroComms, con autorización de Warhome separada
 
 **6A — Fundamentos de identidad y coexistencia con Warhome**
 
-Helpers de sesión, contrato de cuenta y corrección del cierre de sesión accidental de usuarios normales al visitar Warhome.
+**Estado: Completado** (integrado en `main`). Auditoría de 6A.3: **APROBADO**.
+
+- **6A.1:** `687f579` — arranque documental.
+- **6A.2:** `7d68608` — coexistencia FlyPath / Warhome; sesión general preservada fuera de Warhome.
+- **6A.3:** `ce3d8b7` — helpers de sesión FlyPath (`getFlyPathSessionState`, `initializeFlyPathAuthState`, `signOutFlyPath`).
 
 **6B — Login OTP**
 
-`/login`, `/login/verify`, envío y validación de código, `next` seguro, sesión persistente y logout.
+**Estado: Siguiente**
+
+`/login`, `/login/verify`, envío y validación de código, `next` seguro, sesión persistente y logout. No implementado.
 
 **6C — Perfil y vínculo con leads**
 
