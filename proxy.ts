@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getWarhomeAccessDecision, WARHOME_HOME_PATH, WARHOME_LOGIN_PATH } from "@/lib/warhome/access";
+import {
+  getWarhomeAccessDecision,
+  WARHOME_HOME_PATH,
+  WARHOME_LOGIN_PATH,
+  WARHOME_PUBLIC_EXIT_PATH,
+} from "@/lib/warhome/access";
 import { getWarhomeAuthorizationForAuthenticatedUser } from "@/lib/warhome/auth";
 
 function getSupabaseProxyConfig(): { url: string; anonKey: string } {
@@ -59,14 +64,15 @@ export async function proxy(request: NextRequest) {
         : response;
     }
 
-    if (decision.invalidateSession) await supabase.auth.signOut({ scope: "local" });
+    if (decision.type === "redirect_to_public_home") {
+      return redirectWithSessionCookies(request, response, WARHOME_PUBLIC_EXIT_PATH);
+    }
   } catch {
-    await supabase.auth.signOut({ scope: "local" });
+    // No cerramos la sesión general si no se puede verificar la autorización administrativa.
+    return redirectWithSessionCookies(request, response, WARHOME_PUBLIC_EXIT_PATH);
   }
 
-  return request.nextUrl.pathname === WARHOME_LOGIN_PATH
-    ? response
-    : redirectWithSessionCookies(request, response, WARHOME_LOGIN_PATH);
+  return redirectWithSessionCookies(request, response, WARHOME_LOGIN_PATH);
 }
 
 export const config = {

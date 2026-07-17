@@ -63,7 +63,35 @@ describe("Warhome login and logout actions", () => {
     expect(mocks.getWarhomeAuthorizationForAuthenticatedUser).not.toHaveBeenCalled();
   });
 
-  it("cierra la sesión local cuando el usuario autenticado no es administrador", async () => {
+  it("no cierra la sesión si getUser falla tras un login correcto", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: new Error("Auth unavailable") });
+
+    await expect(loginWarhome(initialWarhomeLoginState, validLoginFormData())).resolves.toEqual({
+      error: GENERIC_LOGIN_ERROR,
+    });
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      password: "not-a-real-password",
+    });
+    expect(mocks.getWarhomeAuthorizationForAuthenticatedUser).not.toHaveBeenCalled();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("no cierra la sesión si getUser no devuelve usuario tras un login correcto", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    await expect(loginWarhome(initialWarhomeLoginState, validLoginFormData())).resolves.toEqual({
+      error: GENERIC_LOGIN_ERROR,
+    });
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      password: "not-a-real-password",
+    });
+    expect(mocks.getWarhomeAuthorizationForAuthenticatedUser).not.toHaveBeenCalled();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("mantiene la sesión general cuando el usuario autenticado no es administrador", async () => {
     mocks.getWarhomeAuthorizationForAuthenticatedUser.mockResolvedValue({
       status: "not_admin",
       userId: USER_ID,
@@ -72,7 +100,20 @@ describe("Warhome login and logout actions", () => {
     await expect(loginWarhome(initialWarhomeLoginState, validLoginFormData())).resolves.toEqual({
       error: GENERIC_LOGIN_ERROR,
     });
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("mantiene la sesión general cuando el administrador está inactivo", async () => {
+    mocks.getWarhomeAuthorizationForAuthenticatedUser.mockResolvedValue({
+      status: "inactive",
+      userId: USER_ID,
+      role: "admin",
+    });
+
+    await expect(loginWarhome(initialWarhomeLoginState, validLoginFormData())).resolves.toEqual({
+      error: GENERIC_LOGIN_ERROR,
+    });
+    expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
   it("redirige al área protegida cuando el administrador está activo", async () => {

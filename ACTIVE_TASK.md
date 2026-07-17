@@ -1,98 +1,58 @@
-# Tarea activa — Fase 6 (Login y cuentas FlyPath)
+# Tarea activa — Fase 6B (Login OTP)
 
-## Estado de Fase 5
+## Estado de la plataforma
 
-**Fase 5 — Emails operativos: cerrada.**
+- Fase 4 — Warhome MVP: completada e integrada en `main`.
+- Fase 5 — Emails operativos: completada e integrada en `main`.
+- **6A — Fundamentos de identidad y coexistencia con Warhome:** completado e integrado en `main`.
+- Fase actual: Fase 6 — Login, cuentas y perfiles.
+- Bloque activo: **6B — Login OTP** (no implementado).
 
-No quedan tareas activas de Fase 5. Todos los bloques (5A–5D) están implementados y validados en rama `feature/emails-operativos-phase-5`.
+## Bloque 6A cerrado
 
-| Bloque | Contenido | Estado |
-|--------|-----------|--------|
-| 5A | Fundación transaccional (Resend, jobs, deliveries, Career Planner) | Completado (`aac5ceb`) |
-| 5B | Pre-PPL y Acompañamiento (confirmaciones + alerta interna) | Completado (`eacbe5d`, `40849ac`) |
-| 5C | Warhome Emails + webhooks Resend + engagement | Completado (`b8a6382`, `c4a9fb3`, `68a5918`) |
-| 5D | Separación transaccional/marketing, bajas, historial, supresiones | Implementado; **pendiente de commit** |
+| Sub-bloque | Commit | Estado |
+|------------|--------|--------|
+| 6A.1 — Arranque documental | `687f579` | Completado |
+| 6A.2 — Coexistencia FlyPath / Warhome | `7d68608` | Completado |
+| 6A.3 — Helpers generales de sesión FlyPath | `ce3d8b7` | Completado |
 
-**Pendiente operativo antes de cerrar la rama:**
+Auditoría independiente de 6A.3: **APROBADO** — sin hallazgos Critical, Major ni Minor.
 
-- Validación final del working tree 5D.
-- Commit y push de `feature/emails-operativos-phase-5`.
-- Merge a `main` (cuando se decida).
+## Alcance inicial de 6B — Login OTP
 
----
+Implementar el flujo público de autenticación por email y código OTP, reutilizando los helpers de sesión de 6A.3.
 
-## Objetivo actual
+### Entregables previstos
 
-Definir el **alcance inicial de Fase 6 — Login y cuentas FlyPath**: autenticación, cuentas y perfiles.
+- **`/login`:** formulario de email, envío del código OTP y manejo de errores sin exponer detalles internos.
+- **`/login/verify`:** validación del código, creación o restauración de sesión persistente y redirección segura.
+- **Parámetro `next`:** allowlist de rutas internas; rechazar URLs externas, protocol-relative y open redirects.
+- **Logout público:** reutilizar `signOutFlyPath()` donde corresponda en el flujo de login.
+- **Tests:** envío, verificación, `next` seguro, sesión persistente y casos de error.
 
----
+### Contrato que debe respetarse
 
-## Alcance previsto (Fase 6 — borrador)
+- Supabase Auth como identidad única; email + OTP, sin contraseña en esta fase.
+- Server-side: `getFlyPathSessionState()` con `auth.getUser()`; nunca `getSession()` como validación de confianza.
+- Client-side: `initializeFlyPathAuthState()` y `signOutFlyPath()` como API pública de sesión.
+- Warhome y `admin_users` permanecen separados; 6B no modifica autorización admin ni `proxy.ts`.
+- Sin `service_role` en rutas públicas de login.
 
-- Supabase Auth (registro, login, recuperación de contraseña).
-- Perfiles (`profiles`) vinculados a `auth.users`.
-- Sesiones y permisos básicos.
-- Relación opcional `leads.user_id` ↔ cuenta.
-- Prevención de duplicados lead/cuenta.
-- Cuenta común FlyPath y AeroComms (diseño inicial).
+### Criterio de cierre de 6B
 
----
+Un usuario puede iniciar sesión con OTP, mantener sesión persistente, cerrar sesión explícitamente y ser redirigido de forma segura mediante `next`.
 
-## Fuera de alcance (Fase 6)
+## Fuera de alcance de 6B
 
-- Persistencia de progreso AeroComms (Fase 7).
-- Pagos y suscripciones (Fase 9).
-- CRM, campañas y secuencias (Fase 10).
-- Warboard completo (Fase 11).
-
----
-
-## Referencia — Fase 5 completada
-
-### Infraestructura entregada
-
-| Componente | Ubicación / tabla |
-|------------|-------------------|
-| Envío transaccional | `lib/email/send-transactional-email.ts` |
-| Plantillas | `lib/email/templates/` |
-| Cola | `email_jobs` |
-| Entregas | `email_deliveries` |
-| Webhooks | `email_webhook_events`, RPC `apply_resend_email_webhook_event` |
-| Suscripciones | `email_subscriptions` |
-| Historial consentimiento | `email_subscription_events` |
-| Tokens de baja | `email_unsubscribe_tokens` |
-| Warhome Emails | `/warhome/emails` |
-
-### Migraciones aplicadas en remoto (hasta `20260712100000`)
-
-`20260712050000` → `20260712100000` (ver `CURRENT_PHASE.md`).
-
-### Validaciones finales Fase 5
-
-- **218 tests** pasando.
-- TypeScript y build correctos.
-- Migraciones `12090000` y `12100000` revisadas (APROBADO).
-- Webhook Resend productivo.
-- Tracking open/click desactivado en Resend (decisión operativa).
-
----
-
-## Fases anteriores (referencia)
-
-| Fase | Estado |
-|------|--------|
-| 0 — AeroComms en FlyPath | Completada |
-| 1 — Backend Core | Completada (`main`) |
-| 2 — Captación pública | Completada |
-| 3 — Tracking | Completada (`main`) |
-| 4 — Warhome MVP | Completada (en rama; pendiente merge `main`) |
-| 5 — Emails operativos | Completada (en rama; 5D sin commit) |
-
----
+- `/account`, header con estados de sesión y UI de perfil (6D).
+- Creación idempotente de `profiles` y vínculo con leads (6C).
+- Contrato de progreso AeroComms (6E).
+- Stripe, compras, entitlements y AeroComms Pro.
+- Google/Apple login, contraseñas, cambio de email y eliminación de cuenta.
+- Modificaciones a Warhome, migraciones Supabase o configuración Vercel.
 
 ## Referencias
 
-- `CURRENT_PHASE.md` — fase actual y estado real.
-- `ROADMAP.md` — fases 6–11 y trabajo diferido.
-- `LAST_SESSION.md` — handoff de la sesión Fase 5.
-- `BACKLOG.md` — mejoras Warhome pospuestas.
+- `CURRENT_PHASE.md` — fase actual y estado de 6A/6B.
+- `ROADMAP.md` — división completa de Fase 6.
+- `LAST_SESSION.md` — handoff del cierre de 6A.

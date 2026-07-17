@@ -1,4 +1,9 @@
+import "client-only";
+
 import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+let browserClient: SupabaseClient | null = null;
 
 function getSupabaseBrowserConfig(): { url: string; anonKey: string } {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,6 +17,9 @@ function getSupabaseBrowserConfig(): { url: string; anonKey: string } {
 }
 
 export function createSupabaseBrowserClient() {
+  if (browserClient) return browserClient;
+
   const { url, anonKey } = getSupabaseBrowserConfig();
-  return createBrowserClient(url, anonKey);
+  browserClient = createBrowserClient(url, anonKey);
+  return browserClient;
 }

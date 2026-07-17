@@ -148,7 +148,7 @@ Medición de comportamiento en web pública vía `user_events`, sin dashboards a
 
 **Estado: Completado**
 
-Panel interno mínimo para operar leads y solicitudes. Rama `feature/warhome-mvp` (`494f335`); pendiente de merge a `main`.
+Panel interno mínimo para operar leads y solicitudes. Completado e integrado en `main` mediante el merge `aa4f4fe`.
 
 ### Completado
 
@@ -213,7 +213,7 @@ Panel interno mínimo para operar leads y solicitudes. Rama `feature/warhome-mvp
 
 **Estado: Completado**
 
-Rama `feature/emails-operativos-phase-5`. Bloque 5D implementado y validado; **pendiente de commit final**. **No mergeada** a `main`.
+Bloques 5A–5D implementados, validados e integrados en `main` mediante el merge `aa4f4fe`.
 
 ### Completado
 
@@ -277,24 +277,60 @@ Rama `feature/emails-operativos-phase-5`. Bloque 5D implementado y validado; **p
 
 ---
 
-## Fase 6 — Login y cuentas FlyPath
+## Fase 6 — Login, cuentas y perfiles
+
+**Estado: Actual**
+
+Identidad común para FlyPath y AeroComms, con autorización de Warhome separada mediante `admin_users`.
+
+### Decisiones cerradas
+
+- Una única cuenta general FlyPath; la cuenta no es un producto ni un plan gratuito.
+- Login mediante email y código OTP, sin contraseña inicialmente, con sesión persistente.
+- Supabase Auth es la identidad única de la plataforma.
+- AeroComms puede utilizarse sin cuenta, con acceso gratuito aproximado al 30 % de Cadet y una misión gratuita; el progreso permanece local y crear una cuenta no desbloquea contenido.
+- La cuenta permitirá guardar y sincronizar progreso más adelante; AeroComms Pro requerirá cuenta y Stripe en una fase posterior.
+- Career Planner gratuito continúa sin exigir login; no se implementará guardado de planes en esta fase.
+- Stripe, compras y entitlements quedan fuera de Fase 6.
+
+### División de la fase
+
+**6A — Fundamentos de identidad y coexistencia con Warhome**
+
+**Estado: Completado** (integrado en `main`). Auditoría de 6A.3: **APROBADO**.
+
+- **6A.1:** `687f579` — arranque documental.
+- **6A.2:** `7d68608` — coexistencia FlyPath / Warhome; sesión general preservada fuera de Warhome.
+- **6A.3:** `ce3d8b7` — helpers de sesión FlyPath (`getFlyPathSessionState`, `initializeFlyPathAuthState`, `signOutFlyPath`).
+
+**6B — Login OTP**
 
 **Estado: Siguiente**
 
-Identidad común para FlyPath y AeroComms.
+`/login`, `/login/verify`, envío y validación de código, `next` seguro, sesión persistente y logout. No implementado.
 
-### Objetivos
+**6C — Perfil y vínculo con leads**
 
-- Supabase Auth.
-- Registro.
-- Login.
-- Recuperación de contraseña.
-- Perfiles.
-- Sesiones.
-- Permisos.
-- Relación lead–usuario.
-- Prevención de duplicados.
-- Cuenta común FlyPath y AeroComms.
+Reutilizar `profiles`, crear el perfil de forma idempotente, vincular leads por email verificado y no crear leads automáticamente.
+
+**6D — Account y header**
+
+`/account`, estados “Iniciar sesión” / “Mi cuenta”, nombre, email y cierre de sesión, sin dashboard complejo.
+
+**6E — Preparación AeroComms**
+
+Contrato versionado del progreso local y datos sincronizables; excluir audio y transcripciones, sin sincronización remota todavía.
+
+**6F — QA, documentación y merge**
+
+Validación desktop, móvil, Safari y coexistencia usuario/admin; documentación y merge a `main`.
+
+### Fuera de alcance
+
+- Stripe, compras, entitlements y AeroComms Pro real.
+- Persistencia remota de progreso y guardado real de Career Planner.
+- Google/Apple login, contraseñas, cambio de email y eliminación automática de cuenta.
+- Dashboard avanzado y notificaciones.
 
 ### Preparado (esquema)
 
@@ -430,9 +466,9 @@ Fase 0   AeroComms en FlyPath           ████████████  Co
 Fase 1   Backend Core (Supabase)        ████████████  Completado (esquema)
 Fase 2   Captación pública de leads     ████████████  Completado
 Fase 3   Tracking y analítica básica    ████████████  Completado
-Fase 4   Warhome MVP                    ████████████  Completado (pendiente merge)
-Fase 5   Emails operativos              ████████████  Completado (rama; 5D sin commit)
-Fase 6   Login y cuentas FlyPath        ░░░░░░░░░░░░  Siguiente
+Fase 4   Warhome MVP                    ████████████  Completado e integrado en main
+Fase 5   Emails operativos              ████████████  Completado e integrado en main
+Fase 6   Login, cuentas y perfiles      ░░░░░░░░░░░░  Actual
 Fase 7   Persistencia de AeroComms      ░░░░░░░░░░░░  Pendiente
 Fase 8   Revisión final de AeroComms    ░░░░░░░░░░░░  Pendiente
 Fase 9   Pagos y monetización           ░░░░░░░░░░░░  Pendiente
