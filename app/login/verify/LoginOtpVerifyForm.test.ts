@@ -6,6 +6,7 @@ vi.mock("client-only", () => ({}));
 vi.mock("./actions", () => ({ bootstrapFlyPathIdentityAfterOtp: vi.fn() }));
 
 import {
+  getLoginOtpRecoveryHref,
   initialLoginOtpVerifyFormState,
   isLoginOtpVerifySubmitting,
   loginOtpVerifyFormReducer,
@@ -18,6 +19,17 @@ describe("LoginOtpVerifyForm", () => {
       message: "Solicita un nuevo código para continuar.",
     });
   });
+
+  it("conserva el next seguro al volver a solicitar un código tras perder el email pendiente", () => {
+    expect(getLoginOtpRecoveryHref("/account")).toBe("/login?next=%2Faccount");
+  });
+
+  it.each(["https://example.com", "//example.com", "/warhome", undefined])(
+    "descarta next no seguro al volver a solicitar un código: %s",
+    (nextPath) => {
+      expect(getLoginOtpRecoveryHref(nextPath)).toBe("/login?next=%2F");
+    },
+  );
 
   it("habilita la verificación cuando recupera el email pendiente", () => {
     expect(loginOtpVerifyFormReducer(initialLoginOtpVerifyFormState, { type: "email_loaded" })).toEqual({

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useEffect, useReducer, useState, type FormEvent } from "react";
 import { KeyRound, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getSafeFlyPathLoginNext } from "@/lib/auth/login-navigation";
+import {
+  createFlyPathLoginHref,
+  getSafeFlyPathLoginNext,
+} from "@/lib/auth/login-navigation";
 import { verifyFlyPathLoginOtp } from "@/lib/auth/otp";
 import {
   clearPendingFlyPathOtpEmail,
@@ -56,6 +59,10 @@ export function isLoginOtpVerifySubmitting(state: LoginOtpVerifyFormState): bool
 type LoginOtpVerifyFormProps = {
   nextPath: string;
 };
+
+export function getLoginOtpRecoveryHref(nextPath: string | string[] | undefined): string {
+  return createFlyPathLoginHref(nextPath);
+}
 
 export function LoginOtpVerifyForm({ nextPath }: LoginOtpVerifyFormProps) {
   const router = useRouter();
@@ -153,7 +160,7 @@ export function LoginOtpVerifyForm({ nextPath }: LoginOtpVerifyFormProps) {
 
       {state.status === "missing" ? (
         <Link
-          href="/login"
+          href={getLoginOtpRecoveryHref(nextPath)}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#d6ae4f] px-4 py-2.5 text-sm font-semibold text-[#0d1930] transition hover:bg-[#e3be63] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f1d485]/70"
         >
           Solicitar un nuevo código
