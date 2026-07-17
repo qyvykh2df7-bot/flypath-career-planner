@@ -10,6 +10,7 @@ import {
   clearPendingFlyPathOtpEmail,
   getPendingFlyPathOtpEmail,
 } from "@/lib/auth/pending-otp";
+import { bootstrapFlyPathIdentityAfterOtp } from "./actions";
 
 export type LoginOtpVerifyFormState =
   | { status: "checking" | "idle" | "loading" | "success"; message: null }
@@ -65,9 +66,18 @@ export function LoginOtpVerifyForm({ nextPath }: LoginOtpVerifyFormProps) {
   const isUnavailable = state.status === "checking" || state.status === "missing";
 
   useEffect(() => {
-    const pendingEmail = getPendingFlyPathOtpEmail();
-    setEmail(pendingEmail);
-    dispatch({ type: pendingEmail ? "email_loaded" : "email_missing" });
+    let active = true;
+
+    queueMicrotask(() => {
+      if (!active) return;
+      const pendingEmail = getPendingFlyPathOtpEmail();
+      setEmail(pendingEmail);
+      dispatch({ type: pendingEmail ? "email_loaded" : "email_missing" });
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -79,6 +89,7 @@ export function LoginOtpVerifyForm({ nextPath }: LoginOtpVerifyFormProps) {
 
     if (result.ok) {
       clearPendingFlyPathOtpEmail();
+      await bootstrapFlyPathIdentityAfterOtp().catch(() => undefined);
       dispatch({ type: "verification_succeeded" });
       router.replace(getSafeFlyPathLoginNext(nextPath));
       return;

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Plane } from "lucide-react";
+import { FlyPathAccountLink } from "@/components/FlyPathAccountLink";
 import { FlyPathPlatformModuleMenu } from "@/components/FlyPathPlatformModuleMenu";
 type FlyPathPlatformHeaderProps = {
   pageTitle: string;
@@ -89,7 +90,8 @@ export function FlyPathPlatformHeader({
         >
           {pageTitle}
         </p>
-        <div className="flex shrink-0 items-center md:min-w-0 md:flex-1 md:justify-end">
+        <div className="flex shrink-0 items-center gap-2 md:min-w-0 md:flex-1 md:justify-end">
+          <FlyPathAccountLink />
           <FlyPathPlatformModuleMenu
             currentModuleId={currentModuleId}
             onSoonClick={onSoonClick}

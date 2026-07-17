@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createFlyPathLoginHref,
   createFlyPathLoginVerifyHref,
   DEFAULT_FLYPATH_LOGIN_DESTINATION,
   getSafeFlyPathLoginNext,
@@ -31,5 +32,6 @@ describe("FlyPath login navigation", () => {
       "/login/verify?next=%2Fcareer-planner",
     );
     expect(createFlyPathLoginVerifyHref("https://example.com")).toBe("/login/verify?next=%2F");
+    expect(createFlyPathLoginHref("/account")).toBe("/login?next=%2Faccount");
   });
 });

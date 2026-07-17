@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { AuthInvalidJwtError, AuthSessionMissingError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -51,6 +52,27 @@ describe("FlyPath server session", () => {
 
   it("devuelve anonymous cuando no existe sesión válida", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    await expect(getFlyPathSessionState()).resolves.toEqual({ status: "anonymous" });
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("trata una sesión ausente de Supabase como anonymous, no como un fallo de infraestructura", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: null },
+      error: new AuthSessionMissingError(),
+    });
+
+    await expect(getFlyPathSessionState()).resolves.toEqual({ status: "anonymous" });
+    expect(mocks.getSession).not.toHaveBeenCalled();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("trata un JWT inválido como una sesión anónima", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: null },
+      error: new AuthInvalidJwtError("Invalid token"),
+    });
 
     await expect(getFlyPathSessionState()).resolves.toEqual({ status: "anonymous" });
     expect(mocks.signOut).not.toHaveBeenCalled();

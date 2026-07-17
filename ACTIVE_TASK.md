@@ -1,58 +1,63 @@
-# Tarea activa — Fase 6B (Login OTP)
+# Tarea activa — Cierre de Fase 6
 
 ## Estado de la plataforma
 
-- Fase 4 — Warhome MVP: completada e integrada en `main`.
-- Fase 5 — Emails operativos: completada e integrada en `main`.
-- **6A — Fundamentos de identidad y coexistencia con Warhome:** completado e integrado en `main`.
-- Fase actual: Fase 6 — Login, cuentas y perfiles.
-- Bloque activo: **6B — Login OTP** (no implementado).
+- Fases 4 y 5: completadas e integradas en `main`.
+- 6A: completado e integrado en `main`.
+- Fase actual: **Fase 6 — Login, cuentas y perfiles**.
+- Estado: implementación 6B–6E finalizada en `feature/login-otp-6b`; pendiente de auditoría independiente, revisión manual y merge.
 
-## Bloque 6A cerrado
+## Implementado
 
-| Sub-bloque | Commit | Estado |
-|------------|--------|--------|
-| 6A.1 — Arranque documental | `687f579` | Completado |
-| 6A.2 — Coexistencia FlyPath / Warhome | `7d68608` | Completado |
-| 6A.3 — Helpers generales de sesión FlyPath | `ce3d8b7` | Completado |
+### 6B — Login OTP
 
-Auditoría independiente de 6A.3: **APROBADO** — sin hallazgos Critical, Major ni Minor.
+- `/login` solicita OTP y `/login/verify` lo valida con Supabase Auth.
+- Email temporal aislado por pestaña (`sessionStorage` con fallback en memoria); nunca viaja en la URL.
+- `next` tiene allowlist de rutas internas, limpia query strings y rechaza destinos externos, malformados y Warhome.
+- Sesión persistente y logout general explícito mediante `signOutFlyPath()`.
 
-## Alcance inicial de 6B — Login OTP
+### 6C — Perfil y vínculo con leads
 
-Implementar el flujo público de autenticación por email y código OTP, reutilizando los helpers de sesión de 6A.3.
+- `lib/account/bootstrap.ts` crea o reutiliza `profiles` de forma idempotente y segura ante concurrencia.
+- Solo vincula leads existentes sin `user_id`, usando el email autenticado y confirmado.
+- No crea leads ni reasigna leads pertenecientes a otra cuenta.
+- Si falla el vínculo después de crear el perfil, el resultado es parcial y se puede reintentar en el siguiente acceso.
 
-### Entregables previstos
+### 6D — Cuenta y header
 
-- **`/login`:** formulario de email, envío del código OTP y manejo de errores sin exponer detalles internos.
-- **`/login/verify`:** validación del código, creación o restauración de sesión persistente y redirección segura.
-- **Parámetro `next`:** allowlist de rutas internas; rechazar URLs externas, protocol-relative y open redirects.
-- **Logout público:** reutilizar `signOutFlyPath()` donde corresponda en el flujo de login.
-- **Tests:** envío, verificación, `next` seguro, sesión persistente y casos de error.
+- `/account` protegido server-side; visitante anónimo → `/login?next=/account`.
+- Nombre visible validado y guardado en `profiles`; email solo lectura.
+- Header público reactivo: estado neutro durante hidratación, “Iniciar sesión” para anónimo y “Mi cuenta” para sesión autenticada.
+- Warhome y `admin_users` permanecen independientes.
 
-### Contrato que debe respetarse
+### 6E — Contrato AeroComms
 
-- Supabase Auth como identidad única; email + OTP, sin contraseña en esta fase.
-- Server-side: `getFlyPathSessionState()` con `auth.getUser()`; nunca `getSession()` como validación de confianza.
-- Client-side: `initializeFlyPathAuthState()` y `signOutFlyPath()` como API pública de sesión.
-- Warhome y `admin_users` permanecen separados; 6B no modifica autorización admin ni `proxy.ts`.
-- Sin `service_role` en rutas públicas de login.
+- `lib/aerocomms/sync-progress.ts` define v1 puro y versionado del progreso sincronizable.
+- Mantiene compatibilidad de lectura con el blob local `aerocomms.v2` sin escribirlo.
+- Excluye audio, transcripciones, blobs, permisos, UI efímera, suscripción y desbloqueos.
+- No hay progreso remoto ni cambios Free/Pro.
 
-### Criterio de cierre de 6B
+## Validación realizada
 
-Un usuario puede iniciar sesión con OTP, mantener sesión persistente, cerrar sesión explícitamente y ser redirigido de forma segura mediante `next`.
+- `npm test`: 299 tests correctos.
+- `npx tsc --noEmit --pretty false`: correcto.
+- `npm run build`: correcto.
+- `git diff --check`: correcto.
+- Lint focalizado de archivos Fase 6: correcto.
+- `npm run lint` global no pasa por 57 errores y 77 warnings preexistentes fuera de este alcance, principalmente JSX dentro de `try/catch` en Warhome.
 
-## Fuera de alcance de 6B
+## Siguiente tarea obligatoria
 
-- `/account`, header con estados de sesión y UI de perfil (6D).
-- Creación idempotente de `profiles` y vínculo con leads (6C).
-- Contrato de progreso AeroComms (6E).
+1. Auditoría independiente de 6B–6E.
+2. Revisión manual de `/login`, `/login/verify`, `/account` y header en desktop, móvil y Safari.
+3. Confirmar la convivencia de sesión FlyPath y Warhome.
+4. Resolver o aceptar explícitamente el bloqueo de lint global antes del merge.
+5. Commit, push y merge únicamente tras aprobación.
+
+## Fuera de alcance
+
 - Stripe, compras, entitlements y AeroComms Pro.
+- Persistencia o sincronización remota de progreso.
+- Guardado real de Career Planner.
 - Google/Apple login, contraseñas, cambio de email y eliminación de cuenta.
-- Modificaciones a Warhome, migraciones Supabase o configuración Vercel.
-
-## Referencias
-
-- `CURRENT_PHASE.md` — fase actual y estado de 6A/6B.
-- `ROADMAP.md` — división completa de Fase 6.
-- `LAST_SESSION.md` — handoff del cierre de 6A.
+- Cambios de Warhome, migraciones Supabase o configuración Vercel.

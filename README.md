@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 6 — Login, cuentas y perfiles.** Bloque 6A completado e integrado en `main`. Siguiente trabajo: **6B — Login OTP** (`/login`, `/login/verify`, código OTP y `next` seguro).
+**Fase 6 — Login, cuentas y perfiles.** La implementación de 6B–6E está lista en `feature/login-otp-6b` para auditoría y merge: login OTP, cuenta básica, perfil idempotente, vínculo seguro con leads y contrato local versionado de AeroComms. Sin pagos, entitlements ni sincronización remota.
 
 ## Comandos
 
@@ -29,7 +29,7 @@ Copia `.env.example` a `.env.local` y rellena:
 | Documento | Contenido |
 |-----------|-----------|
 | [CURRENT_PHASE.md](./CURRENT_PHASE.md) | Fase actual, flujos de captación, estado real |
-| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa (6B — Login OTP) |
+| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa y cierre de Fase 6 |
 | [ROADMAP.md](./ROADMAP.md) | Roadmap por fases |
 | [BACKLOG.md](./BACKLOG.md) | Mejoras pospuestas y pendientes |
 | [LAST_SESSION.md](./LAST_SESSION.md) | Último handoff operativo |

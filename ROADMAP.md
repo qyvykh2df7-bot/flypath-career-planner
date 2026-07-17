@@ -279,7 +279,7 @@ Bloques 5A–5D implementados, validados e integrados en `main` mediante el merg
 
 ## Fase 6 — Login, cuentas y perfiles
 
-**Estado: Actual**
+**Estado: Implementación lista para auditoría y merge**
 
 Identidad común para FlyPath y AeroComms, con autorización de Warhome separada mediante `admin_users`.
 
@@ -305,25 +305,42 @@ Identidad común para FlyPath y AeroComms, con autorización de Warhome separada
 
 **6B — Login OTP**
 
-**Estado: Siguiente**
+**Estado: Implementado en `feature/login-otp-6b`; pendiente de auditoría y merge.**
 
-`/login`, `/login/verify`, envío y validación de código, `next` seguro, sesión persistente y logout. No implementado.
+- `/login` solicita OTP y `/login/verify` lo valida.
+- El email temporal queda aislado por pestaña; acceso directo sin estado solicita un nuevo código.
+- `next` está cerrado a rutas internas permitidas y no admite open redirects.
+- Sesión persistente y logout explícito mediante la capa general de Auth.
 
 **6C — Perfil y vínculo con leads**
 
-Reutilizar `profiles`, crear el perfil de forma idempotente, vincular leads por email verificado y no crear leads automáticamente.
+**Estado: Implementado en `feature/login-otp-6b`; pendiente de auditoría y merge.**
+
+- `profiles` se asegura de forma idempotente y segura ante concurrencia.
+- Solo se vinculan leads existentes y libres por email autenticado confirmado.
+- No se crean leads ni se reasignan leads ya vinculados; un fallo posterior del vínculo es recuperable.
 
 **6D — Account y header**
 
-`/account`, estados “Iniciar sesión” / “Mi cuenta”, nombre, email y cierre de sesión, sin dashboard complejo.
+**Estado: Implementado en `feature/login-otp-6b`; pendiente de auditoría y merge.**
+
+- `/account` protegida, nombre visible editable y validado, email solo lectura y logout.
+- Header público reactivo a sesión general con “Iniciar sesión” / “Mi cuenta”, sin consultar ni modificar Warhome.
 
 **6E — Preparación AeroComms**
 
-Contrato versionado del progreso local y datos sincronizables; excluir audio y transcripciones, sin sincronización remota todavía.
+**Estado: Implementado en `feature/login-otp-6b`; pendiente de auditoría y merge.**
+
+- Contrato local versionado v1 y funciones puras de lectura, normalización, validación y serialización.
+- Mantiene compatibilidad con `aerocomms.v2`; incluye solo progreso real sincronizable y excluye audio, transcripciones y estado efímero.
+- Sin Supabase, sincronización, límites Free/Pro ni desbloqueos nuevos.
 
 **6F — QA, documentación y merge**
 
-Validación desktop, móvil, Safari y coexistencia usuario/admin; documentación y merge a `main`.
+**Estado: QA automatizada y documentación completadas; pendiente auditoría visual, commit y merge.**
+
+- 299 tests, TypeScript, build y `git diff --check` correctos.
+- Lint focalizado correcto; el lint global conserva errores preexistentes fuera de Fase 6 que deben resolverse o aceptarse explícitamente antes del merge.
 
 ### Fuera de alcance
 
@@ -468,7 +485,7 @@ Fase 2   Captación pública de leads     ████████████  
 Fase 3   Tracking y analítica básica    ████████████  Completado
 Fase 4   Warhome MVP                    ████████████  Completado e integrado en main
 Fase 5   Emails operativos              ████████████  Completado e integrado en main
-Fase 6   Login, cuentas y perfiles      ░░░░░░░░░░░░  Actual
+Fase 6   Login, cuentas y perfiles      ████████████  Lista para auditoría y merge
 Fase 7   Persistencia de AeroComms      ░░░░░░░░░░░░  Pendiente
 Fase 8   Revisión final de AeroComms    ░░░░░░░░░░░░  Pendiente
 Fase 9   Pagos y monetización           ░░░░░░░░░░░░  Pendiente

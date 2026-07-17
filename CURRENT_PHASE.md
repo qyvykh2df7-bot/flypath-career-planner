@@ -69,25 +69,42 @@ Integrado en `main`. Auditoría independiente de 6A.3: **APROBADO** — sin hall
 - **6A.2 — Coexistencia FlyPath / Warhome:** `7d68608` (`Preserve FlyPath sessions outside Warhome`). Usuario autenticado sin rol admin → `/` sin perder sesión; anónimo en ruta protegida → `/warhome/login`; admin activo → acceso. Solo `logoutWarhome()` cierra sesión explícitamente.
 - **6A.3 — Helpers generales de sesión FlyPath:** `ce3d8b7` (`fix(auth): preserve unavailable state and prevent initial session races`). Contrato server-side con `getFlyPathSessionState()` (`authenticated` / `anonymous` / `unavailable`); client-side con `initializeFlyPathAuthState()` y `signOutFlyPath()`. Sin `admin_users`, sin `service_role`, sin cierre automático.
 
-#### Bloque actual — 6B — Login OTP (no implementado)
+#### Implementación actual — 6B–6F (lista para auditoría y merge)
 
-`/login`, `/login/verify`, envío y validación del código, `next` seguro, sesión persistente y logout.
+La implementación vive en `feature/login-otp-6b`; aún no se ha integrado en `main`.
+
+**6B — Login OTP**
+
+- `/login` solicita OTP y `/login/verify` lo valida con `requestFlyPathLoginOtp()` y `verifyFlyPathLoginOtp()`.
+- El email se conserva por pestaña en `sessionStorage`, con fallback en memoria cuando el storage está restringido; nunca se incluye en la URL.
+- `next` tiene allowlist de rutas internas, elimina query strings y rechaza destinos externos, malformados o Warhome.
+- `signOutFlyPath()` sigue siendo el único logout general explícito.
 
 **6C — Perfil y vínculo con leads**
 
-Reutilización idempotente de `profiles`, vínculo de lead por email verificado y prohibición de crear leads automáticamente.
+- `lib/account/bootstrap.ts` asegura `profiles` de forma idempotente y tolerante a carreras.
+- Solo vincula leads existentes sin `user_id` mediante email autenticado y confirmado; nunca crea ni reasigna leads.
+- Si el perfil se crea pero el vínculo falla, el resultado es parcial y recuperable en el siguiente acceso.
+- La lógica es `server-only`; el cliente no recibe `service_role`.
 
 **6D — Account y header**
 
-`/account`, estados de sesión, nombre, email y cierre de sesión, sin dashboard complejo.
+- `/account` se protege en servidor y redirige anónimo a `/login?next=/account`.
+- El nombre se valida y se guarda en `profiles`; el email autenticado se muestra solo lectura.
+- El header usa `initializeFlyPathAuthState()` y muestra estado neutro durante hidratación, “Iniciar sesión” para anónimo y “Mi cuenta” para autenticado.
+- No se consulta `admin_users` ni se modifica la separación de Warhome.
 
 **6E — Preparación AeroComms**
 
-Contrato versionado del progreso local, datos sincronizables y exclusión de audio/transcripciones; sin sincronización remota.
+- `lib/aerocomms/sync-progress.ts` define el contrato local v1, tipado y puro para futura sincronización.
+- Lee el blob histórico `aerocomms.v2` sin escribirlo, sin Supabase y sin cambiar Free/Pro.
+- Conserva ejercicios, misiones, puntuaciones y sesiones realmente puntuadas; excluye audio, transcripciones, blobs, permisos, ajustes y UI efímera.
 
 **6F — QA, documentación y merge**
 
-QA desktop/móvil/Safari, coexistencia usuario/admin, validaciones, documentación y merge a `main`.
+- 299 tests correctos; TypeScript, build y `git diff --check` correctos.
+- El lint focalizado de Fase 6 es correcto. `npm run lint` global sigue bloqueado por 57 errores y 77 warnings preexistentes fuera del alcance, principalmente JSX dentro de `try/catch` en Warhome.
+- Pendiente: auditoría independiente, revisión manual desktop/móvil/Safari, decisión sobre lint global y merge.
 
 ### Fuera de alcance
 
@@ -104,7 +121,7 @@ Stripe, compras, entitlements, AeroComms Pro real, persistencia remota de progre
 - El usuario general y el administrador de Warhome comparten identidad en Supabase Auth, pero no permisos.
 - La autorización de Warhome siempre se comprueba server-side mediante `admin_users`.
 - No se crea un lead automáticamente al crear una cuenta.
-- La vinculación de un lead se hará solo con email verificado y de forma idempotente.
+- La vinculación de leads está implementada solo con email verificado y de forma idempotente.
 
 ## Referencias técnicas
 
@@ -115,11 +132,12 @@ Stripe, compras, entitlements, AeroComms Pro real, persistencia remota de progre
 | Warhome auth | `lib/warhome/auth.ts`, `lib/warhome/access.ts`, `proxy.ts` |
 | Perfiles | `supabase/migrations/20260711190000_create_profiles.sql` |
 | Lead opcionalmente vinculado | `supabase/migrations/20260711200000_create_leads.sql` |
-| Progreso local AeroComms | `lib/aerocomms/appState.tsx` |
+| Progreso local AeroComms | `lib/aerocomms/appState.tsx`, `lib/aerocomms/sync-progress.ts` |
 
 ## Limitaciones conocidas
 
 - El progreso de AeroComms permanece principalmente en cliente hasta una fase posterior.
 - No existen todavía compras, entitlements ni persistencia remota de progreso.
 - Los roles `owner` y `admin` tienen permisos equivalentes en el MVP de Warhome.
-- 6B (login OTP) aún no está implementado; `/account`, perfiles y vínculo con leads corresponden a 6C–6D.
+- La cuenta no sincroniza todavía datos de AeroComms ni desbloquea contenido.
+- El lint global permanece bloqueado por errores previos no modificados en esta fase.

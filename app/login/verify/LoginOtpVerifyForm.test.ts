@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("client-only", () => ({}));
+vi.mock("./actions", () => ({ bootstrapFlyPathIdentityAfterOtp: vi.fn() }));
 
 import {
   initialLoginOtpVerifyFormState,
