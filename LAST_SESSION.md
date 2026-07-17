@@ -1,8 +1,8 @@
-# Última sesión — Fase 6 lista para auditoría
+# Última sesión — Fase 6 completada
 
 **Fecha:** 2026-07-17
 **Rama:** `feature/login-otp-6b`
-**Estado:** implementación 6B–6E terminada localmente; sin commit, push ni merge de este cierre.
+**Estado:** implementación 6B–6E completada e integrada en `main`.
 
 ## Estado real
 
@@ -27,11 +27,11 @@
 - Lint focalizado Fase 6: correcto.
 - `npm run lint` global: bloqueado por 57 errores y 77 warnings preexistentes fuera del alcance (principalmente Warhome); no se añadieron errores en los archivos de Fase 6.
 
-## Siguiente tarea
+## Estado de cierre
 
-Auditar de forma independiente 6B–6E, realizar revisión manual de autenticación/cuenta/header en desktop, móvil y Safari, y decidir el tratamiento del lint global antes de commit y merge.
+La Fase 6 queda cerrada con OTP, perfiles, vínculo seguro de leads, `/account`, header reactivo y contrato local AeroComms v1 integrados en `main`.
 
-## Restricciones pendientes
+## Restricciones de alcance
 
 - No añadir Stripe, compras, entitlements, sincronización remota AeroComms, perfiles ampliados, cambio de email ni autenticación social.
 - No modificar Warhome, migraciones Supabase ni Vercel salvo corrección real y acotada.

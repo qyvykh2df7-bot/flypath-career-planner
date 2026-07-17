@@ -5,7 +5,7 @@
 - Fases 4 y 5: completadas e integradas en `main`.
 - 6A: completado e integrado en `main`.
 - Fase actual: **Fase 6 — Login, cuentas y perfiles**.
-- Estado: implementación 6B–6E finalizada en `feature/login-otp-6b`; pendiente de auditoría independiente, revisión manual y merge.
+- Estado: Fase 6 completada e integrada en `main`.
 
 ## Implementado
 
@@ -46,13 +46,10 @@
 - Lint focalizado de archivos Fase 6: correcto.
 - `npm run lint` global no pasa por 57 errores y 77 warnings preexistentes fuera de este alcance, principalmente JSX dentro de `try/catch` en Warhome.
 
-## Siguiente tarea obligatoria
+## Estado de cierre
 
-1. Auditoría independiente de 6B–6E.
-2. Revisión manual de `/login`, `/login/verify`, `/account` y header en desktop, móvil y Safari.
-3. Confirmar la convivencia de sesión FlyPath y Warhome.
-4. Resolver o aceptar explícitamente el bloqueo de lint global antes del merge.
-5. Commit, push y merge únicamente tras aprobación.
+- La implementación de 6B–6E está integrada en `main`.
+- Se mantienen fuera de alcance Stripe, compras, entitlements y la sincronización remota de AeroComms.
 
 ## Fuera de alcance
 

@@ -42,9 +42,9 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 - Separación transaccional/marketing, bajas seguras, historial append-only y propagación de supresiones.
 - Tracking de aperturas y clics desactivado en Resend por decisión operativa; el esquema está preparado.
 
-## Fase actual
+## Fase 6 — Login, cuentas y perfiles
 
-**Fase 6 — Login, cuentas y perfiles**
+**Completada e integrada en `main`.**
 
 ### Decisiones cerradas
 
@@ -57,7 +57,7 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 - Career Planner gratuito seguirá sin exigir login; no se implementará guardado de planes en esta fase.
 - Stripe, compras y entitlements quedan fuera de Fase 6.
 
-### División de Fase 6
+### Implementación de Fase 6
 
 **6A — Fundamentos de identidad y coexistencia con Warhome**
 
@@ -69,9 +69,7 @@ Integrado en `main`. Auditoría independiente de 6A.3: **APROBADO** — sin hall
 - **6A.2 — Coexistencia FlyPath / Warhome:** `7d68608` (`Preserve FlyPath sessions outside Warhome`). Usuario autenticado sin rol admin → `/` sin perder sesión; anónimo en ruta protegida → `/warhome/login`; admin activo → acceso. Solo `logoutWarhome()` cierra sesión explícitamente.
 - **6A.3 — Helpers generales de sesión FlyPath:** `ce3d8b7` (`fix(auth): preserve unavailable state and prevent initial session races`). Contrato server-side con `getFlyPathSessionState()` (`authenticated` / `anonymous` / `unavailable`); client-side con `initializeFlyPathAuthState()` y `signOutFlyPath()`. Sin `admin_users`, sin `service_role`, sin cierre automático.
 
-#### Implementación actual — 6B–6F (lista para auditoría y merge)
-
-La implementación vive en `feature/login-otp-6b`; aún no se ha integrado en `main`.
+#### 6B–6F — Completadas e integradas en `main`
 
 **6B — Login OTP**
 
@@ -100,11 +98,11 @@ La implementación vive en `feature/login-otp-6b`; aún no se ha integrado en `m
 - Lee el blob histórico `aerocomms.v2` sin escribirlo, sin Supabase y sin cambiar Free/Pro.
 - Conserva ejercicios, misiones, puntuaciones y sesiones realmente puntuadas; excluye audio, transcripciones, blobs, permisos, ajustes y UI efímera.
 
-**6F — QA, documentación y merge**
+**6F — QA y cierre**
 
 - 309 tests correctos; TypeScript, build y `git diff --check` correctos.
 - El lint focalizado de Fase 6 es correcto. `npm run lint` global sigue bloqueado por 57 errores y 77 warnings preexistentes fuera del alcance, principalmente JSX dentro de `try/catch` en Warhome.
-- Pendiente: auditoría independiente, revisión manual desktop/móvil/Safari, decisión sobre lint global y merge.
+- La Fase 6 queda cerrada con la implementación integrada en `main`.
 
 ### Fuera de alcance
 
