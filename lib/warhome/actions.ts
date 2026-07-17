@@ -55,7 +55,6 @@ export async function loginWarhome(
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    await supabase.auth.signOut({ scope: "local" });
     return { error: GENERIC_LOGIN_ERROR };
   }
 
@@ -65,11 +64,9 @@ export async function loginWarhome(
     } satisfies AuthenticatedWarhomeUser);
 
     if (authorization.status !== "authorized") {
-      await supabase.auth.signOut({ scope: "local" });
       return { error: GENERIC_LOGIN_ERROR };
     }
   } catch {
-    await supabase.auth.signOut({ scope: "local" });
     console.error("[Warhome] Login authorization check failed");
     return { error: GENERIC_LOGIN_ERROR };
   }

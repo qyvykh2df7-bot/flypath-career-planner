@@ -49,7 +49,7 @@ describe("Warhome proxy", () => {
     expect(response.headers.get("location")).toBe("https://flypath.test/warhome/login");
   });
 
-  it("rechaza y cierra sesión para un usuario sin permiso administrativo", async () => {
+  it("rechaza a un usuario autenticado sin permiso administrativo y conserva su sesión", async () => {
     mocks.getWarhomeAuthorizationForAuthenticatedUser.mockResolvedValue({
       status: "not_admin",
       userId: USER_ID,
@@ -57,11 +57,11 @@ describe("Warhome proxy", () => {
 
     const response = await proxy(request("/warhome"));
 
-    expect(response.headers.get("location")).toBe("https://flypath.test/warhome/login");
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(response.headers.get("location")).toBe("https://flypath.test/");
+    expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
-  it("rechaza y cierra sesión para un administrador inactivo", async () => {
+  it("rechaza a un administrador inactivo y conserva su sesión", async () => {
     mocks.getWarhomeAuthorizationForAuthenticatedUser.mockResolvedValue({
       status: "inactive",
       userId: USER_ID,
@@ -70,14 +70,63 @@ describe("Warhome proxy", () => {
 
     const response = await proxy(request("/warhome"));
 
-    expect(response.headers.get("location")).toBe("https://flypath.test/warhome/login");
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(response.headers.get("location")).toBe("https://flypath.test/");
+    expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
   it("permite que un administrador activo continúe a Warhome", async () => {
     const response = await proxy(request("/warhome"));
 
     expect(response.headers.get("location")).toBeNull();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("redirige un administrador autenticado desde el login a Warhome", async () => {
+    const response = await proxy(request("/warhome/login"));
+
+    expect(response.headers.get("location")).toBe("https://flypath.test/warhome");
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("saca a un usuario autenticado no administrador del login de Warhome sin crear un loop", async () => {
+    mocks.getWarhomeAuthorizationForAuthenticatedUser.mockResolvedValue({
+      status: "not_admin",
+      userId: USER_ID,
+    });
+
+    const response = await proxy(request("/warhome/login"));
+
+    expect(response.headers.get("location")).toBe("https://flypath.test/");
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("redirige un error de autorización a una ruta fija y segura", async () => {
+    mocks.getWarhomeAuthorizationForAuthenticatedUser.mockRejectedValue(new Error("unavailable"));
+
+    const response = await proxy(request("/warhome/leads"));
+
+    expect(response.headers.get("location")).toBe("https://flypath.test/");
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("saca una autorización no disponible del login sin cerrar la sesión ni crear un loop", async () => {
+    mocks.getWarhomeAuthorizationForAuthenticatedUser.mockResolvedValue({ status: "unavailable" });
+
+    const response = await proxy(request("/warhome/login"));
+
+    expect(response.headers.get("location")).toBe("https://flypath.test/");
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("ignora parámetros de redirección externos para un usuario no administrador", async () => {
+    mocks.getWarhomeAuthorizationForAuthenticatedUser.mockResolvedValue({
+      status: "not_admin",
+      userId: USER_ID,
+    });
+
+    const response = await proxy(request("/warhome?next=https://example.com"));
+
+    expect(response.headers.get("location")).toBe("https://flypath.test/");
     expect(mocks.signOut).not.toHaveBeenCalled();
   });
 });
