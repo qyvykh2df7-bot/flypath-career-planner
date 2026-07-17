@@ -39,7 +39,7 @@
 
 ## Validación realizada
 
-- `npm test`: 299 tests correctos.
+- `npm test`: 309 tests correctos.
 - `npx tsc --noEmit --pretty false`: correcto.
 - `npm run build`: correcto.
 - `git diff --check`: correcto.

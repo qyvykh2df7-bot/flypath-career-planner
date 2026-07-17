@@ -339,7 +339,7 @@ Identidad común para FlyPath y AeroComms, con autorización de Warhome separada
 
 **Estado: QA automatizada y documentación completadas; pendiente auditoría visual, commit y merge.**
 
-- 299 tests, TypeScript, build y `git diff --check` correctos.
+- 309 tests, TypeScript, build y `git diff --check` correctos.
 - Lint focalizado correcto; el lint global conserva errores preexistentes fuera de Fase 6 que deben resolverse o aceptarse explícitamente antes del merge.
 
 ### Fuera de alcance

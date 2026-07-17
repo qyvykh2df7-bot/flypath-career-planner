@@ -22,7 +22,7 @@
 
 ## Validación
 
-- `npm test`: 299 tests correctos.
+- `npm test`: 309 tests correctos.
 - TypeScript, build y `git diff --check`: correctos.
 - Lint focalizado Fase 6: correcto.
 - `npm run lint` global: bloqueado por 57 errores y 77 warnings preexistentes fuera del alcance (principalmente Warhome); no se añadieron errores en los archivos de Fase 6.

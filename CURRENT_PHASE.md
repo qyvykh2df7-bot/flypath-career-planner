@@ -102,7 +102,7 @@ La implementación vive en `feature/login-otp-6b`; aún no se ha integrado en `m
 
 **6F — QA, documentación y merge**
 
-- 299 tests correctos; TypeScript, build y `git diff --check` correctos.
+- 309 tests correctos; TypeScript, build y `git diff --check` correctos.
 - El lint focalizado de Fase 6 es correcto. `npm run lint` global sigue bloqueado por 57 errores y 77 warnings preexistentes fuera del alcance, principalmente JSX dentro de `try/catch` en Warhome.
 - Pendiente: auditoría independiente, revisión manual desktop/móvil/Safari, decisión sobre lint global y merge.
 
