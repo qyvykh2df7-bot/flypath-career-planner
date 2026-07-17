@@ -1,48 +1,80 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("client-only", () => ({}));
+
 import {
   initialLoginOtpFormState,
+  isLoginOtpFormComplete,
   isLoginOtpFormSubmitting,
   loginOtpFormReducer,
 } from "./LoginOtpForm";
 
 describe("LoginOtpForm", () => {
-  it("pasa de idle a loading al enviar", () => {
-    const loadingState = loginOtpFormReducer(initialLoginOtpFormState, { type: "submit" });
+  it("pasa de idle a loading al solicitar el código", () => {
+    const loadingState = loginOtpFormReducer(initialLoginOtpFormState, {
+      type: "request_started",
+    });
 
-    expect(loadingState).toEqual({ status: "loading", message: null });
+    expect(loadingState).toEqual({ step: "request", status: "loading", message: null });
   });
 
-  it("pasa de loading a success cuando el OTP se solicita correctamente", () => {
-    const loadingState = loginOtpFormReducer(initialLoginOtpFormState, { type: "submit" });
-    const successState = loginOtpFormReducer(loadingState, { type: "success" });
+  it("pasa de loading a la fase de verificación cuando el envío funciona", () => {
+    const loadingState = loginOtpFormReducer(initialLoginOtpFormState, {
+      type: "request_started",
+    });
+    const verifyState = loginOtpFormReducer(loadingState, { type: "request_succeeded" });
 
-    expect(successState).toEqual({
-      status: "success",
+    expect(verifyState).toEqual({
+      step: "verify",
+      status: "idle",
       message: "Te hemos enviado un código de acceso. Revisa tu correo.",
     });
   });
 
-  it("pasa de loading a error cuando no se puede solicitar el OTP", () => {
-    const loadingState = loginOtpFormReducer(initialLoginOtpFormState, { type: "submit" });
-    const errorState = loginOtpFormReducer(loadingState, {
-      type: "error",
-      message: "No hemos podido enviar el código. Inténtalo de nuevo.",
+  it("pasa de loading a success al verificar el código", () => {
+    const verifyState = loginOtpFormReducer(initialLoginOtpFormState, {
+      type: "request_succeeded",
     });
+    const loadingState = loginOtpFormReducer(verifyState, { type: "verification_started" });
+    const successState = loginOtpFormReducer(loadingState, { type: "verification_succeeded" });
 
-    expect(errorState).toEqual({
-      status: "error",
-      message: "No hemos podido enviar el código. Inténtalo de nuevo.",
+    expect(successState).toEqual({
+      step: "verify",
+      status: "success",
+      message: "Sesión iniciada correctamente.",
     });
   });
 
-  it("bloquea el botón únicamente mientras el envío está en curso", () => {
-    const loadingState = loginOtpFormReducer(initialLoginOtpFormState, { type: "submit" });
-    const successState = loginOtpFormReducer(loadingState, { type: "success" });
+  it("pasa de loading a error cuando el código no se puede verificar", () => {
+    const verifyState = loginOtpFormReducer(initialLoginOtpFormState, {
+      type: "request_succeeded",
+    });
+    const loadingState = loginOtpFormReducer(verifyState, { type: "verification_started" });
+    const errorState = loginOtpFormReducer(loadingState, {
+      type: "verification_failed",
+      message: "No hemos podido verificar el código. Inténtalo de nuevo.",
+    });
+
+    expect(errorState).toEqual({
+      step: "verify",
+      status: "error",
+      message: "No hemos podido verificar el código. Inténtalo de nuevo.",
+    });
+  });
+
+  it("bloquea el botón únicamente durante la operación y al completar", () => {
+    const loadingState = loginOtpFormReducer(initialLoginOtpFormState, {
+      type: "request_started",
+    });
+    const verifyState = loginOtpFormReducer(loadingState, { type: "request_succeeded" });
+    const verifyingState = loginOtpFormReducer(verifyState, { type: "verification_started" });
+    const completeState = loginOtpFormReducer(verifyingState, { type: "verification_succeeded" });
 
     expect(isLoginOtpFormSubmitting(initialLoginOtpFormState)).toBe(false);
     expect(isLoginOtpFormSubmitting(loadingState)).toBe(true);
-    expect(isLoginOtpFormSubmitting(successState)).toBe(false);
+    expect(isLoginOtpFormSubmitting(verifyingState)).toBe(true);
+    expect(isLoginOtpFormSubmitting(completeState)).toBe(false);
+    expect(isLoginOtpFormComplete(completeState)).toBe(true);
+    expect(isLoginOtpFormComplete(verifyState)).toBe(false);
   });
 });
