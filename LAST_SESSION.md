@@ -1,144 +1,55 @@
-# Última sesión — handoff operativo
+# Última sesión — arranque documental Fase 6
 
-**Fecha:** 2026-07-13
-**Rama:** `feature/emails-operativos-phase-5` (sincronizada con `origin`; **no mergeada** a `main`)
+**Fecha:** 2026-07-17
+**Rama:** `feature/login-accounts-phase-6`
+**Base:** `main` limpia y alineada con `origin/main`
+**Merge de referencia:** `aa4f4fe Merge operational emails phase`
 
----
+## Estado cerrado
 
-## Resumen
+- Fase 4 — Warhome MVP: completada e integrada en `main`.
+- Fase 5 — Emails operativos: completada e integrada en `main`.
+- Fase 6 — Login, cuentas y perfiles: fase actual.
 
-- **Fase 5 — Emails operativos** cerrada en implementación y validación.
-- Resend operativo; webhooks productivos; Warhome Emails validado.
-- Bloque **5D** (consentimiento, bajas, historial, supresiones) implementado; **código pendiente de commit**.
-- **Siguiente fase:** Fase 6 — Login y cuentas FlyPath.
+## Contrato de cuenta
 
----
+- Una única cuenta general FlyPath para toda la plataforma.
+- Identidad única en Supabase Auth.
+- Login mediante email y código OTP, sin contraseña inicialmente.
+- Sesión persistente.
+- La autorización de Warhome continúa separada mediante `admin_users`.
 
-## Rama y estado git
+## Decisiones de producto
 
-| Item | Valor |
-|------|-------|
-| Rama actual | `feature/emails-operativos-phase-5` |
-| Último commit remoto | `68a5918` — *Show email delivery and engagement in Warhome* |
-| Bloque 5D | En working tree (modificados + untracked); **sin commit** |
-| Merge a `main` | **No realizado** |
+### AeroComms
 
-### Working tree esperado (5D, sin commit)
+- Uso sin cuenta, con acceso gratuito aproximado al 30 % de Cadet y una misión gratuita.
+- Progreso local durante Fase 6.
+- La cuenta no desbloquea contenido; la sincronización se preparará para una fase posterior.
+- AeroComms Pro y Stripe quedan fuera de esta fase.
 
-**Modificados:** separación transaccional, textos de consentimiento, Warhome detalle lead, templates, captación.
+### Career Planner
 
-**Sin seguimiento (nuevos):**
+- El flujo gratuito no exige login.
+- No se implementa guardado de planes en Fase 6.
 
-- `app/api/email/unsubscribe/`, `app/email/unsubscribe/`, `components/email/`
-- `lib/email/unsubscribe.ts`, tests asociados
-- `lib/leads/consent-texts.test.ts`, `lib/leads/email-subscription-policy.test.ts`
-- `lib/email/subscription-suppressions.test.ts`
-- `supabase/migrations/20260712090000_add_email_subscription_consent_history.sql`
-- `supabase/migrations/20260712100000_propagate_email_subscription_suppressions.sql`
+## Bloques de Fase 6
 
----
+1. **6A — Fundamentos de identidad y coexistencia con Warhome:** helpers de sesión, contrato de cuenta y corrección del cierre de sesión accidental de usuarios normales al visitar Warhome.
+2. **6B — Login OTP:** `/login`, `/login/verify`, código, `next` seguro, sesión persistente y logout.
+3. **6C — Perfil y vínculo con leads:** `profiles` idempotente, vínculo por email verificado y sin creación automática de leads.
+4. **6D — Account y header:** `/account`, iniciar sesión / mi cuenta, nombre, email y cierre de sesión.
+5. **6E — Preparación AeroComms:** contrato versionado del progreso local, datos sincronizables y exclusión de audio/transcripciones; sin sync remoto.
+6. **6F — QA, documentación y merge:** desktop, móvil, Safari, coexistencia usuario/admin, validaciones y merge a `main`.
 
-## Commits principales — Fase 5
+## Fuera de alcance
 
-| Commit | Descripción |
-|--------|-------------|
-| `aac5ceb` | Add Career Planner transactional email foundation |
-| `eacbe5d` | Add Pre-PPL transactional confirmation email |
-| `40849ac` | Add mentorship confirmation and internal alert emails |
-| `b8a6382` | Add Warhome operational email monitoring |
-| `c4a9fb3` | Add secure Resend webhook processing |
-| `68a5918` | Show email delivery and engagement in Warhome |
-
-Integración Warhome MVP en esta rama: merge `b335d10`.
-
----
-
-## Migraciones Supabase
-
-**Aplicadas en remoto hasta `20260712100000`:**
-
-| Migración | Alcance |
-|-----------|---------|
-| `20260712050000` | Jobs transaccionales |
-| `20260712060000` | Template key Pre-PPL |
-| `20260712070000` | Template keys mentoría |
-| `20260712080000` | Webhooks Resend + engagement en deliveries |
-| `20260712090000` | Historial consentimiento + tokens de baja |
-| `20260712100000` | Propagación supresiones a suscripciones |
-
-Archivos `90000` y `100000` existen en el working tree; **pendientes de commit** en la rama.
-
----
-
-## Resend y webhooks
-
-| Aspecto | Estado |
-|---------|--------|
-| Proveedor | Resend configurado; dominio con SPF/DKIM/DMARC |
-| Envíos transaccionales | Operativos (Career Planner, Pre-PPL, Acompañamiento, alerta interna) |
-| Webhook productivo | Funcionando (`/api/webhooks/resend`) |
-| Eventos `email.opened` / `email.clicked` | **Desactivados** en configuración Resend (reputación del dominio) |
-| Esquema open/click | Implementado en `email_deliveries`; Warhome lo muestra cuando hay datos |
-
----
-
-## Warhome Emails
-
-- Vista `/warhome/emails` validada: filtros, listado de entregas, estados y engagement.
-- Separada de Leads; ficha de lead muestra suscripciones, resumen marketing y último cambio por lista.
-- Historial de email individual por lead: aplazado a fases posteriores.
-
----
-
-## Consentimiento y bajas (5D)
-
-| Entrega | Estado |
-|---------|--------|
-| Separación transaccional / marketing | Implementado |
-| Textos UI = constantes servidor | Implementado |
-| Baja segura por lista (token hash) | Implementado |
-| Historial `email_subscription_events` | Implementado |
-| Propagación `bounced` / `complained` / `suppressed` | Implementado (migración `12100000`) |
-| Commit en git | **Pendiente** |
-
----
-
-## Validaciones de sesión
-
-| Comando | Resultado |
-|---------|-----------|
-| `npm test` | 218 tests OK |
-| `npx tsc --noEmit` | OK |
-| `npm run build` | OK |
-| Revisión migraciones `90000` / `100000` | APROBADO |
-| Revisión Bloque 5D | APROBADO (tras corrección contrato RPC `RETURNS TABLE`) |
-
----
-
-## Estado del proyecto
-
-| Área | Estado |
-|------|--------|
-| AeroComms (`/aerocomms/app`) | Operativa (Fase 0) |
-| Captación pública | Operativa (Fase 2) |
-| Tracking | Completada en `main` (Fase 3) |
-| Warhome MVP | En rama; pendiente merge `main` |
-| Emails operativos | **Completada** (Fase 5; 5D sin commit) |
-| Login y cuentas | **Siguiente** (Fase 6) |
-
----
+Stripe, compras, entitlements, AeroComms Pro real, persistencia remota de progreso, guardado real de Career Planner, Google/Apple login, contraseñas, cambio de email, eliminación automática de cuenta, dashboard avanzado y notificaciones.
 
 ## Próximo paso
 
-1. Validación final del working tree 5D.
-2. **Commit** del bloque 5D en `feature/emails-operativos-phase-5`.
-3. **Push** de la rama.
-4. Definir alcance inicial de **Fase 6** (ver `ACTIVE_TASK.md`).
+Revisar en 6A los helpers actuales de Supabase SSR y el proxy de Warhome, definir el contrato compartido de cuenta y corregir la coexistencia de sesiones antes de construir el login OTP.
 
----
+## Restricciones de este arranque
 
-## Referencias
-
-- `CURRENT_PHASE.md` — Fase 6 como actual.
-- `ACTIVE_TASK.md` — sin tareas activas de Fase 5.
-- `ROADMAP.md` — Fase 5 completada; trabajo diferido documentado.
+No se modificó código de aplicación, esquema Supabase ni configuración de Vercel. No se crearon migraciones, commits ni pushes.

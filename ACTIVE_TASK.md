@@ -1,98 +1,53 @@
-# Tarea activa — Fase 6 (Login y cuentas FlyPath)
+# Tarea activa — Fase 6A.1 (arranque documental)
 
-## Estado de Fase 5
+## Estado de la plataforma
 
-**Fase 5 — Emails operativos: cerrada.**
+- Fase 4 — Warhome MVP: completada e integrada en `main`.
+- Fase 5 — Emails operativos: completada e integrada en `main`.
+- Merge actual de `main`: `aa4f4fe Merge operational emails phase`.
+- Fase actual: Fase 6 — Login, cuentas y perfiles.
 
-No quedan tareas activas de Fase 5. Todos los bloques (5A–5D) están implementados y validados en rama `feature/emails-operativos-phase-5`.
+## Contrato de cuenta
 
-| Bloque | Contenido | Estado |
-|--------|-----------|--------|
-| 5A | Fundación transaccional (Resend, jobs, deliveries, Career Planner) | Completado (`aac5ceb`) |
-| 5B | Pre-PPL y Acompañamiento (confirmaciones + alerta interna) | Completado (`eacbe5d`, `40849ac`) |
-| 5C | Warhome Emails + webhooks Resend + engagement | Completado (`b8a6382`, `c4a9fb3`, `68a5918`) |
-| 5D | Separación transaccional/marketing, bajas, historial, supresiones | Implementado; **pendiente de commit** |
+- Una única cuenta general FlyPath para toda la plataforma.
+- La cuenta no es un producto ni un plan gratuito.
+- Identidad en Supabase Auth.
+- Login público mediante email y código OTP, sin contraseña inicialmente.
+- Sesión persistente.
+- Warhome conserva autorización separada mediante `admin_users`.
 
-**Pendiente operativo antes de cerrar la rama:**
+## Decisiones de producto
 
-- Validación final del working tree 5D.
-- Commit y push de `feature/emails-operativos-phase-5`.
-- Merge a `main` (cuando se decida).
+### AeroComms
 
----
+- Se puede usar sin cuenta, con acceso gratuito aproximado al 30 % de Cadet y una misión gratuita.
+- El progreso permanece local en esta fase.
+- Crear una cuenta no desbloquea contenido; permitirá sincronizar progreso más adelante.
+- AeroComms Pro, cuenta obligatoria y Stripe quedan para una fase posterior.
 
-## Objetivo actual
+### Career Planner
 
-Definir el **alcance inicial de Fase 6 — Login y cuentas FlyPath**: autenticación, cuentas y perfiles.
+- El flujo gratuito sigue sin exigir login.
+- Guardar planes y funciones premium quedan fuera de Fase 6.
 
----
+## División de Fase 6
 
-## Alcance previsto (Fase 6 — borrador)
+| Bloque | Alcance | Criterio de cierre |
+|--------|---------|--------------------|
+| 6A | Helpers de sesión, contrato de cuenta y coexistencia con Warhome | Un usuario normal conserva su sesión al visitar Warhome; `admin_users` sigue siendo autorización separada |
+| 6B | `/login`, `/login/verify`, OTP, `next` seguro, sesión persistente y logout | Login OTP usable y protegido sin contraseñas nuevas |
+| 6C | `profiles` idempotente y vínculo de lead por email verificado | Perfil reutilizado, lead existente vinculado solo cuando procede, sin crear leads |
+| 6D | `/account` y estados del header | Nombre, email y logout sin dashboard complejo |
+| 6E | Contrato versionado del progreso local de AeroComms | Datos sincronizables definidos; audio y transcripciones excluidos; sin sync remoto |
+| 6F | QA, documentación y merge | Desktop, móvil, Safari y coexistencia usuario/admin validados |
 
-- Supabase Auth (registro, login, recuperación de contraseña).
-- Perfiles (`profiles`) vinculados a `auth.users`.
-- Sesiones y permisos básicos.
-- Relación opcional `leads.user_id` ↔ cuenta.
-- Prevención de duplicados lead/cuenta.
-- Cuenta común FlyPath y AeroComms (diseño inicial).
+## Fuera de alcance
 
----
+- Stripe, compras, entitlements y AeroComms Pro real.
+- Persistencia remota de progreso y guardado real de Career Planner.
+- Google/Apple login, contraseñas, cambio de email y eliminación automática de cuenta.
+- Dashboard avanzado y notificaciones.
 
-## Fuera de alcance (Fase 6)
+## Próximo trabajo
 
-- Persistencia de progreso AeroComms (Fase 7).
-- Pagos y suscripciones (Fase 9).
-- CRM, campañas y secuencias (Fase 10).
-- Warboard completo (Fase 11).
-
----
-
-## Referencia — Fase 5 completada
-
-### Infraestructura entregada
-
-| Componente | Ubicación / tabla |
-|------------|-------------------|
-| Envío transaccional | `lib/email/send-transactional-email.ts` |
-| Plantillas | `lib/email/templates/` |
-| Cola | `email_jobs` |
-| Entregas | `email_deliveries` |
-| Webhooks | `email_webhook_events`, RPC `apply_resend_email_webhook_event` |
-| Suscripciones | `email_subscriptions` |
-| Historial consentimiento | `email_subscription_events` |
-| Tokens de baja | `email_unsubscribe_tokens` |
-| Warhome Emails | `/warhome/emails` |
-
-### Migraciones aplicadas en remoto (hasta `20260712100000`)
-
-`20260712050000` → `20260712100000` (ver `CURRENT_PHASE.md`).
-
-### Validaciones finales Fase 5
-
-- **218 tests** pasando.
-- TypeScript y build correctos.
-- Migraciones `12090000` y `12100000` revisadas (APROBADO).
-- Webhook Resend productivo.
-- Tracking open/click desactivado en Resend (decisión operativa).
-
----
-
-## Fases anteriores (referencia)
-
-| Fase | Estado |
-|------|--------|
-| 0 — AeroComms en FlyPath | Completada |
-| 1 — Backend Core | Completada (`main`) |
-| 2 — Captación pública | Completada |
-| 3 — Tracking | Completada (`main`) |
-| 4 — Warhome MVP | Completada (en rama; pendiente merge `main`) |
-| 5 — Emails operativos | Completada (en rama; 5D sin commit) |
-
----
-
-## Referencias
-
-- `CURRENT_PHASE.md` — fase actual y estado real.
-- `ROADMAP.md` — fases 6–11 y trabajo diferido.
-- `LAST_SESSION.md` — handoff de la sesión Fase 5.
-- `BACKLOG.md` — mejoras Warhome pospuestas.
+Definir en 6A los helpers de sesión y el contrato compartido de cuenta, revisar la coexistencia con el proxy de Warhome y corregir el comportamiento de sesión antes de construir el login OTP.
