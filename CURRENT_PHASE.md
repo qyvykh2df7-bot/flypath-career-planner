@@ -4,6 +4,29 @@
 
 **FlyPath** — plataforma de carrera y productos para aspirantes a piloto. **AeroComms** es uno de sus productos y ya está integrado en `/aerocomms/app`.
 
+## Fase actual
+
+**Fase 8 — Usuarios y actividad de AeroComms.**
+
+Depende de la identidad de Fase 6 y la persistencia de Fase 7, ambas completadas. El objetivo es dar visibilidad operativa en Warhome a todos los usuarios de AeroComms sin convertirlos automáticamente en leads.
+
+Cuenta, perfil, progreso, actividad de producto, lead comercial, consentimiento de marketing y cliente futuro son conceptos separados: `auth.users` + `profiles` representan a toda cuenta; la persistencia AeroComms representa progreso y uso; `user_events` registra actividad relevante; `leads` solo existe por intención comercial explícita; `email_subscriptions` solo existe por consentimiento de marketing; pagos y entitlements quedan para una fase posterior.
+
+Los bloques 8A–8E están completados: la RPC de directorio está aplicada en Supabase remoto; `lib/warhome/users.ts` y `lib/warhome/user-detail.ts` mantienen contratos server-only cerrados; `/warhome/users` y `/warhome/users/[userId]` están dentro del grupo protegido de Warhome. La fase queda técnicamente terminada y pendiente únicamente de QA manual final, commit, push y deployment. Usar AeroComms, completar onboarding, crear una cuenta, importar progreso o completar actividades no crea leads, intereses comerciales ni suscripciones.
+
+### Estado de bloques
+
+- **8A:** RPC paginada de directorio, agregados deduplicados y permisos exclusivos de `service_role`; aplicada y validada en remoto.
+- **8B:** capa server-only de listado y detalle con autorización Warhome, filtros normalizados y DTOs cerrados.
+- **8C:** directorio `/warhome/users` con búsqueda, filtros, orden, paginación y enlaces a ficha.
+- **8D:** ficha `/warhome/users/[userId]` con identidad, perfil, resumen AeroComms, actividad reciente, lead opcional, marketing separado y placeholder de compras.
+- **8E:** auditoría de privacidad, seguridad y rendimiento cubierta por pruebas de aislamiento, paginación, límites y ausencia de escrituras.
+- **8F:** documentación y cierre técnico preparados; resta QA manual final y el flujo de integración.
+
+**Validación actual:** `npm test` con 398 pruebas correctas; TypeScript, lint focalizado y `git diff --check` correctos. El build local con webpack se detiene antes de compilar por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono mediante `next/font`; validar el build en Vercel o en un entorno con acceso de red.
+
+La revisión final y lanzamiento de AeroComms queda explícitamente pospuesta como Fase 13, la última fase del roadmap actual.
+
 ## Fases completadas
 
 ### Fase 0 — AeroComms en FlyPath
@@ -42,9 +65,9 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 - Separación transaccional/marketing, bajas seguras, historial append-only y propagación de supresiones.
 - Tracking de aperturas y clics desactivado en Resend por decisión operativa; el esquema está preparado.
 
-## Fase 7 — Persistencia AeroComms
+## Fase 7 — Persistencia AeroComms — CLOSED / COMPLETED / DEPLOYED
 
-**Completada técnicamente; migración remota aplicada y QA funcional aprobado.**
+**CLOSED / COMPLETED / DEPLOYED.** Migración remota aplicada, QA funcional aprobado y deployment completado correctamente.
 
 ### Objetivo
 
@@ -56,7 +79,7 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 
 - Especificación técnica: `docs/ai/aerocomms/aerocomms-phase-7-persistence-design.md`.
 - Contrato compartido y validado: `lib/aerocomms/persistence-contract.ts`.
-- Migración pendiente `20260712110000_create_aerocomms_progress_persistence.sql` con tablas de resumen, ejercicios, misiones, estadísticas, sesiones, recibos de idempotencia y reset remoto persistente.
+- Migración `20260712110000_create_aerocomms_progress_persistence.sql` aplicada con tablas de resumen, ejercicios, misiones, estadísticas, sesiones, recibos de idempotencia y reset remoto persistente.
 - RLS de lectura por propietario; sin escrituras directas de `authenticated`; RPC transaccional accesible solo desde servidor mediante `service_role`.
 - Rutas autenticadas `/api/aerocomms/progress/sync` y `/api/aerocomms/progress/reset`, validación de catálogo server-side, normalización `rfr` → `ready-for-radio`, límite de body y protección same-origin.
 - Integración local-first en `lib/aerocomms/appState.tsx`: no borra `localStorage` tras sincronizar, reintenta fallos transitorios y descarta respuestas anteriores a un reset.
@@ -70,9 +93,9 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 
 - `npm test`: 359 tests correctos.
 - `npx tsc --noEmit --pretty false`: correcto.
-- `npm run build -- --webpack`: bloqueado únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono mediante `next/font`; no hay errores de compilación propios de Fase 7.
+- `npm run build -- --webpack`: bloqueado localmente únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono mediante `next/font`; no hay errores de compilación propios de Fase 7. El deployment quedó completado correctamente.
 - QA funcional: aprobado para importación anónima, recuperación en otro navegador, nombre de cuenta y aislamiento entre cuentas.
-- La validación final del build queda pendiente en Vercel o en un entorno con acceso a Google Fonts.
+- La incidencia de red de Google Fonts queda limitada al entorno local y no bloquea el deployment validado.
 - ESLint focalizado de Fase 7 y `git diff --check`: correctos.
 
 ### Fuera de alcance
@@ -81,6 +104,12 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 - Audio, grabaciones, transcripciones, prompts, estado efímero o UI state.
 - Cambios de ejercicios, scoring, contenido, Free/Pro o desbloqueos.
 - Sincronización de Career Planner, Warhome o perfiles adicionales.
+
+### Cierre
+
+- Commit: `aaa5f4e feat(aerocomms): close phase 7 persistence`.
+- Push realizado a `main`.
+- 359 tests correctos, TypeScript correcto y `git diff --check` correcto.
 
 ## Fase 6 — Login, cuentas y perfiles
 

@@ -1,10 +1,33 @@
-# Última sesión — cierre técnico de Fase 7
+# Última sesión — Fase 8 técnicamente terminada; handoff a QA final
 
-**Fecha:** 2026-07-17
+**Fecha:** 2026-07-19
 **Rama:** `main`
-**Estado:** implementación de persistencia AeroComms completada; migración remota aplicada y QA funcional aprobado. Sin commit ni push en esta sesión.
+**Estado:** Fase 8 — Usuarios y actividad de AeroComms. Implementación técnica terminada; pendiente únicamente de QA manual final, commit, push y deployment. Sin cambios de migración remota en este cierre.
 
-## Estado real
+## Estado real de Fase 8
+
+- **8A:** `20260712120000_create_warhome_user_directory.sql` aplicada y validada en Supabase remoto. La RPC usa `SECURITY DEFINER`, `search_path` fijo y `EXECUTE` exclusivamente para `service_role`.
+- **8B:** `lib/warhome/users.ts` y `lib/warhome/user-detail.ts` exponen contratos server-only, filtros normalizados, paginación exacta y detalle cerrado.
+- **8C:** `/warhome/users` lista todas las cuentas FlyPath/AeroComms, con o sin lead, y permite búsqueda, cinco filtros, orden y paginación de 20.
+- **8D:** `/warhome/users/[userId]` muestra identidad, perfil, progreso AeroComms, últimas 20 sesiones, lead opcional, marketing separado y un placeholder de compras/entitlements.
+- **8E:** las pruebas confirman que el listado usa una RPC agregada sin N+1; la ficha se acota a `user_id`, usa un número fijo de consultas y no expone metadata Auth, identidades, tokens, hashes, recibos ni IDs de sesión cliente.
+- No se crean ni modifican leads, suscripciones, compras o eventos por consultar estas vistas.
+- Cuenta, perfil, actividad AeroComms, lead comercial, marketing y cliente futuro siguen siendo entidades distintas.
+- `npm test`: 398 pruebas correctas; TypeScript, lint focalizado y `git diff --check` correctos.
+- Build local con webpack bloqueado antes de compilar por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; validar en Vercel o en un entorno con red.
+
+## QA pendiente
+
+- Validar manualmente directorio, ficha, filtros, orden, paginación, estados vacíos y responsive.
+- Probar una cuenta con perfil/progreso/lead/marketing y una sin esas relaciones.
+- Confirmar que los enlaces a Leads y el retorno a Usuarios son correctos.
+- Tras QA: ejecutar validaciones finales, revisar diff, commit, push y deployment.
+
+## Siguiente fase
+
+Después del cierre de Fase 8: **Fase 9 — Backend de opiniones de escuelas**.
+
+## Cierre histórico de Fase 7
 
 - Fase 6 permanece completada e integrada en `main`.
 - Se creó la referencia `docs/ai/aerocomms/aerocomms-phase-7-persistence-design.md`.
@@ -16,6 +39,17 @@
 - El reset autenticado persiste un corte remoto: sesiones anteriores no pueden restaurar progreso eliminado en otro dispositivo. El owner tiene fallback en memoria y la sincronización reintenta errores transitorios.
 - `rfr` se persiste como `ready-for-radio`; audio, transcripciones, blobs, UI state y `subscription` local quedan excluidos.
 - El nombre no entra en la persistencia de progreso: anónimos mantienen el onboarding local y cuentas autenticadas muestran `profiles.full_name`. Perfil pide una decisión explícita antes de promover un nombre local distinto.
+
+## Cierre confirmado
+
+- Commit: `aaa5f4e feat(aerocomms): close phase 7 persistence`.
+- Push realizado a `main`.
+- Deployment completado correctamente.
+- `npm test`: 359 tests correctos.
+- TypeScript correcto.
+- `git diff --check`: correcto.
+- QA funcional: importación anónima, recuperación en otro navegador, aislamiento entre cuentas y nombre de perfil consistente.
+- El build local con Webpack solo quedó limitado por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; no hubo errores propios de Fase 7.
 
 ## Archivos clave
 
@@ -31,13 +65,25 @@
 - `npm run build -- --webpack`: bloqueado únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; validar en Vercel o en un entorno con red.
 - ESLint focalizado y `git diff --check`: correctos.
 
-## Estado de cierre
+## Handoff histórico hacia Fase 8
 
-La siguiente tarea es validar el build en Vercel o en un entorno con acceso a Google Fonts y preparar el cierre de la fase. La migración remota y el QA funcional ya están completados.
+La auditoría inicial ya se completó y dio lugar al directorio y la ficha operativa de usuarios. El siguiente paso vigente está documentado arriba: QA manual final de Fase 8, seguido del flujo de integración.
+
+## Decisión estratégica de roadmap
+
+- Se descarta crear leads automáticamente por usar AeroComms, completar onboarding, crear una cuenta, importar progreso o completar actividades.
+- Todos los usuarios con cuenta deben poder verse operativamente en Warhome, aunque no tengan lead.
+- Cuenta/perfil, actividad de producto, lead comercial, consentimiento de marketing y cliente futuro son entidades separadas.
+- La Fase 8 pasa a ser Usuarios y actividad de AeroComms.
+- La revisión final de AeroComms se mantiene al final del roadmap como Fase 13.
+- El backend de opiniones de escuelas se incorpora como Fase 9 propia.
+- Pagos y entitlements pasan a Fase 10.
+- CRM y automatizaciones avanzadas pasan a Fase 11.
+- Warhome / Warboard completo pasa a Fase 12, ampliando el Warhome MVP ya completado.
 
 ## Restricciones de alcance
 
 - No añadir Stripe, compras, entitlements, AeroComms Pro, audio, transcripciones, persistencia de Career Planner ni cambios de ejercicios.
-- No modificar Warhome ni lógica de acceso; mantener identidad FlyPath separada de autorización `admin_users`.
+- Mantener identidad FlyPath separada de autorización `admin_users` y no convertir uso normal de AeroComms en captación comercial.
 - La migración de Fase 7 ya está aplicada; cualquier cambio posterior de Supabase requiere una verificación previa de migraciones pendientes.
 - Mantener la separación entre identidad FlyPath y autorización Warhome.

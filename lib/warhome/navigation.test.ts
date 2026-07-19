@@ -6,16 +6,19 @@ import {
 } from "./navigation";
 
 describe("Warhome navigation", () => {
-  it("marca Resumen, Leads y Emails según el pathname", () => {
+  it("marca Resumen, Leads, Usuarios y Emails según el pathname", () => {
     expect(getActiveWarhomeNavigationId("/warhome")).toBe("summary");
     expect(getActiveWarhomeNavigationId("/warhome/leads")).toBe("leads");
     expect(getActiveWarhomeNavigationId("/warhome/leads/example")).toBe("leads");
+    expect(getActiveWarhomeNavigationId("/warhome/users")).toBe("users");
+    expect(getActiveWarhomeNavigationId("/warhome/users/example")).toBe("users");
     expect(getActiveWarhomeNavigationId("/warhome/emails")).toBe("emails");
   });
 
   it("expone títulos estables para las rutas disponibles", () => {
     expect(getWarhomePageDetails("/warhome").title).toBe("Resumen");
     expect(getWarhomePageDetails("/warhome/leads").title).toBe("Leads");
+    expect(getWarhomePageDetails("/warhome/users").title).toBe("Usuarios");
     expect(getWarhomePageDetails("/warhome/emails").title).toBe("Emails");
   });
 

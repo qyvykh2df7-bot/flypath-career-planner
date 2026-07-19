@@ -30,9 +30,9 @@ AeroComms ya vive **dentro de FlyPath** (`/aerocomms/app`). No hay fase futura d
 
 ### Pendiente de AeroComms (fases posteriores, no migración)
 
-- Persistencia de usuario y progreso en Supabase (Fase 7).
-- Revisión general, voces, transcripción, evaluación y QA (Fase 8).
-- Límites Free / Pro y desbloqueo tras pago (Fases 7 y 9).
+- Usuarios y actividad de AeroComms en Warhome, sin captación automática (Fase 8).
+- Revisión final de producto, voz, evaluación y QA (Fase 13).
+- Límites Free / Pro y desbloqueo tras pago (Fase 10).
 
 ---
 
@@ -53,11 +53,11 @@ Base de datos compartida para captación, perfiles, email, eventos, contenido y 
 
 | Dominio | Tablas | Fase prevista |
 |---------|--------|---------------|
-| Catálogo | `products` | Fase 9 (pagos) |
+| Catálogo | `products` | Fase 10 (pagos) |
 | Usuarios | `profiles` | Fase 6 (login) |
 | Eventos / analítica | `user_events` | Fase 3 (completada) |
-| Automatización email | `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries` | Fase 10 (CRM) |
-| Contenido | `content_items` | Fase 11 (Warboard) |
+| Automatización email | `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries` | Fase 11 (CRM) |
+| Contenido | `content_items` | Fase 12 (Warboard) |
 | Admin | `admin_notes` | Esquema listo; UI en backlog (Warhome / Warboard) |
 
 ---
@@ -266,12 +266,12 @@ Bloques 5A–5D implementados, validados e integrados en `main` mediante el merg
 
 | Tema | Fase prevista |
 |------|---------------|
-| Reintentos automáticos de email | Post-volumen / Fase 10 |
-| Campañas y envíos masivos | Fase 10 |
-| Secuencias y journeys (`email_sequences`, `email_enrollments`) | Fase 10 |
-| Centro de preferencias multi-lista | Fase 10 |
-| Baja global (todas las listas) | Fase 10 |
-| Reactivación manual de suscripciones en Warhome | Fase 10 / Warboard |
+| Reintentos automáticos de email | Post-volumen / Fase 11 |
+| Campañas y envíos masivos | Fase 11 |
+| Secuencias y journeys (`email_sequences`, `email_enrollments`) | Fase 11 |
+| Centro de preferencias multi-lista | Fase 11 |
+| Baja global (todas las listas) | Fase 11 |
+| Reactivación manual de suscripciones en Warhome | Fase 11 / Fase 12 |
 | Hardening de permisos de tablas de consentimiento | Post-auditoría |
 | Reactivar tracking open/click en Resend | Cuando reputación del dominio lo permita |
 
@@ -358,7 +358,7 @@ Identidad común para FlyPath y AeroComms, con autorización de Warhome separada
 
 ## Fase 7 — Persistencia de AeroComms
 
-**Estado: Completada técnicamente; migración remota aplicada y QA funcional aprobado.**
+**Estado: CLOSED / COMPLETED / DEPLOYED.** Migración remota aplicada, QA funcional aprobado y deployment completado correctamente.
 
 Progreso de usuario en backend; AeroComms ya está en FlyPath (Fase 0).
 
@@ -370,120 +370,195 @@ Progreso de usuario en backend; AeroComms ya está en FlyPath (Fase 0).
 - `localStorage` sigue funcionando para anónimos; la migración local → remoto no borra `aerocomms.v2` tras confirmar persistencia.
 - Lecturas propias mediante RLS y escritura únicamente a través de límite server-side autenticado.
 
-### Implementado localmente
+### Implementado y desplegado
 
 - Diseño técnico versionado en `docs/ai/aerocomms/aerocomms-phase-7-persistence-design.md`.
-- Migración `20260712110000_create_aerocomms_progress_persistence.sql` con tablas, RLS, índices, recibos de idempotencia y RPC transaccional.
+- Migración `20260712110000_create_aerocomms_progress_persistence.sql` aplicada con tablas, RLS, índices, recibos de idempotencia y RPC transaccional.
 - Rutas `/api/aerocomms/progress/sync` y `/api/aerocomms/progress/reset` y helpers cliente/servidor para validar, normalizar, reintentar y fusionar snapshots.
 - Sincronización automática solo para estado vacío o previamente asociado a la misma cuenta. Perfil permite importar explícitamente el progreso anónimo existente o empezar desde cero, sin asociarlo silenciosamente en navegadores compartidos.
 - Reset remoto idempotente con corte persistente contra sesiones antiguas; las métricas posteriores a la importación derivan de sesiones idempotentes y el snapshot mantiene el historial de versiones de contenido.
 - El nombre de AeroComms no se sincroniza como progreso: se mantiene local para anónimos y `profiles.full_name` es la fuente de visualización para cuentas autenticadas, con resolución explícita de conflictos.
-- 359 tests, TypeScript y `git diff --check` correctos. El build con Webpack queda bloqueado únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; no hay errores de compilación propios de Fase 7. Validar en Vercel o en un entorno con red.
+- 359 tests, TypeScript y `git diff --check` correctos. El build local con Webpack quedó bloqueado únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; no hay errores de compilación propios de Fase 7. El deployment quedó completado correctamente.
 
-### Pendiente de cierre
+### Cierre
 
-- Validación final del build en Vercel o en un entorno con acceso a Google Fonts.
+- Commit: `aaa5f4e feat(aerocomms): close phase 7 persistence`.
+- Push realizado a `main`.
+- QA funcional aprobado para importación anónima, recuperación entre navegadores, aislamiento entre cuentas y nombre consistente mediante `profiles.full_name`.
 
 ### Nota
 
-No implica mover AeroComms a otro repo ni dominio. No activa Free/Pro, Stripe, compras ni entitlements; esos límites pertenecen a Fase 9.
+No implica mover AeroComms a otro repo ni dominio. No activa Free/Pro, Stripe, compras ni entitlements; esos límites pertenecen a Fase 10.
 
 ---
 
-## Fase 8 — Revisión final de AeroComms
+## Fase 8 — Usuarios y actividad de AeroComms
 
-**Estado: Pendiente**
+**Estado: Implementación técnica terminada; pendiente de QA manual final, commit, push y deployment.**
 
-Calidad de producto, voz y evaluación. Puede solaparse parcialmente con Fases 6 y 7.
+Dar visibilidad operativa en Warhome a todos los usuarios de AeroComms sin convertir el uso normal del producto en captación comercial.
+
+### Principios cerrados
+
+- `auth.users` + `profiles`: toda cuenta FlyPath.
+- Persistencia AeroComms: progreso, sesiones y uso del producto.
+- `user_events`: actividad relevante y consentida cuando corresponda.
+- `leads`: solo intención comercial explícita futura.
+- `email_subscriptions`: solo consentimiento explícito de marketing.
+- Pagos y entitlements: clientes y acceso futuro, fuera de esta fase.
+
+No se crea un lead por usar AeroComms, completar onboarding, crear una cuenta, importar progreso o completar actividades o sesiones.
 
 ### Objetivos
 
-- Auditoría completa.
-- Voces naturales.
-- Voces de radio y ATIS cuando corresponda.
-- Transcripción.
-- Micrófono.
-- Evaluación robusta de speaking.
-- Respuestas aceptadas y tolerancia.
-- Scoring real.
-- Estrellas y porcentajes.
-- QA móvil y escritorio.
-- Responsive.
-- Rendimiento.
+- Listado de usuarios FlyPath/AeroComms en Warhome.
+- Detalle individual con nombre, email, fecha de creación de cuenta y relación con `profiles`.
+- Progreso AeroComms real: nivel o etapa disponible, sesiones, actividades completadas y último uso disponible.
+- Mostrar importación de progreso y actividad autenticada relevante cuando exista.
+- Vínculo opcional con un lead ya existente, sin crear ni reasignar leads.
+- Estado de suscripción de marketing separado del uso de producto.
+- Preparar la lectura futura de compras y entitlements sin implementarlos.
+- Mantener aislamiento entre cuentas y no duplicar datos ya presentes en las tablas de progreso.
+- Auditar primero límites de lectura, privacidad, RLS, paginación y datos disponibles antes de crear la interfaz.
+
+### Implementado en 8A–8E
+
+- RPC paginada de directorio aplicada en Supabase remoto, con agregados deduplicados, total exacto y acceso exclusivo de `service_role`.
+- Contratos server-only para listado y ficha individual; autorización Warhome obligatoria antes de cada lectura.
+- `/warhome/users` con búsqueda por nombre/email, filtros cerrados, orden, paginación de 20, estados vacíos y error genérico.
+- `/warhome/users/[userId]` con identidad, perfil, resumen AeroComms, últimas 20 sesiones, lead opcional, marketing separado y placeholder de compras.
+- Auditoría de privacidad y rendimiento: sin N+1 en listado; detalle limitado por usuario; sin metadata Auth, providers, tokens, hashes, recibos ni sesiones cliente en los DTOs.
+- 398 pruebas, TypeScript, lint focalizado y `git diff --check` correctos. El build local con webpack depende de Google Fonts y queda bloqueado en este entorno por `ENOTFOUND fonts.googleapis.com`; no hay error de compilación de Fase 8 confirmado.
+
+### Pendiente de cierre
+
+- QA manual final de escritorio y responsive.
+- Revisión final del diff, commit, push y deployment.
 
 ---
 
-## Fase 9 — Pagos y monetización
+## Fase 9 — Backend de opiniones de escuelas
 
 **Estado: Pendiente**
 
-Monetización vía Stripe.
+Backend completo para opiniones de escuelas vinculado a usuarios y escuelas.
+
+### Objetivos
+
+- Modelo de opiniones vinculado a escuelas y usuarios.
+- Puntuación general y por categorías.
+- Comentario y estado de moderación.
+- RLS, índices, constraints y validación.
+- Prevención de duplicados, spam y abuso.
+- Envío, edición y eliminación controlados.
+- Aprobación, rechazo y ocultación desde Warhome.
+- Medias, distribución y número de opiniones.
+- Formulario y páginas de opiniones.
+- Integración con fichas de escuela y comparador.
+
+---
+
+## Fase 10 — Pagos, monetización y entitlements
+
+**Estado: Pendiente**
 
 ### Objetivos
 
 - Stripe.
-- Compras únicas.
-- Suscripciones.
-- Checkout.
 - Productos y precios.
+- Checkout.
+- Pagos únicos y suscripciones.
 - Webhooks.
+- Historial de pagos.
 - Facturación.
 - Cancelaciones y reembolsos.
-- Desbloqueo de acceso.
-- Mentorías.
-- Pre-PPL.
+- Cupones, descuentos y bundles.
+- Entitlements y control server-side de acceso.
 - AeroComms Pro.
+- Career Planner premium.
+- Pre-PPL.
+- Cómo ser Piloto.
+- Mentorías.
 
 ---
 
-## Fase 10 — CRM y automatizaciones
+## Fase 11 — CRM y automatizaciones avanzadas
 
-**Estado: Pendiente** (esquema de email **preparado**)
+**Estado: Pendiente, con infraestructura parcialmente preparada**
+
+Amplía el trabajo existente de Backend Core, Leads, Warhome MVP, Emails Operativos y las tablas de secuencias y automatizaciones.
 
 ### Objetivos
 
-- Estados comerciales.
+- Edición de `status` y `funnel_stage`.
 - Responsables.
 - Próximas acciones.
-- Seguimiento.
-- Segmentaciones.
 - Recordatorios.
+- Notas internas.
+- Historial comercial.
+- Segmentaciones.
+- Deduplicación avanzada.
+- Vista unificada de usuario, lead, compras y actividad.
 - Secuencias.
 - Journeys.
 - Campañas.
-- Automatizaciones.
-- Control de consentimiento y frecuencia.
+- Recuperación de inactivos.
+- Abandono de checkout.
+- Preferencias y bajas.
+- Control de frecuencia.
+- Métricas de conversión.
 
-### Preparado (esquema)
+### Infraestructura existente
 
-- `email_sequences`, `email_sequence_steps`, `email_enrollments`, `email_jobs`, `email_deliveries`.
+- Backend Core.
+- Leads.
+- Warhome MVP.
+- Emails Operativos.
+- Tablas de secuencias y automatizaciones.
 
 ---
 
-## Fase 11 — Warhome / Warboard completo
+## Fase 12 — Warhome / Warboard completo
 
-**Estado: Pendiente**
+**Estado: Pendiente, con Warhome MVP ya completado**
 
 Centro operativo completo de FlyPath.
 
 ### Objetivos
 
-- Leads.
-- Usuarios.
-- Productos.
-- Ventas.
-- Suscripciones.
-- Analítica y funnels.
-- Contenido.
+- Negocio, usuarios, leads, ventas, ingresos, productos y funnels.
+- Métricas de AeroComms, Career Planner, guías, mentorías, comparador y opiniones.
+- Content OS.
 - Redes sociales.
-- Campañas y anuncios.
-- Tareas.
-- Soporte.
-- FlyPath.
-- AeroComms.
-- PilotFeliu.
-- Agentes de IA.
-- Costes y actividad de agentes.
+- Ads & Promotions.
+- Tareas y operaciones.
+- Pantalla visual de agentes IA.
+- Estado, tareas, outputs, frecuencia, costes y tokens.
+- Aprobación humana para acciones sensibles.
+
+---
+
+## Fase 13 — Revisión final y lanzamiento de AeroComms
+
+**Estado: Pospuesta. Última fase del roadmap actual.**
+
+### Objetivos
+
+- Auditoría integral.
+- Onboarding y navegación.
+- Revisión de contenido.
+- Voz, micrófono, STT y TTS.
+- Voces naturales, radio y ATIS.
+- Evaluación robusta de speaking.
+- Scoring, estrellas y porcentajes reales.
+- Límites Free / Pro conectados a entitlements.
+- QA móvil, escritorio e iPhone real.
+- Responsive.
+- Accesibilidad.
+- Rendimiento.
+- Errores de consola.
+- Limpieza de código antiguo.
+- QA final en producción.
 
 ---
 
@@ -497,9 +572,11 @@ Fase 3   Tracking y analítica básica    ████████████  
 Fase 4   Warhome MVP                    ████████████  Completado e integrado en main
 Fase 5   Emails operativos              ████████████  Completado e integrado en main
 Fase 6   Login, cuentas y perfiles      ████████████  Completada e integrada en main
-Fase 7   Persistencia de AeroComms      ██████████░░  Completada; build pendiente de validación en entorno con red
-Fase 8   Revisión final de AeroComms    ░░░░░░░░░░░░  Pendiente
-Fase 9   Pagos y monetización           ░░░░░░░░░░░░  Pendiente
-Fase 10  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (tablas listas)
-Fase 11  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente
+Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
+Fase 8   Usuarios y actividad AeroComms ████████████  Técnica terminada; QA final pendiente
+Fase 9   Backend de opiniones           ░░░░░░░░░░░░  Pendiente
+Fase 10  Pagos y entitlements           ░░░░░░░░░░░░  Pendiente
+Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
+Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
+Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase
 ```

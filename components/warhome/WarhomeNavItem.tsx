@@ -10,6 +10,7 @@ import {
   NotebookPen,
   Package,
   Settings,
+  UserRound,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import type { WarhomeNavigationIcon, WarhomeNavigationItem } from "@/lib/warhome
 const NAVIGATION_ICONS: Record<WarhomeNavigationIcon, LucideIcon> = {
   summary: LayoutDashboard,
   leads: UsersRound,
+  users: UserRound,
   emails: Mail,
   notes: NotebookPen,
   settings: Settings,

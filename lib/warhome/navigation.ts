@@ -1,6 +1,7 @@
 export type WarhomeNavigationIcon =
   | "summary"
   | "leads"
+  | "users"
   | "emails"
   | "notes"
   | "settings"
@@ -36,6 +37,14 @@ export const WARHOME_NAVIGATION: readonly WarhomeNavigationItem[] = [
     availability: "available",
     group: "mvp",
     icon: "leads",
+  },
+  {
+    id: "users",
+    label: "Usuarios",
+    href: "/warhome/users",
+    availability: "available",
+    group: "mvp",
+    icon: "users",
   },
   {
     id: "emails",
@@ -124,6 +133,10 @@ const WARHOME_PAGE_DETAILS: Record<string, WarhomePageDetails> = {
   "/warhome/leads": {
     title: "Leads",
     subtitle: "Captación, seguimiento y contexto comercial.",
+  },
+  "/warhome/users": {
+    title: "Usuarios",
+    subtitle: "Cuentas FlyPath y actividad de AeroComms.",
   },
   "/warhome/emails": {
     title: "Emails",

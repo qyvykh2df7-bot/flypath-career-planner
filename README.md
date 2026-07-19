@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 7 — Persistencia AeroComms.** Implementada con progreso autenticado local-first, sesiones idempotentes, reset remoto persistente e importación explícita del progreso anónimo. La migración remota está aplicada y el QA funcional está aprobado. El nombre permanece local para anónimos y, con cuenta, usa `profiles.full_name` tras una decisión explícita ante conflictos. El build local queda pendiente únicamente por el acceso a Google Fonts; debe validarse en Vercel o en un entorno con red. Sin pagos, entitlements ni cambios Free/Pro.
+**Fase 8 — Usuarios y actividad de AeroComms.** Implementación técnica terminada y pendiente de QA manual final, commit, push y deployment. Warhome dispone de directorio y ficha protegida para todas las cuentas FlyPath/AeroComms, tengan o no lead; cuenta, perfil, actividad de producto, lead y consentimiento de marketing permanecen separados. 398 pruebas, TypeScript, lint focalizado y `git diff --check` correctos. El build local con webpack sigue bloqueado únicamente por la resolución de Google Fonts. El uso normal de AeroComms, el onboarding, la cuenta y la importación de progreso no crean leads ni consentimiento de marketing. Compras y entitlements se abordarán en Fase 10.
 
 ## Comandos
 
@@ -29,7 +29,7 @@ Copia `.env.example` a `.env.local` y rellena:
 | Documento | Contenido |
 |-----------|-----------|
 | [CURRENT_PHASE.md](./CURRENT_PHASE.md) | Fase actual, flujos de captación, estado real |
-| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa de Fase 7 |
+| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa de Fase 8 |
 | [ROADMAP.md](./ROADMAP.md) | Roadmap por fases |
 | [BACKLOG.md](./BACKLOG.md) | Mejoras pospuestas y pendientes |
 | [LAST_SESSION.md](./LAST_SESSION.md) | Último handoff operativo |
