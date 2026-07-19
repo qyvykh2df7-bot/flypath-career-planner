@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 9 — Backend de opiniones de escuelas.** La Fase 8 — Usuarios y actividad de AeroComms está CLOSED / COMPLETED / DEPLOYED: commit `73758c1 feat(warhome): add AeroComms user operations`, publicado en `main`, migración `20260712120000_create_warhome_user_directory.sql` aplicada en Supabase remoto, 398 pruebas correctas, TypeScript correcto, QA manual aprobado y deployment de Vercel confirmado manualmente. Warhome muestra todas las cuentas FlyPath/AeroComms, tengan o no lead; cuenta, perfil, actividad de producto, lead y consentimiento de marketing permanecen separados. El uso normal de AeroComms no crea leads ni consentimiento de marketing. La primera tarea de Fase 9 es auditar escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
+**Fase 10 — Pagos, monetización y entitlements.** La Fase 9 — Backend de opiniones de escuelas está cerrada técnicamente: catálogo público endurecido, migraciones `20260712130000`, `20260712140000` y `20260712150000` aplicadas en Supabase, formulario con verificación por email, lectura pública exclusiva de reseñas aprobadas, moderación atómica privada en Warhome y estrellas del Career Planner basadas únicamente en opiniones aprobadas. Cuenta, lead, marketing y opiniones permanecen separados; crear una opinión no crea captación ni consentimiento. La QA manual y responsive final de opiniones sigue siendo el único cierre operativo pendiente antes de su publicación.
 
 ## Comandos
 
@@ -29,7 +29,7 @@ Copia `.env.example` a `.env.local` y rellena:
 | Documento | Contenido |
 |-----------|-----------|
 | [CURRENT_PHASE.md](./CURRENT_PHASE.md) | Fase actual, flujos de captación, estado real |
-| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa de Fase 9 |
+| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa de Fase 10 |
 | [ROADMAP.md](./ROADMAP.md) | Roadmap por fases |
 | [BACKLOG.md](./BACKLOG.md) | Mejoras pospuestas y pendientes |
 | [LAST_SESSION.md](./LAST_SESSION.md) | Último handoff operativo |

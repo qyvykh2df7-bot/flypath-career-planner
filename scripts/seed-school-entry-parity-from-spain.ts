@@ -258,7 +258,6 @@ async function processEntry(
     data_status: entry.dataStatus,
     last_updated_at: entry.lastUpdatedAt,
     excluded_from_public_comparator: entry.excludedFromPublicComparator ?? false,
-    comparator_exclusion_note: entry.comparatorExclusionNote ?? null,
     aircraft_availability: entry.aircraftAvailability,
     student_aircraft_ratio: entry.studentAircraftRatio ?? null,
     instructor_student_ratio: entry.instructorStudentRatio ?? null,

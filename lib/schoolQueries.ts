@@ -1,4 +1,10 @@
-import { supabase } from "@/lib/supabaseClient";
+import "server-only";
+
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+
+function getSchoolSupabase() {
+  return getSupabaseAdmin();
+}
 
 /** Forma cruda de una fila de la tabla `schools` en Supabase. */
 export type SupabaseSchoolRow = {
@@ -313,7 +319,7 @@ export function pickMainProgram(programs: SupabaseProgramRow[]): SupabaseProgram
  * tabla. No se filtran en el cliente.
  */
 export async function getComparableSchoolsFromSupabase(): Promise<SupabaseSchoolWithMainProgram[]> {
-  const { data: schoolsData, error: schoolsError } = await supabase
+  const { data: schoolsData, error: schoolsError } = await getSchoolSupabase()
     .from("schools")
     .select(SCHOOL_FIELDS)
     .eq("status", "active")
@@ -327,7 +333,7 @@ export async function getComparableSchoolsFromSupabase(): Promise<SupabaseSchool
 
   const schoolIds = schools.map((s) => s.school_id);
 
-  const { data: programsData, error: programsError } = await supabase
+  const { data: programsData, error: programsError } = await getSchoolSupabase()
     .from("programs")
     .select(PROGRAM_FIELDS)
     .in("school_id", schoolIds)
@@ -365,7 +371,7 @@ export async function getComparableSchoolsFromSupabase(): Promise<SupabaseSchool
  * o si su `status` no es `"active"`.
  */
 export async function getSchoolBySlug(slug: string): Promise<SupabaseSchoolWithMainProgram | null> {
-  const { data: schoolsData, error: schoolsError } = await supabase
+  const { data: schoolsData, error: schoolsError } = await getSchoolSupabase()
     .from("schools")
     .select(SCHOOL_FIELDS)
     .eq("slug", slug)
@@ -392,7 +398,7 @@ export async function getSchoolBySlug(slug: string): Promise<SupabaseSchoolWithM
 
 /** Devuelve los programas activos de una escuela (`status = "active"`). */
 export async function getProgramsBySchoolId(schoolId: string): Promise<SupabaseProgramRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("programs")
     .select(PROGRAM_FIELDS)
     .eq("school_id", schoolId)
@@ -406,7 +412,7 @@ export async function getProgramsBySchoolId(schoolId: string): Promise<SupabaseP
 
 /** Devuelve los módulos de un programa, ordenados por `module_order`. */
 export async function getModulesByProgramId(programId: string): Promise<SupabaseModuleRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("modular_modules")
     .select(MODULE_FIELDS)
     .eq("program_id", programId)
@@ -418,7 +424,7 @@ export async function getModulesByProgramId(programId: string): Promise<Supabase
 
 /** Devuelve la fila de `costs_and_payments` para un programa, o `null` si no existe. */
 export async function getCostsByProgramId(programId: string): Promise<SupabaseCostsRow | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("costs_and_payments")
     .select(COSTS_FIELDS)
     .eq("program_id", programId)
@@ -431,7 +437,7 @@ export async function getCostsByProgramId(programId: string): Promise<SupabaseCo
 
 /** Devuelve la fila de `extras` para un programa, o `null` si no existe. */
 export async function getExtrasByProgramId(programId: string): Promise<SupabaseExtrasRow | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("extras")
     .select(EXTRAS_FIELDS)
     .eq("program_id", programId)
@@ -444,7 +450,7 @@ export async function getExtrasByProgramId(programId: string): Promise<SupabaseE
 
 /** Devuelve risk flags de una escuela con `status = "active"`. Incluye los que también tengan `program_id`. */
 export async function getRiskFlagsBySchoolId(schoolId: string): Promise<SupabaseRiskFlagRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("risk_flags")
     .select(RISK_FLAG_FIELDS)
     .eq("school_id", schoolId)
@@ -456,7 +462,7 @@ export async function getRiskFlagsBySchoolId(schoolId: string): Promise<Supabase
 
 /** Devuelve risk flags asociados a un programa concreto con `status = "active"`. */
 export async function getRiskFlagsByProgramId(programId: string): Promise<SupabaseRiskFlagRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("risk_flags")
     .select(RISK_FLAG_FIELDS)
     .eq("program_id", programId)
@@ -468,7 +474,7 @@ export async function getRiskFlagsByProgramId(programId: string): Promise<Supaba
 
 /** Devuelve fuentes asociadas a una escuela. */
 export async function getSourcesBySchoolId(schoolId: string): Promise<SupabaseSourceRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("sources")
     .select(SOURCE_FIELDS)
     .eq("school_id", schoolId);
@@ -479,7 +485,7 @@ export async function getSourcesBySchoolId(schoolId: string): Promise<SupabaseSo
 
 /** Devuelve fuentes asociadas a un programa concreto. */
 export async function getSourcesByProgramId(programId: string): Promise<SupabaseSourceRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("sources")
     .select(SOURCE_FIELDS)
     .eq("program_id", programId);
@@ -491,7 +497,7 @@ export async function getSourcesByProgramId(programId: string): Promise<Supabase
 export async function getSchoolScoresBySchoolId(
   schoolId: string,
 ): Promise<SupabaseSchoolScoresRow | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("school_scores")
     .select(SCHOOL_SCORES_FIELDS)
     .eq("school_id", schoolId)
@@ -505,7 +511,7 @@ export async function getSchoolScoresBySchoolId(
 export async function getSchoolTextListItemsBySchoolId(
   schoolId: string,
 ): Promise<SupabaseSchoolTextListItemRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("school_text_list_items")
     .select(SCHOOL_TEXT_LIST_FIELDS)
     .eq("school_id", schoolId)
@@ -519,7 +525,7 @@ export async function getSchoolTextListItemsBySchoolId(
 export async function getUniversityTrackBySchoolId(
   schoolId: string,
 ): Promise<SupabaseUniversityTrackRow | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("university_tracks")
     .select(UNIVERSITY_TRACK_FIELDS)
     .eq("school_id", schoolId)
@@ -542,7 +548,7 @@ export async function getUniversityTrackBySchoolId(
  * - Devuelve `null` si la escuela no existe o no está activa.
  */
 export async function getFullSchoolProfileBySlug(slug: string): Promise<FullSchoolProfile | null> {
-  const { data: schoolsData, error: schoolError } = await supabase
+  const { data: schoolsData, error: schoolError } = await getSchoolSupabase()
     .from("schools")
     .select(SCHOOL_FIELDS)
     .eq("slug", slug)
@@ -567,9 +573,9 @@ export async function getFullSchoolProfileBySlug(slug: string): Promise<FullScho
 
   if (programIds.length > 0) {
     const [costsRes, extrasRes, modulesRes] = await Promise.all([
-      supabase.from("costs_and_payments").select(COSTS_FIELDS).in("program_id", programIds),
-      supabase.from("extras").select(EXTRAS_FIELDS).in("program_id", programIds),
-      supabase
+      getSchoolSupabase().from("costs_and_payments").select(COSTS_FIELDS).in("program_id", programIds),
+      getSchoolSupabase().from("extras").select(EXTRAS_FIELDS).in("program_id", programIds),
+      getSchoolSupabase()
         .from("modular_modules")
         .select(MODULE_FIELDS)
         .in("program_id", programIds)
@@ -638,7 +644,7 @@ export async function getFullSchoolProfileBySlug(slug: string): Promise<FullScho
 export async function getFullSchoolProfileByLegacyEntryId(
   legacyEntryId: string,
 ): Promise<FullSchoolProfile | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSchoolSupabase()
     .from("schools")
     .select("slug")
     .eq("legacy_entry_id", legacyEntryId)

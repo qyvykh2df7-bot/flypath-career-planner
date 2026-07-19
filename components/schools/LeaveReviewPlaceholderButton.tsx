@@ -1,8 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
-const TOAST_TIMEOUT_MS = 2300;
+import Link from "next/link";
 
 const VARIANT_CLASSES = {
   /** Estilo suave (cream + texto marrón dorado). Por defecto, usado en la ficha
@@ -20,54 +18,21 @@ type Variant = keyof typeof VARIANT_CLASSES;
 type Props = {
   /** Texto del botón. Por defecto: "Quiero dejar una opinión". */
   label?: string;
-  /** Texto que se mostrará en el toast al pulsar. */
-  toastMessage?: string;
   /** Estilo visual: `soft` (ficha) o `primary` (hero). */
   variant?: Variant;
+  /** Slug público de la escuela, resuelto a school_id únicamente en servidor. */
+  schoolSlug?: string;
 };
 
 /**
- * Botón placeholder de la sección "Opiniones verificadas" / página de reviews.
- * Marca la funcionalidad como en preparación: al pulsar muestra un toast local
- * FlyPath y NO abre formulario, NO navega y NO conecta con Supabase ni con
- * ningún backend de reviews.
- *
- * Encapsulado como Client Component aislado para no forzar a sus consumers
- * (ficha individual SSR, página `/school-reviews` SSR) a ser cliente.
+ * CTA aislado para abrir el formulario público. El slug solo preselecciona la
+ * escuela: el backend resuelve siempre la FK canónica school_id en servidor.
  */
 export function LeaveReviewPlaceholderButton({
   label = "Quiero dejar una opinión",
-  toastMessage = "Sistema de reviews próximamente",
   variant = "soft",
+  schoolSlug,
 }: Props = {}) {
-  const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => {
-      setToast((current) => (current === toast ? null : current));
-    }, TOAST_TIMEOUT_MS);
-    return () => window.clearTimeout(id);
-  }, [toast]);
-
-  const handleClick = useCallback(() => {
-    setToast(toastMessage);
-  }, [toastMessage]);
-
-  return (
-    <>
-      <button type="button" onClick={handleClick} className={VARIANT_CLASSES[variant]}>
-        {label}
-      </button>
-      {toast ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed right-3 top-3 z-50 rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2 text-[15px] text-white shadow-lg"
-        >
-          {toast}
-        </div>
-      ) : null}
-    </>
-  );
+  const href = schoolSlug ? `/opiniones-escuelas?school=${encodeURIComponent(schoolSlug)}` : "/opiniones-escuelas";
+  return <Link href={href} className={VARIANT_CLASSES[variant]}>{label}</Link>;
 }

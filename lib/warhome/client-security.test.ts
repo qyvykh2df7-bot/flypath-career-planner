@@ -14,12 +14,17 @@ const clientFiles = [
   "components/warhome/WarhomeUserFilters.tsx",
   "components/warhome/WarhomeUsersTable.tsx",
   "components/warhome/WarhomeUserDetail.tsx",
+  "components/warhome/WarhomeReviewFilters.tsx",
+  "components/warhome/WarhomeReviewsTable.tsx",
+  "components/warhome/WarhomeReviewDetail.tsx",
   "components/warhome/WarhomeNavItem.tsx",
   "components/warhome/WarhomeSidebar.tsx",
   "app/warhome/(protected)/leads/[leadId]/page.tsx",
   "app/warhome/(protected)/emails/page.tsx",
   "app/warhome/(protected)/users/page.tsx",
   "app/warhome/(protected)/users/[userId]/page.tsx",
+  "app/warhome/(protected)/reviews/page.tsx",
+  "app/warhome/(protected)/reviews/[reviewId]/page.tsx",
 ];
 
 describe("Warhome client security", () => {

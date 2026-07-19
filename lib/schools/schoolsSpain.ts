@@ -1027,8 +1027,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://www.aerotec.es
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aerotec no se incluye como escuela independiente porque está integrada/fusionada con European Flyers. Revisar European Flyers como referencia principal.",
     id: "es-aerotec",
     slug: "aerotec",
     name: "AEROTEC Escuela de Pilotos",
@@ -1071,8 +1069,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
   },
   {
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aerofan no se incluye por falta de información oficial verificable y web operativa.",
     id: "es-aerofan",
     slug: "aerofan",
     name: "Aerofan",
@@ -1115,8 +1111,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
   },
   {
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "GTA no se incluye en el comparador 0 → CPL/ATPL porque está centrada en simulador, type ratings y formación avanzada para pilotos ya licenciados.",
     id: "es-global-training-aviation",
     slug: "global-training-aviation",
     name: "Global Training Aviation (GTA)",
@@ -1159,8 +1153,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
   },
   {
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Dream Air Barcelona no se incluye por ahora porque solo se ha identificado formación PPL/iniciación, no ruta profesional completa CPL/ATPL.",
     id: "es-dream-air-barcelona",
     slug: "dream-air-barcelona",
     name: "Dream Air Barcelona",
@@ -1424,8 +1416,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://aerotablada.com/formacion/
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aerotablada centra su oferta pública en PPL, drones y radiofonista; sin ruta profesional CPL/ATPL comparable.",
     id: "es-aerotablada",
     slug: "aerotablada",
     name: "Aerotablada",
@@ -1469,8 +1459,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: http://www.aero2mil.es/
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aero2mil ofrece ULM, radiofonista y navegación; sin ruta profesional CPL/ATPL comparable.",
     id: "es-aero2mil",
     slug: "aero2mil",
     name: "Aero2mil",
@@ -1514,8 +1502,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://www.lecuaviation.com/nuestra-escuela
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "LECU Aviation ofrece formación PPL; sin ruta profesional CPL/ATPL comparable.",
     id: "es-lecu-aviation",
     slug: "lecu-aviation",
     name: "LECU Aviation",
@@ -1559,8 +1545,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://www.aeroclub.es/
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aeroclub centrado en formación inicial/PPL; sin ruta profesional CPL/ATPL comparable en FlyPath.",
     id: "es-aeroclub-barcelona-sabadell",
     slug: "aeroclub-barcelona-sabadell",
     name: "L'Aeroclub Barcelona-Sabadell",
@@ -1604,8 +1588,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://realaeroclubgrancanaria.es/
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aeroclub centrado en formación inicial/PPL; sin ruta profesional CPL/ATPL comparable en FlyPath.",
     id: "es-real-aeroclub-gran-canaria",
     slug: "real-aeroclub-gran-canaria",
     name: "Real Aeroclub de Gran Canaria",
@@ -1649,8 +1631,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: http://www.realaeroclubdezaragoza.com/
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aeroclub centrado en formación inicial/PPL; sin ruta profesional CPL/ATPL comparable en FlyPath.",
     id: "es-real-aero-club-zaragoza",
     slug: "real-aero-club-zaragoza",
     name: "Real Aero Club de Zaragoza",
@@ -1694,8 +1674,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://usal.es/grado-en-piloto-de-aviacion-comercial-y-operaciones-aereas
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Entrada universitaria duplicada: Adventia ya cubre el Grado USAL como escuela principal del comparador.",
     id: "es-universidad-salamanca-grado-piloto",
     slug: "universidad-salamanca-grado-piloto",
     name: "Universidad de Salamanca (Grado Piloto)",
@@ -1740,8 +1718,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://www.uam.es/uam/gestion-aeronautica
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Grado universitario de gestión aeronáutica; no equivale a una escuela profesional CPL/ATPL comparable.",
     id: "es-uam-gestion-aeronautica",
     slug: "uam-gestion-aeronautica",
     name: "UAM - Grado en Gestión Aeronáutica",
@@ -1786,8 +1762,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://www.uab.cat/web/estudiar/listado-de-grados/informacion-general/gestion-aeronautica-1216708258897.html
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Grado universitario de gestión aeronáutica; no equivale a una escuela profesional CPL/ATPL comparable.",
     id: "es-uab-gestion-aeronautica",
     slug: "uab-gestion-aeronautica",
     name: "UAB - Grado en Gestión Aeronáutica",
@@ -1832,8 +1806,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
     // sourceUrl: https://www.upm.es
     // sourceLabel: Web oficial
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Grado universitario de gestión y operaciones; no equivale a una escuela profesional CPL/ATPL comparable.",
     id: "es-upm-gestion-operaciones-transporte-aereo",
     slug: "upm-gestion-operaciones-transporte-aereo",
     name: "UPM - Grado en Gestión y Operaciones del Transporte Aéreo",
@@ -2024,8 +1996,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
   {
     // AESA ATO: E-ATO-010
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aeroclub centrado en formación inicial/PPL; sin ruta profesional CPL/ATPL comparable en FlyPath.",
     id: "es-real-aero-club-sevilla",
     slug: "real-aero-club-sevilla",
     name: "Real Aero Club de Sevilla",
@@ -2085,8 +2055,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
   {
     // AESA ATO: E-ATO-070
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aeroclub centrado en formación inicial/PPL; sin ruta profesional CPL/ATPL comparable en FlyPath.",
     id: "es-real-aeroclub-alicante",
     slug: "real-aeroclub-alicante",
     name: "Real Aeroclub de Alicante",
@@ -2146,8 +2114,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
   {
     // AESA ATO: E-ATO-065
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aeroclub centrado en formación inicial/PPL; sin ruta profesional CPL/ATPL comparable en FlyPath.",
     id: "es-real-aeroclub-navarra",
     slug: "real-aeroclub-navarra",
     name: "Real Aeroclub de Navarra",
@@ -2207,8 +2173,6 @@ export const schoolsSpainDataset: SchoolEntry[] = [
   {
     // AESA ATO: E-ATO-066
     excludedFromPublicComparator: true,
-    comparatorExclusionNote:
-      "Aeroclub centrado en formación inicial/PPL; sin ruta profesional CPL/ATPL comparable en FlyPath.",
     id: "es-aeroclub-vitoria-heraclio-alfaro",
     slug: "aeroclub-vitoria-heraclio-alfaro",
     name: "Aeroclub de Vitoria Heraclio Alfaro",

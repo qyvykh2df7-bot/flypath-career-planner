@@ -23,7 +23,7 @@ const SCREEN_META: Record<ScreenType, { color: string }> = {
   mission: { color: "text-[#FB923C]" },
 };
 
-export function TypeGlyph({ type }: { type: ExerciseType }) {
+function TypeGlyph({ type }: { type: ExerciseType }) {
   const common = { className: "h-5 w-5", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   switch (screenType(type)) {
     case "lesson":

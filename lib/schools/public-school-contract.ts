@@ -1,0 +1,50 @@
+import type { SchoolEntry } from "@/types/schools";
+
+/** El único contrato de escuela que puede cruzar desde el servidor al navegador. */
+export type PublicSchoolEntry = Omit<SchoolEntry, "excludedFromPublicComparator">;
+
+export const PUBLIC_SCHOOL_ENTRY_KEYS = [
+  "id",
+  "slug",
+  "name",
+  "routeType",
+  "country",
+  "city",
+  "baseAirport",
+  "atoName",
+  "associatedUniversity",
+  "shortDescription",
+  "listingCardSummary",
+  "dataStatus",
+  "lastUpdatedAt",
+  "dataConfidence",
+  "advertisedPriceEUR",
+  "flypathEstimatedRealCostEUR",
+  "depositOrEnrollmentFeeEUR",
+  "paymentScheduleSummary",
+  "refundPolicySummary",
+  "contractAvailableBeforePayment",
+  "financingAvailable",
+  "mccJocIncluded",
+  "advancedUprtIncluded",
+  "examFeesIncluded",
+  "skillTestsIncluded",
+  "trainingMaterialsIncluded",
+  "accommodationIncluded",
+  "fleetSummary",
+  "aircraftAvailability",
+  "studentAircraftRatio",
+  "instructorStudentRatio",
+  "languageOfInstruction",
+  "programDurationMonths",
+  "class1Requirement",
+  "jobSupportSummary",
+  "employmentClaimsType",
+  "scores",
+  "redFlags",
+  "pendingData",
+  "keyQuestions",
+  "universityTrack",
+] as const satisfies readonly (keyof PublicSchoolEntry)[];
+
+export const PUBLIC_SCHOOL_ENTRY_KEY_SET = new Set<string>(PUBLIC_SCHOOL_ENTRY_KEYS);

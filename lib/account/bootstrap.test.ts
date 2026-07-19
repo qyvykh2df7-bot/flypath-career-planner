@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   createSupabaseServerClient: vi.fn(),
   getSupabaseAdmin: vi.fn(),
   getUser: vi.fn(),
+  linkVerifiedSchoolReviewsToAccount: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -11,6 +12,9 @@ vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: mocks.createSupabaseServerClient,
 }));
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: mocks.getSupabaseAdmin }));
+vi.mock("@/lib/school-reviews/service", () => ({
+  linkVerifiedSchoolReviewsToAccount: mocks.linkVerifiedSchoolReviewsToAccount,
+}));
 
 import { bootstrapFlyPathIdentity } from "./bootstrap";
 
@@ -46,6 +50,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.createSupabaseServerClient.mockResolvedValue({ auth: { getUser: mocks.getUser } });
   mocks.getUser.mockResolvedValue({ data: { user }, error: null });
+  mocks.linkVerifiedSchoolReviewsToAccount.mockResolvedValue(undefined);
 });
 
 describe("bootstrapFlyPathIdentity", () => {
@@ -119,6 +124,20 @@ describe("bootstrapFlyPathIdentity", () => {
       "user_id",
       null,
     );
+  });
+
+  it("vincula de forma auxiliar opiniones verificadas del mismo email sin alterar el resultado de cuenta", async () => {
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn((table: string) => table === "profiles"
+        ? profileSelect({ data: { user_id: user.id }, error: null })
+        : leadUpdate({ data: [], error: null })),
+    });
+
+    await bootstrapFlyPathIdentity();
+    expect(mocks.linkVerifiedSchoolReviewsToAccount).toHaveBeenCalledWith(expect.anything(), {
+      userId: user.id,
+      normalizedEmail: "pilot@example.com",
+    });
   });
 
   it("permite que un perfil ya creado sobreviva a un fallo parcial del vínculo", async () => {

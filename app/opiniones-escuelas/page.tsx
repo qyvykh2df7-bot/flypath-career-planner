@@ -1,6 +1,7 @@
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { OpinionesInteractiveContent } from "@/components/opiniones/OpinionesInteractiveContent";
+import { getFlyPathSessionState } from "@/lib/auth/session";
 import { getComparableSchools } from "@/lib/schools/schoolUtils";
 
 const VALIDATION_TOPICS: string[] = [
@@ -21,11 +22,22 @@ const VERIFICATION_BULLETS: string[] = [
   "Posibilidad de mostrar la opinión de forma anónima",
 ];
 
-export default function OpinionesEscuelasPage() {
+export default async function OpinionesEscuelasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ school?: string | string[] }>;
+}) {
   /** Computed server-side — schoolUtils + schools dataset stay out of the client bundle */
   const schoolOptions = getComparableSchools()
     .map((s) => ({ value: s.slug, label: s.name }))
     .sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
+  const query = await searchParams;
+  const requestedSchool = typeof query.school === "string" ? query.school : null;
+  const initialSchoolSlug = requestedSchool && schoolOptions.some((school) => school.value === requestedSchool)
+    ? requestedSchool
+    : null;
+  const session = await getFlyPathSessionState();
+  const authenticatedEmail = session.status === "authenticated" ? session.account.email : null;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#0f1a33]">
@@ -37,7 +49,11 @@ export default function OpinionesEscuelasPage() {
       <main className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <div className="mx-auto w-full max-w-[1100px] space-y-5">
           {/* Hero + school selector + result + modal — client island */}
-          <OpinionesInteractiveContent schoolOptions={schoolOptions} />
+          <OpinionesInteractiveContent
+            schoolOptions={schoolOptions}
+            authenticatedEmail={authenticatedEmail}
+            initialSchoolSlug={initialSchoolSlug}
+          />
 
           {/* CÓMO VERIFICAMOS LAS OPINIONES — fully static, server rendered */}
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

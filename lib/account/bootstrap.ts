@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { linkVerifiedSchoolReviewsToAccount } from "@/lib/school-reviews/service";
 
 const VERIFIED_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -94,6 +95,18 @@ export async function bootstrapFlyPathIdentity(): Promise<FlyPathIdentityBootstr
     const linkedLeads = await linkUnassignedLeadsByVerifiedEmail(user.id, email);
     if (linkedLeads === null) {
       return { status: "partial", profile, reason: "lead_link_unavailable" };
+    }
+
+    // El vínculo de una opinión existente es auxiliar y nunca crea una opinión,
+    // lead ni suscripción. Un despliegue previo a la migración debe seguir
+    // permitiendo el bootstrap normal de la cuenta.
+    try {
+      await linkVerifiedSchoolReviewsToAccount(getSupabaseAdmin(), {
+        userId: user.id,
+        normalizedEmail: email,
+      });
+    } catch {
+      // Se recupera en el siguiente bootstrap autenticado.
     }
 
     return { status: "ready", profile, linkedLeads, leadLink: "completed" };

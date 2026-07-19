@@ -1,16 +1,12 @@
-import { resolveSupabaseSlugForLocal } from "@/lib/schools/schoolSlugAliases";
-import { getSupabaseSchoolEntries } from "@/lib/schoolMapper";
+import { isSupabaseSchoolsEnabled } from "@/lib/schools/schoolCatalogConfig";
+import { PUBLIC_SCHOOL_ENTRY_KEY_SET } from "@/lib/schools/public-school-contract";
 import {
-  getComparableSchoolBySlug,
   getComparableSchools,
   isSchoolComparable,
 } from "@/lib/schools/schoolUtils";
 import type { SchoolEntry } from "@/types/schools";
 
-/** `true` cuando /schools debe intentar cargar escuelas desde Supabase. */
-export function isSupabaseSchoolsEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_USE_SUPABASE_SCHOOLS === "true";
-}
+export { isSupabaseSchoolsEnabled };
 
 /**
  * Fuente síncrona legacy (schoolsSpain.ts filtrado). Usar como fallback inmediato
@@ -23,7 +19,7 @@ export function getComparableSchoolsSync(): SchoolEntry[] {
 /**
  * Fuente para el comparador /schools.
  * - Sin flag: schoolsSpain.ts (mismo que `getComparableSchools()`).
- * - Con flag: Supabase vía `getSupabaseSchoolEntries()`, con fallback a schoolsSpain.ts.
+ * - Con flag: API pública con DTO cerrado, con fallback a schoolsSpain.ts.
  */
 export async function loadComparableSchoolsForComparator(): Promise<SchoolEntry[]> {
   const legacy = getComparableSchools();
@@ -33,8 +29,18 @@ export async function loadComparableSchoolsForComparator(): Promise<SchoolEntry[
   }
 
   try {
-    const entries = await getSupabaseSchoolEntries();
-    return entries.filter(isSchoolComparable);
+    const response = await fetch("/api/schools/catalog", {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Public school catalog unavailable");
+
+    const payload: unknown = await response.json();
+    if (!isPublicSchoolCatalogPayload(payload)) {
+      throw new Error("Public school catalog payload is invalid");
+    }
+
+    return payload.schools.filter(isSchoolComparable);
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
       console.warn("[FlyPath] Supabase schools load failed", error);
@@ -43,51 +49,25 @@ export async function loadComparableSchoolsForComparator(): Promise<SchoolEntry[
   }
 }
 
-/**
- * Ficha individual /schools/[slug].
- * - Sin flag: `getComparableSchoolBySlug` (schoolsSpain.ts).
- * - Con flag: Supabase por slug, alias de slug o `legacy_entry_id`; fallback a schoolsSpain.ts.
- */
-export async function loadComparableSchoolBySlug(
-  slug: string,
-): Promise<SchoolEntry | undefined> {
-  const legacy = getComparableSchoolBySlug(slug);
+function isPublicSchoolCatalogPayload(value: unknown): value is { schools: SchoolEntry[] } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const schools = (value as { schools?: unknown }).schools;
+  return Array.isArray(schools) && schools.every(isPublicSchoolEntry);
+}
 
-  if (!isSupabaseSchoolsEnabled()) {
-    return legacy;
-  }
-
-  try {
-    const { getFullSchoolProfileBySlug, getFullSchoolProfileByLegacyEntryId } =
-      await import("@/lib/schoolQueries");
-    const { mapSupabaseProfileToSchoolEntry } = await import("@/lib/schoolMapper");
-
-    const dbSlug = resolveSupabaseSlugForLocal(slug);
-    let profile =
-      (await getFullSchoolProfileBySlug(dbSlug)) ??
-      (slug !== dbSlug ? await getFullSchoolProfileBySlug(slug) : null);
-
-    if (!profile && legacy) {
-      profile = await getFullSchoolProfileByLegacyEntryId(legacy.id);
-    }
-
-    if (profile) {
-      const entry = mapSupabaseProfileToSchoolEntry(profile);
-      if (!isSchoolComparable(entry)) {
-        return legacy;
-      }
-      return entry.slug === slug ? entry : { ...entry, slug };
-    }
-
-    if (process.env.NODE_ENV !== "production" && !legacy) {
-      console.warn(`[FlyPath] /schools/${slug} not found in Supabase`);
-    }
-
-    return legacy;
-  } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(`[FlyPath] /schools/${slug} Supabase load failed`, error);
-    }
-    return legacy;
-  }
+function isPublicSchoolEntry(value: unknown): value is SchoolEntry {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    Object.keys(row).every((key) => PUBLIC_SCHOOL_ENTRY_KEY_SET.has(key)) &&
+    typeof row.id === "string" &&
+    typeof row.slug === "string" &&
+    typeof row.name === "string" &&
+    typeof row.routeType === "string" &&
+    typeof row.dataStatus === "string" &&
+    !Object.prototype.hasOwnProperty.call(row, "internal_notes") &&
+    !Object.prototype.hasOwnProperty.call(row, "school_entry_snapshot") &&
+    !Object.prototype.hasOwnProperty.call(row, "comparator_exclusion_note") &&
+    !Object.prototype.hasOwnProperty.call(row, "comparatorExclusionNote")
+  );
 }

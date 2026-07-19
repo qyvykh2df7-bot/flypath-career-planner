@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { FlyPathAlertsBlock } from "@/components/schools/FlyPathAlertsBlock";
 import { LeaveReviewPlaceholderButton } from "@/components/schools/LeaveReviewPlaceholderButton";
+import type { PublicSchoolReviewSummary } from "@/lib/school-reviews/contracts";
 import { SchoolProgramSelector } from "@/components/schools/SchoolProgramSelector";
 import { buildFlyPathAlertsFromSources } from "@/lib/schools/school-detail-alerts";
 import {
@@ -37,6 +38,7 @@ function label(value: string): string {
 
 type SchoolDetailBodyProps = {
   school: SchoolEntry;
+  reviewSummary: PublicSchoolReviewSummary | null;
 };
 
 /**
@@ -44,7 +46,7 @@ type SchoolDetailBodyProps = {
  */
 const CAREER_PLANNER_SCHOOLS_HREF = "/career-planner?review=dashboard&tab=schools";
 
-export function SchoolDetailBody({ school }: SchoolDetailBodyProps) {
+export function SchoolDetailBody({ school, reviewSummary }: SchoolDetailBodyProps) {
   const searchParams = useSearchParams();
   const fromCareerPlanner = searchParams.get("from") === "career-planner";
 
@@ -869,12 +871,16 @@ export function SchoolDetailBody({ school }: SchoolDetailBodyProps) {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-base font-semibold text-[#0f1a33]">Opiniones verificadas</p>
-          <p className="mt-1 text-[15px] text-slate-600">
-            Estamos preparando un sistema de opiniones verificadas de alumnos y exalumnos
-            para mostrar experiencia real sobre costes, organización, disponibilidad de
-            aviones, instructores y soporte administrativo.
-          </p>
-          <LeaveReviewPlaceholderButton />
+          {reviewSummary?.total ? (
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <p className="text-2xl font-semibold tabular-nums text-[#0f1a33]">{reviewSummary.averageOverall?.toLocaleString("es-ES", { maximumFractionDigits: 1 })}/10</p>
+              <p className="text-[15px] text-slate-600">{reviewSummary.total} {reviewSummary.total === 1 ? "opinión aprobada" : "opiniones aprobadas"}</p>
+            </div>
+          ) : <p className="mt-1 text-[15px] text-slate-600">Todavía no hay opiniones aprobadas de esta escuela.</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href={`/opiniones-escuelas?school=${encodeURIComponent(school.slug)}`} className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[15px] font-semibold text-[#0f1a33] transition hover:border-[#c9a454]/70 hover:bg-[#fff8e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55">Leer opiniones</Link>
+            <LeaveReviewPlaceholderButton schoolSlug={school.slug} label="Dejar una opinión" variant="soft" />
+          </div>
         </section>
 
         <section className="rounded-2xl border border-[#c9a454]/30 bg-[#0f1a33] p-5 text-white">
@@ -917,4 +923,3 @@ export function SchoolDetailBody({ school }: SchoolDetailBodyProps) {
     </>
   );
 }
-

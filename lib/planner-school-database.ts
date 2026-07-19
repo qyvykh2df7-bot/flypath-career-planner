@@ -71,13 +71,6 @@ export function buildPlannerSchoolLink(slug: string, profileKey: string): string
   return `comparador:${slug}:${profileKey}`;
 }
 
-export function flypathSchoolRating(entry: SchoolEntry): number | null {
-  const s = entry.scores;
-  const avg = (s.documentTransparency + s.costClarity + s.operationalSolidity + s.dataConfidenceScore) / 4;
-  if (avg <= 0) return null;
-  return Math.min(5, Math.max(1, Math.round((avg / 20) * 10) / 10));
-}
-
 function modularPriceForEntry(entry: SchoolEntry): number {
   return (
     MODULAR_PRICE_BY_SLUG[entry.slug] ??
@@ -270,7 +263,7 @@ export function countPlannerVerifiedSchools(schools: School[]): number {
 
 export function plannerSchoolReviewsHref(slug: string | null): string {
   if (!slug) return "/opiniones-escuelas";
-  return `/opiniones-escuelas?escuela=${encodeURIComponent(slug)}`;
+  return `/opiniones-escuelas?school=${encodeURIComponent(slug)}`;
 }
 
 /** Etiqueta del KPI «Fuente de datos» en la pestaña Escuelas. */

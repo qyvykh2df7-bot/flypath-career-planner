@@ -3,6 +3,7 @@ export type WarhomeNavigationIcon =
   | "leads"
   | "users"
   | "emails"
+  | "reviews"
   | "notes"
   | "settings"
   | "analytics"
@@ -53,6 +54,14 @@ export const WARHOME_NAVIGATION: readonly WarhomeNavigationItem[] = [
     availability: "available",
     group: "mvp",
     icon: "emails",
+  },
+  {
+    id: "reviews",
+    label: "Opiniones",
+    href: "/warhome/reviews",
+    availability: "available",
+    group: "mvp",
+    icon: "reviews",
   },
   {
     id: "notes",
@@ -141,6 +150,10 @@ const WARHOME_PAGE_DETAILS: Record<string, WarhomePageDetails> = {
   "/warhome/emails": {
     title: "Emails",
     subtitle: "Envíos operativos y estado de entrega.",
+  },
+  "/warhome/reviews": {
+    title: "Opiniones",
+    subtitle: "Moderación privada de opiniones verificadas de escuelas.",
   },
 };
 

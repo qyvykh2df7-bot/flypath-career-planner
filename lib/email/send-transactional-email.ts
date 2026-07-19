@@ -23,10 +23,12 @@ import {
   type TransactionalEmailTemplate,
   type TransactionalTemplateKey,
 } from "./templates";
+import { SCHOOL_REVIEW_VERIFICATION_TEMPLATE_KEY } from "./templates/school-review-verification";
 import {
   getMentorshipInternalAlertTemplate,
   type MentorshipInternalAlertTemplateInput,
 } from "./templates/mentorship-internal-alert";
+import { getSchoolReviewVerificationTemplate } from "./templates/school-review-verification";
 
 const TRANSACTIONAL_EMAIL_WORKER = "lead_capture_request";
 
@@ -74,6 +76,28 @@ async function getLeadRecipient(
 
   if (subscriptionError) throw new TransactionalEmailDataError();
   return technicalSuppression ? null : lead.email;
+}
+
+export async function queueSchoolReviewVerification(
+  admin: EmailAdminClient,
+  input: {
+    reviewId: string;
+    idempotencyKey: string;
+    recipientEmail: string;
+    verificationLink: string;
+    expiresAt: string;
+  },
+): Promise<TransactionalEmailDispatchResult> {
+  const template = getSchoolReviewVerificationTemplate({
+    verificationLink: input.verificationLink,
+    expiresAt: input.expiresAt,
+  });
+  const { job } = await createTransactionalEmailJob(admin, {
+    schoolReviewId: input.reviewId,
+    templateKey: SCHOOL_REVIEW_VERIFICATION_TEMPLATE_KEY,
+    idempotencyKey: input.idempotencyKey,
+  });
+  return sendTransactionalEmail(admin, job, { template, recipientEmail: input.recipientEmail });
 }
 
 export async function queueCareerPlannerConfirmation(
@@ -144,7 +168,7 @@ export async function sendTransactionalEmail(
   const recipientEmail =
     template.recipient.kind === "internal"
       ? options.recipientEmail ?? null
-      : await getLeadRecipient(admin, job.leadId);
+      : options.recipientEmail ?? (job.leadId ? await getLeadRecipient(admin, job.leadId) : null);
 
   if (!recipientEmail) {
     if (job.status === "pending") await cancelTransactionalEmailJob(admin, job.id, now());

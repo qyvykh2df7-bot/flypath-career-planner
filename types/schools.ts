@@ -38,8 +38,6 @@ export type SchoolScores = {
 export type SchoolEntry = {
   /** Si es true, la escuela no aparece en el comparador público ni tiene ficha comparable (dataset interno). */
   excludedFromPublicComparator?: boolean;
-  /** Motivo interno FlyPath de exclusión del comparador 0 → CPL/ATPL. */
-  comparatorExclusionNote?: string;
   id: string;
   slug: string;
   name: string;

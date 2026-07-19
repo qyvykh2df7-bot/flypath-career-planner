@@ -1,3 +1,5 @@
+import "server-only";
+
 import { localSlugFromSupabaseSlug } from "@/lib/schools/schoolSlugAliases";
 import {
   getComparableSchoolsFromSupabase,
@@ -488,7 +490,6 @@ export function mapSupabaseProfileToSchoolEntry(profile: FullSchoolProfile): Sch
     keyQuestions,
 
     excludedFromPublicComparator: school.excluded_from_public_comparator ?? false,
-    comparatorExclusionNote: school.comparator_exclusion_note?.trim() || undefined,
     universityTrack: universityTrack ? universityTrackFromRow(universityTrack) : undefined,
   };
 }

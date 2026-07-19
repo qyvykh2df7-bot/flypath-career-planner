@@ -437,11 +437,11 @@ No se crea un lead por usar AeroComms, completar onboarding, crear una cuenta, i
 
 ## Fase 9 — Backend de opiniones de escuelas
 
-**Estado: Actual / siguiente**
+**Estado: Cerrada técnicamente; QA manual final pendiente**
 
 Backend completo para opiniones de escuelas vinculado a usuarios y escuelas.
 
-Primera tarea: auditoría del sistema actual de escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
+Implementación técnica completada con QA manual y responsive final pendiente antes de publicación.
 
 ### Objetivos
 
@@ -455,6 +455,12 @@ Primera tarea: auditoría del sistema actual de escuelas, opiniones, fichas, com
 - Medias, distribución y número de opiniones.
 - Formulario y páginas de opiniones.
 - Integración con fichas de escuela y comparador.
+- Hardening del catálogo público aplicado mediante `20260712130000_harden_public_school_catalog_access.sql`.
+- Backend privado aplicado mediante `20260712140000_create_school_reviews_backend.sql`.
+- Moderación atómica aplicada mediante `20260712150000_make_school_review_moderation_atomic.sql`: transición y evento append-only se confirman o revierten juntos.
+- Lectura pública limitada a `approved`, formulario con verificación por email y moderación en `/warhome/reviews`.
+- Career Planner consume el mismo agregado público aprobado por lote para sus estrellas (`1–10` a `0–5`), sin fallback a valoración editorial.
+- Sin mezcla con `school_scores`, sin leads, marketing, cuentas ni compras implícitas.
 
 ---
 
@@ -574,8 +580,8 @@ Fase 5   Emails operativos              ████████████  Co
 Fase 6   Login, cuentas y perfiles      ████████████  Completada e integrada en main
 Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
-Fase 9   Backend de opiniones           ░░░░░░░░░░░░  Actual: auditoría inicial
-Fase 10  Pagos y entitlements           ░░░░░░░░░░░░  Pendiente
+Fase 9   Backend de opiniones           ████████████  Cerrada técnicamente; QA manual final pendiente
+Fase 10  Pagos y entitlements           ░░░░░░░░░░░░  Actual: auditoría inicial
 Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
 Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
 Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase

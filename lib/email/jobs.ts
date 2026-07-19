@@ -4,11 +4,12 @@ import type { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 import { isTransactionalTemplateKey, type TransactionalTemplateKey } from "./templates";
 
-export const EMAIL_JOB_SELECT = "id,lead_id,template_key,status,attempt_count,max_attempts";
+export const EMAIL_JOB_SELECT = "id,lead_id,school_review_id,template_key,status,attempt_count,max_attempts";
 
 export type TransactionalEmailJob = {
   id: string;
-  leadId: string;
+  leadId: string | null;
+  schoolReviewId?: string | null;
   templateKey: TransactionalTemplateKey;
   status: "pending" | "processing" | "sent" | "failed" | "cancelled";
   attemptCount: number;
@@ -45,7 +46,8 @@ function mapTransactionalJob(value: unknown): TransactionalEmailJob | null {
 
   if (
     typeof value.id !== "string" ||
-    typeof value.lead_id !== "string" ||
+    (typeof value.lead_id !== "string" && value.lead_id !== null) ||
+    (typeof value.school_review_id !== "string" && value.school_review_id !== null && value.school_review_id !== undefined) ||
     typeof value.attempt_count !== "number" ||
     typeof value.max_attempts !== "number"
   ) {
@@ -55,6 +57,7 @@ function mapTransactionalJob(value: unknown): TransactionalEmailJob | null {
   return {
     id: value.id,
     leadId: value.lead_id,
+    schoolReviewId: typeof value.school_review_id === "string" ? value.school_review_id : null,
     templateKey: value.template_key,
     status: value.status,
     attemptCount: value.attempt_count,
@@ -69,7 +72,8 @@ function isUniqueViolation(error: unknown): boolean {
 export async function createTransactionalEmailJob(
   admin: EmailAdminClient,
   input: {
-    leadId: string;
+    leadId?: string | null;
+    schoolReviewId?: string | null;
     templateKey: TransactionalTemplateKey;
     idempotencyKey: string;
     scheduledFor?: string;
@@ -82,7 +86,8 @@ export async function createTransactionalEmailJob(
       job_type: "transactional",
       template_key: input.templateKey,
       idempotency_key: input.idempotencyKey,
-      lead_id: input.leadId,
+      lead_id: input.leadId ?? null,
+      ...(input.schoolReviewId ? { school_review_id: input.schoolReviewId } : {}),
       status: "pending",
       scheduled_for: scheduledFor,
       enrollment_id: null,
@@ -105,7 +110,10 @@ export async function createTransactionalEmailJob(
     .maybeSingle();
   const existingJob = mapTransactionalJob(duplicate);
 
-  if (duplicateError || !existingJob || existingJob.leadId !== input.leadId) {
+  if (
+    duplicateError || !existingJob || existingJob.leadId !== (input.leadId ?? null)
+    || (existingJob.schoolReviewId ?? null) !== (input.schoolReviewId ?? null)
+  ) {
     throw new EmailJobPersistenceError();
   }
 

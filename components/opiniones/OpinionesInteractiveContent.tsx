@@ -1,95 +1,76 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ShieldCheck, Star, X } from "lucide-react";
+import { PublicSchoolReviews } from "./PublicSchoolReviews";
 
 const TOAST_TIMEOUT_MS = 2300;
-
-const ADVENTIA_PREVIEW_SLUG = "adventia-usal";
 
 const REVIEW_FORM_INTRO =
   "Tu opinión no se publicará automáticamente. FlyPath revisará la información antes de mostrarla públicamente y podrá anonimizar tus datos personales.";
 
-const REVIEW_FORM_PREVIEW_NOTICE =
-  "De momento este formulario es una vista previa. La recogida real de opiniones se activará próximamente.";
-
-const REVIEW_FORM_ERROR_MESSAGE = "Completa los campos obligatorios antes de continuar.";
-const REVIEW_FORM_SUCCESS_MESSAGE =
-  "Formulario preparado. La recogida real de opiniones se activará próximamente.";
+const REVIEW_FORM_ERROR_MESSAGE = "Revisa los campos obligatorios e inténtalo de nuevo.";
 
 const RELATIONSHIP_OPTIONS = [
-  "Soy alumno actual",
-  "Soy antiguo alumno",
-  "He terminado la formación",
-  "Me cambié de escuela",
-  "Solo pedí información",
+  { value: "current_student", label: "Soy alumno actual" },
+  { value: "former_student", label: "Soy antiguo alumno" },
+  { value: "completed_training", label: "He terminado la formación" },
+  { value: "transferred_school", label: "Me cambié de escuela" },
+  { value: "information_requester", label: "Solo pedí información" },
 ];
 
-const RATING_FIELDS: { name: string; label: string }[] = [
-  { name: "ratingGeneral", label: "Valoración general" },
-  { name: "ratingCosts", label: "Transparencia de costes" },
-  { name: "ratingAvailability", label: "Disponibilidad de aviones" },
-  { name: "ratingOrganization", label: "Organización de la formación" },
-  { name: "ratingInstructors", label: "Calidad de instructores" },
-  { name: "ratingSupport", label: "Soporte administrativo" },
-  { name: "ratingContract", label: "Claridad de contrato y reembolso" },
+const RATING_FIELDS = [
+  { name: "general", label: "Valoración general" },
+  { name: "costs", label: "Transparencia de costes" },
+  { name: "availability", label: "Disponibilidad de aviones" },
+  { name: "organization", label: "Organización de la formación" },
+  { name: "instructors", label: "Calidad de instructores" },
+  { name: "support", label: "Soporte administrativo" },
+  { name: "contract", label: "Claridad de contrato y reembolso" },
 ];
 
 const KEY_QUESTIONS: { name: string; label: string }[] = [
-  { name: "qFinalCost", label: "¿El coste final se pareció al precio anunciado?" },
-  { name: "qContract", label: "¿Recibiste contrato antes de pagar?" },
-  { name: "qRefund", label: "¿La política de reembolso estaba clara?" },
-  { name: "qWouldChoose", label: "¿Volverías a elegir esa escuela?" },
+  { name: "finalCost", label: "¿El coste final se pareció al precio anunciado?" },
+  { name: "contractBeforePayment", label: "¿Recibiste contrato antes de pagar?" },
+  { name: "refundClarity", label: "¿La política de reembolso estaba clara?" },
+  { name: "wouldChooseAgain", label: "¿Volverías a elegir esa escuela?" },
 ];
 
-const KEY_QUESTION_OPTIONS = ["Sí", "No", "Parcialmente", "No lo sé"];
-
-type ReviewFormStatus = "idle" | "error" | "success";
-
-const ADVENTIA_DEMO_AREAS: { label: string; score: string }[] = [
-  { label: "Transparencia de costes", score: "7,6/10" },
-  { label: "Disponibilidad de aviones", score: "8,0/10" },
-  { label: "Organización de la formación", score: "7,8/10" },
-  { label: "Calidad de instructores", score: "8,5/10" },
-  { label: "Soporte administrativo", score: "7,4/10" },
-  { label: "Contrato y reembolso", score: "7,2/10" },
+const KEY_QUESTION_OPTIONS = [
+  { value: "yes", label: "Sí" },
+  { value: "no", label: "No" },
+  { value: "partial", label: "Parcialmente" },
+  { value: "unknown", label: "No lo sé" },
 ];
 
-const ADVENTIA_DEMO_REVIEWS: { meta: string; quote: string }[] = [
-  {
-    meta: "Alumno verificado · Fase ATPL · 2024 · Simulada",
-    quote:
-      "Buena organización general y buen nivel docente. Antes de pagar, pediría el desglose completo de tasas y costes administrativos.",
-  },
-  {
-    meta: "Antiguo alumno · Fase integrada · 2023 · Simulada",
-    quote:
-      "La experiencia fue positiva, especialmente en la parte teórica. Recomendaría confirmar por escrito calendario de pagos y política de reembolso.",
-  },
-];
+type ReviewFormStatus = "idle" | "submitting" | "error" | "awaiting" | "pending" | "duplicate";
 
 type SchoolOption = { value: string; label: string };
 
 export function OpinionesInteractiveContent({
   schoolOptions,
+  authenticatedEmail,
+  initialSchoolSlug,
 }: {
   schoolOptions: readonly SchoolOption[];
+  authenticatedEmail: string | null;
+  initialSchoolSlug: string | null;
 }) {
   const [toast, setToast] = useState<string | null>(null);
-  const [selectedSchool, setSelectedSchool] = useState<string>("");
+  const [selectedSchool, setSelectedSchool] = useState<string>(initialSchoolSlug ?? "");
   const [heroImageAvailable, setHeroImageAvailable] = useState(true);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [modalSchoolSlug, setModalSchoolSlug] = useState<string>("");
   const [formStatus, setFormStatus] = useState<ReviewFormStatus>("idle");
   const [formKey, setFormKey] = useState(0);
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [pendingVerification, setPendingVerification] = useState<{ reviewId: string; email: string } | null>(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const reviewFormRef = useRef<HTMLFormElement>(null);
 
   const selectedSchoolLabel =
     schoolOptions.find((s) => s.value === selectedSchool)?.label ?? "";
-  const isAdventiaPreview = selectedSchool === ADVENTIA_PREVIEW_SLUG;
 
   const setRating = (name: string, value: number) =>
     setRatings((current) =>
@@ -106,24 +87,84 @@ export function OpinionesInteractiveContent({
     setModalSchoolSlug(slug);
     setFormStatus("idle");
     setRatings({});
+    setPendingVerification(null);
+    setSubmissionId(null);
     setFormKey((k) => k + 1);
     setReviewModalOpen(true);
   };
   const closeReviewModal = () => setReviewModalOpen(false);
 
-  const handleReviewSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    const fullName = String(data.get("fullName") ?? "").trim();
-    const email = String(data.get("email") ?? "").trim();
     const schoolSlug = String(data.get("schoolSlug") ?? "").trim();
     const relationship = String(data.get("relationship") ?? "").trim();
     const acceptReview = data.get("acceptReview") === "on";
-    if (!fullName || !email || !schoolSlug || !relationship || !acceptReview) {
+    const email = authenticatedEmail ?? String(data.get("email") ?? "").trim();
+    if (!schoolSlug || !relationship || !acceptReview || !email || RATING_FIELDS.some((field) => !ratings[field.name])) {
       setFormStatus("error");
       return;
     }
-    setFormStatus("success");
+    const requestId = submissionId ?? crypto.randomUUID();
+    setSubmissionId(requestId);
+    setFormStatus("submitting");
+    try {
+      const response = await fetch("/api/school-reviews", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          submissionId: requestId,
+          schoolSlug,
+          ...(authenticatedEmail ? {} : { email }),
+          isAnonymous: data.get("anonymous") === "on",
+          relationship,
+          programPhase: String(data.get("programPhase") ?? "").trim() || null,
+          approximateYear: String(data.get("approxYear") ?? "").trim()
+            ? Number(data.get("approxYear"))
+            : null,
+          ratings,
+          answers: {
+            finalCost: data.get("finalCost"),
+            contractBeforePayment: data.get("contractBeforePayment"),
+            refundClarity: data.get("refundClarity"),
+            wouldChooseAgain: data.get("wouldChooseAgain"),
+          },
+          bestPart: String(data.get("bestPart") ?? "").trim(),
+          improvements: String(data.get("improvements") ?? "").trim(),
+          advice: String(data.get("advice") ?? "").trim(),
+          consent: true,
+        }),
+      });
+      const result = await response.json() as { status?: string; reviewId?: string };
+      if (!response.ok || !result.status || !result.reviewId) throw new Error("Review submission failed");
+      if (result.status === "awaiting_email_verification") {
+        setPendingVerification({ reviewId: result.reviewId, email });
+        setFormStatus("awaiting");
+      } else if (result.status === "pending_moderation") {
+        setFormStatus("pending");
+      } else if (result.status === "duplicate") {
+        setFormStatus("duplicate");
+      } else {
+        throw new Error("Unexpected review result");
+      }
+    } catch {
+      setFormStatus("error");
+    }
+  };
+
+  const resendVerification = async () => {
+    if (!pendingVerification) return;
+    try {
+      const response = await fetch("/api/school-reviews/resend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(pendingVerification),
+      });
+      const result = await response.json() as { status?: string };
+      setToast(result.status === "sent" ? "Hemos reenviado el enlace de verificación." : "No hemos podido reenviar el enlace ahora mismo.");
+    } catch {
+      setToast("No hemos podido reenviar el enlace ahora mismo.");
+    }
   };
 
   useEffect(() => {
@@ -288,189 +329,12 @@ export function OpinionesInteractiveContent({
 
       {/* RESULTADO de escuela seleccionada */}
       {selectedSchool ? (
-        isAdventiaPreview ? (
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="relative bg-[#0f1a33] px-5 py-4 text-white sm:px-6">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_140%_at_100%_50%,rgba(201,164,84,0.14),transparent_60%)]"
-              />
-              <div className="relative flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f2ddaa]">
-                    Vista previa de diseño
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold text-white sm:text-2xl">Adventia</h2>
-                </div>
-                <span className="inline-flex shrink-0 items-center rounded-full border border-amber-300/45 bg-amber-300/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-100">
-                  Demo interna
-                </span>
-              </div>
-            </div>
-
-            <div className="px-5 py-5 sm:px-6 sm:py-6">
-              <p className="text-[12px] leading-snug text-slate-500">
-                Contenido simulado únicamente para previsualizar la interfaz. No son datos reales ni
-                opiniones publicadas.
-              </p>
-
-              <div className="mt-5 border-b border-slate-100 pb-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  Calificación global
-                </p>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <p className="text-4xl font-bold tabular-nums tracking-tight text-[#0f1a33]">
-                    8,1
-                    <span className="text-2xl font-semibold text-slate-500">/10</span>
-                  </p>
-                  <div
-                    className="flex items-center gap-0.5 self-end pb-1.5"
-                    aria-label="4 de 5 estrellas (simulado)"
-                  >
-                    {[0, 1, 2, 3].map((i) => (
-                      <Star
-                        key={i}
-                        className="h-6 w-6 text-[#c9a454]"
-                        fill="currentColor"
-                        strokeWidth={1.5}
-                        aria-hidden
-                      />
-                    ))}
-                    <Star
-                      className="h-6 w-6 text-[#c9a454]/25"
-                      fill="currentColor"
-                      strokeWidth={1.5}
-                      aria-hidden
-                    />
-                  </div>
-                </div>
-              </div>
-              <p className="mt-3 text-[14px] leading-relaxed text-slate-600">
-                Basado en 12 opiniones verificadas simuladas para previsualizar el diseño.
-              </p>
-
-              <div className="mt-5">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  Áreas
-                </p>
-                <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-                  {ADVENTIA_DEMO_AREAS.map((row) => (
-                    <li
-                      key={row.label}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[14px]"
-                    >
-                      <span className="font-medium text-slate-700">{row.label}</span>
-                      <span className="shrink-0 tabular-nums font-semibold text-[#0f1a33]">
-                        {row.score}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-5">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  Opiniones recientes simuladas
-                </p>
-                <ul className="mt-2 grid gap-3 sm:grid-cols-1">
-                  {ADVENTIA_DEMO_REVIEWS.map((r) => (
-                    <li
-                      key={r.meta}
-                      className="relative overflow-hidden rounded-xl border border-slate-200 bg-white px-4 py-3 pl-[14px] shadow-[0_1px_0_rgba(15,26,51,0.03)]"
-                    >
-                      <span
-                        aria-hidden
-                        className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#c9a454]/55"
-                      />
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
-                          {r.meta}
-                        </p>
-                        <div className="flex items-center gap-0.5" aria-label="4 de 5 estrellas (simulado)">
-                          {[0, 1, 2, 3].map((i) => (
-                            <Star
-                              key={i}
-                              className="h-3.5 w-3.5 text-[#c9a454]"
-                              fill="currentColor"
-                              strokeWidth={1.5}
-                              aria-hidden
-                            />
-                          ))}
-                          <Star
-                            className="h-3.5 w-3.5 text-[#c9a454]/30"
-                            fill="currentColor"
-                            strokeWidth={1.5}
-                            aria-hidden
-                          />
-                        </div>
-                      </div>
-                      <blockquote className="mt-2 text-[15px] leading-relaxed text-slate-700">
-                        &ldquo;{r.quote}&rdquo;
-                      </blockquote>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <button
-                  type="button"
-                  onClick={() => openReviewModal(ADVENTIA_PREVIEW_SLUG)}
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-                >
-                  Dejar una opinión sobre Adventia
-                </button>
-                <Link
-                  href={`/schools?selected=${encodeURIComponent(ADVENTIA_PREVIEW_SLUG)}&source=reviews`}
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/55 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
-                >
-                  Comparar esta escuela
-                </Link>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="rounded-2xl border border-[#c9a454]/30 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7a5a16]">
-                  Escuela seleccionada
-                </p>
-                <h2 className="mt-1 text-xl font-semibold text-[#0f1a33] sm:text-2xl">
-                  {selectedSchoolLabel}
-                </h2>
-              </div>
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#c9a454]/35 bg-[#fff8e8] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7a5a16]">
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-                Opiniones en validación
-              </span>
-            </div>
-            <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-              Todavía no hay suficientes opiniones verificadas para mostrar una calificación pública de
-              esta escuela.
-            </p>
-            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
-              Cuando haya suficientes datos revisados, aquí verás calificación global, valoración por
-              áreas, opiniones verificadas de alumnos y una lectura FlyPath de puntos fuertes y puntos
-              a vigilar.
-            </p>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <button
-                type="button"
-                onClick={() => openReviewModal(selectedSchool)}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-              >
-                {`Dejar una opinión sobre ${selectedSchoolLabel}`}
-              </button>
-              <Link
-                href={`/schools?selected=${encodeURIComponent(selectedSchool)}&source=reviews`}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/55 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
-              >
-                Comparar esta escuela
-              </Link>
-            </div>
-          </section>
-        )
+        <PublicSchoolReviews
+          key={selectedSchool}
+          schoolSlug={selectedSchool}
+          schoolName={selectedSchoolLabel}
+          onLeaveReview={() => openReviewModal(selectedSchool)}
+        />
       ) : (
         <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-5 sm:p-6">
           <p className="text-[15px] leading-relaxed text-slate-700">
@@ -524,25 +388,40 @@ export function OpinionesInteractiveContent({
             </div>
 
             <div className="max-h-[82vh] overflow-y-auto overscroll-contain px-5 pb-8 pt-4 [scrollbar-gutter:stable] sm:px-7 sm:pb-10 sm:pt-5">
-              {formStatus === "success" ? (
+              {formStatus === "awaiting" || formStatus === "pending" || formStatus === "duplicate" ? (
                 <div>
                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-                      Listo
+                      {formStatus === "duplicate" ? "Opinión ya registrada" : "Listo"}
                     </p>
                     <p className="mt-1 text-[15px] leading-relaxed text-emerald-900">
-                      {REVIEW_FORM_SUCCESS_MESSAGE}
+                      {formStatus === "awaiting"
+                        ? "Te hemos enviado un enlace para verificar tu email. Cuando lo confirmes, la opinión pasará a revisión."
+                        : formStatus === "pending"
+                          ? "Hemos recibido tu opinión. Ahora queda pendiente de revisión antes de mostrarse públicamente."
+                          : "Ya existe una opinión activa para esta escuela con esta identidad verificada."}
                     </p>
                   </div>
-                  <p className="mt-4 text-sm leading-relaxed text-slate-600">{REVIEW_FORM_INTRO}</p>
-                  <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                  {formStatus === "awaiting" ? (
                     <button
                       type="button"
-                      onClick={() => setFormStatus("idle")}
-                      className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[14px] font-semibold text-[#0f1a33] transition hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
+                      onClick={resendVerification}
+                      className="mt-4 inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[14px] font-semibold text-[#0f1a33] transition hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
                     >
-                      Editar datos
+                      Reenviar enlace de verificación
                     </button>
+                  ) : null}
+                  <p className="mt-4 text-sm leading-relaxed text-slate-600">{REVIEW_FORM_INTRO}</p>
+                  <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                    {formStatus === "duplicate" ? (
+                      <button
+                        type="button"
+                        onClick={() => setFormStatus("idle")}
+                        className="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-[14px] font-semibold text-[#0f1a33] transition hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
+                      >
+                        Revisar datos
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={closeReviewModal}
@@ -563,7 +442,7 @@ export function OpinionesInteractiveContent({
                   <div className="space-y-2">
                     <p className="text-sm leading-relaxed text-slate-600">{REVIEW_FORM_INTRO}</p>
                     <p className="rounded-xl border border-[#c9a454]/30 bg-[#fffdf6] px-3 py-1.5 text-sm leading-snug text-[#7a5a16]">
-                      {REVIEW_FORM_PREVIEW_NOTICE}
+                      Las opiniones pasan por una revisión antes de publicarse. Tu email no se mostrará públicamente.
                     </p>
                   </div>
 
@@ -572,28 +451,24 @@ export function OpinionesInteractiveContent({
                       Datos básicos
                     </legend>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <label className="block">
-                        <span className="text-sm font-medium text-slate-700">
-                          Nombre completo <span className="text-rose-600">*</span>
-                        </span>
-                        <input
-                          type="text"
-                          name="fullName"
-                          autoComplete="name"
-                          className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-sm font-medium text-slate-700">
-                          Email <span className="text-rose-600">*</span>
-                        </span>
-                        <input
-                          type="email"
-                          name="email"
-                          autoComplete="email"
-                          className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
-                        />
-                      </label>
+                      {authenticatedEmail ? (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 sm:col-span-2">
+                          Usaremos el email verificado de tu cuenta para validar esta opinión. No se mostrará públicamente.
+                        </div>
+                      ) : (
+                        <label className="block">
+                          <span className="text-sm font-medium text-slate-700">
+                            Email <span className="text-rose-600">*</span>
+                          </span>
+                          <input
+                            type="email"
+                            name="email"
+                            autoComplete="email"
+                            maxLength={320}
+                            className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
+                          />
+                        </label>
+                      )}
                       <label className="block">
                         <span className="text-sm font-medium text-slate-700">
                           Escuela <span className="text-rose-600">*</span>
@@ -640,9 +515,9 @@ export function OpinionesInteractiveContent({
                           className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
                         >
                           <option value="">Selecciona una opción</option>
-                          {RELATIONSHIP_OPTIONS.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
+                            {RELATIONSHIP_OPTIONS.map((r) => (
+                              <option key={r.value} value={r.value}>
+                                {r.label}
                             </option>
                           ))}
                         </select>
@@ -739,8 +614,8 @@ export function OpinionesInteractiveContent({
                           >
                             <option value="">Sin responder</option>
                             {KEY_QUESTION_OPTIONS.map((o) => (
-                              <option key={o} value={o}>
-                                {o}
+                              <option key={o.value} value={o.value}>
+                                {o.label}
                               </option>
                             ))}
                           </select>
@@ -764,6 +639,8 @@ export function OpinionesInteractiveContent({
                           <textarea
                             name={t.name}
                             rows={3}
+                            minLength={20}
+                            maxLength={3000}
                             className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] leading-relaxed text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
                           />
                         </label>
@@ -815,15 +692,17 @@ export function OpinionesInteractiveContent({
                     <button
                       type="button"
                       onClick={closeReviewModal}
+                      disabled={formStatus === "submitting"}
                       className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] transition hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
+                      disabled={formStatus === "submitting"}
                       className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-5 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-md transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
                     >
-                      Enviar opinión para revisión
+                      {formStatus === "submitting" ? "Enviando opinión..." : "Enviar opinión para revisión"}
                     </button>
                   </div>
                 </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -20,10 +20,16 @@ import {
   plannerTitle,
 } from "./planner-surface";
 import type { School, YesNoUnknown } from "@/lib/reporting/types/shared";
+import type { PublicSchoolReviewSummary } from "@/lib/school-reviews/contracts";
+import {
+  buildSchoolReviewSummariesPath,
+  formatSchoolReviewRating,
+  schoolReviewStarFillPercent,
+  schoolReviewSummaryToFive,
+} from "@/lib/school-reviews/presentation";
 import type { SchoolEntry } from "@/types/schools";
 import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
 import {
-  flypathSchoolRating,
   getProgramOptionsForEntry,
   isPlannerFlypathDatabaseSchool,
   parsePlannerSchoolLink,
@@ -39,13 +45,15 @@ const FLYPATH_DATABASE_CARD_BG = "/school-card-bg/cadet-airline.webp";
 
 /** Rejilla fija de 7 columnas en cards seleccionadas (≥900px). */
 const SELECTED_SCHOOL_DESKTOP_GRID =
-  "min-w-0 flex-1 grid-cols-[minmax(140px,1fr)_220px_108px_92px_80px_minmax(88px,auto)_40px] items-center gap-x-3 gap-y-0 py-3 pl-5 pr-4";
+  "min-w-0 flex-1 grid-cols-[minmax(140px,1fr)_220px_108px_92px_132px_minmax(88px,auto)_40px] items-center gap-x-3 gap-y-0 py-3 pl-5 pr-4";
 
 const PROGRAM_PILL_TRACK =
   "inline-flex h-7 shrink-0 items-center rounded-lg border border-[#0f1a33]/10 bg-[#f4f2ec] p-0.5";
 
 const PROGRAM_PILL_ACTIVE =
   "whitespace-nowrap rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-[#0f1a33] shadow-sm ring-1 ring-[#c9a454]/35 sm:px-2.5 sm:py-1 sm:text-[11px]";
+
+type SchoolReviewSummaryResponse = { items?: PublicSchoolReviewSummary[] };
 
 function euro(value: number) {
   return new Intl.NumberFormat("es-ES", {
@@ -151,25 +159,54 @@ function ProgramPillStatic({ label }: { label: string }) {
   );
 }
 
-function ClickableRatingStars({ value, href }: { value: number; href: string }) {
-  const full = Math.floor(value);
-  const half = value - full >= 0.5;
+function PublicReviewRating({
+  summary,
+  loading,
+  href,
+}: {
+  summary: PublicSchoolReviewSummary | undefined;
+  loading: boolean;
+  href: string;
+}) {
+  const rating = schoolReviewSummaryToFive(summary);
+  if (loading) {
+    return <span className="text-[11px] font-medium text-[#5a6b85]">Cargando opiniones…</span>;
+  }
+
+  if (rating === null) {
+    return (
+      <Link
+        href={href}
+        className="inline-flex min-h-7 items-center rounded-md px-0.5 text-[11px] font-medium text-[#5a6b85] transition hover:bg-[#FAF9F6] hover:text-[#0f1a33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45"
+      >
+        Sin opiniones
+      </Link>
+    );
+  }
+
+  const total = summary?.total ?? 0;
   return (
     <Link
       href={href}
-      className="inline-flex shrink-0 items-center gap-0.5 rounded-md px-0.5 py-0.5 transition hover:bg-[#FAF9F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45"
-      aria-label={`Ver opiniones de la escuela (valoración ${value} de 5)`}
+      className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-md px-0.5 py-0.5 transition hover:bg-[#FAF9F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45"
+      aria-label={`Ver ${total} ${total === 1 ? "opinión aprobada" : "opiniones aprobadas"} de la escuela (valoración ${formatSchoolReviewRating(rating)} de 5)`}
     >
-      {Array.from({ length: 5 }).map((_, i) => {
-        const filled = i < full || (i === full && half);
-        return (
-          <Star
-            key={i}
-            className={`h-3.5 w-3.5 ${filled ? "fill-[#c9a454] text-[#c9a454]" : "text-slate-300"}`}
-            aria-hidden
-          />
-        );
-      })}
+      <span className="inline-flex items-center gap-0.5" aria-hidden>
+        {Array.from({ length: 5 }).map((_, index) => (
+          <span key={index} className="relative block h-3.5 w-3.5">
+            <Star className="absolute inset-0 h-3.5 w-3.5 text-slate-300" aria-hidden />
+            <span
+              className="absolute inset-y-0 left-0 block overflow-hidden"
+              style={{ width: `${schoolReviewStarFillPercent(rating, index)}%` }}
+            >
+              <Star className="h-3.5 w-3.5 fill-[#c9a454] text-[#c9a454]" aria-hidden />
+            </span>
+          </span>
+        ))}
+      </span>
+      <span className="hidden whitespace-nowrap text-[11px] font-medium text-[#5a6b85] min-[1100px]:inline">
+        {formatSchoolReviewRating(rating)}/5 · {total}
+      </span>
     </Link>
   );
 }
@@ -308,19 +345,27 @@ export function SchoolDatabasePicker({
 
 type SelectedSchoolCardProps = {
   school: School;
+  reviewSummary: PublicSchoolReviewSummary | undefined;
+  reviewsLoading: boolean;
   onUpdateProgram: (schoolId: number, entry: SchoolEntry, option: PlannerProgramOption) => void;
   onEditSchool: (school: School) => void;
   onRemoveSchool: (id: number) => void;
 };
 
-function SelectedSchoolCard({ school, onUpdateProgram, onEditSchool, onRemoveSchool }: SelectedSchoolCardProps) {
+function SelectedSchoolCard({
+  school,
+  reviewSummary,
+  reviewsLoading,
+  onUpdateProgram,
+  onEditSchool,
+  onRemoveSchool,
+}: SelectedSchoolCardProps) {
   const link = parsePlannerSchoolLink(school.enlaceReferencia);
   const isFromDatabase = isPlannerFlypathDatabaseSchool(school);
   const entry = link ? getSchoolBySlug(link.slug) : undefined;
   const programOptions = entry ? getProgramOptionsForEntry(entry) : [];
   const activeKey = link?.profileKey ?? programOptions[0]?.key ?? "default";
   const activeOption = programOptions.find((o) => o.key === activeKey) ?? programOptions[0];
-  const rating = entry ? flypathSchoolRating(entry) : null;
   const location = locationLabel(school);
   const programaLabel = activeOption?.label ?? schoolProgramPillLabel(school.programa);
   const estado = schoolCardEstadoLabel(school);
@@ -429,8 +474,8 @@ function SelectedSchoolCard({ school, onUpdateProgram, onEditSchool, onRemoveSch
           >
             {estado}
           </span>
-          {rating !== null && isFromDatabase ? (
-            <ClickableRatingStars value={rating} href={reviewsHref} />
+          {isFromDatabase ? (
+            <PublicReviewRating summary={reviewSummary} loading={reviewsLoading} href={reviewsHref} />
           ) : null}
         </div>
 
@@ -487,9 +532,9 @@ function SelectedSchoolCard({ school, onUpdateProgram, onEditSchool, onRemoveSch
         </div>
 
         {/* Col 5: rating */}
-        <div className="flex h-7 w-full items-center justify-start min-[900px]:w-[80px]">
-          {rating !== null && isFromDatabase ? (
-            <ClickableRatingStars value={rating} href={reviewsHref} />
+        <div className="flex min-h-7 w-full items-center justify-start min-[900px]:w-[132px]">
+          {isFromDatabase ? (
+            <PublicReviewRating summary={reviewSummary} loading={reviewsLoading} href={reviewsHref} />
           ) : null}
         </div>
 
@@ -827,8 +872,44 @@ export function CareerPlannerSchoolsTab({
   onRemoveSchool,
 }: CareerPlannerSchoolsTabProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [reviewResult, setReviewResult] = useState<{ key: string; items: PublicSchoolReviewSummary[] }>({
+    key: "",
+    items: [],
+  });
 
   const dataSourceLabel = useMemo(() => plannerSchoolsDataSourceLabel(schools), [schools]);
+  const reviewRequestKey = useMemo(() => {
+    const slugs = schools.flatMap((school) => {
+      const link = parsePlannerSchoolLink(school.enlaceReferencia);
+      return link ? [link.slug] : [];
+    });
+    return [...new Set(slugs)].join(",");
+  }, [schools]);
+  const reviewsLoading = reviewRequestKey.length > 0 && reviewResult.key !== reviewRequestKey;
+  const reviewSummariesBySlug = useMemo(
+    () => new Map(reviewResult.items.map((summary) => [summary.schoolSlug, summary])),
+    [reviewResult.items],
+  );
+
+  useEffect(() => {
+    if (!reviewRequestKey) return;
+
+    const path = buildSchoolReviewSummariesPath(reviewRequestKey.split(","));
+    if (!path) return;
+
+    const controller = new AbortController();
+    void fetch(path, { signal: controller.signal })
+      .then(async (response) => (response.ok ? response.json() as Promise<SchoolReviewSummaryResponse> : { items: [] }))
+      .then((body) => {
+        if (!controller.signal.aborted) {
+          setReviewResult({ key: reviewRequestKey, items: Array.isArray(body.items) ? body.items : [] });
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setReviewResult({ key: reviewRequestKey, items: [] });
+      });
+    return () => controller.abort();
+  }, [reviewRequestKey]);
 
   const handleTogglePicker = () => {
     setPickerOpen((open) => !open);
@@ -962,15 +1043,20 @@ export function CareerPlannerSchoolsTab({
           </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-2.5">
-            {schools.map((school) => (
-              <SelectedSchoolCard
-                key={school.id}
-                school={school}
-                onUpdateProgram={onUpdateProgram}
-                onEditSchool={onEditSchool}
-                onRemoveSchool={onRemoveSchool}
-              />
-            ))}
+            {schools.map((school) => {
+              const schoolSlug = parsePlannerSchoolLink(school.enlaceReferencia)?.slug;
+              return (
+                <SelectedSchoolCard
+                  key={school.id}
+                  school={school}
+                  reviewSummary={schoolSlug ? reviewSummariesBySlug.get(schoolSlug) : undefined}
+                  reviewsLoading={reviewsLoading}
+                  onUpdateProgram={onUpdateProgram}
+                  onEditSchool={onEditSchool}
+                  onRemoveSchool={onRemoveSchool}
+                />
+              );
+            })}
           </ul>
         )}
       </section>

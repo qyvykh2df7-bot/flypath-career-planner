@@ -1,9 +1,9 @@
-# Tarea activa — Fase 9: Backend de opiniones de escuelas
+# Tarea activa — Fase 10: Pagos, monetización y entitlements
 
 ## Estado de la plataforma
 
 - Fases 4, 5 y 6: completadas e integradas en `main`.
-- Fase actual: **Fase 9 — Backend de opiniones de escuelas**.
+- Fase actual: **Fase 10 — Pagos, monetización y entitlements**.
 - Fase 7: CLOSED / COMPLETED / DEPLOYED. Migración remota aplicada, QA funcional aprobado y deployment completado.
 
 ## Cierre de Fase 8
@@ -16,17 +16,24 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - QA manual aprobado y deployment de Vercel confirmado manualmente.
 - Todas las cuentas FlyPath/AeroComms son visibles en Warhome, tengan o no lead; no se crean leads automáticamente por el uso normal de AeroComms.
 
+## Cierre técnico de Fase 9
+
+- 9A endureció el catálogo público y retiró campos editoriales/internos del navegador. Migración `20260712130000_harden_public_school_catalog_access.sql` aplicada.
+- 9B–9C crearon y conectaron el backend privado de opiniones, verificación por email y formulario real. Migración `20260712140000_create_school_reviews_backend.sql` aplicada.
+- 9D muestra datos públicos reales solo cuando la reseña está `approved`; fichas y comparador usan agregados seguros sin N+1 ni mezcla con `school_scores`.
+- Career Planner reutiliza el mismo agregado público por lote: convierte la media real `1–10` a estrellas `0–5`, conserva fracciones y muestra “Sin opiniones” sin fallback editorial.
+- 9E añadió moderación protegida en `/warhome/reviews` y detalle privado con acciones cerradas e historial.
+- La migración `20260712150000_make_school_review_moderation_atomic.sql` deja las transiciones de moderación y su evento append-only en una única RPC transaccional, con `EXECUTE` exclusivo de `service_role`.
+- 9F deja 465 pruebas, TypeScript, lint focalizado, build Webpack y `git diff --check` correctos. Falta únicamente la QA manual y responsive final antes de publicar la fase.
+
 ## Tarea activa
 
-Auditar el sistema actual de escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
+Auditar los flujos actuales de productos y pagos antes de diseñar Fase 10.
 
-- Revisar las rutas y componentes actuales de escuelas, fichas y comparador.
-- Identificar cualquier flujo de opiniones existente, datos simulados y dependencias de Supabase.
-- Revisar cómo Warhome puede consultar, moderar y presentar opiniones sin ampliar todavía el alcance.
-- Documentar tablas, relaciones, permisos, riesgos de spam/moderación y límites de datos existentes.
-- No crear migraciones ni implementar UI durante esta auditoría inicial.
-
-El resultado de la auditoría definirá los bloques de implementación de Fase 9.
+- Revisar `products`, precios, landing/product CTAs, emails transaccionales y cualquier integración Stripe existente.
+- Delimitar compras, facturación, reembolsos y entitlements server-side sin convertir la cuenta en un plan implícito.
+- Identificar qué productos requieren acceso y qué debe seguir siendo gratuito.
+- No crear todavía checkout, webhooks, migraciones ni UI de pagos durante esta auditoría inicial.
 
 ## Implementado en Fase 7
 

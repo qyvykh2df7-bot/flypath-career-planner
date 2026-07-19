@@ -6,9 +6,20 @@
 
 ## Fase actual
 
-**Fase 9 — Backend de opiniones de escuelas.**
+**Fase 10 — Pagos, monetización y entitlements.**
 
-La primera tarea es una auditoría técnica del sistema actual de escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
+La siguiente tarea es auditar los productos, precios, flujos de pago, emails operativos y límites de acceso actuales antes de diseñar Stripe y los entitlements server-side.
+
+## Cierre técnico de Fase 9
+
+- **Estado:** 9A–9F completados técnicamente; la QA manual, responsive y de moderación final sigue pendiente antes de publicar la fase.
+- **Catálogo público:** `20260712130000_harden_public_school_catalog_access.sql` aplicada. El navegador consume un DTO cerrado; no recibe notas internas, snapshots ni metadata editorial.
+- **Backend de opiniones:** `20260712140000_create_school_reviews_backend.sql` aplicada. No requiere cuenta, pero toda opinión verifica email; email, hashes, tokens, `user_id`, notas internas e historial nunca cruzan al DTO público.
+- **Lectura pública:** `/opiniones-escuelas`, `/schools/[slug]` y el comparador leen únicamente reseñas `approved`; `school_scores` editoriales no se mezclan con opiniones de alumnos.
+- **Career Planner:** las estrellas de las escuelas de la base FlyPath usan el mismo resumen público aprobado por lote, convertido de `1–10` a `0–5`; no hay fallback a `school_scores` y cero opiniones muestra “Sin opiniones”.
+- **Moderación atómica:** `20260712150000_make_school_review_moderation_atomic.sql` aplicada. `/warhome/reviews` y `/warhome/reviews/[reviewId]` usan una RPC `SECURITY DEFINER`, con bloqueo de fila, transiciones cerradas, motivo cerrado y evento append-only en la misma transacción. Solo `service_role` puede ejecutarla.
+- **Separación de dominio:** una opinión no crea leads, suscripciones, cuentas ni compras. La cuenta vinculada es opcional y no se publica.
+- **Validación técnica:** 465 pruebas correctas, TypeScript correcto, lint focalizado, build Webpack y `git diff --check` correctos. La exportación inválida `TypeGlyph` de AeroComms se dejó como helper local de página, sin cambio funcional.
 
 ## Cierre de Fase 8
 
