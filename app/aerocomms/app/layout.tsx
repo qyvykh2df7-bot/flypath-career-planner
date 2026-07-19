@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./aerocomms-app.css";
 import { AppStateProvider } from "@/lib/aerocomms/appState";
+import { getFlyPathAccountProfile } from "@/lib/account/profile";
 
 /**
  * Scoped layout for the AeroComms app island (/aerocomms/app/**).
@@ -24,14 +25,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function AeroCommsAppLayout({
+export default async function AeroCommsAppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const profile = await getFlyPathAccountProfile();
+  const accountProfile = profile.status === "authenticated"
+    ? { userId: profile.account.id, fullName: profile.account.fullName }
+    : null;
+
   return (
     <div className="aerocomms-app-root min-h-dvh antialiased">
-      <AppStateProvider>{children}</AppStateProvider>
+      <AppStateProvider accountProfile={accountProfile}>{children}</AppStateProvider>
     </div>
   );
 }

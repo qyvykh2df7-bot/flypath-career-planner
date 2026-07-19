@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 6 — Login, cuentas y perfiles.** La implementación de 6B–6E está lista en `feature/login-otp-6b` para auditoría y merge: login OTP, cuenta básica, perfil idempotente, vínculo seguro con leads y contrato local versionado de AeroComms. Sin pagos, entitlements ni sincronización remota.
+**Fase 7 — Persistencia AeroComms.** Implementada con progreso autenticado local-first, sesiones idempotentes, reset remoto persistente e importación explícita del progreso anónimo. La migración remota está aplicada y el QA funcional está aprobado. El nombre permanece local para anónimos y, con cuenta, usa `profiles.full_name` tras una decisión explícita ante conflictos. El build local queda pendiente únicamente por el acceso a Google Fonts; debe validarse en Vercel o en un entorno con red. Sin pagos, entitlements ni cambios Free/Pro.
 
 ## Comandos
 
@@ -29,7 +29,7 @@ Copia `.env.example` a `.env.local` y rellena:
 | Documento | Contenido |
 |-----------|-----------|
 | [CURRENT_PHASE.md](./CURRENT_PHASE.md) | Fase actual, flujos de captación, estado real |
-| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa y cierre de Fase 6 |
+| [ACTIVE_TASK.md](./ACTIVE_TASK.md) | Tarea activa de Fase 7 |
 | [ROADMAP.md](./ROADMAP.md) | Roadmap por fases |
 | [BACKLOG.md](./BACKLOG.md) | Mejoras pospuestas y pendientes |
 | [LAST_SESSION.md](./LAST_SESSION.md) | Último handoff operativo |

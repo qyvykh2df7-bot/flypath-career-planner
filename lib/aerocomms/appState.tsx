@@ -6,10 +6,41 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { findExercise, screenType, type ExerciseType, type ScreenType } from "./content";
+import { initializeFlyPathAuthState } from "@/lib/auth/client";
+import type { FlyPathClientAuthState } from "@/lib/auth/types";
+import {
+  createAeroCommsClientSessionId,
+  createAeroCommsPersistencePayload,
+  createAeroCommsSyncOperationId,
+  readAeroCommsRemoteProgressSnapshot,
+  type AeroCommsPersistencePayload,
+} from "./persistence-contract";
+import {
+  acknowledgeAeroCommsOutboxSessions,
+  appendAeroCommsSyncOutbox,
+  clearAeroCommsPersistenceIntent,
+  getAeroCommsOutboxSessions,
+  readAeroCommsPersistenceIntent,
+  removeAeroCommsLocalProgress,
+  writeAeroCommsPersistenceIntent,
+} from "./persistence-local";
+import { mergeAeroCommsRemoteProgress } from "./persistence-merge";
+import {
+  getAeroCommsLocalSyncEligibility,
+  postAeroCommsProgressReset,
+  postAeroCommsProgressSync,
+  resolveAeroCommsAuthenticatedWorkspace,
+  shouldShowAeroCommsLocalImportDecision,
+} from "./persistence-client";
+import {
+  resolveAeroCommsAccountName,
+  type AeroCommsAccountNamePrompt,
+} from "./account-name";
 
 /** Local calendar date as YYYY-MM-DD (not UTC). */
 export function getLocalDateKey(date: Date = new Date()): string {
@@ -133,6 +164,8 @@ export type AppState = {
   sessionsCount: number;
   /** Sessions that had a real score; used as the denominator for accuracy. */
   scoredCount: number;
+  /** Exact sum for scored sessions. Accuracy is only its rounded presentation. */
+  scoreSum: number;
   minutesToday: number;
   lastSessionAt: string | null;
   completedExercises: string[];
@@ -170,6 +203,7 @@ const DEFAULT_STATE: AppState = {
   accuracy: 0,
   sessionsCount: 0,
   scoredCount: 0,
+  scoreSum: 0,
   minutesToday: 0,
   lastSessionAt: null,
   completedExercises: [],
@@ -181,6 +215,51 @@ const DEFAULT_STATE: AppState = {
 
 // v2: unified progress model (skills + clean baseline). Bumped so legacy v1 seed data is discarded.
 const STORAGE_KEY = "aerocomms.v2";
+const SYNC_OWNER_STORAGE_KEY = "aerocomms.v2.sync-owner";
+const ACCOUNT_STATE_STORAGE_KEY_PREFIX = "aerocomms.v2.account.";
+
+export type AeroCommsSyncStatus =
+  | "synced"
+  | "anonymous"
+  | "unavailable"
+  | "invalid"
+  | "requires_import_confirmation"
+  | "owned_by_another_account";
+
+function accountStateStorageKey(userId: string): string {
+  return `${ACCOUNT_STATE_STORAGE_KEY_PREFIX}${userId}`;
+}
+
+function readStoredAeroCommsState(storageKey: string = STORAGE_KEY): AppState | null {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<AppState>;
+    const zeroStat: SkillStats = { totalScore: 0, count: 0 };
+    return normalizeDailyState({
+      ...DEFAULT_STATE,
+      ...parsed,
+      skills: { ...DEFAULT_STATE.skills, ...parsed.skills },
+      completedMissions: parsed.completedMissions ?? DEFAULT_STATE.completedMissions,
+      missionResults: parsed.missionResults ?? DEFAULT_STATE.missionResults,
+      scoredCount: parsed.scoredCount ?? DEFAULT_STATE.scoredCount,
+      scoreSum: typeof parsed.scoreSum === "number" && Number.isFinite(parsed.scoreSum)
+        ? parsed.scoreSum
+        : (typeof parsed.accuracy === "number" && typeof parsed.scoredCount === "number"
+          ? parsed.accuracy * parsed.scoredCount
+          : 0),
+      skillStats: {
+        listening: { ...zeroStat, ...(parsed.skillStats?.listening ?? {}) },
+        readbacks: { ...zeroStat, ...(parsed.skillStats?.readbacks ?? {}) },
+        phraseology: { ...zeroStat, ...(parsed.skillStats?.phraseology ?? {}) },
+        speaking: { ...zeroStat, ...(parsed.skillStats?.speaking ?? {}) },
+        confidence: { ...zeroStat, ...(parsed.skillStats?.confidence ?? {}) },
+      },
+    });
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Normalize daily fields after loading persisted state.
@@ -285,6 +364,32 @@ function updateSkillStats(
   return { statsMap: m, skills };
 }
 
+function clearDurableProgress(state: AppState): AppState {
+  return {
+    ...state,
+    completedExercises: [],
+    completedMissions: [],
+    missionResults: {},
+    history: [],
+    skills: { listening: 0, readbacks: 0, phraseology: 0, speaking: 0, confidence: 0 },
+    skillStats: {
+      listening: { totalScore: 0, count: 0 },
+      readbacks: { totalScore: 0, count: 0 },
+      phraseology: { totalScore: 0, count: 0 },
+      speaking: { totalScore: 0, count: 0 },
+      confidence: { totalScore: 0, count: 0 },
+    },
+    streakDays: 0,
+    accuracy: 0,
+    sessionsCount: 0,
+    scoredCount: 0,
+    scoreSum: 0,
+    minutesToday: 0,
+    lastSessionAt: null,
+    moduleProgress: {},
+  };
+}
+
 type RecordSessionInput = {
   name: string;
   detail?: string;
@@ -324,46 +429,86 @@ type AppContextValue = {
   setNotifications: (value: boolean) => void;
   cycleDailyGoal: () => void;
   cycleDifficulty: () => void;
+  /**
+   * Synchronizes only durable progress. Existing anonymous progress needs an
+   * explicit confirmation before it can become owned by an account.
+   */
+  syncProgress: (options?: { confirmLocalImport?: boolean }) => Promise<AeroCommsSyncStatus>;
+  localImportDecisionRequired: boolean;
+  dismissLocalImportDecision: () => void;
+  foreignLocalProgressDetected: boolean;
+  dismissForeignLocalProgressDecision: () => void;
+  discardForeignLocalProgress: () => Promise<AeroCommsSyncStatus>;
   reset: () => void;
-  resetProgressOnly: () => void;
+  resetProgressOnly: () => Promise<AeroCommsSyncStatus>;
+  accountNamePrompt: AeroCommsAccountNamePrompt;
+  keepAccountProfileName: () => void;
+  applyAccountProfileName: (fullName: string) => void;
+  dismissAccountNamePrompt: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-export function AppStateProvider({ children }: { children: ReactNode }) {
+export type AeroCommsAccountProfile = { userId: string; fullName: string | null };
+
+export function AppStateProvider({
+  children,
+  accountProfile = null,
+}: {
+  children: ReactNode;
+  accountProfile?: AeroCommsAccountProfile | null;
+}) {
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
   const [hydrated, setHydrated] = useState(false);
+  const [localImportDecisionRequired, setLocalImportDecisionRequired] = useState(false);
+  const [foreignLocalProgressDetected, setForeignLocalProgressDetected] = useState(false);
+  const [authenticatedAccountId, setAuthenticatedAccountId] = useState<string | null>(null);
+  const [accountNamePrompt, setAccountNamePrompt] = useState<AeroCommsAccountNamePrompt>(null);
+  const [confirmedAccountProfileName, setConfirmedAccountProfileName] = useState<string | null>(null);
+  const stateRef = useRef(state);
+  const hydratedRef = useRef(hydrated);
+  const authStateRef = useRef<FlyPathClientAuthState>({ status: "loading" });
+  const pendingSyncPayloadRef = useRef<AeroCommsPersistencePayload | null>(null);
+  const pendingSyncOwnerRef = useRef<string | null>(null);
+  const pendingSyncImportConfirmedRef = useRef(false);
+  const pendingSyncBaselineOutboxIdsRef = useRef<string[]>([]);
+  const pendingResetOperationRef = useRef<string | null>(null);
+  const pendingResetOwnerRef = useRef<string | null>(null);
+  const pendingResetFingerprintRef = useRef<string | null>(null);
+  const syncInFlightRef = useRef(false);
+  const syncGenerationRef = useRef(0);
+  const syncOwnerRef = useRef<string | null>(null);
+  const foreignLocalProgressRef = useRef(false);
+  const foreignLocalProgressOwnerRef = useRef<string | null>(null);
+  const persistLocalStateRef = useRef(true);
+  const retryAttemptRef = useRef(0);
+  const retryTimerRef = useRef<number | null>(null);
+  const lastSyncedFingerprintRef = useRef<string | null>(null);
+  const accountNameResolutionKeyRef = useRef<string | null>(null);
+  const syncProgressRef = useRef<(options?: { confirmLocalImport?: boolean }) => Promise<AeroCommsSyncStatus>>(async () => "unavailable");
+
+  useEffect(() => {
+    stateRef.current = state;
+    hydratedRef.current = hydrated;
+  }, [state, hydrated]);
 
   useEffect(() => {
     let active = true;
     queueMicrotask(() => {
       if (!active) return;
+      const stored = readStoredAeroCommsState();
+      let storedOwner: string | null = null;
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as Partial<AppState>;
-          const zeroStat: SkillStats = { totalScore: 0, count: 0 };
-          setState(normalizeDailyState({
-            ...DEFAULT_STATE,
-            ...parsed,
-            skills: { ...DEFAULT_STATE.skills, ...parsed.skills },
-            // Guarantee new fields exist even in old localStorage blobs.
-            completedMissions: parsed.completedMissions ?? DEFAULT_STATE.completedMissions,
-            missionResults: parsed.missionResults ?? DEFAULT_STATE.missionResults,
-            scoredCount: parsed.scoredCount ?? DEFAULT_STATE.scoredCount,
-            // skillStats: new field. Legacy blobs without it start empty (correct — no EMA data to inherit).
-            skillStats: {
-              listening:   { ...zeroStat, ...(parsed.skillStats?.listening   ?? {}) },
-              readbacks:   { ...zeroStat, ...(parsed.skillStats?.readbacks   ?? {}) },
-              phraseology: { ...zeroStat, ...(parsed.skillStats?.phraseology ?? {}) },
-              // speaking is new — old localStorage blobs without it start at zero (correct).
-              speaking:    { ...zeroStat, ...(parsed.skillStats?.speaking    ?? {}) },
-              confidence:  { ...zeroStat, ...(parsed.skillStats?.confidence  ?? {}) },
-            },
-          }));
-        }
+        storedOwner = localStorage.getItem(SYNC_OWNER_STORAGE_KEY);
       } catch {
-        // ignore corrupted storage
+        storedOwner = syncOwnerRef.current;
+      }
+      if (storedOwner) {
+        syncOwnerRef.current = storedOwner;
+        // Account-owned browser data stays hidden until Auth identifies the account.
+        persistLocalStateRef.current = false;
+      } else if (stored) {
+        setState(stored);
       }
       setHydrated(true);
     });
@@ -373,13 +518,452 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !persistLocalStateRef.current) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       // ignore quota errors
     }
   }, [state, hydrated]);
+
+  const currentProgressFingerprint = useCallback((candidate: AppState) => JSON.stringify({
+    completedExercises: candidate.completedExercises,
+    missionResults: candidate.missionResults,
+    history: candidate.history,
+    skillStats: candidate.skillStats,
+    accuracy: candidate.accuracy,
+    scoreSum: candidate.scoreSum,
+    sessionsCount: candidate.sessionsCount,
+    scoredCount: candidate.scoredCount,
+    streakDays: candidate.streakDays,
+    lastSessionAt: candidate.lastSessionAt,
+  }), []);
+
+  const hasDurableProgress = useCallback((candidate: AppState) => {
+    return candidate.completedExercises.length > 0 || candidate.completedMissions.length > 0 ||
+      candidate.history.length > 0 || candidate.sessionsCount > 0 || candidate.scoredCount > 0;
+  }, []);
+
+  const readSyncOwner = useCallback((): string | null => {
+    try {
+      const stored = localStorage.getItem(SYNC_OWNER_STORAGE_KEY);
+      if (stored) syncOwnerRef.current = stored;
+      return stored ?? syncOwnerRef.current;
+    } catch {
+      return syncOwnerRef.current;
+    }
+  }, []);
+
+  const writeSyncOwner = useCallback((userId: string) => {
+    syncOwnerRef.current = userId;
+    try {
+      localStorage.setItem(SYNC_OWNER_STORAGE_KEY, userId);
+    } catch {
+      // The in-memory owner keeps this browser session syncable when storage is restricted.
+    }
+  }, []);
+
+  const archiveAccountProgress = useCallback((userId: string, candidate: AppState) => {
+    try {
+      localStorage.setItem(accountStateStorageKey(userId), JSON.stringify(candidate));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const clearSyncOwner = useCallback(() => {
+    syncOwnerRef.current = null;
+    try {
+      localStorage.removeItem(SYNC_OWNER_STORAGE_KEY);
+    } catch {
+      // The owner remains unavailable only while browser storage is restricted.
+    }
+  }, []);
+
+  const clearAnonymousWorkspace = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // The current in-memory state remains isolated until storage recovers.
+    }
+  }, []);
+
+  /**
+   * Activity created while signed in belongs to that account immediately. An
+   * ownerless workspace with existing durable progress remains importable until
+   * the user explicitly chooses to import it from Profile.
+   */
+  const claimAuthenticatedWorkspaceForNewActivity = useCallback(() => {
+    const authState = authStateRef.current;
+    if (authState.status !== "authenticated" || foreignLocalProgressRef.current) return;
+    const eligibility = getAeroCommsLocalSyncEligibility(
+      hasDurableProgress(stateRef.current),
+      readSyncOwner(),
+      authState.account.id,
+    );
+    if (eligibility === "requires_import_confirmation" || eligibility === "owned_by_another_account") return;
+    writeSyncOwner(authState.account.id);
+  }, [hasDurableProgress, readSyncOwner, writeSyncOwner]);
+
+  const scheduleSyncRetry = useCallback(() => {
+    if (retryTimerRef.current !== null) return;
+    const delay = Math.min(3_000 * 2 ** retryAttemptRef.current, 60_000);
+    retryAttemptRef.current += 1;
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null;
+      void syncProgressRef.current();
+    }, delay);
+  }, []);
+
+  useEffect(() => () => {
+    if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
+  }, []);
+
+  const syncProgress = useCallback(async (
+    options: { confirmLocalImport?: boolean } = {},
+  ): Promise<AeroCommsSyncStatus> => {
+    if (!hydratedRef.current) return "unavailable";
+    if (syncInFlightRef.current) {
+      scheduleSyncRetry();
+      return "unavailable";
+    }
+    const authState = authStateRef.current;
+    if (authState.status === "anonymous") return "anonymous";
+    if (authState.status !== "authenticated") return "unavailable";
+
+    const syncGeneration = syncGenerationRef.current;
+    const accountId = authState.account.id;
+    const persistedIntent = readAeroCommsPersistenceIntent();
+    if (!pendingResetOperationRef.current && persistedIntent?.kind === "reset" && persistedIntent.ownerId === accountId) {
+      pendingResetOperationRef.current = persistedIntent.operationId;
+      pendingResetOwnerRef.current = persistedIntent.ownerId;
+    }
+    if (pendingResetOperationRef.current) {
+      if (pendingResetOwnerRef.current !== accountId) return "owned_by_another_account";
+      syncInFlightRef.current = true;
+      const result = await postAeroCommsProgressReset(pendingResetOperationRef.current);
+      syncInFlightRef.current = false;
+      if (syncGeneration !== syncGenerationRef.current) return "unavailable";
+      if (result.status !== "synced") {
+        if (result.status === "unavailable") scheduleSyncRetry();
+        if (result.status !== "unavailable") {
+          pendingResetOperationRef.current = null;
+          pendingResetOwnerRef.current = null;
+          clearAeroCommsPersistenceIntent();
+        }
+        return result.status === "unauthenticated" ? "anonymous" : result.status;
+      }
+
+      const snapshot = readAeroCommsRemoteProgressSnapshot(result.snapshot);
+      if (!snapshot || snapshot.summary.sessionCount !== 0 || snapshot.summary.scoredSessionCount !== 0) {
+        scheduleSyncRetry();
+        return "unavailable";
+      }
+      pendingResetOperationRef.current = null;
+      pendingResetOwnerRef.current = null;
+      lastSyncedFingerprintRef.current = pendingResetFingerprintRef.current ?? currentProgressFingerprint(stateRef.current);
+      pendingResetFingerprintRef.current = null;
+      clearAeroCommsPersistenceIntent();
+      retryAttemptRef.current = 0;
+      writeSyncOwner(accountId);
+      return "synced";
+    }
+
+    if (foreignLocalProgressRef.current) return "owned_by_another_account";
+    if (!pendingSyncPayloadRef.current && persistedIntent?.kind === "sync" && persistedIntent.ownerId === accountId) {
+      pendingSyncPayloadRef.current = persistedIntent.payload;
+      pendingSyncOwnerRef.current = persistedIntent.ownerId;
+      pendingSyncImportConfirmedRef.current = persistedIntent.importConfirmed;
+      pendingSyncBaselineOutboxIdsRef.current = persistedIntent.baselineOutboxSessionIds ?? [];
+    }
+
+    const candidate = stateRef.current;
+    const eligibility = getAeroCommsLocalSyncEligibility(
+      hasDurableProgress(candidate),
+      readSyncOwner(),
+      accountId,
+    );
+    if (!pendingSyncPayloadRef.current) {
+      if (eligibility === "owned_by_another_account") return eligibility;
+      if (shouldShowAeroCommsLocalImportDecision(eligibility) && !options.confirmLocalImport) {
+        setLocalImportDecisionRequired(true);
+        return eligibility;
+      }
+    }
+
+    const fingerprint = currentProgressFingerprint(candidate);
+    if (!pendingSyncPayloadRef.current) {
+      const importingAnonymousProgress = eligibility === "requires_import_confirmation" && options.confirmLocalImport === true;
+      const outboxSessions = getAeroCommsOutboxSessions(accountId, importingAnonymousProgress);
+      const sessionRecords = importingAnonymousProgress
+        ? [...candidate.history, ...outboxSessions]
+        : outboxSessions;
+      const payload = createAeroCommsPersistencePayload(
+        candidate,
+        createAeroCommsSyncOperationId(),
+        { sessionRecords },
+      );
+      if (!payload) return "invalid";
+      pendingSyncPayloadRef.current = payload;
+      pendingSyncOwnerRef.current = accountId;
+      pendingSyncImportConfirmedRef.current = importingAnonymousProgress;
+      if (importingAnonymousProgress) {
+        // The explicit choice binds this browser workspace to the account even
+        // when the network retry happens after a logout or reload.
+        writeSyncOwner(accountId);
+        setLocalImportDecisionRequired(false);
+      }
+      pendingSyncBaselineOutboxIdsRef.current = importingAnonymousProgress
+        ? outboxSessions.map((session) => session.id)
+        : [];
+      writeAeroCommsPersistenceIntent({
+        kind: "sync",
+        ownerId: accountId,
+        payload,
+        importConfirmed: importingAnonymousProgress,
+        ...(importingAnonymousProgress ? { baselineOutboxSessionIds: pendingSyncBaselineOutboxIdsRef.current } : {}),
+      });
+    }
+
+    if (pendingSyncOwnerRef.current !== accountId) return "owned_by_another_account";
+
+    syncInFlightRef.current = true;
+    const result = await postAeroCommsProgressSync(pendingSyncPayloadRef.current);
+    syncInFlightRef.current = false;
+    if (syncGeneration !== syncGenerationRef.current) return "unavailable";
+    if (result.status !== "synced") {
+      if (result.status === "unavailable") scheduleSyncRetry();
+      else {
+        pendingSyncPayloadRef.current = null;
+        pendingSyncOwnerRef.current = null;
+        pendingSyncImportConfirmedRef.current = false;
+        pendingSyncBaselineOutboxIdsRef.current = [];
+        clearAeroCommsPersistenceIntent();
+      }
+      return result.status === "unauthenticated" ? "anonymous" : result.status;
+    }
+
+    const snapshot = readAeroCommsRemoteProgressSnapshot(result.snapshot);
+    if (!snapshot) {
+      pendingSyncPayloadRef.current = null;
+      pendingSyncOwnerRef.current = null;
+      pendingSyncImportConfirmedRef.current = false;
+      pendingSyncBaselineOutboxIdsRef.current = [];
+      clearAeroCommsPersistenceIntent();
+      return "invalid";
+    }
+
+    // Keep the local source untouched until the complete remote snapshot is accepted.
+    setState((current) => mergeAeroCommsRemoteProgress(current, snapshot));
+    const sentSessionIds = pendingSyncImportConfirmedRef.current
+      ? pendingSyncBaselineOutboxIdsRef.current
+      : pendingSyncPayloadRef.current.sessions.map((session) => session.clientSessionId);
+    acknowledgeAeroCommsOutboxSessions(accountId, sentSessionIds);
+    writeSyncOwner(accountId);
+    lastSyncedFingerprintRef.current = fingerprint;
+    pendingSyncPayloadRef.current = null;
+    pendingSyncOwnerRef.current = null;
+    pendingSyncImportConfirmedRef.current = false;
+    pendingSyncBaselineOutboxIdsRef.current = [];
+    clearAeroCommsPersistenceIntent();
+    setLocalImportDecisionRequired(false);
+    retryAttemptRef.current = 0;
+    if (getAeroCommsOutboxSessions(accountId, false).length > 0) scheduleSyncRetry();
+    return "synced";
+  }, [currentProgressFingerprint, hasDurableProgress, readSyncOwner, scheduleSyncRetry, writeSyncOwner]);
+
+  useEffect(() => {
+    syncProgressRef.current = syncProgress;
+  }, [syncProgress]);
+
+  useEffect(() => initializeFlyPathAuthState((authState) => {
+    const previous = authStateRef.current;
+    if (previous.status === "authenticated" &&
+      (authState.status !== "authenticated" || previous.account.id !== authState.account.id)) {
+      archiveAccountProgress(previous.account.id, stateRef.current);
+      syncGenerationRef.current += 1;
+      pendingSyncPayloadRef.current = null;
+      pendingSyncOwnerRef.current = null;
+      pendingSyncImportConfirmedRef.current = false;
+      pendingSyncBaselineOutboxIdsRef.current = [];
+      pendingResetOperationRef.current = null;
+      pendingResetOwnerRef.current = null;
+      pendingResetFingerprintRef.current = null;
+      lastSyncedFingerprintRef.current = null;
+    }
+    authStateRef.current = authState;
+    setAuthenticatedAccountId(authState.status === "authenticated" ? authState.account.id : null);
+    if (authState.status !== "authenticated") {
+      setConfirmedAccountProfileName(null);
+      setAccountNamePrompt(null);
+      accountNameResolutionKeyRef.current = null;
+    }
+    if (!hydratedRef.current) return;
+
+    if (authState.status === "loading" || authState.status === "unavailable") return;
+
+    let localOwner = readSyncOwner();
+    if (authState.status === "anonymous") {
+      if (localOwner) {
+        const stored = readStoredAeroCommsState();
+        if (stored) archiveAccountProgress(localOwner, stored);
+        clearAnonymousWorkspace();
+        clearSyncOwner();
+        stateRef.current = DEFAULT_STATE;
+        setState(DEFAULT_STATE);
+      }
+      foreignLocalProgressRef.current = false;
+      foreignLocalProgressOwnerRef.current = null;
+      setForeignLocalProgressDetected(false);
+      persistLocalStateRef.current = true;
+      return;
+    }
+
+    const browserProgress = readStoredAeroCommsState();
+    const accountSnapshot = readStoredAeroCommsState(accountStateStorageKey(authState.account.id));
+    const authenticatedWorkspace = resolveAeroCommsAuthenticatedWorkspace(
+      localOwner,
+      authState.account.id,
+      Boolean(browserProgress && hasDurableProgress(browserProgress)),
+      Boolean(accountSnapshot),
+    );
+    if (authenticatedWorkspace === "foreign" && localOwner) {
+      const foreignOwnerId = localOwner;
+      const stored = readStoredAeroCommsState();
+      if (stored) archiveAccountProgress(foreignOwnerId, stored);
+      clearAnonymousWorkspace();
+      clearSyncOwner();
+      localOwner = null;
+      foreignLocalProgressRef.current = true;
+      // Keep this only for Profile's non-destructive resolution. The shared
+      // owner marker has already been removed before User B can write locally.
+      foreignLocalProgressOwnerRef.current = foreignOwnerId;
+      setForeignLocalProgressDetected(true);
+      stateRef.current = DEFAULT_STATE;
+      setState(DEFAULT_STATE);
+    } else {
+      foreignLocalProgressRef.current = false;
+      foreignLocalProgressOwnerRef.current = null;
+      setForeignLocalProgressDetected(false);
+    }
+
+    persistLocalStateRef.current = true;
+    if (localOwner === authState.account.id) {
+      const stored = readStoredAeroCommsState();
+      if (stored) {
+        stateRef.current = stored;
+        setState(stored);
+      }
+    } else {
+      const anonymousProgress = readStoredAeroCommsState();
+      const accountProgress = readStoredAeroCommsState(accountStateStorageKey(authState.account.id));
+      const workspace = resolveAeroCommsAuthenticatedWorkspace(
+        localOwner,
+        authState.account.id,
+        Boolean(anonymousProgress && hasDurableProgress(anonymousProgress)),
+        Boolean(accountProgress),
+      );
+      if (workspace === "import_anonymous" && anonymousProgress) {
+        stateRef.current = anonymousProgress;
+        setState(anonymousProgress);
+      } else if (workspace === "account" && accountProgress) {
+        stateRef.current = accountProgress;
+        setState(accountProgress);
+        writeSyncOwner(authState.account.id);
+      }
+    }
+    void syncProgressRef.current();
+  }), [archiveAccountProgress, clearAnonymousWorkspace, clearSyncOwner, hasDurableProgress, readSyncOwner, writeSyncOwner]);
+
+  useEffect(() => {
+    if (!hydrated || !authenticatedAccountId || accountProfile?.userId !== authenticatedAccountId) return;
+
+    const effectiveAccountName = confirmedAccountProfileName ?? accountProfile.fullName;
+    const resolutionKey = [
+      authenticatedAccountId,
+      effectiveAccountName ?? "",
+      state.name,
+      foreignLocalProgressRef.current ? "foreign" : "current",
+    ].join("|");
+    if (accountNameResolutionKeyRef.current === resolutionKey) return;
+    accountNameResolutionKeyRef.current = resolutionKey;
+
+    const resolution = resolveAeroCommsAccountName({
+      localName: state.name,
+      authenticated: true,
+      accountName: effectiveAccountName,
+      isCurrentWorkspace: !foreignLocalProgressRef.current,
+      hasLocalOnboardingName: state.onboarded,
+    });
+
+    setAccountNamePrompt(resolution.prompt);
+    if (resolution.displayedName !== state.name) {
+      stateRef.current = { ...stateRef.current, name: resolution.displayedName };
+      setState((current) => ({ ...current, name: resolution.displayedName }));
+    }
+  }, [accountProfile?.fullName, accountProfile?.userId, authenticatedAccountId, confirmedAccountProfileName, hydrated, state.name, state.onboarded]);
+
+  useEffect(() => {
+    let active = true;
+    if (!hydrated) return;
+    const authState = authStateRef.current;
+    const localOwner = readSyncOwner();
+    if (authState.status === "anonymous" && localOwner) {
+      const stored = readStoredAeroCommsState();
+      if (stored) archiveAccountProgress(localOwner, stored);
+      clearAnonymousWorkspace();
+      clearSyncOwner();
+      foreignLocalProgressRef.current = false;
+      foreignLocalProgressOwnerRef.current = null;
+      setForeignLocalProgressDetected(false);
+      persistLocalStateRef.current = true;
+      stateRef.current = DEFAULT_STATE;
+      setState(DEFAULT_STATE);
+      return;
+    }
+    if (authState.status === "authenticated" && localOwner && localOwner !== authState.account.id) {
+      const foreignOwnerId = localOwner;
+      const stored = readStoredAeroCommsState();
+      if (stored) archiveAccountProgress(foreignOwnerId, stored);
+      clearAnonymousWorkspace();
+      clearSyncOwner();
+      foreignLocalProgressRef.current = true;
+      foreignLocalProgressOwnerRef.current = foreignOwnerId;
+      setForeignLocalProgressDetected(true);
+      persistLocalStateRef.current = true;
+      stateRef.current = DEFAULT_STATE;
+      setState(DEFAULT_STATE);
+      return;
+    }
+    if (authState.status === "authenticated" && localOwner === authState.account.id) {
+      const stored = readStoredAeroCommsState();
+      if (stored) {
+        persistLocalStateRef.current = true;
+        stateRef.current = stored;
+        queueMicrotask(() => {
+          if (!active) return;
+          setState(stored);
+          void syncProgressRef.current();
+        });
+      } else {
+        void syncProgressRef.current();
+      }
+    }
+    return () => {
+      active = false;
+    };
+  }, [archiveAccountProgress, clearAnonymousWorkspace, clearSyncOwner, hydrated, readSyncOwner]);
+
+  useEffect(() => {
+    if (!hydrated || authStateRef.current.status !== "authenticated") return;
+    const fingerprint = currentProgressFingerprint(state);
+    if (fingerprint === lastSyncedFingerprintRef.current) return;
+    const timeout = window.setTimeout(() => {
+      void syncProgressRef.current();
+    }, 750);
+    return () => window.clearTimeout(timeout);
+  }, [state, hydrated, currentProgressFingerprint]);
 
   const setOnboarding = useCallback((data: Partial<AppState>) => {
     setState((s) => ({ ...s, ...data }));
@@ -390,12 +974,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const recordSession = useCallback((input: RecordSessionInput) => {
+    claimAuthenticatedWorkspaceForNewActivity();
     const scored = input.isScored === true;
     // No random fallback. Completion-only sessions have no score.
     const score = scored ? input.score : undefined;
     const minutes = input.minutes ?? 5;
     const record: SessionRecord = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: createAeroCommsClientSessionId(),
       name: input.name,
       detail: input.detail ?? `Today \u00b7 ${minutes} min`,
       score,
@@ -413,8 +998,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       // Accuracy and skills are updated ONLY from genuinely scored sessions.
       // scoredCount tracks how many such sessions have been recorded (correct denominator).
       const newScoredCount = scored ? s.scoredCount + 1 : s.scoredCount;
+      const newScoreSum = scored && score !== undefined ? s.scoreSum + score : s.scoreSum;
       const newAccuracy = scored && score !== undefined
-        ? (s.scoredCount === 0 ? score : Math.round((s.accuracy * s.scoredCount + score) / newScoredCount))
+        ? Math.round(newScoreSum / newScoredCount)
         : s.accuracy;
 
       // Resolve the exercise type (from input, else from the catalog) -> screen -> skills.
@@ -449,6 +1035,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         ...s,
         sessionsCount: newCount,
         scoredCount: newScoredCount,
+        scoreSum: newScoreSum,
         accuracy: newAccuracy,
         skills,
         skillStats: newSkillStats,
@@ -460,8 +1047,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         history: [record, ...s.history].slice(0, 20),
       };
     });
+    const authState = authStateRef.current;
+    appendAeroCommsSyncOutbox({
+      ownerId: authState.status === "authenticated" ? authState.account.id : null,
+      session: record,
+    });
     return record;
-  }, []);
+  }, [claimAuthenticatedWorkspaceForNewActivity]);
 
   /**
    * Single action for completing an ATC Sim Guided Mission.
@@ -472,9 +1064,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
    * Does NOT call recordSession — history is written here to avoid duplication.
    */
   const recordMissionResult = useCallback((input: RecordMissionResultInput): SessionRecord => {
+    claimAuthenticatedWorkspaceForNewActivity();
     const minutes = input.minutes ?? 6;
     const record: SessionRecord = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: createAeroCommsClientSessionId(),
       name: input.title,
       detail: `ATC Sim \u00b7 ${minutes} min`,
       score: input.score,
@@ -490,10 +1083,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const newCount = s.sessionsCount + 1;
       // ATC Sim missions always have a real score — use scoredCount as the denominator.
       const newScoredCount = s.scoredCount + 1;
-      const newAccuracy =
-        s.scoredCount === 0
-          ? input.score
-          : Math.round((s.accuracy * s.scoredCount + input.score) / newScoredCount);
+      const newScoreSum = s.scoreSum + input.score;
+      const newAccuracy = Math.round(newScoreSum / newScoredCount);
 
       // ATC Sim missions: real scored activity — updates all four skill axes.
       const { statsMap: newSkillStats, skills } = updateSkillStats(s.skillStats, "mission", input.score);
@@ -533,6 +1124,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         ...s,
         sessionsCount: newCount,
         scoredCount: newScoredCount,
+        scoreSum: newScoreSum,
         accuracy: newAccuracy,
         skills,
         skillStats: newSkillStats,
@@ -545,8 +1137,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       };
     });
 
+    const authState = authStateRef.current;
+    appendAeroCommsSyncOutbox({
+      ownerId: authState.status === "authenticated" ? authState.account.id : null,
+      session: record,
+    });
+
     return record;
-  }, []);
+  }, [claimAuthenticatedWorkspaceForNewActivity]);
 
   const upgrade = useCallback(() => {
     setState((s) => ({ ...s, subscription: "pro" }));
@@ -570,7 +1168,46 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const reset = useCallback(() => setState(DEFAULT_STATE), []);
+  const beginPersistentReset = useCallback((nextState: AppState): Promise<AeroCommsSyncStatus> => {
+    syncGenerationRef.current += 1;
+    pendingSyncPayloadRef.current = null;
+    pendingSyncOwnerRef.current = null;
+    pendingSyncImportConfirmedRef.current = false;
+    pendingSyncBaselineOutboxIdsRef.current = [];
+    lastSyncedFingerprintRef.current = null;
+
+    const authState = authStateRef.current;
+    const ownerId = authState.status === "authenticated"
+      ? authState.account.id
+      : foreignLocalProgressRef.current
+        ? null
+        : readSyncOwner();
+    if (ownerId) {
+      pendingResetOperationRef.current = createAeroCommsSyncOperationId();
+      pendingResetOwnerRef.current = ownerId;
+      pendingResetFingerprintRef.current = currentProgressFingerprint(nextState);
+      writeAeroCommsPersistenceIntent({
+        kind: "reset",
+        ownerId,
+        operationId: pendingResetOperationRef.current,
+      });
+    } else {
+      clearAeroCommsPersistenceIntent();
+    }
+    setLocalImportDecisionRequired(false);
+    removeAeroCommsLocalProgress(ownerId);
+    if (ownerId !== null) removeAeroCommsLocalProgress(null);
+    setState(nextState);
+
+    if (authState.status === "authenticated" && ownerId === authState.account.id) {
+      return syncProgressRef.current();
+    }
+    return Promise.resolve(authState.status === "anonymous" ? "anonymous" : "unavailable");
+  }, [currentProgressFingerprint, readSyncOwner]);
+
+  const reset = useCallback(() => {
+    void beginPersistentReset(DEFAULT_STATE);
+  }, [beginPersistentReset]);
 
   /**
    * Clears all training and mission progress while preserving profile settings.
@@ -582,29 +1219,62 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
    * Keeps:  onboarded, name, experience, goal, subscription,
    *         difficulty, dailyGoal, notifications.
    */
-  const resetProgressOnly = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      completedExercises: [],
-      completedMissions: [],
-      missionResults: {},
-      history: [],
-      skills: { listening: 0, readbacks: 0, phraseology: 0, speaking: 0, confidence: 0 },
-      skillStats: {
-        listening:   { totalScore: 0, count: 0 },
-        readbacks:   { totalScore: 0, count: 0 },
-        phraseology: { totalScore: 0, count: 0 },
-        speaking:    { totalScore: 0, count: 0 },
-        confidence:  { totalScore: 0, count: 0 },
-      },
-      streakDays: 0,
-      accuracy: 0,
-      sessionsCount: 0,
-      scoredCount: 0,
-      minutesToday: 0,
-      lastSessionAt: null,
-      moduleProgress: {},
-    }));
+  const resetProgressOnly = useCallback(() => beginPersistentReset(clearDurableProgress(stateRef.current)), [beginPersistentReset]);
+
+  const dismissLocalImportDecision = useCallback(() => {
+    setLocalImportDecisionRequired(false);
+  }, []);
+
+  const dismissForeignLocalProgressDecision = useCallback(() => {
+    setForeignLocalProgressDetected(false);
+  }, []);
+
+  const discardForeignLocalProgress = useCallback(async (): Promise<AeroCommsSyncStatus> => {
+    const ownerId = foreignLocalProgressOwnerRef.current ?? readSyncOwner();
+    if (!foreignLocalProgressRef.current || !ownerId) return "invalid";
+    // Do not delete the other account's outbox or retry intent. This action
+    // only resolves what is rendered for the current account in this browser.
+    pendingSyncPayloadRef.current = null;
+    pendingSyncOwnerRef.current = null;
+    pendingResetOperationRef.current = null;
+    pendingResetOwnerRef.current = null;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SYNC_OWNER_STORAGE_KEY);
+    } catch {
+      // In-memory state still prevents the previous account's progress leaking this session.
+    }
+    syncOwnerRef.current = null;
+    foreignLocalProgressRef.current = false;
+    foreignLocalProgressOwnerRef.current = null;
+    setForeignLocalProgressDetected(false);
+    persistLocalStateRef.current = true;
+    stateRef.current = DEFAULT_STATE;
+    setState(DEFAULT_STATE);
+    return syncProgressRef.current();
+  }, [readSyncOwner]);
+
+  const keepAccountProfileName = useCallback(() => {
+    if (!authenticatedAccountId || accountProfile?.userId !== authenticatedAccountId) return;
+    const fullName = confirmedAccountProfileName ?? accountProfile.fullName;
+    if (!fullName) return;
+    accountNameResolutionKeyRef.current = null;
+    setAccountNamePrompt(null);
+    stateRef.current = { ...stateRef.current, name: fullName };
+    setState((current) => ({ ...current, name: fullName }));
+  }, [accountProfile, authenticatedAccountId, confirmedAccountProfileName]);
+
+  const applyAccountProfileName = useCallback((fullName: string) => {
+    if (!authenticatedAccountId) return;
+    accountNameResolutionKeyRef.current = null;
+    setConfirmedAccountProfileName(fullName);
+    setAccountNamePrompt(null);
+    stateRef.current = { ...stateRef.current, name: fullName };
+    setState((current) => ({ ...current, name: fullName }));
+  }, [authenticatedAccountId]);
+
+  const dismissAccountNamePrompt = useCallback(() => {
+    setAccountNamePrompt(null);
   }, []);
 
   const value = useMemo<AppContextValue>(
@@ -619,10 +1289,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setNotifications,
       cycleDailyGoal,
       cycleDifficulty,
+      syncProgress,
+      localImportDecisionRequired,
+      dismissLocalImportDecision,
+      foreignLocalProgressDetected,
+      dismissForeignLocalProgressDecision,
+      discardForeignLocalProgress,
       reset,
       resetProgressOnly,
+      accountNamePrompt,
+      keepAccountProfileName,
+      applyAccountProfileName,
+      dismissAccountNamePrompt,
     }),
-    [state, hydrated, setOnboarding, completeOnboarding, recordSession, recordMissionResult, upgrade, setNotifications, cycleDailyGoal, cycleDifficulty, reset, resetProgressOnly],
+    [state, hydrated, setOnboarding, completeOnboarding, recordSession, recordMissionResult, upgrade, setNotifications, cycleDailyGoal, cycleDifficulty, syncProgress, localImportDecisionRequired, dismissLocalImportDecision, foreignLocalProgressDetected, dismissForeignLocalProgressDecision, discardForeignLocalProgress, reset, resetProgressOnly, accountNamePrompt, keepAccountProfileName, applyAccountProfileName, dismissAccountNamePrompt],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

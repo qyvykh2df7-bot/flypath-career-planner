@@ -1,60 +1,51 @@
-# Tarea activa — Cierre de Fase 6
+# Tarea activa — Fase 7: Persistencia AeroComms
 
 ## Estado de la plataforma
 
-- Fases 4 y 5: completadas e integradas en `main`.
-- 6A: completado e integrado en `main`.
-- Fase actual: **Fase 6 — Login, cuentas y perfiles**.
-- Estado: Fase 6 completada e integrada en `main`.
+- Fases 4, 5 y 6: completadas e integradas en `main`.
+- Fase actual: **Fase 7 — Persistencia AeroComms**.
+- Estado: implementación completada; migración remota aplicada y QA funcional aprobado.
 
-## Implementado
+## Implementado en Fase 7
 
-### 6B — Login OTP
+### Modelo y seguridad
 
-- `/login` solicita OTP y `/login/verify` lo valida con Supabase Auth.
-- Email temporal aislado por pestaña (`sessionStorage` con fallback en memoria); nunca viaja en la URL.
-- `next` tiene allowlist de rutas internas, limpia query strings y rechaza destinos externos, malformados y Warhome.
-- Sesión persistente y logout general explícito mediante `signOutFlyPath()`.
+- Migración local `20260712110000_create_aerocomms_progress_persistence.sql` para progreso, ejercicios, misiones, estadísticas, sesiones y recibos de sincronización.
+- Todas las tablas dependen de `auth.users`, tienen RLS y no referencian leads, productos, suscripciones, Warhome ni Stripe.
+- RPC transaccional e idempotente; repetir el mismo `operation_id` con un payload distinto se rechaza. Navegador sin permisos directos de escritura y `service_role` aislado en servidor.
 
-### 6C — Perfil y vínculo con leads
+### Sincronización local-first
 
-- `lib/account/bootstrap.ts` crea o reutiliza `profiles` de forma idempotente y segura ante concurrencia.
-- Solo vincula leads existentes sin `user_id`, usando el email autenticado y confirmado.
-- No crea leads ni reasigna leads pertenecientes a otra cuenta.
-- Si falla el vínculo después de crear el perfil, el resultado es parcial y se puede reintentar en el siguiente acceso.
+- Los usuarios anónimos continúan en `localStorage` con `aerocomms.v2` sin login obligatorio.
+- La ruta `/api/aerocomms/progress/sync` usa `auth.getUser()` y valida el catálogo, rangos, zona horaria, versiones y body antes de llamar a Supabase.
+- `rfr` se normaliza a `ready-for-radio`; IDs desconocidos o datos corruptos se descartan/rechazan sin inventar métricas.
+- Un error de red deja el estado local intacto y conserva el mismo `operation_id` para reintentar sin duplicar sesiones, intentos o estadísticas.
+- Un blob local existente sin propietario requiere confirmación explícita antes de importarse; Perfil permite importarlo o empezar desde cero.
+- Un reset autenticado se persiste remotamente y evita que sesiones anteriores al corte restauren progreso desde otro dispositivo.
+- El propietario de sincronización mantiene un fallback en memoria cuando el almacenamiento del navegador está restringido; los fallos transitorios se reintentan.
 
-### 6D — Cuenta y header
+### Compatibilidad
 
-- `/account` protegido server-side; visitante anónimo → `/login?next=/account`.
-- Nombre visible validado y guardado en `profiles`; email solo lectura.
-- Header público reactivo: estado neutro durante hidratación, “Iniciar sesión” para anónimo y “Mi cuenta” para sesión autenticada.
-- Warhome y `admin_users` permanecen independientes.
+- Se preservan métricas agregadas legítimas de `aerocomms.v2` durante la primera importación; el historial local acotado no se usa para fabricar totales.
+- Audio, transcripciones, blobs, descriptores ATC, nombre, ajustes, UI state y `subscription` local no cruzan el límite de persistencia.
+- El snapshot remoto solo actualiza progreso durable; mantiene ajustes y acceso local sin cambios.
+- El nombre de onboarding permanece local para anónimos. Con sesión, `profiles.full_name` prevalece y cualquier cambio desde AeroComms requiere una confirmación explícita.
 
-### 6E — Contrato AeroComms
+## Pendiente antes de cierre
 
-- `lib/aerocomms/sync-progress.ts` define v1 puro y versionado del progreso sincronizable.
-- Mantiene compatibilidad de lectura con el blob local `aerocomms.v2` sin escribirlo.
-- Excluye audio, transcripciones, blobs, permisos, UI efímera, suscripción y desbloqueos.
-- No hay progreso remoto ni cambios Free/Pro.
+- Revisión final de migración y aplicación controlada en Supabase remoto.
+- El build local queda pendiente únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; validar en Vercel o en un entorno con red.
 
-## Validación realizada
+## Validación local realizada
 
-- `npm test`: 309 tests correctos.
+- `npm test`: 359 tests correctos.
 - `npx tsc --noEmit --pretty false`: correcto.
-- `npm run build`: correcto.
-- `git diff --check`: correcto.
-- Lint focalizado de archivos Fase 6: correcto.
-- `npm run lint` global no pasa por 57 errores y 77 warnings preexistentes fuera de este alcance, principalmente JSX dentro de `try/catch` en Warhome.
+- `npm run build -- --webpack`: bloqueado únicamente por el acceso a Google Fonts; no hay errores de compilación propios de Fase 7.
+- ESLint focalizado y `git diff --check`: correctos.
 
-## Estado de cierre
-
-- La implementación de 6B–6E está integrada en `main`.
-- Se mantienen fuera de alcance Stripe, compras, entitlements y la sincronización remota de AeroComms.
-
-## Fuera de alcance
+## Restricciones de alcance
 
 - Stripe, compras, entitlements y AeroComms Pro.
-- Persistencia o sincronización remota de progreso.
 - Guardado real de Career Planner.
 - Google/Apple login, contraseñas, cambio de email y eliminación de cuenta.
-- Cambios de Warhome, migraciones Supabase o configuración Vercel.
+- Cambios de Warhome, ejercicios, scoring, contenido, Free/Pro o configuración de pagos.

@@ -1,10 +1,11 @@
 import "server-only";
 
 import { getFlyPathSessionState } from "@/lib/auth/session";
+import { normalizeFlyPathProfileName } from "@/lib/account/profile-name";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type FlyPathAccountProfileResult =
-  | { status: "authenticated"; account: { email: string | null; fullName: string | null } }
+  | { status: "authenticated"; account: { id: string; email: string | null; fullName: string | null } }
   | { status: "anonymous" | "unavailable" };
 
 export async function getFlyPathAccountProfile(): Promise<FlyPathAccountProfileResult> {
@@ -24,16 +25,12 @@ export async function getFlyPathAccountProfile(): Promise<FlyPathAccountProfileR
     return {
       status: "authenticated",
       account: {
+        id: session.account.id,
         email: session.account.email,
-        fullName: profile?.full_name?.trim() || null,
+        fullName: profile?.full_name ? normalizeFlyPathProfileName(profile.full_name) : null,
       },
     };
   } catch {
     return { status: "unavailable" };
   }
-}
-
-export function normalizeFlyPathProfileName(value: string): string | null {
-  const normalized = value.trim().replace(/\s+/g, " ");
-  return normalized.length >= 1 && normalized.length <= 120 ? normalized : null;
 }

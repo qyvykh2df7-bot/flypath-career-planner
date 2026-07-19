@@ -42,6 +42,46 @@ Completada e integrada en `main` mediante el merge `aa4f4fe`.
 - Separación transaccional/marketing, bajas seguras, historial append-only y propagación de supresiones.
 - Tracking de aperturas y clics desactivado en Resend por decisión operativa; el esquema está preparado.
 
+## Fase 7 — Persistencia AeroComms
+
+**Completada técnicamente; migración remota aplicada y QA funcional aprobado.**
+
+### Objetivo
+
+- Mantener `aerocomms.v2` como fuente local para usuarios sin cuenta.
+- Añadir persistencia autenticada, idempotente y multi-dispositivo para progreso real de AeroComms.
+- No convertir el estado local `subscription` en acceso, plan o entitlement.
+
+### Implementado en esta rama
+
+- Especificación técnica: `docs/ai/aerocomms/aerocomms-phase-7-persistence-design.md`.
+- Contrato compartido y validado: `lib/aerocomms/persistence-contract.ts`.
+- Migración pendiente `20260712110000_create_aerocomms_progress_persistence.sql` con tablas de resumen, ejercicios, misiones, estadísticas, sesiones, recibos de idempotencia y reset remoto persistente.
+- RLS de lectura por propietario; sin escrituras directas de `authenticated`; RPC transaccional accesible solo desde servidor mediante `service_role`.
+- Rutas autenticadas `/api/aerocomms/progress/sync` y `/api/aerocomms/progress/reset`, validación de catálogo server-side, normalización `rfr` → `ready-for-radio`, límite de body y protección same-origin.
+- Integración local-first en `lib/aerocomms/appState.tsx`: no borra `localStorage` tras sincronizar, reintenta fallos transitorios y descarta respuestas anteriores a un reset.
+- Importación heredada: Perfil ofrece importar explícitamente un blob anónimo existente o empezar desde cero; evita contaminación entre cuentas en un navegador compartido.
+- La primera importación conserva la base legacy legítima, incluido el streak. Después, los agregados se derivan únicamente de sesiones idempotentes aceptadas.
+- El reset se persiste remotamente y crea un corte temporal: sesiones anteriores no pueden restaurar progreso eliminado desde otro dispositivo.
+- El snapshot combina versiones de contenido históricas para que un cambio de `content_version` no oculte progreso previo.
+- El nombre de AeroComms sigue local para anónimos; para una cuenta autenticada `profiles.full_name` es la fuente mostrada. Cualquier diferencia se resuelve explícitamente desde Perfil y no forma parte del progreso remoto.
+
+### Validación local
+
+- `npm test`: 359 tests correctos.
+- `npx tsc --noEmit --pretty false`: correcto.
+- `npm run build -- --webpack`: bloqueado únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono mediante `next/font`; no hay errores de compilación propios de Fase 7.
+- QA funcional: aprobado para importación anónima, recuperación en otro navegador, nombre de cuenta y aislamiento entre cuentas.
+- La validación final del build queda pendiente en Vercel o en un entorno con acceso a Google Fonts.
+- ESLint focalizado de Fase 7 y `git diff --check`: correctos.
+
+### Fuera de alcance
+
+- Stripe, compras, entitlements y AeroComms Pro real.
+- Audio, grabaciones, transcripciones, prompts, estado efímero o UI state.
+- Cambios de ejercicios, scoring, contenido, Free/Pro o desbloqueos.
+- Sincronización de Career Planner, Warhome o perfiles adicionales.
+
 ## Fase 6 — Login, cuentas y perfiles
 
 **Completada e integrada en `main`.**
@@ -130,12 +170,13 @@ Stripe, compras, entitlements, AeroComms Pro real, persistencia remota de progre
 | Warhome auth | `lib/warhome/auth.ts`, `lib/warhome/access.ts`, `proxy.ts` |
 | Perfiles | `supabase/migrations/20260711190000_create_profiles.sql` |
 | Lead opcionalmente vinculado | `supabase/migrations/20260711200000_create_leads.sql` |
-| Progreso local AeroComms | `lib/aerocomms/appState.tsx`, `lib/aerocomms/sync-progress.ts` |
+| Progreso local y persistencia AeroComms | `lib/aerocomms/appState.tsx`, `lib/aerocomms/sync-progress.ts`, `lib/aerocomms/persistence-contract.ts` |
 
 ## Limitaciones conocidas
 
-- El progreso de AeroComms permanece principalmente en cliente hasta una fase posterior.
-- No existen todavía compras, entitlements ni persistencia remota de progreso.
+- La migración de persistencia AeroComms está aplicada en Supabase remoto.
+- La importación de un progreso anónimo existente usa la confirmación explícita ya disponible en Perfil; nunca se asigna silenciosamente a otra cuenta.
+- No existen todavía compras, entitlements ni acceso Pro remoto.
 - Los roles `owner` y `admin` tienen permisos equivalentes en el MVP de Warhome.
-- La cuenta no sincroniza todavía datos de AeroComms ni desbloquea contenido.
+- La sincronización AeroComms está disponible con la migración remota aplicada y QA funcional aprobado; la cuenta no desbloquea contenido.
 - El lint global permanece bloqueado por errores previos no modificados en esta fase.

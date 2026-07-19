@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
-import { useAppState } from "@/lib/aerocomms/appState";
+import { useState, type ReactNode } from "react";
+import { useAppState, type AeroCommsSyncStatus } from "@/lib/aerocomms/appState";
 import { currentLevel } from "@/lib/aerocomms/content";
+import { resolveAeroCommsLocalImportAction } from "@/lib/aerocomms/persistence-client";
+import { saveAeroCommsAccountName } from "@/app/aerocomms/app/account-name-actions";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -133,8 +135,27 @@ function SettingsGroup({
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { state, setNotifications, cycleDailyGoal, cycleDifficulty, resetProgressOnly } =
+  const {
+    state,
+    setNotifications,
+    cycleDailyGoal,
+    cycleDifficulty,
+    discardForeignLocalProgress,
+    dismissLocalImportDecision,
+    dismissForeignLocalProgressDecision,
+    foreignLocalProgressDetected,
+    localImportDecisionRequired,
+    resetProgressOnly,
+    syncProgress,
+    accountNamePrompt,
+    keepAccountProfileName,
+    applyAccountProfileName,
+    dismissAccountNamePrompt,
+  } =
     useAppState();
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncChoice, setSyncChoice] = useState<"import" | "foreign" | null>(null);
+  const [nameSaveState, setNameSaveState] = useState<"idle" | "saving" | "error">("idle");
   // Subscription UI mapping (reads state.subscription only — never hardcoded):
   //   "pro"  → badge "Pro" + "AeroComms Pro Active" (no upgrade CTA)
   //   "free" → badge "Free" + "Upgrade to AeroComms Pro" button → /paywall
@@ -145,11 +166,87 @@ export default function ProfilePage() {
   const completed = new Set(state.completedExercises);
   const level     = currentLevel(completed, isPro);
 
-  const handleResetProgress = () => {
+  const handleResetProgress = async () => {
     const confirmed = window.confirm(
       "Reset all training and mission progress?\n\nThis keeps your profile, preferences and settings.",
     );
-    if (confirmed) resetProgressOnly();
+    if (!confirmed) return;
+    const result = await resetProgressOnly();
+    setSyncMessage(result === "synced"
+      ? "Progress reset across this account."
+      : "Local progress was reset. The account reset will resume when this browser can confirm it safely.");
+  };
+
+  const handleSyncProgress = async () => {
+    const result = await syncProgress();
+    if (result === "requires_import_confirmation") {
+      setSyncChoice("import");
+      setSyncMessage(null);
+      return;
+    }
+    if (result === "owned_by_another_account") {
+      setSyncChoice("foreign");
+      setSyncMessage(null);
+      return;
+    }
+
+    const messages: Partial<Record<AeroCommsSyncStatus, string>> = {
+      synced: "Progress is synced to this account.",
+      anonymous: "Sign in to sync progress across devices.",
+      unavailable: "Progress stays on this device and will retry when sync is available.",
+      invalid: "This local progress cannot be synced safely.",
+      owned_by_another_account: "This browser's progress belongs to another account.",
+    };
+    setSyncMessage(messages[result] ?? null);
+  };
+
+  const handleImportProgress = async () => {
+    const action = resolveAeroCommsLocalImportAction("import");
+    setSyncChoice(null);
+    if (action.dismissDecision) dismissLocalImportDecision();
+    const result = await syncProgress({ confirmLocalImport: action.confirmLocalImport });
+    setSyncMessage(result === "synced"
+      ? "Progress imported and synced to this account."
+      : "Progress remains on this browser and will retry when sync is available.");
+  };
+
+  const handleStartFromZero = async () => {
+    const action = resolveAeroCommsLocalImportAction("start_from_zero");
+    setSyncChoice(null);
+    if (action.dismissDecision) dismissLocalImportDecision();
+    if (!action.resetProgress) return;
+    const result = await resetProgressOnly();
+    setSyncMessage(result === "synced"
+      ? "This account now starts with empty AeroComms progress."
+      : "Local progress was cleared. The account reset will resume when this browser can confirm it safely.");
+  };
+
+  const handleCancelImportProgress = () => {
+    const action = resolveAeroCommsLocalImportAction("cancel");
+    setSyncChoice(null);
+    if (action.dismissDecision) dismissLocalImportDecision();
+  };
+
+  const handleDeleteForeignLocalProgress = async () => {
+    setSyncChoice(null);
+    dismissForeignLocalProgressDecision();
+    const result = await discardForeignLocalProgress();
+    setSyncMessage(result === "synced"
+      ? "This account's progress is now loaded on this browser."
+      : "Previous local progress was removed. Sync this account again when available.");
+  };
+
+  const handleUseLocalAccountName = async () => {
+    if (!accountNamePrompt) return;
+    setNameSaveState("saving");
+    const result = await saveAeroCommsAccountName(accountNamePrompt.localName);
+    if (result.status === "success") {
+      applyAccountProfileName(result.fullName);
+      router.refresh();
+      setNameSaveState("idle");
+      return;
+    }
+    setNameSaveState("error");
   };
 
   // ── Preference rows ───────────────────────────────────────────────────────
@@ -268,6 +365,20 @@ export default function ProfilePage() {
   // ── Alpha tools rows ──────────────────────────────────────────────────────
   const alphaTools: Row[] = [
     {
+      label: "Sync Progress",
+      onClick: () => { void handleSyncProgress(); },
+      iconColor: "#38BDF8",
+      icon: (
+        <SettingsIcon color="#38BDF8" paths={
+          <>
+            <path d="M20 7v5h-5" />
+            <path d="M4 17v-5h5" />
+            <path d="M6.2 9A7 7 0 0 1 18.7 6.2L20 7M4 17l1.3.8A7 7 0 0 0 17.8 15" />
+          </>
+        } />
+      ),
+    },
+    {
       label:   "Reset Progress",
       danger:  true,
       onClick: handleResetProgress,
@@ -352,9 +463,74 @@ export default function ProfilePage() {
           )}
         </section>
 
+        {accountNamePrompt && (
+          <section className="rounded-[14px] border border-[#FACC15]/25 bg-[#FACC15]/[0.06] p-3.5">
+            {accountNamePrompt.kind === "resolve_conflict" ? (
+              <>
+                <p className="text-[12px] font-semibold text-white">Choose the name for your FlyPath account</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+                  This browser has {accountNamePrompt.localName}, while your account uses {accountNamePrompt.accountName}.
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button type="button" disabled={nameSaveState === "saving"} onClick={() => { void handleUseLocalAccountName(); }} className="h-10 rounded-[10px] bg-[#FACC15] px-3 text-[11px] font-bold text-[#07111F] disabled:opacity-60">
+                    Use {accountNamePrompt.localName} for my account
+                  </button>
+                  <button type="button" disabled={nameSaveState === "saving"} onClick={keepAccountProfileName} className="h-10 rounded-[10px] border border-white/15 px-3 text-[11px] font-semibold text-white disabled:opacity-60">
+                    Keep {accountNamePrompt.accountName}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-[12px] font-semibold text-white">Save your AeroComms name to FlyPath?</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+                  Save {accountNamePrompt.localName} so it appears consistently on your signed-in devices.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" disabled={nameSaveState === "saving"} onClick={() => { void handleUseLocalAccountName(); }} className="h-10 rounded-[10px] bg-[#FACC15] px-3 text-[11px] font-bold text-[#07111F] disabled:opacity-60">
+                    Save name to my account
+                  </button>
+                  <button type="button" disabled={nameSaveState === "saving"} onClick={dismissAccountNamePrompt} className="h-10 rounded-[10px] px-3 text-[11px] font-semibold text-slate-400 disabled:opacity-60">
+                    Not now
+                  </button>
+                </div>
+              </>
+            )}
+            {nameSaveState === "error" && <p className="mt-2 text-[11px] text-red-300" role="status">We could not save that name. Your local name is unchanged.</p>}
+          </section>
+        )}
+
         <SettingsGroup title="Preferences" rows={preferences} />
         <SettingsGroup title="Support" rows={support} />
         <SettingsGroup title="Alpha Tools" rows={alphaTools} accentColor="#FB923C" />
+        {(syncChoice === "import" || localImportDecisionRequired) && (
+          <section className="rounded-[14px] border border-[#FACC15]/25 bg-[#FACC15]/[0.06] p-3.5">
+            <p className="text-[12px] font-semibold text-white">Existing browser progress found</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+              Choose whether to import it into this account or begin with empty progress. Cancel keeps everything unchanged.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <button type="button" onClick={() => { void handleImportProgress(); }} className="h-10 rounded-[10px] bg-[#FACC15] px-3 text-[11px] font-bold text-[#07111F]">Import progress</button>
+              <button type="button" onClick={() => { void handleStartFromZero(); }} className="h-10 rounded-[10px] border border-white/15 px-3 text-[11px] font-semibold text-white">Start from zero</button>
+              <button type="button" onClick={handleCancelImportProgress} className="h-10 rounded-[10px] px-3 text-[11px] font-semibold text-slate-400">Cancel</button>
+            </div>
+          </section>
+        )}
+        {(syncChoice === "foreign" || foreignLocalProgressDetected) && (
+          <section className="rounded-[14px] border border-white/10 bg-white/[0.03] p-3.5">
+            <p className="text-[12px] font-semibold text-white">Another account&apos;s progress is saved in this browser</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+              It is hidden from this account. Starting clean keeps the other account&apos;s saved progress private.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => { void handleDeleteForeignLocalProgress(); }} className="h-10 rounded-[10px] border border-[#FACC15]/35 px-3 text-[11px] font-semibold text-[#FACC15]">Start with clean progress</button>
+              <button type="button" onClick={() => { setSyncChoice(null); dismissForeignLocalProgressDecision(); }} className="h-10 rounded-[10px] px-3 text-[11px] font-semibold text-slate-400">Cancel</button>
+            </div>
+          </section>
+        )}
+        {syncMessage && (
+          <p className="px-1 text-center text-[11px] text-slate-400" role="status">{syncMessage}</p>
+        )}
 
         <p className="pb-1 pt-1 text-center text-[10px] text-slate-700">
           AeroComms Alpha · v1.0

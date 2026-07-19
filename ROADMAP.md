@@ -358,24 +358,35 @@ Identidad común para FlyPath y AeroComms, con autorización de Warhome separada
 
 ## Fase 7 — Persistencia de AeroComms
 
-**Estado: Pendiente**
+**Estado: Completada técnicamente; migración remota aplicada y QA funcional aprobado.**
 
 Progreso de usuario en backend; AeroComms ya está en FlyPath (Fase 0).
 
 ### Objetivos
 
-- Progreso por usuario en Supabase.
-- Ejercicios completados.
-- Misiones.
-- Niveles.
-- Estadísticas.
-- Sincronización entre dispositivos.
-- Sustitución o migración de `localStorage`.
-- Preparación de límites Free y Pro.
+- Progreso por usuario en Supabase con modelo híbrido de estado + historial mínimo.
+- Ejercicios, misiones, estadísticas y sesiones reales idempotentes.
+- Merge multi-dispositivo monotónico y normalización `rfr` → `ready-for-radio`.
+- `localStorage` sigue funcionando para anónimos; la migración local → remoto no borra `aerocomms.v2` tras confirmar persistencia.
+- Lecturas propias mediante RLS y escritura únicamente a través de límite server-side autenticado.
+
+### Implementado localmente
+
+- Diseño técnico versionado en `docs/ai/aerocomms/aerocomms-phase-7-persistence-design.md`.
+- Migración `20260712110000_create_aerocomms_progress_persistence.sql` con tablas, RLS, índices, recibos de idempotencia y RPC transaccional.
+- Rutas `/api/aerocomms/progress/sync` y `/api/aerocomms/progress/reset` y helpers cliente/servidor para validar, normalizar, reintentar y fusionar snapshots.
+- Sincronización automática solo para estado vacío o previamente asociado a la misma cuenta. Perfil permite importar explícitamente el progreso anónimo existente o empezar desde cero, sin asociarlo silenciosamente en navegadores compartidos.
+- Reset remoto idempotente con corte persistente contra sesiones antiguas; las métricas posteriores a la importación derivan de sesiones idempotentes y el snapshot mantiene el historial de versiones de contenido.
+- El nombre de AeroComms no se sincroniza como progreso: se mantiene local para anónimos y `profiles.full_name` es la fuente de visualización para cuentas autenticadas, con resolución explícita de conflictos.
+- 359 tests, TypeScript y `git diff --check` correctos. El build con Webpack queda bloqueado únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; no hay errores de compilación propios de Fase 7. Validar en Vercel o en un entorno con red.
+
+### Pendiente de cierre
+
+- Validación final del build en Vercel o en un entorno con acceso a Google Fonts.
 
 ### Nota
 
-No implica mover AeroComms a otro repo ni dominio. Solo **persistencia y sincronización** del producto ya integrado.
+No implica mover AeroComms a otro repo ni dominio. No activa Free/Pro, Stripe, compras ni entitlements; esos límites pertenecen a Fase 9.
 
 ---
 
@@ -486,7 +497,7 @@ Fase 3   Tracking y analítica básica    ████████████  
 Fase 4   Warhome MVP                    ████████████  Completado e integrado en main
 Fase 5   Emails operativos              ████████████  Completado e integrado en main
 Fase 6   Login, cuentas y perfiles      ████████████  Completada e integrada en main
-Fase 7   Persistencia de AeroComms      ░░░░░░░░░░░░  Pendiente
+Fase 7   Persistencia de AeroComms      ██████████░░  Completada; build pendiente de validación en entorno con red
 Fase 8   Revisión final de AeroComms    ░░░░░░░░░░░░  Pendiente
 Fase 9   Pagos y monetización           ░░░░░░░░░░░░  Pendiente
 Fase 10  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (tablas listas)

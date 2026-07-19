@@ -13,7 +13,8 @@ vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: mocks.createSupabaseServerClient,
 }));
 
-import { getFlyPathAccountProfile, normalizeFlyPathProfileName } from "./profile";
+import { getFlyPathAccountProfile } from "./profile";
+import { normalizeFlyPathProfileName } from "./profile-name";
 
 const user = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -47,7 +48,7 @@ describe("getFlyPathAccountProfile", () => {
 
     await expect(getFlyPathAccountProfile()).resolves.toEqual({
       status: "authenticated",
-      account: { email: "pilot@example.com", fullName: "Ana Pilot" },
+      account: { id: user.id, email: "pilot@example.com", fullName: "Ana Pilot" },
     });
   });
 
@@ -56,7 +57,7 @@ describe("getFlyPathAccountProfile", () => {
 
     await expect(getFlyPathAccountProfile()).resolves.toEqual({
       status: "authenticated",
-      account: { email: "pilot@example.com", fullName: null },
+      account: { id: user.id, email: "pilot@example.com", fullName: null },
     });
   });
 

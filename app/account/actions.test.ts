@@ -1,22 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  bootstrapFlyPathIdentity: vi.fn(),
-  createSupabaseServerClient: vi.fn(),
-  getUser: vi.fn(),
+  saveAuthenticatedFlyPathProfileName: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("@/lib/account/bootstrap", () => ({ bootstrapFlyPathIdentity: mocks.bootstrapFlyPathIdentity }));
-vi.mock("@/lib/account/profile", () => ({
-  normalizeFlyPathProfileName: (value: string) => {
-    const normalized = value.trim().replace(/\s+/g, " ");
-    return normalized.length >= 1 && normalized.length <= 120 ? normalized : null;
-  },
-}));
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: mocks.createSupabaseServerClient,
-}));
+vi.mock("@/lib/account/update-profile-name", () => ({ saveAuthenticatedFlyPathProfileName: mocks.saveAuthenticatedFlyPathProfileName }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import {
@@ -26,18 +15,12 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getUser.mockResolvedValue({ data: { user: { id: "user-id" } }, error: null });
-  mocks.bootstrapFlyPathIdentity.mockResolvedValue({ status: "ready" });
-  mocks.createSupabaseServerClient.mockResolvedValue({
-    auth: { getUser: mocks.getUser },
-    from: vi.fn(() => ({
-      update: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })),
-    })),
-  });
+  mocks.saveAuthenticatedFlyPathProfileName.mockResolvedValue({ status: "success", fullName: "Ana Pilot" });
 });
 
 describe("updateFlyPathProfileName", () => {
   it("valida el nombre antes de consultar Supabase", async () => {
+    mocks.saveAuthenticatedFlyPathProfileName.mockResolvedValueOnce({ status: "invalid" });
     const formData = new FormData();
     formData.set("full_name", "   ");
 
@@ -45,7 +28,7 @@ describe("updateFlyPathProfileName", () => {
       status: "error",
       message: "Introduce un nombre válido.",
     });
-    expect(mocks.createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(mocks.saveAuthenticatedFlyPathProfileName).toHaveBeenCalledWith("   ");
   });
 
   it("guarda solo el nombre para el usuario autenticado", async () => {
@@ -60,7 +43,7 @@ describe("updateFlyPathProfileName", () => {
   });
 
   it("devuelve un error genérico si falla la identidad o el bootstrap", async () => {
-    mocks.bootstrapFlyPathIdentity.mockResolvedValue({ status: "unavailable" });
+    mocks.saveAuthenticatedFlyPathProfileName.mockResolvedValue({ status: "unavailable" });
     const formData = new FormData();
     formData.set("full_name", "Ana Pilot");
 
