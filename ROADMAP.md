@@ -437,11 +437,11 @@ No se crea un lead por usar AeroComms, completar onboarding, crear una cuenta, i
 
 ## Fase 9 — Backend de opiniones de escuelas
 
-**Estado: Cerrada técnicamente; QA manual final pendiente**
+**Estado: Cerrada técnicamente y desplegada; QA manual final pendiente**
 
 Backend completo para opiniones de escuelas vinculado a usuarios y escuelas.
 
-Implementación técnica completada con QA manual y responsive final pendiente antes de publicación.
+Implementación técnica desplegada; QA manual y responsive final pendientes como cierre operativo.
 
 ### Objetivos
 
@@ -580,7 +580,7 @@ Fase 5   Emails operativos              ████████████  Co
 Fase 6   Login, cuentas y perfiles      ████████████  Completada e integrada en main
 Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
-Fase 9   Backend de opiniones           ████████████  Cerrada técnicamente; QA manual final pendiente
+Fase 9   Backend de opiniones           ████████████  Técnica desplegada; QA manual final pendiente
 Fase 10  Pagos y entitlements           ░░░░░░░░░░░░  Actual: auditoría inicial
 Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
 Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)

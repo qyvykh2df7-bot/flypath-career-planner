@@ -24,7 +24,7 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Career Planner reutiliza el mismo agregado público por lote: convierte la media real `1–10` a estrellas `0–5`, conserva fracciones y muestra “Sin opiniones” sin fallback editorial.
 - 9E añadió moderación protegida en `/warhome/reviews` y detalle privado con acciones cerradas e historial.
 - La migración `20260712150000_make_school_review_moderation_atomic.sql` deja las transiciones de moderación y su evento append-only en una única RPC transaccional, con `EXECUTE` exclusivo de `service_role`.
-- 9F deja 465 pruebas, TypeScript, lint focalizado, build Webpack y `git diff --check` correctos. Falta únicamente la QA manual y responsive final antes de publicar la fase.
+- 9F deja 465 pruebas, TypeScript, lint focalizado, build Webpack y `git diff --check` correctos. El commit `b5f8e34 feat(schools): close school reviews backend` está desplegado en producción; falta únicamente la QA manual y responsive final como cierre operativo.
 
 ## Tarea activa
 

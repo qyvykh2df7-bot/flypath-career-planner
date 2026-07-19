@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-07-19
 **Rama:** `main`
-**Estado:** Fase 9 — Backend de opiniones de escuelas: 9A–9F completados técnicamente. La siguiente fase es Fase 10 — Pagos, monetización y entitlements. No se ha declarado la QA manual de opiniones como completada.
+**Estado:** Fase 9 — Backend de opiniones de escuelas: 9A–9F completados técnicamente y desplegados en producción mediante `b5f8e34 feat(schools): close school reviews backend`. La siguiente fase es Fase 10 — Pagos, monetización y entitlements. No se ha declarado la QA manual de opiniones como completada.
 
 ## Cierre técnico de Fase 9
 
@@ -14,6 +14,7 @@
 - Career Planner consume ahora ese mismo resumen público por lote: las estrellas convierten la media aprobada de `1–10` a `0–5`, incluyen fracciones visuales y nunca usan `school_scores` como fallback. Sin opiniones aprobadas muestra “Sin opiniones”.
 - `/warhome/reviews` y `/warhome/reviews/[reviewId]` están detrás de autorización Warhome. El listado permite filtro y búsqueda privada; el detalle conserva email, textos e historial solo para admins. Aprobar, rechazar, ocultar, restaurar, eliminar y resolver solicitudes usan transiciones cerradas, motivos cerrados y un evento append-only. Las acciones de moderación de Warhome ya se ejecutan mediante la RPC atómica.
 - Pruebas técnicas actuales: `npm test` 465 correctas; TypeScript, lint focalizado, build Webpack y `git diff --check` correctos. El aviso de prueba Pre-PPL sigue siendo esperado y no invalida la suite. La exportación inválida `TypeGlyph` de AeroComms se corrigió haciéndola local a su página, sin cambio funcional.
+- Deployment de producción de `b5f8e34`: `Ready` en Vercel. La URL canónica sigue siendo `https://flypath-career-planner.vercel.app`.
 - QA remota controlada: transición sintética `pending -> approved`, repetición idempotente, conflicto de estado y transición inválida verificados; la opinión sintética y su auditoría se eliminaron al terminar. No se crearon leads, suscripciones, cuentas ni compras.
 - Pendiente antes de publicar: QA manual del invitado/verificación, flujo de moderación, edición/eliminación, comparador/ficha, móvil y escritorio.
 

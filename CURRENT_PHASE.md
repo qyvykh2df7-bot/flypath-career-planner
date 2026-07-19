@@ -12,7 +12,7 @@ La siguiente tarea es auditar los productos, precios, flujos de pago, emails ope
 
 ## Cierre técnico de Fase 9
 
-- **Estado:** 9A–9F completados técnicamente; la QA manual, responsive y de moderación final sigue pendiente antes de publicar la fase.
+- **Estado:** 9A–9F completados técnicamente y desplegados en producción mediante `b5f8e34 feat(schools): close school reviews backend`; la QA manual, responsive y de moderación final sigue siendo el único cierre operativo pendiente.
 - **Catálogo público:** `20260712130000_harden_public_school_catalog_access.sql` aplicada. El navegador consume un DTO cerrado; no recibe notas internas, snapshots ni metadata editorial.
 - **Backend de opiniones:** `20260712140000_create_school_reviews_backend.sql` aplicada. No requiere cuenta, pero toda opinión verifica email; email, hashes, tokens, `user_id`, notas internas e historial nunca cruzan al DTO público.
 - **Lectura pública:** `/opiniones-escuelas`, `/schools/[slug]` y el comparador leen únicamente reseñas `approved`; `school_scores` editoriales no se mezclan con opiniones de alumnos.

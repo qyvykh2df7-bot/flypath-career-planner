@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 10 — Pagos, monetización y entitlements.** La Fase 9 — Backend de opiniones de escuelas está cerrada técnicamente: catálogo público endurecido, migraciones `20260712130000`, `20260712140000` y `20260712150000` aplicadas en Supabase, formulario con verificación por email, lectura pública exclusiva de reseñas aprobadas, moderación atómica privada en Warhome y estrellas del Career Planner basadas únicamente en opiniones aprobadas. Cuenta, lead, marketing y opiniones permanecen separados; crear una opinión no crea captación ni consentimiento. La QA manual y responsive final de opiniones sigue siendo el único cierre operativo pendiente antes de su publicación.
+**Fase 10 — Pagos, monetización y entitlements.** La Fase 9 — Backend de opiniones de escuelas está cerrada técnicamente y desplegada en producción mediante `b5f8e34`: catálogo público endurecido, migraciones `20260712130000`, `20260712140000` y `20260712150000` aplicadas en Supabase, formulario con verificación por email, lectura pública exclusiva de reseñas aprobadas, moderación atómica privada en Warhome y estrellas del Career Planner basadas únicamente en opiniones aprobadas. Cuenta, lead, marketing y opiniones permanecen separados; crear una opinión no crea captación ni consentimiento. La QA manual y responsive final de opiniones sigue siendo el único cierre operativo pendiente.
 
 ## Comandos
 
