@@ -21,7 +21,7 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - 9A endureció el catálogo público y retiró campos editoriales/internos del navegador. Migración `20260712130000_harden_public_school_catalog_access.sql` aplicada.
 - 9B–9C crearon y conectaron el backend privado de opiniones, verificación por email y formulario real. Migración `20260712140000_create_school_reviews_backend.sql` aplicada.
 - 9D muestra datos públicos reales solo cuando la reseña está `approved`; fichas y comparador usan agregados seguros sin N+1 ni mezcla con `school_scores`.
-- Career Planner reutiliza el mismo agregado público por lote: convierte la media real `1–10` a estrellas `0–5`, conserva fracciones y muestra “Sin opiniones” sin fallback editorial.
+- Career Planner reutiliza el mismo agregado público por lote: convierte la media real `1–10` a estrellas `0–5`, conserva fracciones y muestra “Sin opiniones” sin fallback editorial. El ajuste a perfil se presenta por separado como score, no como estrellas.
 - 9E añadió moderación protegida en `/warhome/reviews` y detalle privado con acciones cerradas e historial.
 - La migración `20260712150000_make_school_review_moderation_atomic.sql` deja las transiciones de moderación y su evento append-only en una única RPC transaccional, con `EXECUTE` exclusivo de `service_role`.
 - Fase 9 está **CLOSED / COMPLETED / DEPLOY READY**. El QA manual end-to-end confirmó envío, verificación, moderación, publicación, agregados, comparador, fichas y estrellas del Career Planner.

@@ -22,6 +22,15 @@ export function schoolReviewStarFillPercent(rating: number, starIndex: number): 
   return Math.min(100, Math.max(0, (rating - starIndex) * 100));
 }
 
+/** A review star is filled only when there is an approved-review summary with a real average. */
+export function schoolReviewSummaryStarFillPercent(
+  summary: PublicSchoolReviewSummary | undefined,
+  starIndex: number,
+): number {
+  const rating = schoolReviewSummaryToFive(summary);
+  return rating === null ? 0 : schoolReviewStarFillPercent(rating, starIndex);
+}
+
 export function formatSchoolReviewRating(rating: number): string {
   return rating.toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }

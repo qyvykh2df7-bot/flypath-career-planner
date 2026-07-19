@@ -459,7 +459,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Backend privado aplicado mediante `20260712140000_create_school_reviews_backend.sql`.
 - Moderación atómica aplicada mediante `20260712150000_make_school_review_moderation_atomic.sql`: transición y evento append-only se confirman o revierten juntos.
 - Lectura pública limitada a `approved`, formulario con verificación por email y moderación en `/warhome/reviews`.
-- Career Planner consume el mismo agregado público aprobado por lote para sus estrellas (`1–10` a `0–5`), sin fallback a valoración editorial.
+- Career Planner consume el mismo agregado público aprobado por lote para sus estrellas (`1–10` a `0–5`), sin fallback a valoración editorial. Sin opiniones aprobadas muestra “Sin opiniones”; el ajuste al perfil se muestra como un score independiente, no como estrellas.
 - Sin mezcla con `school_scores`, sin leads, marketing, cuentas ni compras implícitas.
 - Pendiente de mejora futura: una iteración de diseño del layout público de opiniones para recuperar y mejorar la presentación visual prevista inicialmente. La funcionalidad está completa.
 

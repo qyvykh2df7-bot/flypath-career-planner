@@ -5,6 +5,7 @@ import {
   buildSchoolReviewSummariesPath,
   schoolReviewAverageToFive,
   schoolReviewStarFillPercent,
+  schoolReviewSummaryStarFillPercent,
   schoolReviewSummaryToFive,
 } from "./presentation";
 
@@ -24,15 +25,20 @@ describe("school review presentation", () => {
     expect(schoolReviewAverageToFive(null)).toBeNull();
   });
 
-  it("keeps zero-review schools unrated and retains the approved review count separately", () => {
+  it("keeps zero-review schools unrated with five empty stars", () => {
     expect(schoolReviewSummaryToFive(summary(10, 0))).toBeNull();
+    expect(Array.from({ length: 5 }, (_, index) => schoolReviewSummaryStarFillPercent(summary(10, 0), index))).toEqual([0, 0, 0, 0, 0]);
     expect(schoolReviewSummaryToFive(summary(8.6, 3))).toBe(4.3);
   });
 
-  it("preserves partial-star fills", () => {
+  it("converts approved-review averages to exact partial star fills", () => {
     expect(schoolReviewStarFillPercent(4.3, 0)).toBe(100);
     expect(schoolReviewStarFillPercent(4.3, 4)).toBeCloseTo(30);
     expect(schoolReviewStarFillPercent(4.3, 5)).toBe(0);
+    expect(Array.from({ length: 5 }, (_, index) => schoolReviewSummaryStarFillPercent(summary(8, 2), index))).toEqual([100, 100, 100, 100, 0]);
+    const partialFills = Array.from({ length: 5 }, (_, index) => schoolReviewSummaryStarFillPercent(summary(8.6, 2), index));
+    expect(partialFills.slice(0, 4)).toEqual([100, 100, 100, 100]);
+    expect(partialFills[4]).toBeCloseTo(30);
   });
 
   it("builds one deduplicated batch request for review summaries", () => {

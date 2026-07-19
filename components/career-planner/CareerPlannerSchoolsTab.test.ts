@@ -11,12 +11,13 @@ describe("Career Planner approved school reviews", () => {
   it("uses the shared batch summaries source rather than an editorial score", () => {
     expect(source).toContain("buildSchoolReviewSummariesPath");
     expect(source).not.toContain("flypathSchoolRating");
+    expect(source).not.toContain("school_scores");
     expect(source).toContain("schoolReviewSummaryToFive");
   });
 
   it("keeps the no-review state explicit and displays a partial star fill", () => {
     expect(source).toContain("Sin opiniones");
-    expect(source).toContain("schoolReviewStarFillPercent");
+    expect(source).toContain("schoolReviewSummaryStarFillPercent");
     expect(source).toContain("summary?.total");
   });
 });

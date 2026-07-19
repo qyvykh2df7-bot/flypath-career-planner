@@ -24,7 +24,6 @@ import {
   GraduationCap,
   HelpCircle,
   Moon,
-  Star,
   Languages,
   LayoutList,
   Lock,
@@ -2863,7 +2862,7 @@ export function FlyPathApp({
                                     {school.precioAnunciado > 0 ? euro(school.precioAnunciado) : "Pendiente"}
                                   </td>
                                   <td className="py-3 pr-3">
-                                    <DashFitStars score={analysis.encajeGeneral} />
+                                    <DashFitIndicator score={analysis.encajeGeneral} />
                                   </td>
                                   <td className="py-3 pr-3">
                                     <DashSchoolRiskBadge value={analysis.riesgoFinanciero} />
@@ -2928,7 +2927,7 @@ export function FlyPathApp({
                                 <span className="shrink-0 font-semibold tabular-nums text-[13px] text-slate-200">
                                   {school.precioAnunciado > 0 ? euro(school.precioAnunciado) : "Coste pendiente"}
                                 </span>
-                                <DashFitStars score={analysis.encajeGeneral} starsOnly />
+                                <DashFitIndicator score={analysis.encajeGeneral} compact />
                               </div>
                               <div className="mt-3 flex items-center gap-2">
                                 {link ? (
@@ -4145,27 +4144,15 @@ function dashEncajeReading(score: number): string {
   return "Ajuste bajo";
 }
 
-/** Estrellas de "Ajuste a tu perfil" (presentación del encaje 0-100 existente). */
-function DashFitStars({ score, starsOnly = false }: { score: number; starsOnly?: boolean }) {
-  const filled = Math.min(5, Math.max(1, Math.round(score / 20)));
-  const stars = (
-    <div className="flex items-center gap-0.5" aria-label={`Encaje ${score}/100`}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={`h-3.5 w-3.5 ${i < filled ? "text-[#D6AE4F]" : "text-slate-600"}`}
-          fill={i < filled ? "currentColor" : "none"}
-          aria-hidden
-        />
-      ))}
-    </div>
-  );
-
-  if (starsOnly) return stars;
+/** El ajuste al perfil no es una valoración de alumnos, así que no usa estrellas. */
+function DashFitIndicator({ score, compact = false }: { score: number; compact?: boolean }) {
+  if (compact) {
+    return <span className="text-[12px] font-medium text-slate-300">Ajuste {score}/100</span>;
+  }
 
   return (
     <div>
-      {stars}
+      <p className="text-[13px] font-semibold tabular-nums text-slate-200">{score}/100</p>
       <p className="mt-1 text-[12px] text-slate-400">{dashEncajeReading(score)}</p>
     </div>
   );

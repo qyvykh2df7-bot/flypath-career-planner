@@ -24,7 +24,7 @@ import type { PublicSchoolReviewSummary } from "@/lib/school-reviews/contracts";
 import {
   buildSchoolReviewSummariesPath,
   formatSchoolReviewRating,
-  schoolReviewStarFillPercent,
+  schoolReviewSummaryStarFillPercent,
   schoolReviewSummaryToFive,
 } from "@/lib/school-reviews/presentation";
 import type { SchoolEntry } from "@/types/schools";
@@ -197,7 +197,7 @@ function PublicReviewRating({
             <Star className="absolute inset-0 h-3.5 w-3.5 text-slate-300" aria-hidden />
             <span
               className="absolute inset-y-0 left-0 block overflow-hidden"
-              style={{ width: `${schoolReviewStarFillPercent(rating, index)}%` }}
+              style={{ width: `${schoolReviewSummaryStarFillPercent(summary, index)}%` }}
             >
               <Star className="h-3.5 w-3.5 fill-[#c9a454] text-[#c9a454]" aria-hidden />
             </span>
