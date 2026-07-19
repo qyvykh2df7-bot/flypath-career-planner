@@ -10,6 +10,10 @@ const atomicModerationMigration = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260712150000_make_school_review_moderation_atomic.sql"),
   "utf8",
 );
+const textContractMigration = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260712160000_remove_school_review_text_minimum.sql"),
+  "utf8",
+);
 
 describe("school reviews migration", () => {
   it("creates private review tables with closed lifecycle and private identity", () => {
@@ -52,5 +56,13 @@ describe("school reviews migration", () => {
     expect(atomicModerationMigration).toContain("state_conflict");
     expect(atomicModerationMigration).toContain("FROM PUBLIC, anon, authenticated");
     expect(atomicModerationMigration).toContain(") TO service_role");
+  });
+
+  it("keeps review text required without imposing an artificial minimum length", () => {
+    expect(textContractMigration).toContain("DROP CONSTRAINT IF EXISTS school_reviews_text_length_check");
+    expect(textContractMigration).toContain("length(btrim(best_part)) BETWEEN 1 AND 3000");
+    expect(textContractMigration).toContain("length(btrim(improvements)) BETWEEN 1 AND 3000");
+    expect(textContractMigration).toContain("length(btrim(advice)) BETWEEN 1 AND 3000");
+    expect(textContractMigration).not.toContain("BETWEEN 20 AND 3000");
   });
 });

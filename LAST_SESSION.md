@@ -1,10 +1,10 @@
-# Última sesión — Fase 9 completada técnicamente; handoff a Fase 10
+# Última sesión — Fase 9 cerrada; handoff a Fase 10
 
 **Fecha:** 2026-07-19
 **Rama:** `main`
-**Estado:** Fase 9 — Backend de opiniones de escuelas: 9A–9F completados técnicamente y desplegados en producción mediante `b5f8e34 feat(schools): close school reviews backend`. La siguiente fase es Fase 10 — Pagos, monetización y entitlements. No se ha declarado la QA manual de opiniones como completada.
+**Estado:** Fase 9 — Backend de opiniones de escuelas: **CLOSED / COMPLETED / DEPLOY READY**. La QA manual end-to-end está completada; la siguiente fase es Fase 10 — Pagos, monetización y entitlements.
 
-## Cierre técnico de Fase 9
+## Cierre de Fase 9
 
 - `20260712130000_harden_public_school_catalog_access.sql` está aplicada en remoto: la lectura anónima de catálogo pasa por un contrato público cerrado, sin `internal_notes`, `school_entry_snapshot`, `comparator_exclusion_note`, notas editoriales ni metadata de gestión.
 - `20260712140000_create_school_reviews_backend.sql` está aplicada en remoto: crea opiniones privadas, hashes/tokens opacos, versiones y eventos de moderación. No crea leads, suscripciones, cuentas ni compras.
@@ -13,10 +13,11 @@
 - `/schools/[slug]` muestra un resumen real y CTAs; el comparador y Career Planner consultan resúmenes aprobados por lote y mantienen las valoraciones editoriales `school_scores` separadas.
 - Career Planner consume ahora ese mismo resumen público por lote: las estrellas convierten la media aprobada de `1–10` a `0–5`, incluyen fracciones visuales y nunca usan `school_scores` como fallback. Sin opiniones aprobadas muestra “Sin opiniones”.
 - `/warhome/reviews` y `/warhome/reviews/[reviewId]` están detrás de autorización Warhome. El listado permite filtro y búsqueda privada; el detalle conserva email, textos e historial solo para admins. Aprobar, rechazar, ocultar, restaurar, eliminar y resolver solicitudes usan transiciones cerradas, motivos cerrados y un evento append-only. Las acciones de moderación de Warhome ya se ejecutan mediante la RPC atómica.
-- Pruebas técnicas actuales: `npm test` 465 correctas; TypeScript, lint focalizado, build Webpack y `git diff --check` correctos. El aviso de prueba Pre-PPL sigue siendo esperado y no invalida la suite. La exportación inválida `TypeGlyph` de AeroComms se corrigió haciéndola local a su página, sin cambio funcional.
+- Pruebas técnicas actuales: `npm test` 512 correctas; TypeScript, lint focalizado y `git diff --check` correctos. El aviso de prueba Pre-PPL sigue siendo esperado y no invalida la suite. La exportación inválida `TypeGlyph` de AeroComms se corrigió haciéndola local a su página, sin cambio funcional.
 - Deployment de producción de `b5f8e34`: `Ready` en Vercel. La URL canónica sigue siendo `https://flypath-career-planner.vercel.app`.
 - QA remota controlada: transición sintética `pending -> approved`, repetición idempotente, conflicto de estado y transición inválida verificados; la opinión sintética y su auditoría se eliminaron al terminar. No se crearon leads, suscripciones, cuentas ni compras.
-- Pendiente antes de publicar: QA manual del invitado/verificación, flujo de moderación, edición/eliminación, comparador/ficha, móvil y escritorio.
+- QA manual completado: envío de opinión, verificación, listado y detalle Warhome, moderación, publicación pública, ficha, comparador y estrellas del Career Planner. No se crearon leads, suscripciones, cuentas ni compras.
+- Mejora futura no bloqueante: el layout visual de las opiniones públicas necesita una iteración de diseño para recuperar y mejorar la presentación prevista inicialmente.
 
 ## Siguiente tarea — Fase 10
 

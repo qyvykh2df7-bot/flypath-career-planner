@@ -157,7 +157,7 @@ export async function getWarhomeReviewDetail(reviewId: string): Promise<WarhomeR
     getSchoolMap([schoolId]),
     admin.from("school_review_versions").select("version_number,action,created_at").eq("review_id", reviewId).order("version_number", { ascending: false }),
     admin.from("school_review_moderation_events").select("from_status,to_status,reason,internal_note,created_at").eq("review_id", reviewId).order("created_at", { ascending: false }),
-    typeof row.user_id === "string" ? admin.from("profiles").select("full_name").eq("id", row.user_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    typeof row.user_id === "string" ? admin.from("profiles").select("full_name").eq("user_id", row.user_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   if (versionsResult.error || eventsResult.error || profileResult.error || !Array.isArray(versionsResult.data) || !Array.isArray(eventsResult.data)) throw new WarhomeReviewsDataError();
   const school = schools.get(schoolId);

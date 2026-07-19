@@ -21,6 +21,14 @@ export const runtime = "nodejs";
 
 const GENERIC_ERROR = { error: "No hemos podido registrar tu opinión. Inténtalo de nuevo." };
 
+function validationError(field: string) {
+  if (process.env.NODE_ENV === "development") {
+    console.error("[FlyPath] School review validation failed:", field);
+    return Response.json({ ...GENERIC_ERROR, validationField: field }, { status: 400 });
+  }
+  return Response.json(GENERIC_ERROR, { status: 400 });
+}
+
 async function getReviewActor(): Promise<SchoolReviewActor> {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -43,14 +51,16 @@ export async function POST(request: Request) {
     const input = parseSchoolReviewSubmission(body);
     const actor = await getReviewActor();
     if (actor.kind === "authenticated" && input.email !== undefined) {
-      return Response.json(GENERIC_ERROR, { status: 400 });
+      return validationError("email.authenticated_payload");
     }
-    if (actor.kind === "anonymous" && !input.email) return Response.json(GENERIC_ERROR, { status: 400 });
+    if (actor.kind === "anonymous" && !input.email) {
+      return validationError("email.anonymous_required");
+    }
 
     const result = await createSchoolReview(input, actor, getRequestOrigin(request));
     return Response.json({ ok: true, ...result }, { status: 200 });
   } catch (error) {
-    if (error instanceof SchoolReviewValidationError) return Response.json(GENERIC_ERROR, { status: 400 });
+    if (error instanceof SchoolReviewValidationError) return validationError(error.field);
     if (error instanceof SchoolReviewDataError) return Response.json(GENERIC_ERROR, { status: 503 });
     return Response.json(GENERIC_ERROR, { status: 500 });
   }

@@ -16,7 +16,7 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - QA manual aprobado y deployment de Vercel confirmado manualmente.
 - Todas las cuentas FlyPath/AeroComms son visibles en Warhome, tengan o no lead; no se crean leads automáticamente por el uso normal de AeroComms.
 
-## Cierre técnico de Fase 9
+## Cierre de Fase 9
 
 - 9A endureció el catálogo público y retiró campos editoriales/internos del navegador. Migración `20260712130000_harden_public_school_catalog_access.sql` aplicada.
 - 9B–9C crearon y conectaron el backend privado de opiniones, verificación por email y formulario real. Migración `20260712140000_create_school_reviews_backend.sql` aplicada.
@@ -24,7 +24,9 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Career Planner reutiliza el mismo agregado público por lote: convierte la media real `1–10` a estrellas `0–5`, conserva fracciones y muestra “Sin opiniones” sin fallback editorial.
 - 9E añadió moderación protegida en `/warhome/reviews` y detalle privado con acciones cerradas e historial.
 - La migración `20260712150000_make_school_review_moderation_atomic.sql` deja las transiciones de moderación y su evento append-only en una única RPC transaccional, con `EXECUTE` exclusivo de `service_role`.
-- 9F deja 465 pruebas, TypeScript, lint focalizado, build Webpack y `git diff --check` correctos. El commit `b5f8e34 feat(schools): close school reviews backend` está desplegado en producción; falta únicamente la QA manual y responsive final como cierre operativo.
+- Fase 9 está **CLOSED / COMPLETED / DEPLOY READY**. El QA manual end-to-end confirmó envío, verificación, moderación, publicación, agregados, comparador, fichas y estrellas del Career Planner.
+- La validación actual deja 512 pruebas, TypeScript, lint focalizado y `git diff --check` correctos.
+- Mejora futura acotada: iterar el layout visual de las opiniones públicas. No bloquea la funcionalidad ni el cierre de fase.
 
 ## Tarea activa
 

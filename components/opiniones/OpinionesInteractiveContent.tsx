@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ShieldCheck, Star, X } from "lucide-react";
 import { PublicSchoolReviews } from "./PublicSchoolReviews";
+import { buildSchoolReviewFormPayload } from "./schoolReviewFormPayload";
 
 const TOAST_TIMEOUT_MS = 2300;
 
@@ -63,6 +64,7 @@ export function OpinionesInteractiveContent({
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [modalSchoolSlug, setModalSchoolSlug] = useState<string>("");
   const [formStatus, setFormStatus] = useState<ReviewFormStatus>("idle");
+  const [validationField, setValidationField] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [pendingVerification, setPendingVerification] = useState<{ reviewId: string; email: string } | null>(null);
@@ -86,6 +88,7 @@ export function OpinionesInteractiveContent({
   const openReviewModal = (slug: string = selectedSchool) => {
     setModalSchoolSlug(slug);
     setFormStatus("idle");
+    setValidationField(null);
     setRatings({});
     setPendingVerification(null);
     setSubmissionId(null);
@@ -97,45 +100,42 @@ export function OpinionesInteractiveContent({
   const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    const schoolSlug = String(data.get("schoolSlug") ?? "").trim();
-    const relationship = String(data.get("relationship") ?? "").trim();
-    const acceptReview = data.get("acceptReview") === "on";
     const email = authenticatedEmail ?? String(data.get("email") ?? "").trim();
-    if (!schoolSlug || !relationship || !acceptReview || !email || RATING_FIELDS.some((field) => !ratings[field.name])) {
+    const requestId = submissionId ?? crypto.randomUUID();
+    const formPayload = buildSchoolReviewFormPayload({
+      data,
+      submissionId: requestId,
+      ratings,
+      includeEmail: !authenticatedEmail,
+    });
+    if (!formPayload.ok || !email) {
+      setValidationField(
+        process.env.NODE_ENV === "development"
+          ? formPayload.ok
+            ? "email"
+            : formPayload.field
+          : null,
+      );
       setFormStatus("error");
       return;
     }
-    const requestId = submissionId ?? crypto.randomUUID();
     setSubmissionId(requestId);
+    setValidationField(null);
     setFormStatus("submitting");
     try {
       const response = await fetch("/api/school-reviews", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          submissionId: requestId,
-          schoolSlug,
-          ...(authenticatedEmail ? {} : { email }),
-          isAnonymous: data.get("anonymous") === "on",
-          relationship,
-          programPhase: String(data.get("programPhase") ?? "").trim() || null,
-          approximateYear: String(data.get("approxYear") ?? "").trim()
-            ? Number(data.get("approxYear"))
-            : null,
-          ratings,
-          answers: {
-            finalCost: data.get("finalCost"),
-            contractBeforePayment: data.get("contractBeforePayment"),
-            refundClarity: data.get("refundClarity"),
-            wouldChooseAgain: data.get("wouldChooseAgain"),
-          },
-          bestPart: String(data.get("bestPart") ?? "").trim(),
-          improvements: String(data.get("improvements") ?? "").trim(),
-          advice: String(data.get("advice") ?? "").trim(),
-          consent: true,
-        }),
+        body: JSON.stringify(formPayload.payload),
       });
-      const result = await response.json() as { status?: string; reviewId?: string };
+      const result = await response.json() as {
+        status?: string;
+        reviewId?: string;
+        validationField?: string;
+      };
+      if (!response.ok && process.env.NODE_ENV === "development") {
+        setValidationField(result.validationField ?? null);
+      }
       if (!response.ok || !result.status || !result.reviewId) throw new Error("Review submission failed");
       if (result.status === "awaiting_email_verification") {
         setPendingVerification({ reviewId: result.reviewId, email });
@@ -436,7 +436,6 @@ export function OpinionesInteractiveContent({
                   ref={reviewFormRef}
                   key={formKey}
                   onSubmit={handleReviewSubmit}
-                  noValidate
                   className="space-y-7"
                 >
                   <div className="space-y-2">
@@ -553,7 +552,7 @@ export function OpinionesInteractiveContent({
                             className="rounded-xl border border-slate-200/60 bg-white/80 px-3 py-2.5"
                           >
                             <p className="text-sm font-medium leading-snug text-slate-700">
-                              {field.label}
+                              {field.label} <span className="text-rose-600">*</span>
                             </p>
                             <div className="mt-1.5 flex items-center gap-2">
                               <div
@@ -605,11 +604,12 @@ export function OpinionesInteractiveContent({
                       {KEY_QUESTIONS.map((q) => (
                         <label key={q.name} className="block">
                           <span className="text-sm font-medium leading-snug text-slate-700">
-                            {q.label}
+                            {q.label} <span className="text-rose-600">*</span>
                           </span>
                           <select
                             name={q.name}
                             defaultValue=""
+                            required
                             className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
                           >
                             <option value="">Sin responder</option>
@@ -635,14 +635,20 @@ export function OpinionesInteractiveContent({
                         { name: "advice", label: "Consejo para futuros alumnos" },
                       ].map((t) => (
                         <label key={t.name} className="block">
-                          <span className="text-sm font-medium text-slate-700">{t.label}</span>
+                          <span className="text-sm font-medium text-slate-700">
+                            {t.label} <span className="text-rose-600">*</span>
+                          </span>
                           <textarea
                             name={t.name}
                             rows={3}
-                            minLength={20}
+                            required
                             maxLength={3000}
+                            aria-describedby={`${t.name}-hint`}
                             className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[15px] leading-relaxed text-[#0f1a33] shadow-sm transition focus:border-[#c9a454] focus:outline-none focus:ring-2 focus:ring-[#c9a454]/30"
                           />
+                          <span id={`${t.name}-hint`} className="mt-1 block text-xs text-slate-500">
+                            Campo obligatorio.
+                          </span>
                         </label>
                       ))}
                     </div>
@@ -685,6 +691,7 @@ export function OpinionesInteractiveContent({
                       className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[14px] font-medium text-rose-800"
                     >
                       {REVIEW_FORM_ERROR_MESSAGE}
+                      {validationField ? ` Campo no válido: ${validationField}.` : ""}
                     </p>
                   ) : null}
 

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 
+import { EmailConfigurationError } from "@/lib/email/config";
 import { queueSchoolReviewVerification } from "@/lib/email/send-transactional-email";
 import { resolveSupabaseSlugForLocal } from "@/lib/schools/schoolSlugAliases";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -46,6 +47,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isUniqueViolation(error: unknown): boolean {
   return isRecord(error) && error.code === "23505";
+}
+
+function logSchoolReviewVerificationEmailFailure(error: unknown): void {
+  const stage = error instanceof EmailConfigurationError
+    ? "email_configuration_unavailable"
+    : error instanceof Error
+      ? "dispatch_unavailable"
+      : "unknown_email_error";
+
+  console.error("[FlyPath] School review verification email failed:", stage);
 }
 
 function hashEmail(email: string): string {
@@ -283,7 +294,8 @@ export async function createSchoolReview(
       verificationLink: createVerificationLink(publicOrigin, verification.token),
       expiresAt: verification.expiresAt,
     });
-  } catch {
+  } catch (error) {
+    logSchoolReviewVerificationEmailFailure(error);
     // El registro permanece pendiente y se puede solicitar el reenvío sin crear otra opinión.
   }
 
@@ -386,7 +398,8 @@ export async function resendSchoolReviewVerification(
       verificationLink: createVerificationLink(input.publicOrigin, verification.token),
       expiresAt: verification.expiresAt,
     });
-  } catch {
+  } catch (error) {
+    logSchoolReviewVerificationEmailFailure(error);
     // El token queda vigente y se puede usar si el proveedor aceptó el envío antes del fallo local.
   }
   return "sent";

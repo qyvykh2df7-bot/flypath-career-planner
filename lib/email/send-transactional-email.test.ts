@@ -64,6 +64,7 @@ import {
   queueMentorshipInternalAlert,
   queueMentorshipRequestConfirmation,
   queuePrepplWaitlistConfirmation,
+  queueSchoolReviewVerification,
   sendTransactionalEmail,
 } from "./send-transactional-email";
 
@@ -249,6 +250,57 @@ describe("transactional email dispatch", () => {
         idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab",
       }),
     );
+  });
+
+  it("creates, claims, and sends a school review verification job with its explicit recipient", async () => {
+    const provider = { send: vi.fn().mockResolvedValue({ providerMessageId: "resend-review-id" }) };
+    const reviewJob = {
+      ...JOB,
+      leadId: null,
+      schoolReviewId: "a4a3545d-ccee-4f4c-8234-09f75214df22",
+      templateKey: "school_review_verification" as const,
+    };
+    const claimedReviewJob = { ...reviewJob, status: "processing" as const, attemptCount: 1 };
+    const admin = createAdmin(null);
+    mocks.createTransactionalEmailJob.mockResolvedValue({ job: reviewJob, created: true });
+    mocks.claimTransactionalEmailJob.mockResolvedValue(claimedReviewJob);
+    mocks.getResendEmailProvider.mockReturnValue(provider);
+
+    await expect(queueSchoolReviewVerification(admin as never, {
+      reviewId: reviewJob.schoolReviewId,
+      idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab",
+      recipientEmail: "reviewer@example.com",
+      verificationLink: "https://flypath.es/opiniones-escuelas/verificar?token=safe-token",
+      expiresAt: "2026-07-21T12:00:00.000Z",
+    })).resolves.toBe("sent");
+
+    expect(mocks.createTransactionalEmailJob).toHaveBeenCalledWith(admin, {
+      schoolReviewId: reviewJob.schoolReviewId,
+      templateKey: "school_review_verification",
+      idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab",
+    });
+    expect(mocks.claimTransactionalEmailJob).toHaveBeenCalledWith(
+      admin,
+      reviewJob,
+      "lead_capture_request",
+      expect.any(String),
+    );
+    expect(provider.send).toHaveBeenCalledWith(expect.objectContaining({
+      to: "reviewer@example.com",
+      subject: "Verifica tu opinión sobre una escuela en FlyPath",
+    }));
+    expect(mocks.markEmailDeliveryAccepted).toHaveBeenCalledWith(
+      admin,
+      "delivery-id",
+      "resend-review-id",
+      expect.any(String),
+    );
+    expect(mocks.markTransactionalEmailJobSent).toHaveBeenCalledWith(
+      admin,
+      reviewJob.id,
+      expect.any(String),
+    );
+    expect(admin.from).not.toHaveBeenCalled();
   });
 
   it("creates independent mentorship jobs with the same conversion idempotency key", async () => {

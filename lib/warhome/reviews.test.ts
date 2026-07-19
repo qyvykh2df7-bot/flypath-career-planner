@@ -16,6 +16,7 @@ vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: mocks.getSupabaseAdmi
 vi.mock("@/lib/school-reviews/validation", () => ({ isSchoolReviewUuid: mocks.isUuid }));
 
 import {
+  getWarhomeReviewDetail,
   getWarhomeReviewsUrl,
   parseWarhomeReviewFilters,
   sanitizeWarhomeReviewSearch,
@@ -31,6 +32,70 @@ beforeEach(() => {
 });
 
 describe("Warhome school review moderation contract", () => {
+  it("loads a linked pending review using profiles.user_id", async () => {
+    const profileEq = vi.fn(() => ({
+      maybeSingle: vi.fn().mockResolvedValue({ data: { full_name: "Cuenta de prueba" }, error: null }),
+    }));
+    const review = {
+      review_id: "4d3c2b1a-1234-4abc-8def-1234567890ab",
+      school_id: "school-id",
+      user_id: "9b9265b7-9ed8-4c90-93f1-4ebd42bb57a8",
+      author_email: "private@example.com",
+      status: "pending",
+      is_anonymous: true,
+      rating_general: 8,
+      rating_costs: 8,
+      rating_availability: 8,
+      rating_organization: 8,
+      rating_instructors: 8,
+      rating_support: 8,
+      rating_contract: 8,
+      final_cost_answer: "yes",
+      contract_before_payment_answer: "yes",
+      refund_clarity_answer: "yes",
+      would_choose_again_answer: "yes",
+      relationship: "former_student",
+      program_phase: null,
+      approximate_year: null,
+      best_part: "Bien",
+      improvements: "Nada",
+      advice: "Pregunta",
+      moderation_reason: null,
+      moderation_note: null,
+      created_at: "2026-07-19T12:00:00.000Z",
+      email_verified_at: "2026-07-19T12:00:00.000Z",
+      approved_at: null,
+      rejected_at: null,
+      hidden_at: null,
+      deletion_requested_at: null,
+      deleted_at: null,
+    };
+    const admin = {
+      from: vi.fn((table: string) => {
+        if (table === "school_reviews") {
+          return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn().mockResolvedValue({ data: review, error: null }) })) })) };
+        }
+        if (table === "schools") {
+          return { select: vi.fn(() => ({ in: vi.fn().mockResolvedValue({ data: [{ school_id: "school-id", name: "Escuela", slug: "escuela" }], error: null }) })) };
+        }
+        if (table === "school_review_versions" || table === "school_review_moderation_events") {
+          return { select: vi.fn(() => ({ eq: vi.fn(() => ({ order: vi.fn().mockResolvedValue({ data: [], error: null }) })) })) };
+        }
+        if (table === "profiles") {
+          return { select: vi.fn(() => ({ eq: profileEq })) };
+        }
+        throw new Error(`Unexpected table: ${table}`);
+      }),
+    };
+    mocks.getSupabaseAdmin.mockReturnValue(admin);
+
+    await expect(getWarhomeReviewDetail(review.review_id)).resolves.toMatchObject({
+      review: { status: "pending", schoolName: "Escuela" },
+      linkedProfile: { fullName: "Cuenta de prueba" },
+    });
+    expect(profileEq).toHaveBeenCalledWith("user_id", review.user_id);
+  });
+
   it("normalizes closed filters and preserves pagination safely", () => {
     expect(parseWarhomeReviewFilters({ q: "  pilot@example.com<script>  ", status: "approved", page: "2" })).toEqual({ query: "pilot@example.comscript", status: "approved", page: 2 });
     expect(parseWarhomeReviewFilters({ status: "deleted", page: "-1" })).toEqual({ query: "", status: null, page: 1 });
