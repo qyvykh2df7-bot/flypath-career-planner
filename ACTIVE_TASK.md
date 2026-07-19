@@ -1,39 +1,32 @@
-# Tarea activa — Fase 8: Usuarios y actividad de AeroComms
+# Tarea activa — Fase 9: Backend de opiniones de escuelas
 
 ## Estado de la plataforma
 
 - Fases 4, 5 y 6: completadas e integradas en `main`.
-- Fase actual: **Fase 8 — Usuarios y actividad de AeroComms**.
+- Fase actual: **Fase 9 — Backend de opiniones de escuelas**.
 - Fase 7: CLOSED / COMPLETED / DEPLOYED. Migración remota aplicada, QA funcional aprobado y deployment completado.
 
-## Estado de Fase 8
+## Cierre de Fase 8
 
-La implementación técnica está terminada. Se completaron 8A–8E sin crear leads, suscripciones, compras ni eventos nuevos:
+Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 
-- RPC de directorio aplicada en remoto, con ACL exclusiva de `service_role`.
-- Capa server-only para listado y ficha individual con autorización Warhome antes de cada lectura.
-- `/warhome/users` con búsqueda, filtros cerrados, orden, paginación y total real.
-- `/warhome/users/[userId]` con cuenta, perfil, resumen AeroComms, sesiones recientes acotadas, lead opcional, marketing y placeholder de compras.
-- Auditoría cubierta por pruebas: sin N+1 en listado, detalle limitado a lecturas acotadas por usuario, sin metadata Auth, tokens, recibos, hashes ni sesiones cliente en los DTOs.
+- Commit `73758c1 feat(warhome): add AeroComms user operations`, publicado en `main`.
+- Migración `20260712120000_create_warhome_user_directory.sql` aplicada en Supabase remoto.
+- 398 pruebas correctas, TypeScript correcto, lint focalizado y `git diff --check` correctos.
+- QA manual aprobado y deployment de Vercel confirmado manualmente.
+- Todas las cuentas FlyPath/AeroComms son visibles en Warhome, tengan o no lead; no se crean leads automáticamente por el uso normal de AeroComms.
 
 ## Tarea activa
 
-QA manual final de Fase 8 y preparación del commit. Verificar con una cuenta con perfil/progreso/lead y otra sin perfil, progreso ni lead:
+Auditar el sistema actual de escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
 
-- navegación desde Usuarios a la ficha y vuelta;
-- búsqueda, filtros combinados, orden y paginación;
-- estados vacíos y error genérico;
-- separación entre cuenta, progreso, lead y marketing;
-- ausencia de creación automática de leads;
-- visualización responsive de tabla y ficha.
+- Revisar las rutas y componentes actuales de escuelas, fichas y comparador.
+- Identificar cualquier flujo de opiniones existente, datos simulados y dependencias de Supabase.
+- Revisar cómo Warhome puede consultar, moderar y presentar opiniones sin ampliar todavía el alcance.
+- Documentar tablas, relaciones, permisos, riesgos de spam/moderación y límites de datos existentes.
+- No crear migraciones ni implementar UI durante esta auditoría inicial.
 
-Después del QA: revisar diff, commit, push y deployment. La siguiente fase estratégica será **Fase 9 — Backend de opiniones de escuelas**.
-
-## Validación técnica actual
-
-- `npm test`: 398 pruebas correctas.
-- TypeScript, lint focalizado y `git diff --check`: correctos.
-- Build local con webpack: bloqueado únicamente por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; sin error de compilación atribuido a Fase 8.
+El resultado de la auditoría definirá los bloques de implementación de Fase 9.
 
 ## Implementado en Fase 7
 

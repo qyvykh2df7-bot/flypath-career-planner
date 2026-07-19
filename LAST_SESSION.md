@@ -1,10 +1,10 @@
-# Última sesión — Fase 8 técnicamente terminada; handoff a QA final
+# Última sesión — Fase 8 cerrada y desplegada; handoff a Fase 9
 
 **Fecha:** 2026-07-19
 **Rama:** `main`
-**Estado:** Fase 8 — Usuarios y actividad de AeroComms. Implementación técnica terminada; pendiente únicamente de QA manual final, commit, push y deployment. Sin cambios de migración remota en este cierre.
+**Estado:** Fase 8 — Usuarios y actividad de AeroComms: CLOSED / COMPLETED / DEPLOYED. La siguiente fase es Fase 9 — Backend de opiniones de escuelas.
 
-## Estado real de Fase 8
+## Cierre confirmado de Fase 8
 
 - **8A:** `20260712120000_create_warhome_user_directory.sql` aplicada y validada en Supabase remoto. La RPC usa `SECURITY DEFINER`, `search_path` fijo y `EXECUTE` exclusivamente para `service_role`.
 - **8B:** `lib/warhome/users.ts` y `lib/warhome/user-detail.ts` exponen contratos server-only, filtros normalizados, paginación exacta y detalle cerrado.
@@ -13,19 +13,19 @@
 - **8E:** las pruebas confirman que el listado usa una RPC agregada sin N+1; la ficha se acota a `user_id`, usa un número fijo de consultas y no expone metadata Auth, identidades, tokens, hashes, recibos ni IDs de sesión cliente.
 - No se crean ni modifican leads, suscripciones, compras o eventos por consultar estas vistas.
 - Cuenta, perfil, actividad AeroComms, lead comercial, marketing y cliente futuro siguen siendo entidades distintas.
+- Commit `73758c1 feat(warhome): add AeroComms user operations`, publicado en `main`.
 - `npm test`: 398 pruebas correctas; TypeScript, lint focalizado y `git diff --check` correctos.
-- Build local con webpack bloqueado antes de compilar por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono; validar en Vercel o en un entorno con red.
+- QA manual aprobado y deployment de Vercel confirmado manualmente.
 
-## QA pendiente
+## Siguiente tarea — Fase 9
 
-- Validar manualmente directorio, ficha, filtros, orden, paginación, estados vacíos y responsive.
-- Probar una cuenta con perfil/progreso/lead/marketing y una sin esas relaciones.
-- Confirmar que los enlaces a Leads y el retorno a Usuarios son correctos.
-- Tras QA: ejecutar validaciones finales, revisar diff, commit, push y deployment.
+- Auditar el sistema actual de escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
+- Identificar datos y flujos existentes, dependencias de Supabase, posibles superficies de moderación y límites de seguridad.
+- No crear migraciones ni implementar UI antes de cerrar esa auditoría.
 
 ## Siguiente fase
 
-Después del cierre de Fase 8: **Fase 9 — Backend de opiniones de escuelas**.
+**Fase 9 — Backend de opiniones de escuelas.**
 
 ## Cierre histórico de Fase 7
 
@@ -67,7 +67,7 @@ Después del cierre de Fase 8: **Fase 9 — Backend de opiniones de escuelas**.
 
 ## Handoff histórico hacia Fase 8
 
-La auditoría inicial ya se completó y dio lugar al directorio y la ficha operativa de usuarios. El siguiente paso vigente está documentado arriba: QA manual final de Fase 8, seguido del flujo de integración.
+La auditoría inicial ya se completó y dio lugar al directorio y la ficha operativa de usuarios. Fase 8 quedó cerrada y desplegada; el siguiente paso vigente está documentado arriba.
 
 ## Decisión estratégica de roadmap
 

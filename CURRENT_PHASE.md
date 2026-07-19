@@ -6,13 +6,18 @@
 
 ## Fase actual
 
-**Fase 8 — Usuarios y actividad de AeroComms.**
+**Fase 9 — Backend de opiniones de escuelas.**
 
-Depende de la identidad de Fase 6 y la persistencia de Fase 7, ambas completadas. El objetivo es dar visibilidad operativa en Warhome a todos los usuarios de AeroComms sin convertirlos automáticamente en leads.
+La primera tarea es una auditoría técnica del sistema actual de escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
 
-Cuenta, perfil, progreso, actividad de producto, lead comercial, consentimiento de marketing y cliente futuro son conceptos separados: `auth.users` + `profiles` representan a toda cuenta; la persistencia AeroComms representa progreso y uso; `user_events` registra actividad relevante; `leads` solo existe por intención comercial explícita; `email_subscriptions` solo existe por consentimiento de marketing; pagos y entitlements quedan para una fase posterior.
+## Cierre de Fase 8
 
-Los bloques 8A–8E están completados: la RPC de directorio está aplicada en Supabase remoto; `lib/warhome/users.ts` y `lib/warhome/user-detail.ts` mantienen contratos server-only cerrados; `/warhome/users` y `/warhome/users/[userId]` están dentro del grupo protegido de Warhome. La fase queda técnicamente terminada y pendiente únicamente de QA manual final, commit, push y deployment. Usar AeroComms, completar onboarding, crear una cuenta, importar progreso o completar actividades no crea leads, intereses comerciales ni suscripciones.
+- **Estado:** CLOSED / COMPLETED / DEPLOYED.
+- **Commit:** `73758c1 feat(warhome): add AeroComms user operations`, publicado en `main`.
+- **Migración remota:** `20260712120000_create_warhome_user_directory.sql` aplicada en Supabase.
+- **Validación:** 398 pruebas correctas, TypeScript correcto, lint focalizado y `git diff --check` correctos; QA manual aprobado y deployment de Vercel confirmado manualmente.
+- Warhome dispone de `/warhome/users` y `/warhome/users/[userId]` para todas las cuentas FlyPath/AeroComms, tengan o no lead.
+- Cuenta, perfil, progreso, actividad de producto, lead comercial y consentimiento de marketing siguen siendo conceptos separados. Usar AeroComms, completar onboarding, crear una cuenta, importar progreso o completar actividades no crea leads, intereses comerciales ni suscripciones.
 
 ### Estado de bloques
 
@@ -21,9 +26,7 @@ Los bloques 8A–8E están completados: la RPC de directorio está aplicada en S
 - **8C:** directorio `/warhome/users` con búsqueda, filtros, orden, paginación y enlaces a ficha.
 - **8D:** ficha `/warhome/users/[userId]` con identidad, perfil, resumen AeroComms, actividad reciente, lead opcional, marketing separado y placeholder de compras.
 - **8E:** auditoría de privacidad, seguridad y rendimiento cubierta por pruebas de aislamiento, paginación, límites y ausencia de escrituras.
-- **8F:** documentación y cierre técnico preparados; resta QA manual final y el flujo de integración.
-
-**Validación actual:** `npm test` con 398 pruebas correctas; TypeScript, lint focalizado y `git diff --check` correctos. El build local con webpack se detiene antes de compilar por `ENOTFOUND fonts.googleapis.com` al descargar Geist y Geist Mono mediante `next/font`; validar el build en Vercel o en un entorno con acceso de red.
+- **8F:** cierre, publicación y deployment confirmados.
 
 La revisión final y lanzamiento de AeroComms queda explícitamente pospuesta como Fase 13, la última fase del roadmap actual.
 

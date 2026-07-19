@@ -394,7 +394,7 @@ No implica mover AeroComms a otro repo ni dominio. No activa Free/Pro, Stripe, c
 
 ## Fase 8 — Usuarios y actividad de AeroComms
 
-**Estado: Implementación técnica terminada; pendiente de QA manual final, commit, push y deployment.**
+**Estado: CLOSED / COMPLETED / DEPLOYED.**
 
 Dar visibilidad operativa en Warhome a todos los usuarios de AeroComms sin convertir el uso normal del producto en captación comercial.
 
@@ -428,20 +428,20 @@ No se crea un lead por usar AeroComms, completar onboarding, crear una cuenta, i
 - `/warhome/users` con búsqueda por nombre/email, filtros cerrados, orden, paginación de 20, estados vacíos y error genérico.
 - `/warhome/users/[userId]` con identidad, perfil, resumen AeroComms, últimas 20 sesiones, lead opcional, marketing separado y placeholder de compras.
 - Auditoría de privacidad y rendimiento: sin N+1 en listado; detalle limitado por usuario; sin metadata Auth, providers, tokens, hashes, recibos ni sesiones cliente en los DTOs.
-- 398 pruebas, TypeScript, lint focalizado y `git diff --check` correctos. El build local con webpack depende de Google Fonts y queda bloqueado en este entorno por `ENOTFOUND fonts.googleapis.com`; no hay error de compilación de Fase 8 confirmado.
-
-### Pendiente de cierre
-
-- QA manual final de escritorio y responsive.
-- Revisión final del diff, commit, push y deployment.
+- Migración `20260712120000_create_warhome_user_directory.sql` aplicada en Supabase remoto.
+- 398 pruebas, TypeScript, lint focalizado y `git diff --check` correctos.
+- QA manual aprobado y deployment de Vercel confirmado manualmente.
+- Commit `73758c1 feat(warhome): add AeroComms user operations`, publicado en `main`.
 
 ---
 
 ## Fase 9 — Backend de opiniones de escuelas
 
-**Estado: Pendiente**
+**Estado: Actual / siguiente**
 
 Backend completo para opiniones de escuelas vinculado a usuarios y escuelas.
+
+Primera tarea: auditoría del sistema actual de escuelas, opiniones, fichas, comparador y Warhome antes de diseñar la migración y la moderación.
 
 ### Objetivos
 
@@ -573,8 +573,8 @@ Fase 4   Warhome MVP                    ████████████  Co
 Fase 5   Emails operativos              ████████████  Completado e integrado en main
 Fase 6   Login, cuentas y perfiles      ████████████  Completada e integrada en main
 Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
-Fase 8   Usuarios y actividad AeroComms ████████████  Técnica terminada; QA final pendiente
-Fase 9   Backend de opiniones           ░░░░░░░░░░░░  Pendiente
+Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
+Fase 9   Backend de opiniones           ░░░░░░░░░░░░  Actual: auditoría inicial
 Fase 10  Pagos y entitlements           ░░░░░░░░░░░░  Pendiente
 Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
 Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
