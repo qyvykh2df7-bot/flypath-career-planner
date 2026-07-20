@@ -8,7 +8,16 @@
 
 **Fase 10 — Pagos, monetización y entitlements.**
 
-La siguiente tarea es auditar los productos, precios, flujos de pago, emails operativos y límites de acceso actuales antes de diseñar Stripe y los entitlements server-side.
+**10B — catálogo comercial, pedidos, pagos y entitlements** está aplicado y validado en Supabase remoto mediante `20260712170000_create_commerce_foundation.sql`, con contratos puros en `lib/commerce/` y documentación técnica. La validación confirmó RLS y ACL cerradas, índices de idempotencia, compatibilidad con `products` y una prueba sintética revertida sin datos residuales. Esta base no activa Stripe: define el modelo transaccional, los compradores invitados, la reclamación segura y el acceso efectivo resuelto en servidor.
+
+**Siguiente bloque: 10C — Checkout seguro para pagos únicos.** Stripe, Checkout, webhooks HTTP, CTAs y cobros siguen desactivados hasta ese bloque.
+
+### Decisiones de producto cerradas
+
+- No hay cuenta FlyPath obligatoria para pagar. Career Planner Premium y las guías digitales podrán comprarse como invitado; la confirmación real siempre llegará por webhook y la entrega tendrá recuperación segura.
+- AeroComms Pro puede pagarse como invitado, pero requiere una cuenta FlyPath para utilizar el acceso. Las compras de invitado se reclamarán mediante email verificado o token seguro; el entitlement server-side sustituirá el indicador Pro editable de `localStorage`.
+- Pre-PPL conserva waitlist hasta terminarse. Mentorías pasan por Cal.com y su futuro webhook; la guía física abre Amazon y no crea un checkout FlyPath.
+- EUR es la moneda inicial. Reembolso digital total: revocación de acceso/entrega; parcial: revisión manual inicial.
 
 ## Cierre técnico de Fase 9
 
@@ -16,7 +25,7 @@ La siguiente tarea es auditar los productos, precios, flujos de pago, emails ope
 - **Catálogo público:** `20260712130000_harden_public_school_catalog_access.sql` aplicada. El navegador consume un DTO cerrado; no recibe notas internas, snapshots ni metadata editorial.
 - **Backend de opiniones:** `20260712140000_create_school_reviews_backend.sql` aplicada. No requiere cuenta, pero toda opinión verifica email; email, hashes, tokens, `user_id`, notas internas e historial nunca cruzan al DTO público.
 - **Lectura pública:** `/opiniones-escuelas`, `/schools/[slug]` y el comparador leen únicamente reseñas `approved`; `school_scores` editoriales no se mezclan con opiniones de alumnos.
-- **Career Planner:** las estrellas de las escuelas de la base FlyPath usan el mismo resumen público aprobado por lote, convertido de `1–10` a `0–5`; no hay fallback a `school_scores` y cero opiniones muestra “Sin opiniones”. El ajuste a perfil es un score independiente y no utiliza estrellas.
+- **Career Planner:** las estrellas de las escuelas de la base FlyPath usan el mismo resumen público aprobado por lote, convertido de `1–10` a `0–5`; no hay fallback a `school_scores` y cero opiniones muestra “Sin opiniones”.
 - **Moderación atómica:** `20260712150000_make_school_review_moderation_atomic.sql` aplicada. `/warhome/reviews` y `/warhome/reviews/[reviewId]` usan una RPC `SECURITY DEFINER`, con bloqueo de fila, transiciones cerradas, motivo cerrado y evento append-only en la misma transacción. Solo `service_role` puede ejecutarla.
 - **Separación de dominio:** una opinión no crea leads, suscripciones, cuentas ni compras. La cuenta vinculada es opcional y no se publica.
 - **Validación técnica:** 512 pruebas correctas, TypeScript correcto, lint focalizado y `git diff --check` correctos. La exportación inválida `TypeGlyph` de AeroComms se dejó como helper local de página, sin cambio funcional.

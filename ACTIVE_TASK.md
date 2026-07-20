@@ -21,21 +21,22 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - 9A endureció el catálogo público y retiró campos editoriales/internos del navegador. Migración `20260712130000_harden_public_school_catalog_access.sql` aplicada.
 - 9B–9C crearon y conectaron el backend privado de opiniones, verificación por email y formulario real. Migración `20260712140000_create_school_reviews_backend.sql` aplicada.
 - 9D muestra datos públicos reales solo cuando la reseña está `approved`; fichas y comparador usan agregados seguros sin N+1 ni mezcla con `school_scores`.
-- Career Planner reutiliza el mismo agregado público por lote: convierte la media real `1–10` a estrellas `0–5`, conserva fracciones y muestra “Sin opiniones” sin fallback editorial. El ajuste a perfil se presenta por separado como score, no como estrellas.
+- Career Planner reutiliza el mismo agregado público por lote: convierte la media real `1–10` a estrellas `0–5`, conserva fracciones y muestra “Sin opiniones” sin fallback editorial.
 - 9E añadió moderación protegida en `/warhome/reviews` y detalle privado con acciones cerradas e historial.
 - La migración `20260712150000_make_school_review_moderation_atomic.sql` deja las transiciones de moderación y su evento append-only en una única RPC transaccional, con `EXECUTE` exclusivo de `service_role`.
 - Fase 9 está **CLOSED / COMPLETED / DEPLOY READY**. El QA manual end-to-end confirmó envío, verificación, moderación, publicación, agregados, comparador, fichas y estrellas del Career Planner.
 - La validación actual deja 512 pruebas, TypeScript, lint focalizado y `git diff --check` correctos.
 - Mejora futura acotada: iterar el layout visual de las opiniones públicas. No bloquea la funcionalidad ni el cierre de fase.
 
-## Tarea activa
+## Tarea activa — 10C
 
-Auditar los flujos actuales de productos y pagos antes de diseñar Fase 10.
+Diseñar e implementar Checkout seguro para pagos únicos sobre la base comercial ya aplicada.
 
-- Revisar `products`, precios, landing/product CTAs, emails transaccionales y cualquier integración Stripe existente.
-- Delimitar compras, facturación, reembolsos y entitlements server-side sin convertir la cuenta en un plan implícito.
-- Identificar qué productos requieren acceso y qué debe seguir siendo gratuito.
-- No crear todavía checkout, webhooks, migraciones ni UI de pagos durante esta auditoría inicial.
+- `20260712170000_create_commerce_foundation.sql` está aplicada y validada en remoto: precios, pedidos, pagos, suscripciones, eventos Stripe minimizados, compradores invitados, reclamaciones seguras, bundles y concesiones de acceso idempotentes están disponibles, sin filas de catálogo comercial ni cobros creados.
+- Los contratos puros y pruebas viven en `lib/commerce/`; el acceso efectivo se resuelve en servidor y RLS permanece cerrada.
+- 10C debe crear solo el flujo server-side mínimo y seguro para Checkout de pago único; ningún navegador decide precio, acceso ni estado de pago.
+- Stripe SDK, secretos, endpoints de cobro, CTAs y webhooks HTTP no se activan hasta que el diseño específico de 10C lo cierre.
+- Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro reclamable si se compró sin cuenta; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL sigue en waitlist.
 
 ## Implementado en Fase 7
 

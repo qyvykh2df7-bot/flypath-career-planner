@@ -1,8 +1,27 @@
-# Última sesión — Fase 9 cerrada; handoff a Fase 10
+# Última sesión — 10B aplicado; handoff a Checkout seguro
 
 **Fecha:** 2026-07-19
 **Rama:** `main`
-**Estado:** Fase 9 — Backend de opiniones de escuelas: **CLOSED / COMPLETED / DEPLOY READY**. La QA manual end-to-end está completada; la siguiente fase es Fase 10 — Pagos, monetización y entitlements.
+**Estado:** Fase 9 permanece cerrada. Fase 10 — Pagos, monetización y entitlements continúa activa. El bloque 10B está aplicado y validado en Supabase remoto; Stripe no está instalado ni activado y no existen Checkout, webhooks HTTP, CTAs ni cobros.
+
+## Decisiones de Fase 10
+
+- Una cuenta FlyPath no es obligatoria para pagar. Career Planner Premium y guías digitales admitirán Stripe Checkout como invitado; un webhook validará el pago en servidor y la entrega deberá recuperarse con seguridad.
+- AeroComms Pro se podrá comprar como invitado, pero se utilizará con cuenta FlyPath. Las compras sin cuenta quedarán pendientes de reclamación por email verificado o token seguro; el entitlement server-side reemplazará el estado Pro local editable.
+- Pre-PPL sigue como waitlist. Mentorías usan Cal.com para agenda y pago, con integración futura por webhook de Cal.com. La guía física dirige a Amazon y FlyPath solo registra el clic externo.
+- La moneda inicial es EUR. El reembolso digital total revoca acceso/entrega; el parcial se revisa manualmente al inicio.
+
+## Cierre — 10B
+
+- `20260712170000_create_commerce_foundation.sql` está aplicada en remoto. Crea `product_prices`, `stripe_customers`, `checkout_attempts`, `orders`, `order_items`, `payments`, `subscriptions`, `stripe_webhook_events`, `entitlements`, `product_entitlements`, `entitlement_grants` y `order_claim_tokens`; no siembra precios ni crea pagos.
+- Los contratos, validación y resolución pura de acceso están en `lib/commerce/`; la referencia de diseño está en `docs/ai/payments/flypath-phase-10-commerce-foundation.md`.
+- QA remota: 12 tablas creadas, RLS activa, `anon` y `authenticated` sin acceso, `service_role` operativo; FKs, checks e índices de idempotencia confirmados. La prueba sintética de pedido, pago, token y grant se revirtió y todas las tablas siguen sin filas.
+- Validación local de 10B: 527 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos. No instalar Stripe, crear Checkout, webhook HTTP, CTA ni cobro hasta los bloques posteriores.
+
+## Siguiente trabajo — 10C
+
+- Diseñar Checkout seguro para pagos únicos sobre precios server-side cerrados, sin permitir que el navegador elija importe, acceso o estado final.
+- Mantener Career Planner Premium y guías digitales como compras invitadas previstas; AeroComms Pro necesitará cuenta para usar su entitlement, no necesariamente para pagar.
 
 ## Cierre de Fase 9
 
@@ -11,7 +30,7 @@
 - `20260712150000_make_school_review_moderation_atomic.sql` está aplicada en remoto: `moderate_school_review_atomically` bloquea la opinión, valida la transición, actualiza el estado e inserta el evento append-only en una sola operación. La RPC usa `SECURITY DEFINER`, `search_path` fijo y `EXECUTE` exclusivo de `service_role`.
 - `/opiniones-escuelas` elimina previews y muestra solo opiniones `approved`, con agregados dinámicos de media, categorías, distribución y volvería a elegir. El email y toda identidad de cuenta permanecen fuera del DTO público.
 - `/schools/[slug]` muestra un resumen real y CTAs; el comparador y Career Planner consultan resúmenes aprobados por lote y mantienen las valoraciones editoriales `school_scores` separadas.
-- Career Planner consume ahora ese mismo resumen público por lote: las estrellas convierten la media aprobada de `1–10` a `0–5`, incluyen fracciones visuales y nunca usan `school_scores` como fallback. Sin opiniones aprobadas muestra “Sin opiniones”; el ajuste a perfil se expresa como score independiente, sin estrellas.
+- Career Planner consume ahora ese mismo resumen público por lote: las estrellas convierten la media aprobada de `1–10` a `0–5`, incluyen fracciones visuales y nunca usan `school_scores` como fallback. Sin opiniones aprobadas muestra “Sin opiniones”.
 - `/warhome/reviews` y `/warhome/reviews/[reviewId]` están detrás de autorización Warhome. El listado permite filtro y búsqueda privada; el detalle conserva email, textos e historial solo para admins. Aprobar, rechazar, ocultar, restaurar, eliminar y resolver solicitudes usan transiciones cerradas, motivos cerrados y un evento append-only. Las acciones de moderación de Warhome ya se ejecutan mediante la RPC atómica.
 - Pruebas técnicas actuales: `npm test` 512 correctas; TypeScript, lint focalizado y `git diff --check` correctos. El aviso de prueba Pre-PPL sigue siendo esperado y no invalida la suite. La exportación inválida `TypeGlyph` de AeroComms se corrigió haciéndola local a su página, sin cambio funcional.
 - Deployment de producción de `b5f8e34`: `Ready` en Vercel. La URL canónica sigue siendo `https://flypath-career-planner.vercel.app`.
