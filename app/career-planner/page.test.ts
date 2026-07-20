@@ -11,9 +11,9 @@ describe("Career Planner school-review presentation", () => {
     expect(source).toContain("dashboardReviewSummariesBySlug");
   });
 
-  it("keeps profile fit distinct from student reviews", () => {
-    expect(source).toContain("Ajuste a tu perfil");
-    expect(source).toContain("DashProfileFitScore");
+  it("does not show profile-fit data in the candidate-school table", () => {
+    expect(source).not.toContain("Ajuste a tu perfil");
+    expect(source).not.toContain("DashProfileFitScore");
     expect(source).not.toContain("DashFitIndicator");
     expect(source).not.toContain("school_scores");
   });

@@ -2860,10 +2860,10 @@ export function FlyPathApp({
                     <>
                       {/* Tabla compacta (md+) */}
                       <div className="mt-4 hidden overflow-x-auto md:block">
-                        <table className="w-full min-w-[980px] text-left text-[14px]">
+                        <table className="w-full min-w-[860px] text-left text-[14px]">
                           <thead>
                             <tr className="border-b border-white/10">
-                              {["Escuela", "Ruta", "Coste estimado", "Opiniones de alumnos", "Ajuste a tu perfil", "Riesgo", "Acciones"].map((h) => (
+                              {["Escuela", "Ruta", "Coste estimado", "Opiniones de alumnos", "Riesgo", "Acciones"].map((h) => (
                                 <th key={h} className="py-2.5 pr-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
                                   {h}
                                 </th>
@@ -2909,9 +2909,6 @@ export function FlyPathApp({
                                       href={link ? `/opiniones-escuelas?school=${encodeURIComponent(link.slug)}` : undefined}
                                       tone="dark"
                                     />
-                                  </td>
-                                  <td className="py-3 pr-3">
-                                    <DashProfileFitScore score={analysis.encajeGeneral} />
                                   </td>
                                   <td className="py-3 pr-3">
                                     <DashSchoolRiskBadge value={analysis.riesgoFinanciero} />
@@ -2987,12 +2984,6 @@ export function FlyPathApp({
                                     href={link ? `/opiniones-escuelas?school=${encodeURIComponent(link.slug)}` : undefined}
                                     tone="dark"
                                   />
-                                </div>
-                              </div>
-                              <div className="mt-2.5">
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ajuste a tu perfil</p>
-                                <div className="mt-1">
-                                  <DashProfileFitScore score={analysis.encajeGeneral} />
                                 </div>
                               </div>
                               <div className="mt-3 flex items-center gap-2">
@@ -4201,11 +4192,6 @@ function dashSchoolInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length >= 2) return `${words[0][0]}${words[1][0]}`;
   return name.trim().slice(0, 2) || "??";
-}
-
-/** The profile-fit score is a planner calculation, never a student-review rating. */
-function DashProfileFitScore({ score }: { score: number }) {
-  return <span className="text-[13px] font-semibold tabular-nums text-slate-200">{score}/100</span>;
 }
 
 /** Donut CSS (conic-gradient) con el desglose real de costes por partida. */
