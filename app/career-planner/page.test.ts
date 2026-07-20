@@ -4,10 +4,17 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync(resolve(process.cwd(), "app/career-planner/page.tsx"), "utf8");
 
-describe("Career Planner fit presentation", () => {
-  it("does not present profile fit as school-review stars", () => {
-    expect(source).toContain("DashFitIndicator");
-    expect(source).not.toContain("DashFitStars");
-    expect(source).not.toContain("fill={i < filled ?");
+describe("Career Planner school-review presentation", () => {
+  it("shows approved-review stars in the candidate-school table", () => {
+    expect(source).toContain("Opiniones de alumnos");
+    expect(source).toContain("SchoolReviewStars");
+    expect(source).toContain("dashboardReviewSummariesBySlug");
+  });
+
+  it("keeps profile fit distinct from student reviews", () => {
+    expect(source).toContain("Ajuste a tu perfil");
+    expect(source).toContain("DashProfileFitScore");
+    expect(source).not.toContain("DashFitIndicator");
+    expect(source).not.toContain("school_scores");
   });
 });

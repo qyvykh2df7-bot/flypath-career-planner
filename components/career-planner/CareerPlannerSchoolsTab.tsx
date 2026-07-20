@@ -9,7 +9,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Star,
   Trash2,
   X,
 } from "lucide-react";
@@ -23,10 +22,8 @@ import type { School, YesNoUnknown } from "@/lib/reporting/types/shared";
 import type { PublicSchoolReviewSummary } from "@/lib/school-reviews/contracts";
 import {
   buildSchoolReviewSummariesPath,
-  formatSchoolReviewRating,
-  schoolReviewSummaryStarFillPercent,
-  schoolReviewSummaryToFive,
 } from "@/lib/school-reviews/presentation";
+import { SchoolReviewStars } from "./SchoolReviewStars";
 import type { SchoolEntry } from "@/types/schools";
 import { getSchoolBySlug } from "@/lib/schools/schoolUtils";
 import {
@@ -156,58 +153,6 @@ function ProgramPillStatic({ label }: { label: string }) {
     <div className={PROGRAM_PILL_TRACK}>
       <span className={PROGRAM_PILL_ACTIVE}>{label}</span>
     </div>
-  );
-}
-
-function PublicReviewRating({
-  summary,
-  loading,
-  href,
-}: {
-  summary: PublicSchoolReviewSummary | undefined;
-  loading: boolean;
-  href: string;
-}) {
-  const rating = schoolReviewSummaryToFive(summary);
-  if (loading) {
-    return <span className="text-[11px] font-medium text-[#5a6b85]">Cargando opiniones…</span>;
-  }
-
-  if (rating === null) {
-    return (
-      <Link
-        href={href}
-        className="inline-flex min-h-7 items-center rounded-md px-0.5 text-[11px] font-medium text-[#5a6b85] transition hover:bg-[#FAF9F6] hover:text-[#0f1a33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45"
-      >
-        Sin opiniones
-      </Link>
-    );
-  }
-
-  const total = summary?.total ?? 0;
-  return (
-    <Link
-      href={href}
-      className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-md px-0.5 py-0.5 transition hover:bg-[#FAF9F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/45"
-      aria-label={`Ver ${total} ${total === 1 ? "opinión aprobada" : "opiniones aprobadas"} de la escuela (valoración ${formatSchoolReviewRating(rating)} de 5)`}
-    >
-      <span className="inline-flex items-center gap-0.5" aria-hidden>
-        {Array.from({ length: 5 }).map((_, index) => (
-          <span key={index} className="relative block h-3.5 w-3.5">
-            <Star className="absolute inset-0 h-3.5 w-3.5 text-slate-300" aria-hidden />
-            <span
-              className="absolute inset-y-0 left-0 block overflow-hidden"
-              style={{ width: `${schoolReviewSummaryStarFillPercent(summary, index)}%` }}
-            >
-              <Star className="h-3.5 w-3.5 fill-[#c9a454] text-[#c9a454]" aria-hidden />
-            </span>
-          </span>
-        ))}
-      </span>
-      <span className="hidden whitespace-nowrap text-[11px] font-medium text-[#5a6b85] min-[1100px]:inline">
-        {formatSchoolReviewRating(rating)}/5 · {total}
-      </span>
-    </Link>
   );
 }
 
@@ -475,7 +420,7 @@ function SelectedSchoolCard({
             {estado}
           </span>
           {isFromDatabase ? (
-            <PublicReviewRating summary={reviewSummary} loading={reviewsLoading} href={reviewsHref} />
+            <SchoolReviewStars summary={reviewSummary} loading={reviewsLoading} href={reviewsHref} />
           ) : null}
         </div>
 
@@ -534,7 +479,7 @@ function SelectedSchoolCard({
         {/* Col 5: rating */}
         <div className="flex min-h-7 w-full items-center justify-start min-[900px]:w-[132px]">
           {isFromDatabase ? (
-            <PublicReviewRating summary={reviewSummary} loading={reviewsLoading} href={reviewsHref} />
+            <SchoolReviewStars summary={reviewSummary} loading={reviewsLoading} href={reviewsHref} />
           ) : null}
         </div>
 

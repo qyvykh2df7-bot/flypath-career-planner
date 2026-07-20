@@ -56,6 +56,8 @@ import {
   type PlannerProgramOption,
 } from "@/lib/planner-school-database";
 import type { SchoolEntry } from "@/types/schools";
+import type { PublicSchoolReviewSummary } from "@/lib/school-reviews/contracts";
+import { buildSchoolReviewSummariesPath } from "@/lib/school-reviews/presentation";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
 import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
 import {
@@ -75,6 +77,7 @@ import {
   plannerTitle,
 } from "@/components/career-planner/planner-surface";
 import { CareerPlannerDiagnosisView } from "@/components/career-planner/CareerPlannerDiagnosisView";
+import { SchoolReviewStars } from "@/components/career-planner/SchoolReviewStars";
 import {
   CareerPlannerSchoolsTab,
   SchoolDatabasePicker,
@@ -150,6 +153,7 @@ type Screen = "onboarding" | "dashboard";
 export type Tab = PlannerDashboardTab;
 type RouteAnalysis = RouteRecommendation;
 type DecisionReadiness = ReadinessResult;
+type SchoolReviewSummaryResponse = { items?: PublicSchoolReviewSummary[] };
 
 /** Color del valor visible del badge "Decisión de pago" en el hero del Informe final (solo UI). */
 function informeHeroDecisionValueTextClass(decision: DecisionReadiness["decision"]): string {
@@ -1240,6 +1244,10 @@ export function FlyPathApp({
     bufferPct: defaultCostInputs.bufferPct,
   });
   const [schools, setSchools] = useState<School[]>([]);
+  const [dashboardReviewResult, setDashboardReviewResult] = useState<{ key: string; items: PublicSchoolReviewSummary[] }>({
+    key: "",
+    items: [],
+  });
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [emailDrafts, setEmailDrafts] = useState<Record<number, string>>({});
@@ -1668,6 +1676,38 @@ export function FlyPathApp({
     () => computeSchoolStats(schools, costs.totalRealista),
     [schools, costs.totalRealista],
   );
+  const dashboardReviewRequestKey = useMemo(() => {
+    const slugs = schools.flatMap((school) => {
+      const link = parsePlannerSchoolLink(school.enlaceReferencia);
+      return link ? [link.slug] : [];
+    });
+    return [...new Set(slugs)].join(",");
+  }, [schools]);
+  const dashboardReviewsLoading = dashboardReviewRequestKey.length > 0 && dashboardReviewResult.key !== dashboardReviewRequestKey;
+  const dashboardReviewSummariesBySlug = useMemo(
+    () => new Map(dashboardReviewResult.items.map((summary) => [summary.schoolSlug, summary])),
+    [dashboardReviewResult.items],
+  );
+
+  useEffect(() => {
+    if (!dashboardReviewRequestKey) return;
+
+    const path = buildSchoolReviewSummariesPath(dashboardReviewRequestKey.split(","));
+    if (!path) return;
+
+    const controller = new AbortController();
+    void fetch(path, { signal: controller.signal })
+      .then(async (response) => (response.ok ? response.json() as Promise<SchoolReviewSummaryResponse> : { items: [] }))
+      .then((body) => {
+        if (!controller.signal.aborted) {
+          setDashboardReviewResult({ key: dashboardReviewRequestKey, items: Array.isArray(body.items) ? body.items : [] });
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setDashboardReviewResult({ key: dashboardReviewRequestKey, items: [] });
+      });
+    return () => controller.abort();
+  }, [dashboardReviewRequestKey]);
 
   const flypathSchoolRecommendation = useMemo(
     () => computeFlypathSchoolRecommendation(schoolStats.analyzed),
@@ -2820,10 +2860,10 @@ export function FlyPathApp({
                     <>
                       {/* Tabla compacta (md+) */}
                       <div className="mt-4 hidden overflow-x-auto md:block">
-                        <table className="w-full min-w-[820px] text-left text-[14px]">
+                        <table className="w-full min-w-[980px] text-left text-[14px]">
                           <thead>
                             <tr className="border-b border-white/10">
-                              {["Escuela", "Ruta", "Coste estimado", "Ajuste a tu perfil", "Riesgo", "Acciones"].map((h) => (
+                              {["Escuela", "Ruta", "Coste estimado", "Opiniones de alumnos", "Ajuste a tu perfil", "Riesgo", "Acciones"].map((h) => (
                                 <th key={h} className="py-2.5 pr-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
                                   {h}
                                 </th>
@@ -2833,6 +2873,7 @@ export function FlyPathApp({
                           <tbody className="divide-y divide-white/[0.06]">
                             {schoolStats.analyzed.map(({ school, analysis }) => {
                               const link = parsePlannerSchoolLink(school.enlaceReferencia);
+                              const reviewSummary = link ? dashboardReviewSummariesBySlug.get(link.slug) : undefined;
                               return (
                                 <tr key={school.id}>
                                   <td className="py-3 pr-3">
@@ -2862,7 +2903,15 @@ export function FlyPathApp({
                                     {school.precioAnunciado > 0 ? euro(school.precioAnunciado) : "Pendiente"}
                                   </td>
                                   <td className="py-3 pr-3">
-                                    <DashFitIndicator score={analysis.encajeGeneral} />
+                                    <SchoolReviewStars
+                                      summary={reviewSummary}
+                                      loading={dashboardReviewsLoading}
+                                      href={link ? `/opiniones-escuelas?school=${encodeURIComponent(link.slug)}` : undefined}
+                                      tone="dark"
+                                    />
+                                  </td>
+                                  <td className="py-3 pr-3">
+                                    <DashProfileFitScore score={analysis.encajeGeneral} />
                                   </td>
                                   <td className="py-3 pr-3">
                                     <DashSchoolRiskBadge value={analysis.riesgoFinanciero} />
@@ -2905,6 +2954,7 @@ export function FlyPathApp({
                       <div className="mt-4 space-y-3 md:hidden">
                         {schoolStats.analyzed.map(({ school, analysis }) => {
                           const link = parsePlannerSchoolLink(school.enlaceReferencia);
+                          const reviewSummary = link ? dashboardReviewSummariesBySlug.get(link.slug) : undefined;
                           return (
                             <div key={school.id} className="rounded-xl border border-white/[0.08] bg-[#101B35]/60 p-4">
                               <div className="flex items-start justify-between gap-2">
@@ -2923,11 +2973,27 @@ export function FlyPathApp({
                                   onUpdatePrograma={updateSchoolPrograma}
                                 />
                               </div>
-                              <div className="mt-2.5 flex items-center justify-between gap-3">
+                              <div className="mt-2.5">
                                 <span className="shrink-0 font-semibold tabular-nums text-[13px] text-slate-200">
                                   {school.precioAnunciado > 0 ? euro(school.precioAnunciado) : "Coste pendiente"}
                                 </span>
-                                <DashFitIndicator score={analysis.encajeGeneral} compact />
+                              </div>
+                              <div className="mt-2.5">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Opiniones de alumnos</p>
+                                <div className="mt-1">
+                                  <SchoolReviewStars
+                                    summary={reviewSummary}
+                                    loading={dashboardReviewsLoading}
+                                    href={link ? `/opiniones-escuelas?school=${encodeURIComponent(link.slug)}` : undefined}
+                                    tone="dark"
+                                  />
+                                </div>
+                              </div>
+                              <div className="mt-2.5">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ajuste a tu perfil</p>
+                                <div className="mt-1">
+                                  <DashProfileFitScore score={analysis.encajeGeneral} />
+                                </div>
                               </div>
                               <div className="mt-3 flex items-center gap-2">
                                 {link ? (
@@ -4137,25 +4203,9 @@ function dashSchoolInitials(name: string): string {
   return name.trim().slice(0, 2) || "??";
 }
 
-function dashEncajeReading(score: number): string {
-  if (score >= 75) return "Muy buen ajuste";
-  if (score >= 60) return "Buen ajuste";
-  if (score >= 40) return "Ajuste medio";
-  return "Ajuste bajo";
-}
-
-/** El ajuste al perfil no es una valoración de alumnos, así que no usa estrellas. */
-function DashFitIndicator({ score, compact = false }: { score: number; compact?: boolean }) {
-  if (compact) {
-    return <span className="text-[12px] font-medium text-slate-300">Ajuste {score}/100</span>;
-  }
-
-  return (
-    <div>
-      <p className="text-[13px] font-semibold tabular-nums text-slate-200">{score}/100</p>
-      <p className="mt-1 text-[12px] text-slate-400">{dashEncajeReading(score)}</p>
-    </div>
-  );
+/** The profile-fit score is a planner calculation, never a student-review rating. */
+function DashProfileFitScore({ score }: { score: number }) {
+  return <span className="text-[13px] font-semibold tabular-nums text-slate-200">{score}/100</span>;
 }
 
 /** Donut CSS (conic-gradient) con el desglose real de costes por partida. */
