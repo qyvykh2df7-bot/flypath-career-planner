@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 10 — Pagos, monetización y entitlements.** La Fase 9 — Backend de opiniones de escuelas está **CLOSED / COMPLETED / DEPLOY READY**: catálogo público endurecido, migraciones `20260712130000`, `20260712140000` y `20260712150000` aplicadas en Supabase, formulario con verificación por email, lectura pública exclusiva de reseñas aprobadas y moderación atómica privada en Warhome. En Career Planner, las estrellas representan únicamente `school_reviews` aprobadas; las escuelas sin opiniones muestran “Sin opiniones”. La QA manual ya validó el flujo completo. Cuenta, lead, marketing y opiniones permanecen separados; crear una opinión no crea captación ni consentimiento. Como mejora futura, la presentación visual de las opiniones públicas requiere una iteración de diseño.
+**Fase 10 — Pagos, monetización y entitlements.** El bloque 10C está **CLOSED / COMPLETED / TESTED**: Career Planner Premium usa exclusivamente Stripe Checkout sandbox para una compra invitada o autenticada de 5,95 EUR, pago único. El navegador no decide importe, moneda, precio, usuario ni URLs de retorno. La página de éxito no confirma nada: webhook, ledger de pagos, PDF, recuperación y entitlements siguen fuera de alcance hasta 10D. Stripe live permanece desactivado.
 
 ## Comandos
 
@@ -23,6 +23,7 @@ Copia `.env.example` a `.env.local` y rellena:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (solo servidor; nunca en cliente)
+- `STRIPE_SECRET_KEY` (solo Stripe test y solo servidor durante 10C)
 
 ## Documentación operativa
 

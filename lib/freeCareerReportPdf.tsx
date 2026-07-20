@@ -27,7 +27,7 @@ import {
   type FreeReportData,
 } from "@/lib/free-report-data";
 import {
-  PREMIUM_REPORT_CHECKOUT_URL,
+  PREMIUM_REPORT_PURCHASE_PATH,
   PREMIUM_REPORT_PRICE_LABEL,
 } from "@/lib/premium-report-checkout";
 import type { ReportSnapshotV1 } from "@/lib/reporting/types/report-snapshot";
@@ -436,7 +436,7 @@ function FreePdfPageTwo({
   data: FreeReportData;
   assets: FreePdfAssets;
 }) {
-  const checkoutHref = PREMIUM_REPORT_CHECKOUT_URL;
+  const checkoutHref = new URL(PREMIUM_REPORT_PURCHASE_PATH, assets.origin).toString();
   const mentoriaHref = productLink(assets.origin, "mentoria");
 
   return (

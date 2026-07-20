@@ -1,8 +1,8 @@
-# Última sesión — 10B aplicado; handoff a Checkout seguro
+# Última sesión — 10C Checkout sandbox cerrado; handoff a webhook seguro
 
-**Fecha:** 2026-07-19
+**Fecha:** 2026-07-20
 **Rama:** `main`
-**Estado:** Fase 9 permanece cerrada. Fase 10 — Pagos, monetización y entitlements continúa activa. El bloque 10B está aplicado y validado en Supabase remoto; Stripe no está instalado ni activado y no existen Checkout, webhooks HTTP, CTAs ni cobros.
+**Estado:** Fase 9 permanece cerrada. Fase 10 — Pagos, monetización y entitlements continúa activa. 10B está aplicado y 10C está **CLOSED / COMPLETED / TESTED** exclusivamente en Stripe sandbox. No hay Stripe live, webhook HTTP, ledger de pagos interno, descarga ni entitlement.
 
 ## Decisiones de Fase 10
 
@@ -18,9 +18,19 @@
 - QA remota: 12 tablas creadas, RLS activa, `anon` y `authenticated` sin acceso, `service_role` operativo; FKs, checks e índices de idempotencia confirmados. La prueba sintética de pedido, pago, token y grant se revirtió y todas las tablas siguen sin filas.
 - Validación local de 10B: 527 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos. No instalar Stripe, crear Checkout, webhook HTTP, CTA ni cobro hasta los bloques posteriores.
 
-## Siguiente trabajo — 10C
+## Cierre — 10C
 
-- Diseñar Checkout seguro para pagos únicos sobre precios server-side cerrados, sin permitir que el navegador elija importe, acceso o estado final.
+- `20260712180000_add_career_planner_test_checkout.sql` está aplicada en remoto. Añade `stripe_product_id` al catálogo de precios, conserva la identidad comercial inmutable y expone `prepare_career_planner_premium_checkout` con `SECURITY DEFINER`, `search_path` fijo y ejecución exclusiva de `service_role`.
+- `stripe` está instalado como SDK de servidor. `STRIPE_SECRET_KEY` exige prefijo `sk_test_`; una clave live se rechaza. `.env.local` está ignorado y `.env.example` solo documenta nombres de variables.
+- `scripts/sync-stripe-career-planner.mjs` crea o reutiliza el Product/Price sandbox de 5,95 EUR y el precio interno correspondiente. El script comprueba la vinculación interna antes de tocar Stripe y no deja precios activos duplicados.
+- Un Product sandbox duplicado de una ejecución anterior quedó archivado e inactivo; no está vinculado al catálogo interno ni se usa para Checkout.
+- `/api/commerce/checkout` acepta solo `career_planner_premium`, limita el body, valida same-origin y conserva una clave de idempotencia en cookie httpOnly. El servidor determina producto, precio, usuario opcional y rutas de retorno; valida que el intento pertenezca a la misma identidad y rota la intención tras un cambio de cuenta o una sesión completada/expirada.
+- QA manual sandbox: el CTA/endpoint abrió Stripe Checkout alojado; la tarjeta oficial de prueba completó la sesión y volvió a `/career-planner/checkout/success`. Stripe marcó la sesión como pagada, pero el intento interno permanece `session_created` y no se crearon `payments`, grants, PDF ni entitlement: es el comportamiento esperado antes de webhook.
+- Cierre técnico: 554 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
+
+## Siguiente trabajo — 10D
+
+- Diseñar el endpoint webhook firmado de Stripe y procesar eventos de forma idempotente hacia `payments`, `orders` y grants futuros.
 - Mantener Career Planner Premium y guías digitales como compras invitadas previstas; AeroComms Pro necesitará cuenta para usar su entitlement, no necesariamente para pagar.
 
 ## Cierre de Fase 9

@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: Activa — 10B aplicado y validado en Supabase remoto; siguiente bloque 10C (Checkout seguro para pagos únicos).**
+**Estado: Activa — 10B aplicado y validado; 10C CLOSED / COMPLETED / TESTED en Stripe sandbox. Siguiente bloque: 10D (webhook, ledger y entrega segura).**
 
 ### Objetivos
 
@@ -503,6 +503,15 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Las 12 tablas tienen RLS; `PUBLIC`, `anon` y `authenticated` no tienen acceso directo. Solo `service_role` opera sobre esta base.
 - La migración no crea precios, pedidos, pagos, grants ni tokens. La QA sintética se ejecutó dentro de una transacción y se revirtió por completo.
 - Stripe SDK, Checkout, rutas webhook, CTAs y cobros continúan fuera de 10B y no están activados.
+
+### 10C cerrado y probado en Stripe sandbox
+
+- `20260712180000_add_career_planner_test_checkout.sql` está aplicada en remoto. Añade el vínculo inmutable de catálogo Stripe y una RPC `SECURITY DEFINER` exclusiva de `service_role` que prepara de forma idempotente `order`, `order_item` y `checkout_attempt` para Career Planner Premium.
+- Un script reproducible crea o reutiliza exclusivamente el Product y Price sandbox de Career Planner Premium (5,95 EUR, pago único) y registra sus IDs en `product_prices`. No usa modo live ni acepta IDs desde el navegador.
+- El CTA del Career Planner llama a `/api/commerce/checkout`, que solo admite una clave de producto cerrada. Stripe Checkout recibe el precio resuelto en servidor; `success` y `cancel` son rutas internas fijas.
+- La prueba sandbox completó un pago de tarjeta oficial y volvió a la pantalla de verificación. Sin webhook, FlyPath no registró `payments`, grants, descarga ni entitlement.
+- La cookie de intención se valida contra el propietario server-side y rota de forma segura tras logout, cambio de cuenta o una sesión Stripe ya completada/expirada. Un Product sandbox duplicado de una ejecución previa está archivado e inactivo; no está vinculado al catálogo interno.
+- Webhooks HTTP, confirmación definitiva, ledger de pagos, entrega/reclamación del PDF, otros productos y Stripe live quedan expresamente para 10D y bloques posteriores.
 
 ---
 

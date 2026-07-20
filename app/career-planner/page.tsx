@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,10 +60,7 @@ import type { PublicSchoolReviewSummary } from "@/lib/school-reviews/contracts";
 import { buildSchoolReviewSummariesPath } from "@/lib/school-reviews/presentation";
 import { useQaPremiumMode } from "@/hooks/useQaPremiumMode";
 import { canSeePremiumForDevQa } from "@/lib/qaPremiumMode";
-import {
-  PREMIUM_REPORT_CHECKOUT_URL,
-  PREMIUM_REPORT_PRICE_LABEL,
-} from "@/lib/premium-report-checkout";
+import { PREMIUM_REPORT_PRICE_LABEL } from "@/lib/premium-report-checkout";
 import { CareerPlannerAppShell } from "@/components/career-planner/CareerPlannerAppShell";
 import { CareerPlannerBottomNav } from "@/components/career-planner/CareerPlannerBottomNav";
 import { CareerPlannerStepNav } from "@/components/career-planner/CareerPlannerStepNav";
@@ -83,6 +80,7 @@ import {
   SchoolDatabasePicker,
   SchoolManualForm,
 } from "@/components/career-planner/CareerPlannerSchoolsTab";
+import { CareerPlannerPremiumCheckoutButton } from "@/components/career-planner/CareerPlannerPremiumCheckoutButton";
 import type { PlannerDashboardTab, PlannerStepId } from "@/components/career-planner/career-planner-steps";
 import {
   normalizeDashboardTab,
@@ -1181,12 +1179,6 @@ type FlyPathAppProps = {
 };
 
 const PLANNER_PREMIUM_CHECKOUT_CTA = `Desbloquear informe premium · ${PREMIUM_REPORT_PRICE_LABEL}`;
-
-function goToPremiumCheckout(e?: MouseEvent) {
-  e?.stopPropagation();
-  e?.preventDefault();
-  window.open(PREMIUM_REPORT_CHECKOUT_URL, "_blank", "noopener,noreferrer");
-}
 
 export function FlyPathApp({
   reviewMode = false,
@@ -3197,14 +3189,10 @@ export function FlyPathApp({
                                 {premiumPdfExporting ? "Generando PDF…" : "Descargar informe premium"}
                               </button>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={goToPremiumCheckout}
-                                className="inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#D6AE4F] px-3 py-2 text-[14px] font-bold text-[#101B35] shadow-[0_6px_18px_rgba(214,174,79,0.3)] transition hover:brightness-105"
-                              >
-                                <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                Desbloquear informe premium · {PREMIUM_REPORT_PRICE_LABEL}
-                              </button>
+                              <CareerPlannerPremiumCheckoutButton
+                                className="inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#D6AE4F] px-3 py-2 text-[14px] font-bold text-[#101B35] shadow-[0_6px_18px_rgba(214,174,79,0.3)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
+                                label={`Desbloquear informe premium · ${PREMIUM_REPORT_PRICE_LABEL}`}
+                              />
                             )}
                           </div>
                         </div>
@@ -3518,13 +3506,10 @@ export function FlyPathApp({
                               </li>
                             ))}
                           </ul>
-                          <button
-                            type="button"
-                            onClick={goToPremiumCheckout}
-                            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_8px_24px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 sm:w-auto lg:col-start-1 lg:row-start-2 lg:justify-self-start"
-                          >
-                            {PLANNER_PREMIUM_CHECKOUT_CTA}
-                          </button>
+                          <CareerPlannerPremiumCheckoutButton
+                            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_8px_24px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 disabled:cursor-wait disabled:opacity-70 sm:w-auto lg:col-start-1 lg:row-start-2 lg:justify-self-start"
+                            label={PLANNER_PREMIUM_CHECKOUT_CTA}
+                          />
                         </div>
                       </div>
                     );

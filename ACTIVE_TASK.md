@@ -28,14 +28,15 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - La validación actual deja 512 pruebas, TypeScript, lint focalizado y `git diff --check` correctos.
 - Mejora futura acotada: iterar el layout visual de las opiniones públicas. No bloquea la funcionalidad ni el cierre de fase.
 
-## Tarea activa — 10C
+## Tarea activa — 10D
 
-Diseñar e implementar Checkout seguro para pagos únicos sobre la base comercial ya aplicada.
+Diseñar el webhook firmado de Stripe y la confirmación server-side de pagos únicos sobre el Checkout test ya validado.
 
 - `20260712170000_create_commerce_foundation.sql` está aplicada y validada en remoto: precios, pedidos, pagos, suscripciones, eventos Stripe minimizados, compradores invitados, reclamaciones seguras, bundles y concesiones de acceso idempotentes están disponibles, sin filas de catálogo comercial ni cobros creados.
 - Los contratos puros y pruebas viven en `lib/commerce/`; el acceso efectivo se resuelve en servidor y RLS permanece cerrada.
-- 10C debe crear solo el flujo server-side mínimo y seguro para Checkout de pago único; ningún navegador decide precio, acceso ni estado de pago.
-- Stripe SDK, secretos, endpoints de cobro, CTAs y webhooks HTTP no se activan hasta que el diseño específico de 10C lo cierre.
+- 10C está **CLOSED / COMPLETED / TESTED**: Stripe sandbox, catálogo cerrado de Career Planner Premium (5,95 EUR, pago único), CTA, Checkout alojado, compra invitada o autenticada, intenciones idempotentes y superficies success/cancel. La prueba sandbox completó Checkout sin crear `payments`, grants, descargas ni entitlements internos. La cookie de intención no se reutiliza entre cuentas y un Product sandbox duplicado permanece archivado e inactivo, sin vínculo interno.
+- 10D debe validar la firma de webhook y convertir eventos Stripe en el ledger interno. Ningún retorno de navegador puede confirmar un pago ni activar acceso.
+- Validación de cierre 10C: 554 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
 - Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro reclamable si se compró sin cuenta; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL sigue en waitlist.
 
 ## Implementado en Fase 7

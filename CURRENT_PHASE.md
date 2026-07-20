@@ -10,7 +10,9 @@
 
 **10B — catálogo comercial, pedidos, pagos y entitlements** está aplicado y validado en Supabase remoto mediante `20260712170000_create_commerce_foundation.sql`, con contratos puros en `lib/commerce/` y documentación técnica. La validación confirmó RLS y ACL cerradas, índices de idempotencia, compatibilidad con `products` y una prueba sintética revertida sin datos residuales. Esta base no activa Stripe: define el modelo transaccional, los compradores invitados, la reclamación segura y el acceso efectivo resuelto en servidor.
 
-**Siguiente bloque: 10C — Checkout seguro para pagos únicos.** Stripe, Checkout, webhooks HTTP, CTAs y cobros siguen desactivados hasta ese bloque.
+**10C — Checkout seguro para pagos únicos** está **CLOSED / COMPLETED / TESTED** solo en Stripe sandbox. `20260712180000_add_career_planner_test_checkout.sql` prepara pedidos e intentos idempotentes para Career Planner Premium: 5,95 EUR, pago único, tanto invitado como autenticado. El CTA abre Stripe Checkout sin que el cliente pueda decidir valores comerciales. La pantalla de éxito no confirma pagos, no descarga el PDF y no concede acceso. El catálogo sandbox se sincroniza de forma idempotente; un duplicado histórico está archivado e inactivo, sin vínculo con el catálogo FlyPath.
+
+**Siguiente bloque: 10D — webhook Stripe, ledger y entrega segura.** El pago real dentro de FlyPath seguirá confirmado exclusivamente por webhook firmado. Stripe live permanece desactivado.
 
 ### Decisiones de producto cerradas
 

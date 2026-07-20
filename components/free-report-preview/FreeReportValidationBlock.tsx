@@ -8,8 +8,8 @@ import {
 } from "@/lib/free-report-data";
 import {
   PREMIUM_REPORT_CHECKOUT_CTA_LABEL,
-  PREMIUM_REPORT_CHECKOUT_URL,
 } from "@/lib/premium-report-checkout";
+import { CareerPlannerPremiumCheckoutButton } from "@/components/career-planner/CareerPlannerPremiumCheckoutButton";
 
 function ColumnDivider() {
   return (
@@ -76,14 +76,10 @@ export function FreeReportValidationBlock() {
       <ColumnDivider />
 
       <div className="flex w-[12.75rem] shrink-0 flex-col items-center justify-center px-5 py-7 sm:w-[13.25rem] sm:px-6">
-        <Link
-          href={PREMIUM_REPORT_CHECKOUT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-[44px] w-full min-w-[11.5rem] items-center justify-center rounded-sm bg-[#c9a454] px-7 py-2.5 text-center text-sm font-semibold leading-tight text-[#0f1a33] shadow-[0_2px_12px_rgba(201,164,84,0.35)] transition-opacity hover:opacity-95"
-        >
-          {PREMIUM_REPORT_CHECKOUT_CTA_LABEL}
-        </Link>
+        <CareerPlannerPremiumCheckoutButton
+          className="inline-flex min-h-[44px] w-full min-w-[11.5rem] items-center justify-center rounded-sm bg-[#c9a454] px-7 py-2.5 text-center text-sm font-semibold leading-tight text-[#0f1a33] shadow-[0_2px_12px_rgba(201,164,84,0.35)] transition-opacity hover:opacity-95 disabled:cursor-wait disabled:opacity-70"
+          label={PREMIUM_REPORT_CHECKOUT_CTA_LABEL}
+        />
         <p className="mt-6 text-center text-xs leading-relaxed text-[#faf8f4]/60">
           También puedes{" "}
           <Link
