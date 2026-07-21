@@ -14,7 +14,7 @@ const BENEFITS = [
 interface PaywallContentProps {
   /** Called when the X / close action is triggered */
   onClose: () => void;
-  checkoutNotice?: "processing" | "cancelled" | null;
+  checkoutNotice?: "cancelled" | null;
 }
 
 export function PaywallContent({ onClose, checkoutNotice = null }: PaywallContentProps) {
@@ -63,11 +63,6 @@ export function PaywallContent({ onClose, checkoutNotice = null }: PaywallConten
         <h1 className="mt-3 text-3xl font-bold leading-tight">Unlock the full flight deck.</h1>
       </div>
 
-      {checkoutNotice === "processing" && (
-        <p role="status" className="mt-4 text-sm text-slate-300">
-          Estamos verificando tu suscripción. El acceso se activará cuando Stripe confirme el pago.
-        </p>
-      )}
       {checkoutNotice === "cancelled" && (
         <p role="status" className="mt-4 text-sm text-slate-300">
           La suscripción no se ha completado.

@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { AeroCommsProCheckoutReturn } from "@/components/aerocomms/app/AeroCommsProCheckoutReturn";
 import BottomNav from "@/components/aerocomms/app/BottomNav";
 import DesktopNav from "@/components/aerocomms/app/DesktopNav";
 
@@ -28,6 +30,9 @@ export default function AppLayout({
         <div className="mx-auto h-full w-full max-w-md lg:h-auto lg:max-w-[1360px]">{children}</div>
       </main>
       <BottomNav />
+      <Suspense fallback={null}>
+        <AeroCommsProCheckoutReturn />
+      </Suspense>
     </div>
   );
 }

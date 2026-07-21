@@ -88,7 +88,7 @@ describe("AeroComms Pro subscription Checkout server boundary", () => {
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
       mode: "subscription",
       line_items: [{ price: "price_1TvgG4KuujVRKb0PkofwZMz7", quantity: 1 }],
-      success_url: "https://flypath.test/aerocomms/app/paywall?checkout=processing",
+      success_url: "https://flypath.test/aerocomms/app/today?checkout=processing",
       cancel_url: "https://flypath.test/aerocomms/app/paywall?checkout=cancelled",
       client_reference_id: attemptId,
       metadata: expect.objectContaining({

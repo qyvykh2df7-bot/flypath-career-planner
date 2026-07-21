@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { AEROCOMMS_PRO_CATALOG } from "./aerocomms-pro-catalog";
 import { isStripeCheckoutUrl } from "./checkout";
 import { getStripeClient, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
+import { AEROCOMMS_PRO_CHECKOUT_RETURN_PATH } from "@/lib/aerocomms/pro-checkout-return";
 
 export class AeroCommsProCheckoutError extends Error {
   constructor(public readonly kind: "authentication_required" | "catalog" | "persistence" | "provider" | "session" | "intent_conflict") {
@@ -128,7 +129,7 @@ export async function createAeroCommsProSubscriptionCheckout(input: {
     checkoutSession = await getStripeClient().checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: prepared.stripePriceId, quantity: 1 }],
-      success_url: `${appUrl}/aerocomms/app/paywall?checkout=processing`,
+      success_url: `${appUrl}${AEROCOMMS_PRO_CHECKOUT_RETURN_PATH}?checkout=processing`,
       cancel_url: `${appUrl}/aerocomms/app/paywall?checkout=cancelled`,
       client_reference_id: prepared.checkoutAttemptId,
       metadata,

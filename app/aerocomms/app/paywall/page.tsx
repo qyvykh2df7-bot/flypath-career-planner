@@ -7,11 +7,7 @@ import { PaywallContent } from "@/components/aerocomms/app/PaywallContent";
 function PaywallPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const checkoutNotice = searchParams.get("checkout") === "processing"
-    ? "processing"
-    : searchParams.get("checkout") === "cancelled"
-      ? "cancelled"
-      : null;
+  const checkoutNotice = searchParams.get("checkout") === "cancelled" ? "cancelled" : null;
 
   return (
     <main className="flex min-h-dvh flex-col bg-[#07111F] px-6 pb-8 pt-6">
