@@ -78,7 +78,7 @@ function TypeGlyph({ type }: { type: ExerciseType }) {
 export default function TopicPage() {
   const router = useRouter();
   const params = useParams<{ topicId: string }>();
-  const { state } = useAppState();
+  const { state, access } = useAppState();
 
   const found = findTopic(params.topicId);
 
@@ -94,7 +94,7 @@ export default function TopicPage() {
   }
 
   const { level, module, topic } = found;
-  const isPro = state.subscription === "pro";
+  const isPro = access.isPro;
   const completed = new Set(state.completedExercises);
   const progress = topicCompletion(topic, completed);
   const unit = topic.unit ?? "steps";

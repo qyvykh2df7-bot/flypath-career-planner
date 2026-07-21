@@ -65,10 +65,10 @@ function difficultyColor(difficulty: string, locked: boolean): string {
 function MissionCard({ m }: { m: AtcMission }) {
   const router = useRouter();
   const accent = LEVELS[m.level].accent;
-  const { state } = useAppState();
-  // Derive unlock state from the engine. DEV_UNLOCK_ALL_MISSIONS (true) keeps effectiveUnlocked=true.
+  const { state, access } = useAppState();
+  // Derive unlock state from the shared access contract plus real progress.
   // m.locked is passed as legacyLocked fallback for missions not yet in MISSION_REQS.
-  const unlockState = getMissionUnlockState(m.id, state.completedExercises, m.locked);
+  const unlockState = getMissionUnlockState(m.id, state.completedExercises, m.locked, access.isPro);
   const isLocked = !unlockState.effectiveUnlocked;
   // Real completion/stars come from the user's saved mission results, not the static
   // catalog seed (m.completed / m.stars). A brand-new user must never see a mission as

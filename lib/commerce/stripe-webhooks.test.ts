@@ -18,7 +18,7 @@ vi.mock("./stripe", () => ({
   StripeProviderError: class StripeProviderError extends Error {},
 }));
 
-import { processCareerPlannerStripeWebhook, verifyStripeWebhook } from "./stripe-webhooks";
+import { processCareerPlannerStripeWebhook, processStripeWebhook, verifyStripeWebhook } from "./stripe-webhooks";
 
 const attemptId = "4b1d8768-7a01-4e6f-b2dd-0d399857f8dd";
 const orderId = "7b1d8768-7a01-4e6f-b2dd-0d399857f8dd";
@@ -93,6 +93,12 @@ describe("Career Planner Stripe webhook boundary", () => {
       p_amount: 595,
       p_currency: "eur",
     }));
+  });
+
+  it("keeps existing one-time Checkout settlement on the shared webhook route", async () => {
+    await expect(processStripeWebhook(event("checkout.session.completed"), "{}"))
+      .resolves.toBe("processed");
+    expect(mocks.rpc).toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.anything());
   });
 
   it.each([

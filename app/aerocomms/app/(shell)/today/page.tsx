@@ -194,7 +194,7 @@ function StatIcon({ type }: { type: "fire" | "target" | "star" }) {
 
 export default function TodayPage() {
   const router = useRouter();
-  const { state } = useAppState();
+  const { state, access } = useAppState();
 
   // ── Dynamic greeting (client-side only to avoid SSR mismatch) ──────────────
   const [greeting, setGreeting] = useState("Good morning");
@@ -226,7 +226,7 @@ export default function TodayPage() {
 
   // ── Core data ──────────────────────────────────────────────────────────────
   const completed = new Set(state.completedExercises);
-  const isPro = state.subscription === "pro";
+  const isPro = access.isPro;
   const practiceSkills = {
     listening: state.skills.listening,
     readbacks: state.skills.readbacks,
@@ -977,7 +977,6 @@ export default function TodayPage() {
         >
           <PaywallContent
             onClose={() => setProModalOpen(false)}
-            onSuccess={() => setProModalOpen(false)}
           />
         </div>
       </div>

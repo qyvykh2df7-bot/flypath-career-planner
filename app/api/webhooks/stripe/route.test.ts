@@ -7,7 +7,7 @@ vi.mock("@/lib/commerce/stripe-webhooks", () => ({
     constructor(public kind: "configuration" | "signature" | "unavailable") { super("webhook"); }
   },
   verifyStripeWebhook: mocks.verify,
-  processCareerPlannerStripeWebhook: mocks.process,
+  processStripeWebhook: mocks.process,
 }));
 
 import { POST } from "./route";

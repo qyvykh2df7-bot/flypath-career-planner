@@ -400,7 +400,7 @@ function TrainPageSkeleton() {
 function TrainPageContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const { state }    = useAppState();
+  const { state, access } = useAppState();
   const mounted      = useIsClientMounted();
   const urlLevel     = searchParams.get("level");
   // Before mount: URL only (stable SSR + hydration). After mount: URL or sessionStorage.
@@ -427,7 +427,7 @@ function TrainPageContent() {
   const levelBackground = LEVEL_TRAIN_BACKGROUNDS[level.id];
   const canPrev   = index > 0;
   const canNext   = index < LEVELS.length - 1;
-  const isPro     = state.subscription === "pro";
+  const isPro     = access.isPro;
   const completed = new Set(state.completedExercises);
   const unlocked  = isLevelUnlocked(level, completed, isPro);
   const currentModuleId = trainModules(level).find((m) => moduleCompletion(m, completed) < 100)?.id;

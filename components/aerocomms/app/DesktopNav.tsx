@@ -31,9 +31,9 @@ const BellIcon = (props: SVGProps<SVGSVGElement>) => (
  */
 export default function DesktopNav() {
   const pathname = usePathname();
-  const { state } = useAppState();
+  const { state, access } = useAppState();
 
-  const isPro = state.subscription === "pro";
+  const isPro = access.isPro;
   const completed = new Set(state.completedExercises);
   const level = currentLevel(completed, isPro);
   const initial = (state.name?.[0] ?? "P").toUpperCase();

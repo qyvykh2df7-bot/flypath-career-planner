@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { StripeWebhookError, processCareerPlannerStripeWebhook, verifyStripeWebhook } from "@/lib/commerce/stripe-webhooks";
+import { StripeWebhookError, processStripeWebhook, verifyStripeWebhook } from "@/lib/commerce/stripe-webhooks";
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await processCareerPlannerStripeWebhook(event, rawPayload);
+    await processStripeWebhook(event, rawPayload);
     return NextResponse.json({ received: true });
   } catch {
     // A non-2xx response makes Stripe retry only failures that were not safely

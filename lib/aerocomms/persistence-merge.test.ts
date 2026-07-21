@@ -9,7 +9,6 @@ const localState: AppState = {
   experience: null,
   goal: null,
   dailyGoal: "10 min/day",
-  subscription: "free",
   difficulty: "Normal",
   notifications: true,
   skills: { listening: 0, readbacks: 0, phraseology: 0, speaking: 0, confidence: 0 },
@@ -31,10 +30,9 @@ const snapshot: AeroCommsRemoteProgressSnapshot = {
 };
 
 describe("AeroComms remote progress merge", () => {
-  it("merges only durable progress and preserves local-only access and settings", () => {
+  it("merges only durable progress and preserves local settings", () => {
     const merged = mergeAeroCommsRemoteProgress(localState, snapshot);
 
-    expect(merged.subscription).toBe("free");
     expect(merged.name).toBe("Pilot");
     expect(merged.completedExercises).toContain("cadet.cadet-basics.intro-to-atc");
     expect(merged.skillStats.listening).toEqual({ totalScore: 80, count: 1 });

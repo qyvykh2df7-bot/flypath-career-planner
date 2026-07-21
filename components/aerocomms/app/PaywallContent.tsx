@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAppState } from "@/lib/aerocomms/appState";
+import { startAeroCommsProCheckout } from "@/lib/aerocomms/pro-checkout-client";
 
 const BENEFITS = [
   "Full Cadet → Advanced Ops path",
@@ -15,26 +14,27 @@ const BENEFITS = [
 interface PaywallContentProps {
   /** Called when the X / close action is triggered */
   onClose: () => void;
-  /**
-   * Called after a successful upgrade confirmation.
-   * Defaults to pushing /today if not provided.
-   */
-  onSuccess?: () => void;
+  checkoutNotice?: "processing" | "cancelled" | null;
 }
 
-export function PaywallContent({ onClose, onSuccess }: PaywallContentProps) {
-  const router = useRouter();
-  const { upgrade } = useAppState();
-  const [plan, setPlan] = useState<"monthly" | "yearly">("yearly");
+export function PaywallContent({ onClose, checkoutNotice = null }: PaywallContentProps) {
+  const [checkoutState, setCheckoutState] = useState<"idle" | "loading" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const confirm = () => {
-    upgrade();
-    if (onSuccess) {
-      onSuccess();
-    } else {
-      router.push("/aerocomms/app/today");
+  async function handleSubscribe() {
+    if (checkoutState === "loading") return;
+    setCheckoutState("loading");
+    setErrorMessage(null);
+
+    const result = await startAeroCommsProCheckout();
+    if (result.status === "redirect") {
+      window.location.assign(result.url);
+      return;
     }
-  };
+
+    setCheckoutState("error");
+    setErrorMessage(result.message);
+  }
 
   return (
     <div className="flex flex-col text-white">
@@ -63,6 +63,17 @@ export function PaywallContent({ onClose, onSuccess }: PaywallContentProps) {
         <h1 className="mt-3 text-3xl font-bold leading-tight">Unlock the full flight deck.</h1>
       </div>
 
+      {checkoutNotice === "processing" && (
+        <p role="status" className="mt-4 text-sm text-slate-300">
+          Estamos verificando tu suscripción. El acceso se activará cuando Stripe confirme el pago.
+        </p>
+      )}
+      {checkoutNotice === "cancelled" && (
+        <p role="status" className="mt-4 text-sm text-slate-300">
+          La suscripción no se ha completado.
+        </p>
+      )}
+
       <ul className="mt-6 space-y-2.5">
         {BENEFITS.map((b) => (
           <li key={b} className="flex items-center gap-3">
@@ -85,41 +96,18 @@ export function PaywallContent({ onClose, onSuccess }: PaywallContentProps) {
       </ul>
 
       <div className="mt-auto space-y-3 pt-6">
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setPlan("monthly")}
-            className={`rounded-2xl border p-4 text-left transition-colors ${
-              plan === "monthly"
-                ? "border-[#FACC15]/50 bg-[#FACC15]/10"
-                : "border-white/10 bg-[#0F172A]"
-            }`}
-          >
-            <p className="text-xs uppercase tracking-wider text-slate-400">Monthly</p>
-            <p className="mt-1 text-lg font-bold">€9.99</p>
-            <p className="text-[11px] text-slate-500">per month</p>
-          </button>
-          <button
-            onClick={() => setPlan("yearly")}
-            className={`relative rounded-2xl border p-4 text-left transition-colors ${
-              plan === "yearly"
-                ? "border-[#FACC15]/50 bg-[#FACC15]/10"
-                : "border-white/10 bg-[#0F172A]"
-            }`}
-          >
-            <span className="absolute right-3 top-3 rounded-full bg-[#FACC15] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#07111F]">
-              Save 33%
-            </span>
-            <p className="text-xs uppercase tracking-wider text-slate-400">Yearly</p>
-            <p className="mt-1 text-lg font-bold">€79.99</p>
-            <p className="text-[11px] text-slate-500">per year</p>
-          </button>
+        <div className="rounded-2xl border border-[#FACC15]/50 bg-[#FACC15]/10 p-4 text-left">
+          <p className="text-xs uppercase tracking-wider text-slate-400">Mensual</p>
+          <p className="mt-1 text-lg font-bold">7,37 €</p>
+          <p className="text-[11px] text-slate-500">al mes</p>
         </div>
 
-        <button onClick={confirm} className="primary-btn">
-          Unlock AeroComms Pro
+        <button type="button" onClick={handleSubscribe} disabled={checkoutState === "loading"} className="primary-btn disabled:cursor-wait disabled:opacity-60">
+          {checkoutState === "loading" ? "Abriendo suscripción..." : "Suscribirme a AeroComms Pro"}
         </button>
+        {errorMessage && <p role="alert" className="text-center text-xs text-rose-300">{errorMessage}</p>}
         <p className="text-center text-[10px] text-slate-600">
-          Alpha preview · no real payment is processed
+          El acceso se activará tras confirmar tu suscripción.
         </p>
       </div>
     </div>

@@ -39,7 +39,7 @@ function toLocalSession(snapshot: AeroCommsRemoteProgressSnapshot["sessions"][nu
 
 /**
  * Replaces only durable progress fields with the canonical remote merge. Local
- * settings, subscription, onboarding, UI preferences, and local storage stay intact.
+ * settings, onboarding, UI preferences, and local storage stay intact.
  */
 export function mergeAeroCommsRemoteProgress(
   local: AppState,

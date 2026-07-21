@@ -14,10 +14,11 @@
  * DEV_UNLOCK_ALL_TRAIN       lives in content.ts (already used by isLevelUnlocked).
  * DEV_UNLOCK_ALL_MISSIONS    defined here — keeps ATC Sim Guided Missions open.
  *
- * Set dev unlock flags to false before shipping to production.
+ * They derive from NODE_ENV and are always false in production.
  */
 
 import { LEVELS, topicCompletion, DEV_UNLOCK_ALL_TRAIN } from "./content";
+import { isAeroCommsDevelopmentOverrideEnabled } from "./access";
 
 // Re-export for convenience so callers can find all dev flags in one module.
 export { DEV_UNLOCK_ALL_TRAIN };
@@ -30,7 +31,8 @@ export { DEV_UNLOCK_ALL_TRAIN };
  * TEMP (Alpha internal dev): bypass mission lock checks so all ATC Sim Missions
  * are accessible without completing Train prerequisites. Set to false before release.
  */
-export const DEV_UNLOCK_ALL_MISSIONS = true;
+export const DEV_UNLOCK_ALL_MISSIONS = isAeroCommsDevelopmentOverrideEnabled();
+export const AEROCOMMS_FREE_MISSION_ID = "cadet-first-contact";
 
 // ---------------------------------------------------------------------------
 // Skill type
@@ -445,19 +447,22 @@ export function getMissionUnlockState(
   missionId: string,
   completedExercises: string[],
   legacyLocked = false,
+  isPro = false,
+  developmentOverride = isAeroCommsDevelopmentOverrideEnabled(),
 ): UnlockState {
+  const isFreeMission = missionId === AEROCOMMS_FREE_MISSION_ID;
   const reqs = MISSION_REQS[missionId];
   if (!reqs) {
     // No requirements defined. Fall back to the legacy locked field from mission data.
     const realUnlocked = !legacyLocked;
-    const effectiveUnlocked = DEV_UNLOCK_ALL_MISSIONS || realUnlocked;
+    const effectiveUnlocked = developmentOverride || (isPro && realUnlocked);
     return {
       realUnlocked,
       effectiveUnlocked,
-      wouldBeLocked: legacyLocked,
+      wouldBeLocked: !effectiveUnlocked,
       missingTopics: [],
       missingSkills: [],
-      reason: legacyLocked ? "Mission not yet available" : "",
+      reason: legacyLocked ? "Mission not yet available" : isPro ? "" : "AeroComms Pro required",
     };
   }
 
@@ -466,12 +471,13 @@ export function getMissionUnlockState(
 
   const missingTopics = reqs.requiredTopics.filter((t) => !completedTopics.has(t));
   const missingSkills = reqs.requiredSkills.filter((s) => !learnedSkills.has(s));
-  const realUnlocked = missingTopics.length === 0 && missingSkills.length === 0;
-  const effectiveUnlocked = DEV_UNLOCK_ALL_MISSIONS || realUnlocked;
-  const wouldBeLocked = !realUnlocked;
+  const realUnlocked = isFreeMission || (missingTopics.length === 0 && missingSkills.length === 0);
+  const effectiveUnlocked = developmentOverride || (isFreeMission ? realUnlocked : isPro && realUnlocked);
+  const wouldBeLocked = !effectiveUnlocked;
 
   const reason = wouldBeLocked
     ? (() => {
+        if (!isFreeMission && !isPro) return "AeroComms Pro required";
         if (missingTopics.length > 0) {
           return `Complete ${missingTopics.map(topicDisplayName).join(", ")} to unlock`;
         }
@@ -513,9 +519,9 @@ export function getMissingRequirements(
  * Returns the list of mission IDs whose effectiveUnlocked is true.
  * In dev mode (DEV_UNLOCK_ALL_MISSIONS = true) this returns all defined missions.
  */
-export function getUnlockedMissions(completedExercises: string[]): string[] {
+export function getUnlockedMissions(completedExercises: string[], isPro = false): string[] {
   return Object.keys(MISSION_REQS).filter(
-    (id) => getMissionUnlockState(id, completedExercises).effectiveUnlocked,
+    (id) => getMissionUnlockState(id, completedExercises, false, isPro).effectiveUnlocked,
   );
 }
 

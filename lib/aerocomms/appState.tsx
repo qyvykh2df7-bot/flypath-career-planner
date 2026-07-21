@@ -41,6 +41,7 @@ import {
   resolveAeroCommsAccountName,
   type AeroCommsAccountNamePrompt,
 } from "./account-name";
+import type { AeroCommsAccess } from "./access";
 
 /** Local calendar date as YYYY-MM-DD (not UTC). */
 export function getLocalDateKey(date: Date = new Date()): string {
@@ -70,7 +71,6 @@ export function isYesterday(dateKey: string, todayKeyStr: string = todayKey()): 
 }
 
 export type Experience = "No Experience" | "Student Pilot" | "Pilot" | "Airline Pilot";
-export type Subscription = "free" | "pro";
 export type Difficulty = "Easy" | "Normal" | "Advanced";
 
 export type Skills = {
@@ -148,7 +148,6 @@ export type AppState = {
   experience: Experience | null;
   goal: string | null;
   dailyGoal: string;
-  subscription: Subscription;
   difficulty: Difficulty;
   notifications: boolean;
   skills: Skills;
@@ -188,7 +187,6 @@ const DEFAULT_STATE: AppState = {
   experience: null,
   goal: null,
   dailyGoal: "10 min/day",
-  subscription: "free",
   difficulty: "Normal",
   notifications: true,
   skills: { listening: 0, readbacks: 0, phraseology: 0, speaking: 0, confidence: 0 },
@@ -230,32 +228,42 @@ function accountStateStorageKey(userId: string): string {
   return `${ACCOUNT_STATE_STORAGE_KEY_PREFIX}${userId}`;
 }
 
+/** Hydrates browser progress while deliberately discarding the retired local Pro flag. */
+export function hydrateStoredAeroCommsState(value: unknown): AppState | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const parsed = value as Partial<AppState> & { subscription?: unknown };
+  // `subscription` was an Alpha-only local flag. Ignore it even when it is
+  // manually edited in an old aerocomms.v2 browser record.
+  const persistedState = { ...parsed };
+  delete persistedState.subscription;
+  const zeroStat: SkillStats = { totalScore: 0, count: 0 };
+  return normalizeDailyState({
+    ...DEFAULT_STATE,
+    ...persistedState,
+    skills: { ...DEFAULT_STATE.skills, ...persistedState.skills },
+    completedMissions: persistedState.completedMissions ?? DEFAULT_STATE.completedMissions,
+    missionResults: persistedState.missionResults ?? DEFAULT_STATE.missionResults,
+    scoredCount: persistedState.scoredCount ?? DEFAULT_STATE.scoredCount,
+    scoreSum: typeof persistedState.scoreSum === "number" && Number.isFinite(persistedState.scoreSum)
+      ? persistedState.scoreSum
+      : (typeof persistedState.accuracy === "number" && typeof persistedState.scoredCount === "number"
+        ? persistedState.accuracy * persistedState.scoredCount
+        : 0),
+    skillStats: {
+      listening: { ...zeroStat, ...(persistedState.skillStats?.listening ?? {}) },
+      readbacks: { ...zeroStat, ...(persistedState.skillStats?.readbacks ?? {}) },
+      phraseology: { ...zeroStat, ...(persistedState.skillStats?.phraseology ?? {}) },
+      speaking: { ...zeroStat, ...(persistedState.skillStats?.speaking ?? {}) },
+      confidence: { ...zeroStat, ...(persistedState.skillStats?.confidence ?? {}) },
+    },
+  });
+}
+
 function readStoredAeroCommsState(storageKey: string = STORAGE_KEY): AppState | null {
   try {
     const raw = localStorage.getItem(storageKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<AppState>;
-    const zeroStat: SkillStats = { totalScore: 0, count: 0 };
-    return normalizeDailyState({
-      ...DEFAULT_STATE,
-      ...parsed,
-      skills: { ...DEFAULT_STATE.skills, ...parsed.skills },
-      completedMissions: parsed.completedMissions ?? DEFAULT_STATE.completedMissions,
-      missionResults: parsed.missionResults ?? DEFAULT_STATE.missionResults,
-      scoredCount: parsed.scoredCount ?? DEFAULT_STATE.scoredCount,
-      scoreSum: typeof parsed.scoreSum === "number" && Number.isFinite(parsed.scoreSum)
-        ? parsed.scoreSum
-        : (typeof parsed.accuracy === "number" && typeof parsed.scoredCount === "number"
-          ? parsed.accuracy * parsed.scoredCount
-          : 0),
-      skillStats: {
-        listening: { ...zeroStat, ...(parsed.skillStats?.listening ?? {}) },
-        readbacks: { ...zeroStat, ...(parsed.skillStats?.readbacks ?? {}) },
-        phraseology: { ...zeroStat, ...(parsed.skillStats?.phraseology ?? {}) },
-        speaking: { ...zeroStat, ...(parsed.skillStats?.speaking ?? {}) },
-        confidence: { ...zeroStat, ...(parsed.skillStats?.confidence ?? {}) },
-      },
-    });
+    return raw ? hydrateStoredAeroCommsState(JSON.parse(raw)) : null;
   } catch {
     return null;
   }
@@ -420,12 +428,12 @@ type RecordMissionResultInput = {
 
 type AppContextValue = {
   state: AppState;
+  access: AeroCommsAccess;
   hydrated: boolean;
   setOnboarding: (data: Partial<AppState>) => void;
   completeOnboarding: () => void;
   recordSession: (input: RecordSessionInput) => SessionRecord;
   recordMissionResult: (input: RecordMissionResultInput) => SessionRecord;
-  upgrade: () => void;
   setNotifications: (value: boolean) => void;
   cycleDailyGoal: () => void;
   cycleDifficulty: () => void;
@@ -454,9 +462,11 @@ export type AeroCommsAccountProfile = { userId: string; fullName: string | null 
 export function AppStateProvider({
   children,
   accountProfile = null,
+  access,
 }: {
   children: ReactNode;
   accountProfile?: AeroCommsAccountProfile | null;
+  access: AeroCommsAccess;
 }) {
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
   const [hydrated, setHydrated] = useState(false);
@@ -1146,10 +1156,6 @@ export function AppStateProvider({
     return record;
   }, [claimAuthenticatedWorkspaceForNewActivity]);
 
-  const upgrade = useCallback(() => {
-    setState((s) => ({ ...s, subscription: "pro" }));
-  }, []);
-
   const setNotifications = useCallback((value: boolean) => {
     setState((s) => ({ ...s, notifications: value }));
   }, []);
@@ -1216,7 +1222,7 @@ export function AppStateProvider({
    * Clears: completedExercises, completedMissions, missionResults, history,
    *         skills, streakDays, accuracy, sessionsCount, minutesToday,
    *         lastSessionAt, moduleProgress.
-   * Keeps:  onboarded, name, experience, goal, subscription,
+   * Keeps:  onboarded, name, experience, goal,
    *         difficulty, dailyGoal, notifications.
    */
   const resetProgressOnly = useCallback(() => beginPersistentReset(clearDurableProgress(stateRef.current)), [beginPersistentReset]);
@@ -1280,12 +1286,12 @@ export function AppStateProvider({
   const value = useMemo<AppContextValue>(
     () => ({
       state,
+      access,
       hydrated,
       setOnboarding,
       completeOnboarding,
       recordSession,
       recordMissionResult,
-      upgrade,
       setNotifications,
       cycleDailyGoal,
       cycleDifficulty,
@@ -1302,7 +1308,7 @@ export function AppStateProvider({
       applyAccountProfileName,
       dismissAccountNamePrompt,
     }),
-    [state, hydrated, setOnboarding, completeOnboarding, recordSession, recordMissionResult, upgrade, setNotifications, cycleDailyGoal, cycleDifficulty, syncProgress, localImportDecisionRequired, dismissLocalImportDecision, foreignLocalProgressDetected, dismissForeignLocalProgressDecision, discardForeignLocalProgress, reset, resetProgressOnly, accountNamePrompt, keepAccountProfileName, applyAccountProfileName, dismissAccountNamePrompt],
+    [state, access, hydrated, setOnboarding, completeOnboarding, recordSession, recordMissionResult, setNotifications, cycleDailyGoal, cycleDifficulty, syncProgress, localImportDecisionRequired, dismissLocalImportDecision, foreignLocalProgressDetected, dismissForeignLocalProgressDecision, discardForeignLocalProgress, reset, resetProgressOnly, accountNamePrompt, keepAccountProfileName, applyAccountProfileName, dismissAccountNamePrompt],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

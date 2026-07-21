@@ -6,6 +6,7 @@ import { STUDENT_PILOT_MODULES, STUDENT_PILOT_SECTIONS } from "./studentPilotCon
 import { READY_FOR_RADIO_MODULES, READY_FOR_RADIO_SECTIONS } from "./readyForRadioContent";
 import { AIRLINE_PREP_MODULES, AIRLINE_PREP_SECTIONS } from "./airlinePrepContent";
 import { ADVANCED_OPS_MODULES, ADVANCED_OPS_SECTIONS } from "./advancedOpsContent";
+import { isAeroCommsDevelopmentOverrideEnabled } from "./access";
 
 export type ExerciseType =
   | "Lesson"
@@ -1114,9 +1115,9 @@ const advancedOps: Level = {
 /**
  * TEMP (Alpha internal dev): bypass Train progress locks and freemium exercise gates
  * so all Train levels (Cadet, Student Pilot, Ready For Radio, future levels) can be
- * reviewed without Pro or prior-level completion. Set to false before release.
+ * reviewed locally. It is derived from NODE_ENV and is always false in production.
  */
-export const DEV_UNLOCK_ALL_TRAIN = true;
+export const DEV_UNLOCK_ALL_TRAIN = isAeroCommsDevelopmentOverrideEnabled();
 
 // Free tier: ~30% of each Cadet module, plus a small preview of Student Pilot.
 function applyGating(level: Level) {
@@ -1231,21 +1232,29 @@ export function levelCompletion(level: Level, completed: Set<string>): number {
 }
 
 /** A level is accessible (browsable with full content) if previous level is complete or user is Pro. Cadet is always accessible. */
-export function isLevelUnlocked(level: Level, completed: Set<string>, isPro: boolean): boolean {
-  if (DEV_UNLOCK_ALL_TRAIN) return true;
+export function isLevelUnlocked(
+  level: Level,
+  _completed: Set<string>,
+  isPro: boolean,
+  developmentOverride = isAeroCommsDevelopmentOverrideEnabled(),
+): boolean {
+  if (developmentOverride) return true;
   const idx = levelIndex(level.id);
   if (idx <= 0) return true;
-  if (isPro) return true;
-  const prev = LEVELS[idx - 1];
-  return levelCompletion(prev, completed) === 100;
+  return isPro;
 }
 
 /** Whether a specific exercise can be played without Pro. */
-export function isExerciseAccessible(exercise: Exercise, level: Level, completed: Set<string>, isPro: boolean): boolean {
-  if (DEV_UNLOCK_ALL_TRAIN) return true;
-  if (isPro) return true;
+export function isExerciseAccessible(
+  exercise: Exercise,
+  _level: Level,
+  _completed: Set<string>,
+  isPro: boolean,
+  developmentOverride = isAeroCommsDevelopmentOverrideEnabled(),
+): boolean {
+  if (developmentOverride) return true;
   if (exercise.free) return true;
-  return isLevelUnlocked(level, completed, isPro);
+  return isPro;
 }
 
 /* ------------------------------------------------------------------ */

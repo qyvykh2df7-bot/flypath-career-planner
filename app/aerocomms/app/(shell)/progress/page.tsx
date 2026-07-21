@@ -258,10 +258,10 @@ function SkillRow({
 // ─── page ───────────────────────────────────────────────────────────────────
 
 export default function ProgressPage() {
-  const { state } = useAppState();
+  const { state, access } = useAppState();
 
   const completed = new Set(state.completedExercises);
-  const isPro     = state.subscription === "pro";
+  const isPro     = access.isPro;
 
   // ── Train stats — Progress Groups used internally, never shown as lists ──
   const level     = currentLevel(completed, isPro);

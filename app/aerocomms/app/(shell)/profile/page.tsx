@@ -137,6 +137,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const {
     state,
+    access,
     setNotifications,
     cycleDailyGoal,
     cycleDifficulty,
@@ -156,10 +157,10 @@ export default function ProfilePage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncChoice, setSyncChoice] = useState<"import" | "foreign" | null>(null);
   const [nameSaveState, setNameSaveState] = useState<"idle" | "saving" | "error">("idle");
-  // Subscription UI mapping (reads state.subscription only — never hardcoded):
+  // Subscription UI mapping uses the server-resolved AeroComms access contract:
   //   "pro"  → badge "Pro" + "AeroComms Pro Active" (no upgrade CTA)
   //   "free" → badge "Free" + "Upgrade to AeroComms Pro" button → /paywall
-  const isPro    = state.subscription === "pro";
+  const isPro    = access.isPro;
   const initial  = (state.name?.[0] ?? "J").toUpperCase();
 
   // Dynamic level — derived from real completedExercises, never hardcoded

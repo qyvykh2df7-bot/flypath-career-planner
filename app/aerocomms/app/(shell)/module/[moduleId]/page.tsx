@@ -82,7 +82,7 @@ export default function ModulePage() {
   const router = useRouter();
   const params = useParams<{ moduleId: string }>();
   const moduleId = params.moduleId;
-  const { state } = useAppState();
+  const { state, access } = useAppState();
 
   const found = findModule(moduleId);
 
@@ -98,7 +98,7 @@ export default function ModulePage() {
   }
 
   const { level, module } = found;
-  const isPro = state.subscription === "pro";
+  const isPro = access.isPro;
   const completed = new Set(state.completedExercises);
   const progress = moduleCompletion(module, completed);
   const levelUnlocked = isLevelUnlocked(level, completed, isPro);

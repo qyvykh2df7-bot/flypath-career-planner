@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./aerocomms-app.css";
 import { AppStateProvider } from "@/lib/aerocomms/appState";
+import { getAeroCommsAccess } from "@/lib/aerocomms/access-server";
 import { getFlyPathAccountProfile } from "@/lib/account/profile";
 
 /**
@@ -30,14 +31,17 @@ export default async function AeroCommsAppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const profile = await getFlyPathAccountProfile();
+  const [profile, accessResult] = await Promise.all([
+    getFlyPathAccountProfile(),
+    getAeroCommsAccess(),
+  ]);
   const accountProfile = profile.status === "authenticated"
     ? { userId: profile.account.id, fullName: profile.account.fullName }
     : null;
 
   return (
     <div className="aerocomms-app-root min-h-dvh antialiased">
-      <AppStateProvider accountProfile={accountProfile}>{children}</AppStateProvider>
+      <AppStateProvider accountProfile={accountProfile} access={accessResult.access}>{children}</AppStateProvider>
     </div>
   );
 }

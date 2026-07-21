@@ -5,6 +5,10 @@ import Stripe from "stripe";
 import { isCommerceUuid } from "./contracts";
 import { COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT } from "./checkout";
 import { getStripeClient, StripeConfigurationError } from "./stripe";
+import {
+  AeroCommsProWebhookUnavailableError,
+  processAeroCommsProStripeWebhook,
+} from "./aerocomms-pro-stripe-webhooks";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const CAREER_PLANNER_STRIPE_EVENTS = [
@@ -252,4 +256,30 @@ export async function processCareerPlannerStripeWebhook(event: Stripe.Event, raw
   // PaymentIntent success is retained only as a deduplicated audit event.
   await recordIgnoredEvent(event, rawPayload, "redundant_payment_intent_succeeded");
   return "ignored";
+}
+
+/** Shared signed webhook dispatcher for all enabled FlyPath Stripe products. */
+export async function processStripeWebhook(event: Stripe.Event, rawPayload: string): Promise<"processed" | "ignored"> {
+  try {
+    const aeroCommsResult = await processAeroCommsProStripeWebhook(event, rawPayload);
+    if (aeroCommsResult !== "not_aerocomms") return aeroCommsResult;
+  } catch (error) {
+    if (error instanceof AeroCommsProWebhookUnavailableError) throw new StripeWebhookError("unavailable");
+    throw error;
+  }
+
+  if (
+    event.type === "customer.subscription.created"
+    || event.type === "customer.subscription.updated"
+    || event.type === "customer.subscription.deleted"
+    || event.type === "invoice.paid"
+    || event.type === "invoice.payment_failed"
+    || event.type === "charge.refunded"
+    || event.type === "charge.dispute.created"
+  ) {
+    await recordIgnoredEvent(event, rawPayload, "unlinked_subscription_event");
+    return "ignored";
+  }
+
+  return processCareerPlannerStripeWebhook(event, rawPayload);
 }

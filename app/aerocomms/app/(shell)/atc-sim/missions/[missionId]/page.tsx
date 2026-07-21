@@ -57,16 +57,16 @@ export default function MissionDetailPage() {
   const router = useRouter();
   const params = useParams<{ missionId: string }>();
   const [mission, setMission] = useState<AtcMission | null>(null);
-  const { state } = useAppState();
+  const { state, access } = useAppState();
   const shellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
     const m = findMission(params.missionId);
     if (!m) { router.replace("/aerocomms/app/atc-sim/missions"); return; }
-    // Unlock check via engine. DEV_UNLOCK_ALL_MISSIONS=true keeps effectiveUnlocked=true.
+    // Unlock check uses the shared access contract plus real mission requirements.
     // m.locked is passed as legacyLocked for missions not yet in MISSION_REQS.
-    const unlockState = getMissionUnlockState(m.id, state.completedExercises, m.locked);
+    const unlockState = getMissionUnlockState(m.id, state.completedExercises, m.locked, access.isPro);
     if (!unlockState.effectiveUnlocked) { router.replace("/aerocomms/app/atc-sim/missions"); return; }
     queueMicrotask(() => {
       if (active) setMission(m);
@@ -74,7 +74,7 @@ export default function MissionDetailPage() {
     return () => {
       active = false;
     };
-  }, [params.missionId, router, state.completedExercises]);
+  }, [access.isPro, params.missionId, router, state.completedExercises]);
 
   useEffect(() => {
     const el = shellRef.current;
