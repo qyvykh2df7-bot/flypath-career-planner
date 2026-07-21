@@ -48,6 +48,20 @@ function paidSession(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function paidGuideSession(overrides: Record<string, unknown> = {}) {
+  return paidSession({
+    amount_total: 1495,
+    metadata: {
+      checkout_attempt_id: attemptId,
+      order_id: orderId,
+      product_price_id: priceId,
+      flypath_checkout_product: "como_ser_piloto_guide",
+    },
+    line_items: { data: [{ price: { id: "price_test_como_ser_piloto_guide" } }] },
+    ...overrides,
+  });
+}
+
 describe("Career Planner Stripe webhook boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -100,6 +114,17 @@ describe("Career Planner Stripe webhook boundary", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.objectContaining({
       p_stripe_price_id: "price_wrong",
     }));
+  });
+
+  it("settles the guide only through its isolated product-specific database boundary", async () => {
+    mocks.retrieve.mockResolvedValue(paidGuideSession());
+    await expect(processCareerPlannerStripeWebhook(event("checkout.session.completed"), "{}"))
+      .resolves.toBe("processed");
+    expect(mocks.rpc).toHaveBeenCalledWith("process_como_ser_piloto_guide_checkout_completed", expect.objectContaining({
+      p_amount: 1495,
+      p_stripe_price_id: "price_test_como_ser_piloto_guide",
+    }));
+    expect(mocks.rpc).not.toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.anything());
   });
 
   it("records payment success as redundant so it cannot create a second payment", async () => {

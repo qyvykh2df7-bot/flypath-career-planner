@@ -2,15 +2,30 @@ import { describe, expect, it } from "vitest";
 
 import {
   CAREER_PLANNER_PREMIUM_CHECKOUT_KEY,
+  COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY,
+  COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT,
   CommerceCheckoutValidationError,
+  getCommerceOneTimeProduct,
   isStripeCheckoutUrl,
   parseCommerceCheckoutRequest,
 } from "./checkout";
 
-describe("closed Career Planner Checkout input", () => {
-  it("accepts only the approved internal product key", () => {
+describe("closed FlyPath one-time Checkout input", () => {
+  it("accepts only approved internal product keys", () => {
     expect(parseCommerceCheckoutRequest({ productKey: CAREER_PLANNER_PREMIUM_CHECKOUT_KEY })).toEqual({
       productKey: CAREER_PLANNER_PREMIUM_CHECKOUT_KEY,
+    });
+    expect(parseCommerceCheckoutRequest({ productKey: COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY })).toEqual({
+      productKey: COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY,
+    });
+  });
+
+  it("keeps the guide's EUR amount in trusted catalog configuration", () => {
+    expect(getCommerceOneTimeProduct(COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY)).toMatchObject({
+      productKey: "como_ser_piloto_guide",
+      priceKey: "como_ser_piloto_guide_eur",
+      unitAmount: COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT,
+      currency: "EUR",
     });
   });
 

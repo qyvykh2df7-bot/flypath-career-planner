@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createCheckout: vi.fn(),
+  createGuideCheckout: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -9,6 +10,9 @@ vi.mock("@/lib/commerce/career-planner-checkout", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/commerce/career-planner-checkout")>();
   return { ...actual, createCareerPlannerPremiumCheckout: mocks.createCheckout };
 });
+vi.mock("@/lib/commerce/como-ser-piloto-guide-checkout", () => ({
+  createComoSerPilotoGuideCheckout: mocks.createGuideCheckout,
+}));
 
 import { POST } from "./route";
 
@@ -29,6 +33,16 @@ describe("POST /api/commerce/checkout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createCheckout.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_123" });
+    mocks.createGuideCheckout.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_guide" });
+  });
+
+  it("uses a separate server-owned intent and creator for the closed guide key", async () => {
+    const response = await POST(request({ productKey: "como_ser_piloto_guide" }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ url: "https://checkout.stripe.com/c/pay/cs_test_guide" });
+    expect(mocks.createGuideCheckout).toHaveBeenCalledWith(expect.objectContaining({ requestOrigin: origin }));
+    expect(mocks.createCheckout).not.toHaveBeenCalled();
+    expect(response.headers.get("set-cookie")).toContain("flypath_checkout_intent_como_ser_piloto_guide=");
   });
 
   it("accepts only the closed product key and returns only the hosted Checkout URL", async () => {

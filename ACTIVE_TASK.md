@@ -44,9 +44,22 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Validación de cierre 10C: 554 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
 - Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro reclamable si se compró sin cuenta; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL sigue en waitlist.
 
+## Cierre — 10E
+
+10E está **CLOSED / COMPLETED / TESTED** en Stripe sandbox para la guía digital **Cómo ser Piloto**.
+
+- `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.
+- El producto interno existente `como_ser_piloto_guide` usa el precio cerrado `como_ser_piloto_guide_eur`: **14,95 EUR**, `one_time`, activo. El script de sincronización reutiliza o crea un único Product/Price de Stripe sandbox y vincula ese precio interno de forma idempotente.
+- La página `/guia-como-ser-piloto` usa el endpoint de Checkout existente; el navegador solo puede enviar `product_key`. El precio, la moneda, el Price de Stripe y las URLs de retorno se resuelven y validan en servidor.
+- El webhook firmado sigue siendo la única fuente de confirmación. Tras el pago, la guía recibe una cookie de entrega propia con token opaco, `HttpOnly`, hasheado, con caducidad de 30 días y máximo de cinco descargas. No puede descargar el PDF de Career Planner, ni este puede descargar la guía.
+- El PDF definitivo se trasladó de `public/` a `private-assets/commerce/como-ser-piloto-guide.pdf`; se comprobó como PDF A4 válido de 95 páginas y solo se sirve después de la validación protegida.
+- QA sandbox: Checkout muestra el producto y 14,95 EUR; el webhook creó el pago y marcó el pedido confirmado; el popup pasó a `confirmed` y la entrega consumió un uso correctamente. No se crearon entitlements.
+- Auditoría independiente: **APROBADA**, sin hallazgos Critical ni Major. La única observación menor es endurecer la verificación de metadata al reutilizar un Price existente en una futura mejora; el catálogo sandbox actual ya es correcto.
+- Validación local: 605 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
+
 ## Siguiente tarea
 
-Definir y auditar el alcance del siguiente bloque de Fase 10 antes de activar otro producto, suscripciones, entitlements o Stripe live.
+Commit, push y verificación de deployment de 10E. Mantener Stripe live, suscripciones, entitlements, AeroComms Pro, mentorías y guía física fuera de alcance.
 
 ## Implementado en Fase 7
 

@@ -1,8 +1,8 @@
-# Última sesión — hotfix de assets del PDF premium cerrado
+# Última sesión — guía digital Cómo ser Piloto integrada en Commerce
 
-**Fecha:** 2026-07-20
+**Fecha:** 2026-07-21
 **Rama:** `main`
-**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B, 10C y 10D están cerrados en sandbox; `20260712190000_add_career_planner_payment_delivery.sql` y `20260712200000_fix_career_planner_payment_failed_state.sql` están aplicadas en remoto. No hay Stripe live, entitlements, suscripciones ni otros productos activados.
+**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B–10E están cerrados y probados en Stripe sandbox; `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. No hay Stripe live, entitlements, suscripciones ni otros productos activados.
 
 ## Decisiones de Fase 10
 
@@ -40,6 +40,19 @@
 - No se modificaron Stripe, pagos, Checkout, webhook, Supabase Commerce ni la lógica comercial.
 - Validación local final: 583 pruebas correctas, TypeScript y `git diff --check` correctos. El lint focalizado no tiene errores nuevos y conserva cuatro warnings preexistentes en `lib/premiumCareerReportPdf.tsx`.
 
+## Cierre — 10E
+
+- Se reutilizó Commerce existente para el producto interno ya creado `como_ser_piloto_guide`; no se creó infraestructura paralela.
+- `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade preparación y settlement de la guía, más acceso, estado y consumo de descarga; todas las RPCs son `SECURITY DEFINER`, usan `search_path` fijo y aceptan ejecución únicamente desde `service_role`.
+- El precio interno es `como_ser_piloto_guide_eur`: 14,95 EUR, pago único. `scripts/sync-stripe-como-ser-piloto-guide.mjs` sincroniza de forma idempotente un Product/Price sandbox usando `flypath_product_key`, sin coincidencias por nombre ni precios activos duplicados.
+- `/guia-como-ser-piloto` abre el checkout común con una clave de producto cerrada. El cliente no controla precio, moneda, Stripe Price, usuario, entitlement ni URLs de retorno.
+- El webhook firmado es la única confirmación comercial. El pago sandbox dejó `checkout_attempt=completed`, `order=paid` y `payment=succeeded`; no creó ningún entitlement.
+- La entrega de guía usa token y cookie propios (`como_ser_piloto_guide_delivery`), opacos, hasheados, `HttpOnly`, con 30 días de caducidad y cinco descargas. La comprobación del producto está tanto en RPC como en la ruta de descarga: una compra de la guía no accede a Career Planner y viceversa.
+- `public/GUIA COMPLETA COMO SER PILOTO.PDF` dejó de existir. El PDF final válido de 95 páginas está en `private-assets/commerce/como-ser-piloto-guide.pdf`, se incluye solo para la ruta protegida de descarga y no es un asset público.
+- QA sandbox real: CTA, Checkout de 14,95 EUR, webhook firmado, estado interno confirmado, popup `confirmed` y consumo de una descarga protegida correctos. El arnés del navegador usa un enlace Blob para descargar, por lo que no expone un evento nativo de archivo; el consumo remoto y la respuesta protegida se confirmaron.
+- Auditoría independiente: **APROBADA**, sin hallazgos Critical ni Major. Se identificó solo una mejora futura no bloqueante para validar metadata al reutilizar un Price Stripe ya existente; el catálogo sandbox actual está correctamente vinculado.
+- Validación local: 605 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
+
 ## Cierre de Fase 9
 
 - `20260712130000_harden_public_school_catalog_access.sql` está aplicada en remoto: la lectura anónima de catálogo pasa por un contrato público cerrado, sin `internal_notes`, `school_entry_snapshot`, `comparator_exclusion_note`, notas editoriales ni metadata de gestión.
@@ -57,7 +70,8 @@
 
 ## Siguiente tarea — Fase 10
 
-- Definir y auditar el siguiente bloque antes de activar otro producto, suscripciones, entitlements o Stripe live.
+- Commit, push y verificación de deployment de 10E.
+- Mantener Stripe live, suscripciones, entitlements, AeroComms Pro, mentorías y guía física fuera de alcance.
 - Mantener cuentas, marketing, leads, opiniones y entitlements como entidades separadas.
 
 ## Cierre confirmado de Fase 8

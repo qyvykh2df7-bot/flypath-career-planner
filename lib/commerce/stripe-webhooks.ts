@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import Stripe from "stripe";
 import { isCommerceUuid } from "./contracts";
+import { COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT } from "./checkout";
 import { getStripeClient, StripeConfigurationError } from "./stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -94,6 +95,10 @@ function getLineItemPriceId(session: Stripe.Checkout.Session): string | null {
   return typeof price?.id === "string" ? price.id : null;
 }
 
+function isGuideCheckout(metadata: Stripe.Metadata | null | undefined): boolean {
+  return stringMetadata(metadata, "flypath_checkout_product") === "como_ser_piloto_guide";
+}
+
 async function recordIgnoredEvent(event: Stripe.Event, rawPayload: string, code: string): Promise<void> {
   const { error } = await getSupabaseAdmin().rpc("record_career_planner_stripe_webhook_ignored", {
     p_event_id: event.id,
@@ -125,16 +130,36 @@ async function processCompletedEvent(event: Stripe.Event, rawPayload: string): P
   const references = asCheckoutReferences(session);
   const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
   const stripePriceId = getLineItemPriceId(session);
+  const guide = isGuideCheckout(session.metadata);
+  const expectedAmount = guide ? COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT : 595;
   if (
     !references ||
     session.mode !== "payment" ||
     session.payment_status !== "paid" ||
-    session.amount_total !== 595 ||
+    session.amount_total !== expectedAmount ||
     session.currency !== "eur" ||
     !paymentIntentId ||
     !stripePriceId
   ) {
     await recordIgnoredEvent(event, rawPayload, "checkout_validation_failed");
+    return;
+  }
+
+  if (guide) {
+    const { error } = await getSupabaseAdmin().rpc("process_como_ser_piloto_guide_checkout_completed", {
+      p_event_id: event.id,
+      p_payload_hash: payloadHash(rawPayload),
+      p_provider_created_at: occurredAt(event),
+      p_stripe_session_id: session.id,
+      p_stripe_payment_intent_id: paymentIntentId,
+      p_checkout_attempt_id: references.checkoutAttemptId,
+      p_order_id: references.orderId,
+      p_product_price_id: references.productPriceId,
+      p_stripe_price_id: stripePriceId,
+      p_amount: session.amount_total,
+      p_currency: session.currency,
+    });
+    if (error) throw new StripeWebhookError("unavailable");
     return;
   }
 
@@ -160,7 +185,11 @@ async function processExpiredEvent(event: Stripe.Event, rawPayload: string): Pro
     await recordIgnoredEvent(event, rawPayload, "checkout_not_found");
     return;
   }
-  const { error } = await getSupabaseAdmin().rpc("process_career_planner_checkout_expired", {
+  const session = event.data.object as Stripe.Checkout.Session;
+  const rpcName = isGuideCheckout(session.metadata)
+    ? "process_como_ser_piloto_guide_checkout_expired"
+    : "process_career_planner_checkout_expired";
+  const { error } = await getSupabaseAdmin().rpc(rpcName, {
     p_event_id: event.id,
     p_payload_hash: payloadHash(rawPayload),
     p_provider_created_at: occurredAt(event),
@@ -172,20 +201,25 @@ async function processExpiredEvent(event: Stripe.Event, rawPayload: string): Pro
 async function processFailedPaymentEvent(event: Stripe.Event, rawPayload: string): Promise<void> {
   const intent = event.data.object as Stripe.PaymentIntent;
   const references = asPaymentReferences(intent);
-  if (!references || typeof intent.id !== "string" || intent.amount !== 595 || intent.currency !== "eur") {
+  const guide = isGuideCheckout(intent.metadata);
+  const expectedAmount = guide ? COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT : 595;
+  if (!references || typeof intent.id !== "string" || intent.amount !== expectedAmount || intent.currency !== "eur") {
     await recordIgnoredEvent(event, rawPayload, "payment_failure_unlinked");
     return;
   }
-  const { error } = await getSupabaseAdmin().rpc("process_career_planner_payment_failed", {
-    p_event_id: event.id,
-    p_payload_hash: payloadHash(rawPayload),
-    p_provider_created_at: occurredAt(event),
-    p_stripe_payment_intent_id: intent.id,
-    p_checkout_attempt_id: references.checkoutAttemptId,
-    p_order_id: references.orderId,
-    p_amount: intent.amount,
-    p_currency: intent.currency,
-  });
+  const { error } = await getSupabaseAdmin().rpc(
+    guide ? "process_como_ser_piloto_guide_payment_failed" : "process_career_planner_payment_failed",
+    {
+      p_event_id: event.id,
+      p_payload_hash: payloadHash(rawPayload),
+      p_provider_created_at: occurredAt(event),
+      p_stripe_payment_intent_id: intent.id,
+      p_checkout_attempt_id: references.checkoutAttemptId,
+      p_order_id: references.orderId,
+      p_amount: intent.amount,
+      p_currency: intent.currency,
+    },
+  );
   if (error) throw new StripeWebhookError("unavailable");
 }
 

@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: Activa — 10B aplicado y validado; 10C y 10D están CLOSED / COMPLETED / TESTED en Stripe sandbox. Stripe live sigue desactivado.**
+**Estado: Activa — 10B aplicado y validado; 10C, 10D y 10E están CLOSED / COMPLETED / TESTED en Stripe sandbox. Stripe live sigue desactivado.**
 
 ### Objetivos
 
@@ -512,6 +512,15 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - La prueba sandbox completó un pago de tarjeta oficial y volvió a la pantalla de verificación. Sin webhook, FlyPath no registró `payments`, grants, descarga ni entitlement.
 - La cookie de intención se valida contra el propietario server-side y rota de forma segura tras logout, cambio de cuenta o una sesión Stripe ya completada/expirada. Un Product sandbox duplicado de una ejecución previa está archivado e inactivo; no está vinculado al catálogo interno.
 - 10D incorpora webhook HTTP firmado, confirmación interna, ledger de pagos y entrega de PDF para Career Planner Premium. `20260712190000_add_career_planner_payment_delivery.sql` y `20260712200000_fix_career_planner_payment_failed_state.sql` están aplicadas en remoto; el segundo mantiene coherentes el intento y pedido tras `payment_intent.payment_failed`. La prueba manual con Stripe CLI confirmó el pago sandbox, el webhook, el `payment` interno, el popup y la descarga. No activa Stripe live, entitlements, suscripciones ni otros productos. Pendiente no bloqueante: normalizar assets PDF incompatibles para eliminar avisos de `@react-pdf/renderer`.
+
+### 10E cerrado y probado en Stripe sandbox — Guía digital Cómo ser Piloto
+
+- `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Reutiliza el modelo de pedidos, pagos, webhook y entrega de 10C–10D, con RPCs exclusivas de `service_role` para la guía.
+- El producto existente `como_ser_piloto_guide` se vincula al precio interno activo `como_ser_piloto_guide_eur`: 14,95 EUR, pago único. La sincronización sandbox es idempotente y usa metadata cerrada `flypath_product_key`, no nombres comerciales ambiguos.
+- La CTA de `/guia-como-ser-piloto` solo manda la clave cerrada de producto al Checkout común. El precio, la moneda, el usuario opcional y las URL internas se resuelven en servidor.
+- El pago confirmado por webhook habilita una entrega distinta `como_ser_piloto_guide_delivery`, con token opaco `HttpOnly`, hash, caducidad y máximo de cinco descargas. El control de producto evita el acceso cruzado con el informe Career Planner. No crea entitlements.
+- El PDF final de la guía se retiró de `public/` y se sirve solo desde el asset privado tras comprobar el token y el pago. La QA sandbox confirmó Checkout a 14,95 EUR, ledger interno, popup y descarga protegida.
+- La auditoría independiente de 10E quedó **APROBADA**, sin hallazgos Critical ni Major. Queda como mejora futura no bloqueante validar metadata también al reutilizar un Price Stripe existente; el vínculo sandbox actual es correcto.
 
 ---
 

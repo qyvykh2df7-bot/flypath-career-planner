@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BookOpen, CheckCircle2, Tablet } from "lucide-react";
+import { formatCommerceEur, COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT } from "@/lib/commerce/checkout";
+import { GuideDigitalCheckoutButton } from "@/components/guia/GuideDigitalCheckoutButton";
 
 const TOAST_MS = 2800;
 
 export function GuiaFormatCards() {
   const [toast, setToast] = useState<string | null>(null);
 
-  const showDigitalToast = useCallback(() => setToast("Compra digital próximamente"), []);
   const showPhysicalToast = useCallback(() => setToast("Compra física próximamente"), []);
 
   useEffect(() => {
@@ -115,7 +116,7 @@ export function GuiaFormatCards() {
                 </div>
                 <p className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="text-4xl font-semibold tracking-tight text-[#D6AE4F] sm:text-[2.5rem]">
-                    14,95&nbsp;€
+                    {formatCommerceEur(COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT)}
                   </span>
                   <span className="whitespace-nowrap text-[13px] font-medium text-white/65">
                     Descarga inmediata
@@ -137,13 +138,10 @@ export function GuiaFormatCards() {
                     </span>
                   </li>
                 </ul>
-                <button
-                  type="button"
-                  onClick={showDigitalToast}
-                  className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_10px_28px_rgba(201,164,84,0.28)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-                >
-                  Comprar digital
-                </button>
+                <GuideDigitalCheckoutButton
+                  label="Comprar digital"
+                  className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_10px_28px_rgba(201,164,84,0.28)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55 disabled:cursor-wait disabled:opacity-70"
+                />
               </article>
             </div>
           </div>

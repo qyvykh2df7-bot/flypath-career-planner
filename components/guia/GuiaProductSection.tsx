@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, ChevronLeft, ChevronRight, Tablet, BookOpen } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatCommerceEur, COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT } from "@/lib/commerce/checkout";
+import { GuideDigitalCheckoutButton } from "@/components/guia/GuideDigitalCheckoutButton";
 
 const TOAST_MS = 2800;
 
@@ -30,13 +32,9 @@ export function GuiaProductSection() {
   const [guidePreviewIndex, setGuidePreviewIndex] = useState(0);
   const [selectedFormat, setSelectedFormat] = useState<Format>("digital");
 
-  const showDigitalToast = useCallback(() => setToast("Compra digital próximamente"), []);
   const showPhysicalToast = useCallback(() => setToast("Compra física próximamente"), []);
 
-  const buyForSelectedFormat = useCallback(() => {
-    if (selectedFormat === "fisico") showPhysicalToast();
-    else showDigitalToast();
-  }, [selectedFormat, showDigitalToast, showPhysicalToast]);
+  const buyPhysical = useCallback(() => showPhysicalToast(), [showPhysicalToast]);
 
   const goToPrev = useCallback(() => {
     setGuidePreviewIndex((i) => (i - 1 + GUIDE_PREVIEW_IMAGES.length) % GUIDE_PREVIEW_IMAGES.length);
@@ -198,19 +196,26 @@ export function GuiaProductSection() {
                 </div>
                 <p className="mt-4 flex items-baseline justify-center gap-2">
                   <span className="text-[2.75rem] font-semibold leading-none tracking-tight text-[#0f1a33]">
-                    {selectedFormat === "fisico" ? "26\u00a0€" : "14,95\u00a0€"}
+                    {selectedFormat === "fisico" ? "26\u00a0€" : formatCommerceEur(COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT)}
                   </span>
                 </p>
                 <p className="mt-1 text-[15px] font-medium text-slate-500">
                   {selectedFormat === "fisico" ? "Edición impresa" : "Descarga inmediata"}
                 </p>
-                <button
-                  type="button"
-                  onClick={buyForSelectedFormat}
-                  className="mt-4 inline-flex min-h-[48px] min-w-[14rem] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
-                >
-                  {selectedFormat === "fisico" ? "Comprar física" : "Comprar digital"}
-                </button>
+                {selectedFormat === "fisico" ? (
+                  <button
+                    type="button"
+                    onClick={buyPhysical}
+                    className="mt-4 inline-flex min-h-[48px] min-w-[14rem] items-center justify-center rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55"
+                  >
+                    Comprar física
+                  </button>
+                ) : (
+                  <GuideDigitalCheckoutButton
+                    label="Comprar digital"
+                    className="mt-4 inline-flex min-h-[48px] min-w-[14rem] items-center justify-center gap-2 rounded-2xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/55 disabled:cursor-wait disabled:opacity-70"
+                  />
+                )}
                 <p className="mt-3 text-[12px] leading-snug text-slate-500">
                   Tasas incluidas · Pago único y seguro · Descarga digital inmediata
                 </p>
