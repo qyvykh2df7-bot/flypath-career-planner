@@ -6,6 +6,10 @@ const migration = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260712240000_prepare_aerocomms_pro_subscription_checkout.sql"),
   "utf8",
 );
+const ambiguityFixMigration = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260712260000_fix_aerocomms_pro_checkout_price_reference.sql"),
+  "utf8",
+);
 
 describe("AeroComms Pro subscription Checkout migration", () => {
   it("prepares only authenticated pending Checkout state from the closed recurring catalog", () => {
@@ -28,5 +32,15 @@ describe("AeroComms Pro subscription Checkout migration", () => {
     expect(migration).not.toContain("INSERT INTO public.subscriptions");
     expect(migration).not.toContain("INSERT INTO public.payments");
     expect(migration).not.toContain("INSERT INTO public.entitlement_grants");
+  });
+
+  it("qualifies the subscription price column that collides with the table return field", () => {
+    expect(ambiguityFixMigration).toContain("FROM public.subscriptions AS subscription");
+    expect(ambiguityFixMigration).toContain("subscription.product_price_id = v_product_price_id");
+    expect(ambiguityFixMigration).not.toMatch(/\n\s+AND product_price_id = v_product_price_id/);
+    expect(ambiguityFixMigration).toContain("SECURITY DEFINER");
+    expect(ambiguityFixMigration).toContain("SET search_path = public, pg_temp");
+    expect(ambiguityFixMigration).toContain("FROM PUBLIC, anon, authenticated");
+    expect(ambiguityFixMigration).toContain("TO service_role");
   });
 });
