@@ -5,7 +5,6 @@ import {
   CAREER_PLANNER_DELIVERY_COOKIE,
   CAREER_PLANNER_DELIVERY_TOKEN_MAX_AGE_SECONDS,
   getCookieValue,
-  isCareerPlannerDeliveryToken,
   issueCareerPlannerDeliveryAccess,
 } from "@/lib/commerce/career-planner-delivery";
 import { RequestBodyTooLargeError, isSameOriginRequest, readJsonBodyWithinLimit } from "@/lib/tracking/server";
@@ -38,8 +37,6 @@ export async function POST(request: Request) {
   if (!sessionId) return NextResponse.json(INVALID_REQUEST, { status: 400 });
 
   const checkoutIntentId = getCookieValue(request.headers.get("cookie"), CAREER_PLANNER_CHECKOUT_INTENT_COOKIE);
-  const currentDeliveryToken = getCookieValue(request.headers.get("cookie"), CAREER_PLANNER_DELIVERY_COOKIE);
-  if (isCareerPlannerDeliveryToken(currentDeliveryToken)) return NextResponse.json({ ok: true });
   if (!isCommerceUuid(checkoutIntentId)) return NextResponse.json(INVALID_REQUEST, { status: 403 });
 
   try {

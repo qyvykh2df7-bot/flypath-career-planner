@@ -34,6 +34,18 @@ describe("POST /api/commerce/checkout/access", () => {
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
   });
 
+  it("replaces a structurally valid delivery cookie so a prior checkout cannot keep polling its own status", async () => {
+    mocks.issue.mockResolvedValue({ token: "B".repeat(43), maxAge: 60 });
+    const response = await POST(request(
+      { sessionId: "cs_test_current" },
+      `flypath_checkout_intent_career_planner=${intent}; flypath_career_planner_delivery=${"A".repeat(43)}`,
+    ));
+
+    expect(response.status).toBe(200);
+    expect(mocks.issue).toHaveBeenCalledWith("cs_test_current", intent);
+    expect(response.headers.get("set-cookie")).toContain(`flypath_career_planner_delivery=${"B".repeat(43)}`);
+  });
+
   it("rejects free IDs and cross-origin access attempts", async () => {
     expect((await POST(request({ sessionId: "cs_test_abcdefgh" }, ""))).status).toBe(403);
     const crossOrigin = new Request(`${origin}/api/commerce/checkout/access`, {

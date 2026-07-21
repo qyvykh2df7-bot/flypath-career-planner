@@ -38,6 +38,11 @@ La página success abre un modal que consulta solo los estados `verifying`,
 ID de sesión de Stripe junto con la cookie de intención de Checkout que creó
 FlyPath. Solo entonces emite una cookie `HttpOnly` con un token opaco.
 
+`/api/commerce/checkout/access` siempre emite o rota ese token contra el
+`checkout_attempt` actual. No reutiliza una cookie anterior solo porque tenga
+un formato válido: así cada compra consulta su propio estado y un token viejo
+no puede mantener el popup en `verifying`.
+
 `checkout_delivery_tokens` conserva únicamente el hash del token, caducidad y
 un máximo de cinco descargas. `POST /api/commerce/checkout/download` consume
 un uso tras confirmar el pago y genera el PDF en servidor a partir del snapshot
@@ -57,6 +62,10 @@ La prueba local real se completó con Stripe CLI y una tarjeta oficial de sandbo
 3. El webhook firmado marcó un `payment` como `succeeded`, el pedido como
    `paid` y el intento como `completed`.
 4. La pantalla de retorno mostró la confirmación interna y descargó el PDF.
+
+La QA del hotfix reutilizó de forma controlada una sesión ya confirmada: el
+acceso respondió `200`, el estado pasó a `confirmed` y la descarga devolvió un
+PDF válido. No se creó otro pago.
 
 El secreto no se incluyó en commits, logs ni documentación y se retiró del
 entorno local al finalizar la prueba.
