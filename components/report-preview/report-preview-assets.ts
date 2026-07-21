@@ -21,6 +21,22 @@ export const REPORT_PAGE_IMAGES = {
 
 export type ReportPageImageKey = keyof typeof REPORT_PAGE_IMAGES;
 
+/**
+ * @react-pdf/renderer only receives assets with a verified PNG or JPEG binary
+ * format. Browser previews retain their existing optimized WebP sources.
+ */
+export const PREMIUM_PDF_PAGE_IMAGES = {
+  cover: "/hero-aircraft.jpg",
+  executive: "/mentoria.jpg",
+  route: "/atardecer.jpg",
+  finances: "/premium-report/pistaguia.png",
+  action: "/premium-report/clases.jpg",
+  schools: "/premium-report/cessnaguia.png",
+  close: "/premium-report/acompanamiento.png",
+} as const;
+
+export type PremiumPdfPageImageKey = keyof typeof PREMIUM_PDF_PAGE_IMAGES;
+
 /** Variante de gradiente si falla la carga (cada página distinta). */
 export type PlaceholderVariant = "horizon" | "slate" | "dusk" | "gold" | "navy" | "warm";
 

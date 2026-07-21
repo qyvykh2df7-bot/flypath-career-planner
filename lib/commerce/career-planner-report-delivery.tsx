@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import React from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
-import { REPORT_PAGE_IMAGES } from "@/components/report-preview/report-preview-assets";
+import { PREMIUM_PDF_PAGE_IMAGES } from "@/components/report-preview/report-preview-assets";
 import {
   PremiumReportDocument,
   type PremiumPdfAssets,
@@ -14,8 +14,8 @@ import type { ReportSnapshotV1 } from "@/lib/reporting/types/report-snapshot";
 function resolveServerPdfAssets(): PremiumPdfAssets {
   const publicDirectory = path.join(process.cwd(), "public");
   const images = {} as PremiumPdfAssets["images"];
-  for (const [key, relativePath] of Object.entries(REPORT_PAGE_IMAGES) as [
-    keyof typeof REPORT_PAGE_IMAGES,
+  for (const [key, relativePath] of Object.entries(PREMIUM_PDF_PAGE_IMAGES) as [
+    keyof typeof PREMIUM_PDF_PAGE_IMAGES,
     string,
   ][]) {
     const filePath = path.join(publicDirectory, relativePath.replace(/^\//, ""));

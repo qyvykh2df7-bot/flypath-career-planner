@@ -8,7 +8,7 @@ import path from "path";
 import React from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { pdf } from "pdf-to-img";
-import { REPORT_PAGE_IMAGES } from "@/components/report-preview/report-preview-assets";
+import { PREMIUM_PDF_PAGE_IMAGES } from "@/components/report-preview/report-preview-assets";
 import {
   PremiumReportDocument,
   type PremiumPdfAssets,
@@ -18,8 +18,8 @@ import { createDemoReportSnapshot } from "@/lib/reporting/mocks/demo-report-snap
 function resolveLocalPremiumPdfAssets(): PremiumPdfAssets {
   const publicDir = path.join(process.cwd(), "public");
   const images = {} as PremiumPdfAssets["images"];
-  for (const [key, relPath] of Object.entries(REPORT_PAGE_IMAGES) as [
-    keyof typeof REPORT_PAGE_IMAGES,
+  for (const [key, relPath] of Object.entries(PREMIUM_PDF_PAGE_IMAGES) as [
+    keyof typeof PREMIUM_PDF_PAGE_IMAGES,
     string,
   ][]) {
     const filePath = path.join(publicDir, relPath.replace(/^\//, ""));

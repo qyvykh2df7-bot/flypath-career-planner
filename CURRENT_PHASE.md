@@ -14,7 +14,9 @@
 
 **10D — webhook Stripe, ledger y entrega segura** está **CLOSED / COMPLETED / TESTED** en Stripe sandbox. Las migraciones `20260712190000_add_career_planner_payment_delivery.sql` y `20260712200000_fix_career_planner_payment_failed_state.sql` están aplicadas en remoto. `checkout.session.completed` es la única fuente comercial de confirmación; `payment_intent.succeeded` se conserva como auditoría redundante, mientras `payment_intent.payment_failed` deja el intento en `failed` y el pedido pendiente en `payment_failed`, sin conceder acceso. La success URL abre un popup de verificación y solo muestra la descarga tras confirmación interna mediante token opaco `HttpOnly`, hasheado, limitado a cinco usos y con caducidad. El hotfix posterior rota siempre el token contra el `checkout_attempt` actual: una cookie de entrega anterior ya no puede mantener el popup en `verifying`. La QA sandbox confirmó de nuevo popup `confirmed` y PDF descargable. No se crea ningún entitlement y Stripe live permanece desactivado.
 
-Validación local de 10D: 581 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores (cuatro avisos preexistentes en el módulo PDF). Pendiente no bloqueante: normalizar los assets PDF incompatibles (`.webp` y un archivo `.jpg` con contenido PNG) para eliminar avisos de `@react-pdf/renderer`.
+Hotfix de compatibilidad PDF: los assets exclusivos del informe premium se normalizaron a PNG/JPEG reales mediante `PREMIUM_PDF_PAGE_IMAGES`, sin cambiar las previews web que mantienen sus WebP. Se revisó visualmente un PDF real completo de 11 páginas y desaparecieron los avisos `Not valid image extension`. No hubo cambios en Stripe, pagos, webhook ni lógica comercial.
+
+Validación local de 10D: 583 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores (cuatro avisos preexistentes en el módulo PDF).
 
 ### Decisiones de producto cerradas
 

@@ -1,4 +1,4 @@
-# Última sesión — 10D webhook y entrega sandbox cerrados
+# Última sesión — hotfix de assets del PDF premium cerrado
 
 **Fecha:** 2026-07-20
 **Rama:** `main`
@@ -36,7 +36,9 @@
 - `/career-planner/checkout/success` muestra un modal accesible de verificación. El navegador recibe solo estados de presentación y una cookie `HttpOnly` con token opaco, limitado y hasheado. La descarga genera el PDF en servidor tras confirmar el pago y admite reintentos limitados. El hotfix posterior elimina el atajo que reutilizaba cualquier cookie estructuralmente válida: `access` siempre emite o rota el token ligado al intento de Checkout actual.
 - La migración remota y los tests focalizados se verificaron. La QA manual de Stripe CLI quedó completada con un secreto temporal solo en `.env.local`: un Checkout sandbox de tarjeta oficial disparó el webhook firmado, creó el `payment`, marcó pedido/intento como pagados, confirmó el popup y descargó el PDF. El secreto y el listener temporal se retiraron al terminar.
 - QA de hotfix: para una sesión ya `completed` / `paid` / `succeeded`, el nuevo `access` emitió cookie de entrega, `status` devolvió `confirmed` y la descarga respondió `200 application/pdf`. No se creó ningún pago nuevo.
-- Validación local final de 10D: 581 pruebas correctas, TypeScript y `git diff --check` correctos. El lint focalizado no tiene errores nuevos y conserva cuatro warnings preexistentes en `lib/premiumCareerReportPdf.tsx`. Pendiente no bloqueante: normalizar los assets `.webp` y el JPG con contenido PNG para eliminar los avisos de `@react-pdf/renderer`.
+- Hotfix de compatibilidad PDF cerrado: los cuatro assets incompatibles se convirtieron a PNG/JPEG reales dentro de `public/premium-report/`. `PREMIUM_PDF_PAGE_IMAGES` los reserva para el informe premium, mientras las previews web mantienen los WebP existentes. El PDF real de 11 páginas se revisó visualmente: páginas 4 y 9 no llevan imagen por diseño; el resto conserva sus imágenes previstas sin deformaciones ni espacios inesperados. La renderización no produjo avisos `Not valid image extension`.
+- No se modificaron Stripe, pagos, Checkout, webhook, Supabase Commerce ni la lógica comercial.
+- Validación local final: 583 pruebas correctas, TypeScript y `git diff --check` correctos. El lint focalizado no tiene errores nuevos y conserva cuatro warnings preexistentes en `lib/premiumCareerReportPdf.tsx`.
 
 ## Cierre de Fase 9
 

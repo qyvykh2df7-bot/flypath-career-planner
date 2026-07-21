@@ -70,9 +70,23 @@ PDF válido. No se creó otro pago.
 El secreto no se incluyó en commits, logs ni documentación y se retiró del
 entorno local al finalizar la prueba.
 
-## Pendiente no bloqueante
+## Compatibilidad de assets PDF
 
-Normalizar los assets usados por `@react-pdf/renderer`: hay imágenes `.webp` y
-un archivo con extensión `.jpg` cuyo contenido es PNG. La entrega funcionó en
-la QA sandbox, pero esa normalización eliminará los avisos de extensiones de
-imagen y reducirá el riesgo visual entre entornos.
+El hotfix de compatibilidad del informe premium está cerrado. Los assets que
+`@react-pdf/renderer` no resolvía de forma fiable se normalizaron a binarios
+reales PNG/JPEG dentro de `public/premium-report/` y el informe los consume
+mediante `PREMIUM_PDF_PAGE_IMAGES`:
+
+- `pistaguia.webp` → `premium-report/pistaguia.png`
+- `clases.webp` → `premium-report/clases.jpg`
+- `cessnaguia.webp` → `premium-report/cessnaguia.png`
+- `acompanamiento.jpg` con contenido PNG → `premium-report/acompanamiento.png`
+
+Las previews web continúan usando sus assets WebP originales. Se generó y
+revisó visualmente un PDF real completo de 11 páginas: las páginas 4 y 9 no
+llevan imagen por diseño y el resto conserva sus imágenes previstas, sin
+deformaciones ni espacios vacíos inesperados. La renderización terminó sin
+avisos `Not valid image extension`.
+
+El hotfix no modifica Stripe, Checkout, webhooks, Supabase Commerce, pagos ni
+la lógica comercial.

@@ -6,7 +6,7 @@ import React, { type ReactElement, type ReactNode } from "react";
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
 import { buildExecutiveReading } from "@/components/report-preview/executive-reading";
 import { flypathProductHref } from "@/components/report-preview/flypath-product-links";
-import { REPORT_PAGE_IMAGES } from "@/components/report-preview/report-preview-assets";
+import { PREMIUM_PDF_PAGE_IMAGES } from "@/components/report-preview/report-preview-assets";
 import {
   financialInsightMessage,
   flypathSecondaryProductLabel,
@@ -452,7 +452,7 @@ export const PREMIUM_PDF_ERROR_MESSAGE =
 
 export type PremiumPdfAssets = {
   origin: string;
-  images: Record<keyof typeof REPORT_PAGE_IMAGES, string | null>;
+  images: Record<keyof typeof PREMIUM_PDF_PAGE_IMAGES, string | null>;
 };
 
 async function probeImageUrl(url: string): Promise<boolean> {
@@ -460,7 +460,7 @@ async function probeImageUrl(url: string): Promise<boolean> {
     const res = await fetch(url, { method: "GET", cache: "no-store" });
     if (!res.ok) return false;
     const ct = res.headers.get("content-type") ?? "";
-    return ct.startsWith("image/") || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(url);
+    return ct.startsWith("image/") || /\.(png|jpe?g)(\?|$)/i.test(url);
   } catch {
     return false;
   }
@@ -472,7 +472,7 @@ export async function resolvePremiumPdfAssets(_snapshot: ReportSnapshotV1): Prom
   const abs = (path: string) => `${origin}${path}`;
   const images = {} as PremiumPdfAssets["images"];
   await Promise.all(
-    (Object.entries(REPORT_PAGE_IMAGES) as [keyof typeof REPORT_PAGE_IMAGES, string][]).map(
+    (Object.entries(PREMIUM_PDF_PAGE_IMAGES) as [keyof typeof PREMIUM_PDF_PAGE_IMAGES, string][]).map(
       async ([key, path]) => {
         const url = abs(path);
         images[key] = origin && (await probeImageUrl(url)) ? url : null;
@@ -1834,7 +1834,7 @@ export function buildPremiumCareerReportPdfFilename(snapshot: ReportSnapshotV1):
 
 function emptyPremiumPdfAssets(origin = ""): PremiumPdfAssets {
   const images = {} as PremiumPdfAssets["images"];
-  for (const key of Object.keys(REPORT_PAGE_IMAGES) as (keyof typeof REPORT_PAGE_IMAGES)[]) {
+  for (const key of Object.keys(PREMIUM_PDF_PAGE_IMAGES) as (keyof typeof PREMIUM_PDF_PAGE_IMAGES)[]) {
     images[key] = null;
   }
   return { origin, images };
