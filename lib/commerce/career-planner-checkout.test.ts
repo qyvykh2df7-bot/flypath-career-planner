@@ -86,6 +86,12 @@ describe("Career Planner Premium Checkout server boundary", () => {
       cancel_url: "http://localhost:3000/career-planner/checkout/cancel",
       client_reference_id: attemptId,
       metadata: expect.objectContaining({ checkout_attempt_id: attemptId }),
+      payment_intent_data: {
+        metadata: {
+          checkout_attempt_id: attemptId,
+          order_id: prepared.order_id,
+        },
+      },
     }), { idempotencyKey: attemptId });
     expect(mocks.create.mock.calls[0][0].metadata).not.toHaveProperty("flypath_user_id");
   });

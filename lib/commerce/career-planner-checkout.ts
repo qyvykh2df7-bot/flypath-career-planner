@@ -164,6 +164,15 @@ export async function createCareerPlannerPremiumCheckout(input: {
         product_price_id: prepared.productPriceId,
         ...(sessionState.status === "authenticated" ? { flypath_user_id: sessionState.account.id } : {}),
       },
+      // PaymentIntent failures do not carry Checkout Session metadata. Keep
+      // only server-generated references there so a failed payment can be
+      // safely associated without accepting any browser commercial input.
+      payment_intent_data: {
+        metadata: {
+          checkout_attempt_id: prepared.checkoutAttemptId,
+          order_id: prepared.orderId,
+        },
+      },
     }, {
       idempotencyKey: prepared.checkoutAttemptId,
     });

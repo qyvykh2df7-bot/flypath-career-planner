@@ -12,7 +12,9 @@
 
 **10C — Checkout seguro para pagos únicos** está **CLOSED / COMPLETED / TESTED** solo en Stripe sandbox. `20260712180000_add_career_planner_test_checkout.sql` prepara pedidos e intentos idempotentes para Career Planner Premium: 5,95 EUR, pago único, tanto invitado como autenticado. El CTA abre Stripe Checkout sin que el cliente pueda decidir valores comerciales. La pantalla de éxito no confirma pagos, no descarga el PDF y no concede acceso. El catálogo sandbox se sincroniza de forma idempotente; un duplicado histórico está archivado e inactivo, sin vínculo con el catálogo FlyPath.
 
-**Siguiente bloque: 10D — webhook Stripe, ledger y entrega segura.** El pago real dentro de FlyPath seguirá confirmado exclusivamente por webhook firmado. Stripe live permanece desactivado.
+**10D — webhook Stripe, ledger y entrega segura** está **CLOSED / COMPLETED / TESTED** en Stripe sandbox. Las migraciones `20260712190000_add_career_planner_payment_delivery.sql` y `20260712200000_fix_career_planner_payment_failed_state.sql` están aplicadas en remoto. `checkout.session.completed` es la única fuente comercial de confirmación; `payment_intent.succeeded` se conserva como auditoría redundante, mientras `payment_intent.payment_failed` deja el intento en `failed` y el pedido pendiente en `payment_failed`, sin conceder acceso. La success URL abre un popup de verificación y solo muestra la descarga tras confirmación interna mediante token opaco `HttpOnly`, hasheado, limitado a cinco usos y con caducidad. La prueba manual con Stripe CLI confirmó el recorrido completo: Checkout sandbox, webhook firmado, pedido pagado, `payment` interno, popup confirmado y PDF descargado. No se crea ningún entitlement y Stripe live permanece desactivado.
+
+Validación local de 10D: 580 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores (cuatro avisos preexistentes en el módulo PDF). Pendiente no bloqueante: normalizar los assets PDF incompatibles (`.webp` y un archivo `.jpg` con contenido PNG) para eliminar avisos de `@react-pdf/renderer`.
 
 ### Decisiones de producto cerradas
 

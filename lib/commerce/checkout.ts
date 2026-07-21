@@ -3,6 +3,7 @@ export const CAREER_PLANNER_PREMIUM_PRICE_KEY = "career_planner_premium_eur";
 export const CAREER_PLANNER_PREMIUM_UNIT_AMOUNT = 595;
 export const CAREER_PLANNER_PREMIUM_CURRENCY = "EUR";
 export const COMMERCE_CHECKOUT_REQUEST_MAX_BODY_SIZE = 1_024;
+export const CAREER_PLANNER_CHECKOUT_INTENT_COOKIE = "flypath_checkout_intent_career_planner";
 
 export class CommerceCheckoutValidationError extends Error {
   constructor() {

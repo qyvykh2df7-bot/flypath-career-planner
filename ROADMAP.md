@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: Activa — 10B aplicado y validado; 10C CLOSED / COMPLETED / TESTED en Stripe sandbox. Siguiente bloque: 10D (webhook, ledger y entrega segura).**
+**Estado: Activa — 10B aplicado y validado; 10C y 10D están CLOSED / COMPLETED / TESTED en Stripe sandbox. Stripe live sigue desactivado.**
 
 ### Objetivos
 
@@ -511,7 +511,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - El CTA del Career Planner llama a `/api/commerce/checkout`, que solo admite una clave de producto cerrada. Stripe Checkout recibe el precio resuelto en servidor; `success` y `cancel` son rutas internas fijas.
 - La prueba sandbox completó un pago de tarjeta oficial y volvió a la pantalla de verificación. Sin webhook, FlyPath no registró `payments`, grants, descarga ni entitlement.
 - La cookie de intención se valida contra el propietario server-side y rota de forma segura tras logout, cambio de cuenta o una sesión Stripe ya completada/expirada. Un Product sandbox duplicado de una ejecución previa está archivado e inactivo; no está vinculado al catálogo interno.
-- Webhooks HTTP, confirmación definitiva, ledger de pagos, entrega/reclamación del PDF, otros productos y Stripe live quedan expresamente para 10D y bloques posteriores.
+- 10D incorpora webhook HTTP firmado, confirmación interna, ledger de pagos y entrega de PDF para Career Planner Premium. `20260712190000_add_career_planner_payment_delivery.sql` y `20260712200000_fix_career_planner_payment_failed_state.sql` están aplicadas en remoto; el segundo mantiene coherentes el intento y pedido tras `payment_intent.payment_failed`. La prueba manual con Stripe CLI confirmó el pago sandbox, el webhook, el `payment` interno, el popup y la descarga. No activa Stripe live, entitlements, suscripciones ni otros productos. Pendiente no bloqueante: normalizar assets PDF incompatibles para eliminar avisos de `@react-pdf/renderer`.
 
 ---
 

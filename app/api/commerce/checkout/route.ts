@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   COMMERCE_CHECKOUT_REQUEST_MAX_BODY_SIZE,
+  CAREER_PLANNER_CHECKOUT_INTENT_COOKIE,
   parseCommerceCheckoutRequest,
 } from "@/lib/commerce/checkout";
 import {
@@ -21,7 +22,7 @@ export const runtime = "nodejs";
 
 const INVALID_REQUEST_MESSAGE = "Solicitud de pago inválida.";
 const CHECKOUT_UNAVAILABLE_MESSAGE = "No hemos podido abrir el pago. Inténtalo de nuevo.";
-const CHECKOUT_INTENT_COOKIE = "flypath_checkout_intent_career_planner";
+const CHECKOUT_INTENT_COOKIE = CAREER_PLANNER_CHECKOUT_INTENT_COOKIE;
 
 function response(body: Record<string, unknown>, status: number, intentId: string | null) {
   const result = NextResponse.json(body, { status });

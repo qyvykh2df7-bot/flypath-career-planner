@@ -2,7 +2,7 @@
 
 ## Estado
 
-**CLOSED / COMPLETED / TESTED** exclusivamente en Stripe sandbox. No hay modo live, webhook HTTP, confirmación interna de pago, entrega de PDF ni entitlement.
+**CLOSED / COMPLETED / TESTED** exclusivamente en Stripe sandbox. 10D añade después webhook HTTP firmado, confirmación interna y entrega de PDF; no hay modo live ni entitlement.
 
 ## Catálogo cerrado
 
@@ -27,7 +27,7 @@
 - `STRIPE_SECRET_KEY` es server-only y se rechaza cualquier clave que no sea `sk_test_`.
 - La RPC usa `SECURITY DEFINER`, `search_path = public, pg_temp` y `EXECUTE` solo para `service_role`.
 - La compra invitada deja `user_id` en `NULL`; no existe vínculo automático por email.
-- La URL del navegador no confirma pagos. Stripe webhooks firmados serán la única fuente de verdad en 10D.
+- La URL del navegador no confirma pagos. En 10D, `checkout.session.completed` firmado es la única fuente comercial de verdad.
 
 ## QA de sandbox
 
@@ -35,4 +35,4 @@ Se creó/reutilizó el catálogo de prueba y se comprobó que una misma cookie d
 
 ## Siguiente bloque
 
-10D implementará el webhook firmado, deduplicación de eventos Stripe, el ledger de pagos y la entrega/reclamación segura. Otros productos, Stripe live, suscripciones y entitlements efectivos permanecen fuera de 10C.
+10D implementa el webhook firmado, deduplicación de eventos Stripe, el ledger de pagos y la entrega/reclamación segura mediante token opaco `HttpOnly`. Otros productos, Stripe live, suscripciones y entitlements efectivos permanecen fuera de 10C/10D.

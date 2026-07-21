@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 10 — Pagos, monetización y entitlements.** El bloque 10C está **CLOSED / COMPLETED / TESTED**: Career Planner Premium usa exclusivamente Stripe Checkout sandbox para una compra invitada o autenticada de 5,95 EUR, pago único. El navegador no decide importe, moneda, precio, usuario ni URLs de retorno. La página de éxito no confirma nada: webhook, ledger de pagos, PDF, recuperación y entitlements siguen fuera de alcance hasta 10D. Stripe live permanece desactivado.
+**Fase 10 — Pagos, monetización y entitlements.** 10C y 10D están **CLOSED / COMPLETED / TESTED** en Stripe sandbox para Career Planner Premium (5,95 EUR, pago único, invitado o autenticado). El webhook firmado es la fuente de verdad, registra el pago interno y deja los estados de éxito y fallo coherentes. La success URL solo muestra un popup de verificación y la entrega usa un token opaco `HttpOnly`, hasheado, limitado a cinco descargas y con caducidad. No crea entitlements y Stripe live permanece desactivado.
 
 ## Comandos
 
@@ -23,7 +23,7 @@ Copia `.env.example` a `.env.local` y rellena:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (solo servidor; nunca en cliente)
-- `STRIPE_SECRET_KEY` (solo Stripe test y solo servidor durante 10C)
+- `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` (solo Stripe test y solo servidor)
 
 ## Documentación operativa
 

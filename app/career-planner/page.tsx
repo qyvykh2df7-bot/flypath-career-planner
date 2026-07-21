@@ -3192,6 +3192,7 @@ export function FlyPathApp({
                               <CareerPlannerPremiumCheckoutButton
                                 className="inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-[#D6AE4F] px-3 py-2 text-[14px] font-bold text-[#101B35] shadow-[0_6px_18px_rgba(214,174,79,0.3)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
                                 label={`Desbloquear informe premium · ${PREMIUM_REPORT_PRICE_LABEL}`}
+                                reportSnapshot={reportSnapshot}
                               />
                             )}
                           </div>
@@ -3509,6 +3510,7 @@ export function FlyPathApp({
                           <CareerPlannerPremiumCheckoutButton
                             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_8px_24px_rgba(201,164,84,0.35)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/60 disabled:cursor-wait disabled:opacity-70 sm:w-auto lg:col-start-1 lg:row-start-2 lg:justify-self-start"
                             label={PLANNER_PREMIUM_CHECKOUT_CTA}
+                            reportSnapshot={reportSnapshot}
                           />
                         </div>
                       </div>

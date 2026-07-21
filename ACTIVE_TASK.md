@@ -28,16 +28,24 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - La validación actual deja 512 pruebas, TypeScript, lint focalizado y `git diff --check` correctos.
 - Mejora futura acotada: iterar el layout visual de las opiniones públicas. No bloquea la funcionalidad ni el cierre de fase.
 
-## Tarea activa — 10D
+## Cierre — 10D
 
-Diseñar el webhook firmado de Stripe y la confirmación server-side de pagos únicos sobre el Checkout test ya validado.
+10D está **CLOSED / COMPLETED / TESTED** tras la validación sandbox end-to-end del webhook firmado y la entrega segura de Career Planner Premium.
 
 - `20260712170000_create_commerce_foundation.sql` está aplicada y validada en remoto: precios, pedidos, pagos, suscripciones, eventos Stripe minimizados, compradores invitados, reclamaciones seguras, bundles y concesiones de acceso idempotentes están disponibles, sin filas de catálogo comercial ni cobros creados.
 - Los contratos puros y pruebas viven en `lib/commerce/`; el acceso efectivo se resuelve en servidor y RLS permanece cerrada.
 - 10C está **CLOSED / COMPLETED / TESTED**: Stripe sandbox, catálogo cerrado de Career Planner Premium (5,95 EUR, pago único), CTA, Checkout alojado, compra invitada o autenticada, intenciones idempotentes y superficies success/cancel. La prueba sandbox completó Checkout sin crear `payments`, grants, descargas ni entitlements internos. La cookie de intención no se reutiliza entre cuentas y un Product sandbox duplicado permanece archivado e inactivo, sin vínculo interno.
-- 10D debe validar la firma de webhook y convertir eventos Stripe en el ledger interno. Ningún retorno de navegador puede confirmar un pago ni activar acceso.
+- `20260712190000_add_career_planner_payment_delivery.sql` y `20260712200000_fix_career_planner_payment_failed_state.sql` están aplicadas en remoto. Crean el token de entrega opaco, limitado a cinco usos y hasheado, además de las RPCs atómicas de settlement. `checkout.session.completed` valida referencias, catálogo, `595` EUR, modo y estado antes de crear `payment`, marcar el pedido como pagado y habilitar solo la línea entregable. No crea `entitlement_grants`.
+- `/api/webhooks/stripe` usa body crudo y `STRIPE_WEBHOOK_SECRET`; los payloads completos no se guardan. `payment_intent.succeeded` queda auditado como redundante; `payment_intent.payment_failed` deja el intento en `failed` y el pedido pendiente en `payment_failed`; `checkout.session.expired` no habilita descarga.
+- La success URL abre un popup que consulta únicamente `verifying`, `confirmed`, `failed` o `expired`. La descarga se genera en servidor después de consumir el token `HttpOnly`; no acepta importes, IDs comerciales ni rutas de PDF desde el navegador.
+- QA manual sandbox completado con Stripe CLI: Checkout de prueba, webhook firmado, pedido pagado, `payment` interno, popup confirmado y descarga del PDF. Stripe live, entitlements, suscripciones y otros productos siguen fuera de alcance.
+- Validación local: 580 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores nuevos. Pendiente no bloqueante: normalizar assets PDF incompatibles (`.webp` y JPG con contenido PNG) para eliminar avisos de `@react-pdf/renderer`.
 - Validación de cierre 10C: 554 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
 - Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro reclamable si se compró sin cuenta; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL sigue en waitlist.
+
+## Siguiente tarea
+
+Definir y auditar el alcance del siguiente bloque de Fase 10 antes de activar otro producto, suscripciones, entitlements o Stripe live.
 
 ## Implementado en Fase 7
 

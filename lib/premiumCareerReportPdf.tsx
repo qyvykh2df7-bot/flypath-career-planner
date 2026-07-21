@@ -1,7 +1,5 @@
-"use client";
-
 /**
- * PDF premium — port editorial de /components/report-preview (React-PDF).
+ * PDF premium compartido por la descarga del navegador y la entrega server-side.
  * Medidas fijas A4 landscape; sin Tailwind ni html2canvas.
  */
 import React, { type ReactElement, type ReactNode } from "react";

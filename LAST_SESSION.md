@@ -1,8 +1,8 @@
-# Última sesión — 10C Checkout sandbox cerrado; handoff a webhook seguro
+# Última sesión — 10D webhook y entrega sandbox cerrados
 
 **Fecha:** 2026-07-20
 **Rama:** `main`
-**Estado:** Fase 9 permanece cerrada. Fase 10 — Pagos, monetización y entitlements continúa activa. 10B está aplicado y 10C está **CLOSED / COMPLETED / TESTED** exclusivamente en Stripe sandbox. No hay Stripe live, webhook HTTP, ledger de pagos interno, descarga ni entitlement.
+**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B, 10C y 10D están cerrados en sandbox; `20260712190000_add_career_planner_payment_delivery.sql` y `20260712200000_fix_career_planner_payment_failed_state.sql` están aplicadas en remoto. No hay Stripe live, entitlements, suscripciones ni otros productos activados.
 
 ## Decisiones de Fase 10
 
@@ -28,10 +28,14 @@
 - QA manual sandbox: el CTA/endpoint abrió Stripe Checkout alojado; la tarjeta oficial de prueba completó la sesión y volvió a `/career-planner/checkout/success`. Stripe marcó la sesión como pagada, pero el intento interno permanece `session_created` y no se crearon `payments`, grants, PDF ni entitlement: es el comportamiento esperado antes de webhook.
 - Cierre técnico: 554 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
 
-## Siguiente trabajo — 10D
+## Cierre — 10D
 
-- Diseñar el endpoint webhook firmado de Stripe y procesar eventos de forma idempotente hacia `payments`, `orders` y grants futuros.
-- Mantener Career Planner Premium y guías digitales como compras invitadas previstas; AeroComms Pro necesitará cuenta para usar su entitlement, no necesariamente para pagar.
+- `/api/webhooks/stripe` verifica `STRIPE_WEBHOOK_SECRET` sobre body crudo. El ledger `stripe_webhook_events` deduplica por `stripe_event_id` y solo almacena hash del payload, nunca el contenido.
+- `checkout.session.completed` recupera la sesión de Stripe y valida metadata, referencias internas, precio Stripe, modo `payment`, estado `paid`, `595` EUR. La RPC transaccional bloquea intento/pedido/línea, crea o actualiza un único `payment`, marca el pedido `paid`, el intento `completed` y la línea `available`; no concede un entitlement.
+- `payment_intent.succeeded` se registra como redundante porque el evento Checkout es la fuente comercial de verdad. `payment_intent.payment_failed` deja el intento en `failed` y un pedido pendiente en `payment_failed`; los fallos y expiraciones no conceden acceso.
+- `/career-planner/checkout/success` muestra un modal accesible de verificación. El navegador recibe solo estados de presentación y una cookie `HttpOnly` con token opaco, limitado y hasheado. La descarga genera el PDF en servidor tras confirmar el pago y admite reintentos limitados.
+- La migración remota y los tests focalizados se verificaron. La QA manual de Stripe CLI quedó completada con un secreto temporal solo en `.env.local`: un Checkout sandbox de tarjeta oficial disparó el webhook firmado, creó el `payment`, marcó pedido/intento como pagados, confirmó el popup y descargó el PDF. El secreto y el listener temporal se retiraron al terminar.
+- Validación local final de 10D: 580 pruebas correctas, TypeScript y `git diff --check` correctos. El lint focalizado no tiene errores nuevos y conserva cuatro warnings preexistentes en `lib/premiumCareerReportPdf.tsx`. Pendiente no bloqueante: normalizar los assets `.webp` y el JPG con contenido PNG para eliminar los avisos de `@react-pdf/renderer`.
 
 ## Cierre de Fase 9
 
@@ -50,7 +54,7 @@
 
 ## Siguiente tarea — Fase 10
 
-- Auditar productos, precios, CTAs, emails transaccionales y cualquier integración Stripe antes de diseñar checkout, pagos y entitlements.
+- Definir y auditar el siguiente bloque antes de activar otro producto, suscripciones, entitlements o Stripe live.
 - Mantener cuentas, marketing, leads, opiniones y entitlements como entidades separadas.
 
 ## Cierre confirmado de Fase 8
