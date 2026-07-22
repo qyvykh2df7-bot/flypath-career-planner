@@ -89,7 +89,7 @@ const SHOP_SERVICE_CARDS = [
     imageSrc: "/ingleshop.jpg",
     imageAlt: "AeroComms FlyPath",
     title: "AeroComms",
-    price: "Desde €5,99/mes",
+    price: "€5,99/mes",
     description:
       "Entrenamiento de comunicaciones ATC: listening, readbacks, fraseología y escenarios guiados.",
     cta: "Ver AeroComms",

@@ -2,7 +2,7 @@ import "server-only";
 
 import { getFlyPathSessionState } from "@/lib/auth/session";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { AEROCOMMS_PRO_CATALOG } from "./aerocomms-pro-catalog";
+import { isAeroCommsProCatalogPrice } from "./aerocomms-pro-catalog";
 import { getStripeClient, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
 
 const PORTAL_ELIGIBLE_SUBSCRIPTION_STATUSES = ["active", "past_due", "canceling", "unpaid"] as const;
@@ -64,11 +64,10 @@ async function getCustomerIdForAccount(userId: string): Promise<string> {
     .maybeSingle<ProductPriceRow>();
 
   if (priceError) throw new AeroCommsProCustomerPortalError("persistence");
-  if (
-    !price
-    || price.price_key !== AEROCOMMS_PRO_CATALOG.priceKey
-    || price.stripe_price_id !== AEROCOMMS_PRO_CATALOG.stripePriceId
-  ) {
+  if (!price || !isAeroCommsProCatalogPrice({
+    priceKey: price.price_key,
+    stripePriceId: price.stripe_price_id,
+  })) {
     throw new AeroCommsProCustomerPortalError("subscription");
   }
 

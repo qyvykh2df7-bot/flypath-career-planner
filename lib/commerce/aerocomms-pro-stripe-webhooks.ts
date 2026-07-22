@@ -3,7 +3,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 import Stripe from "stripe";
 import { isCommerceUuid } from "./contracts";
-import { AEROCOMMS_PRO_CATALOG } from "./aerocomms-pro-catalog";
+import {
+  AEROCOMMS_PRO_CATALOG,
+  isAeroCommsProStripePriceId,
+} from "./aerocomms-pro-catalog";
 import { getStripeClient } from "./stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -114,7 +117,7 @@ function asSubscriptionSnapshot(value: unknown): AeroCommsSubscriptionSnapshot |
   const stripePriceId = resourceId(item.price);
   const currentPeriodStart = integerTimestampToIso(item.current_period_start);
   const currentPeriodEnd = integerTimestampToIso(item.current_period_end);
-  if (!stripePriceId || stripePriceId !== AEROCOMMS_PRO_CATALOG.stripePriceId || !currentPeriodEnd) return null;
+  if (!stripePriceId || !isAeroCommsProStripePriceId(stripePriceId) || !currentPeriodEnd) return null;
 
   return {
     subscriptionId,
@@ -221,7 +224,7 @@ async function processCheckoutCompleted(event: Stripe.Event, rawPayload: string)
     || session.payment_status !== "paid"
     || !subscriptionId
     || !snapshot
-    || stripePriceId !== AEROCOMMS_PRO_CATALOG.stripePriceId
+    || !isAeroCommsProStripePriceId(stripePriceId)
     || snapshot.references.checkoutAttemptId !== sessionMetadata.checkoutAttemptId
     || snapshot.references.orderId !== sessionMetadata.orderId
     || snapshot.references.productPriceId !== sessionMetadata.productPriceId

@@ -19,7 +19,10 @@ vi.mock("./stripe", () => ({
 }));
 
 import { processAeroCommsProStripeWebhook } from "./aerocomms-pro-stripe-webhooks";
-import { AEROCOMMS_PRO_CATALOG } from "./aerocomms-pro-catalog";
+import {
+  AEROCOMMS_PRO_CATALOG,
+  AEROCOMMS_PRO_LEGACY_CATALOG,
+} from "./aerocomms-pro-catalog";
 
 const attemptId = "4b1d8768-7a01-4e6f-b2dd-0d399857f8dd";
 const orderId = "7b1d8768-7a01-4e6f-b2dd-0d399857f8dd";
@@ -97,7 +100,7 @@ describe("AeroComms Pro Stripe webhook projection", () => {
     const invoice = {
       id: "in_failed",
       parent: { subscription_details: { subscription: "sub_aerocomms_pro" } },
-      amount_due: 737,
+      amount_due: 599,
       currency: "eur",
     };
     await expect(processAeroCommsProStripeWebhook(event("invoice.payment_failed", invoice), "{}"))
@@ -105,11 +108,30 @@ describe("AeroComms Pro Stripe webhook projection", () => {
     expect(mocks.retrieveSubscription).toHaveBeenCalledWith("sub_aerocomms_pro");
     expect(mocks.rpc).toHaveBeenCalledWith("apply_aerocomms_pro_subscription_webhook_event", expect.objectContaining({
       p_action: "invoice_payment_failed",
-      p_amount: 737,
+      p_amount: 599,
       p_currency: "eur",
       p_subscription_status: "active",
       p_checkout_attempt_id: null,
       p_user_id: null,
+    }));
+  });
+
+  it("keeps passing the historical 7.37 EUR invoice amount for a legacy subscription", async () => {
+    mocks.retrieveSubscription.mockResolvedValueOnce(subscription({
+      items: { data: [{ price: { id: AEROCOMMS_PRO_LEGACY_CATALOG.stripePriceId }, current_period_end: 1_700_086_400 }] },
+    }));
+
+    await expect(processAeroCommsProStripeWebhook(event("invoice.paid", {
+      id: "in_legacy_paid",
+      parent: { subscription_details: { subscription: "sub_aerocomms_pro" } },
+      amount_paid: 737,
+      currency: "eur",
+    }), "{}"))
+      .resolves.toBe("processed");
+
+    expect(mocks.rpc).toHaveBeenCalledWith("apply_aerocomms_pro_subscription_webhook_event", expect.objectContaining({
+      p_action: "invoice_paid",
+      p_amount: 737,
     }));
   });
 
@@ -134,6 +156,13 @@ describe("AeroComms Pro Stripe webhook projection", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("record_career_planner_stripe_webhook_ignored", expect.objectContaining({
       p_error_code: "subscription_validation_failed",
     }));
+  });
+
+  it("continues projecting events for an existing subscription on the legacy 7.37 EUR price", async () => {
+    await expect(processAeroCommsProStripeWebhook(event("customer.subscription.updated", subscription({
+      items: { data: [{ price: { id: AEROCOMMS_PRO_LEGACY_CATALOG.stripePriceId }, current_period_end: 1_700_086_400 }] },
+    })), "{}"))
+      .resolves.toBe("processed");
   });
 
   it("does not claim unrelated subscription events as AeroComms Pro", async () => {

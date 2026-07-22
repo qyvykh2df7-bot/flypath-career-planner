@@ -16,7 +16,7 @@
 
 ## Cierre — 10G: AeroComms Pro Subscription Billing
 
-- Catálogo recurrente `aerocomms_pro` a **7,37 EUR/mes**, sin trial y solo para usuarios FlyPath autenticados.
+- Catálogo recurrente `aerocomms_pro` a **5,99 EUR/mes**, sin trial y solo para usuarios FlyPath autenticados. El Price de 7,37 EUR queda como legado no disponible para altas nuevas, conservado únicamente para eventos y suscripciones históricas.
 - Stripe Checkout server-side no activa Pro desde la redirección: el webhook firmado crea y sincroniza el entitlement `aerocomms_pro`.
 - El modal de retorno post-checkout verifica el acceso y confirma la activación sin sustituir el paywall comercial.
 - Estados QA: `active`, `past_due`, `cancel_at_period_end`, refund y dispute. La cancelación conserva acceso hasta el final del periodo; refund y dispute revocan de inmediato.

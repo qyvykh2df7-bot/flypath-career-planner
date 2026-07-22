@@ -525,7 +525,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 ### 10G cerrado — AeroComms Pro Subscription Billing
 
 - Commit `1c84833 feat(aerocomms): complete pro subscription billing flow`, publicado en `main`.
-- Catálogo recurrente cerrado para `aerocomms_pro`: **7,37 EUR/mes**, sin trial y con Checkout server-side solo para usuarios autenticados.
+- Catálogo recurrente cerrado para `aerocomms_pro`: **5,99 EUR/mes**, sin trial y con Checkout server-side solo para usuarios autenticados. El Price anterior de 7,37 EUR queda archivado para sostener la sincronización de suscripciones históricas, sin usarse en nuevas altas.
 - Stripe webhook sincroniza suscripción y entitlement `aerocomms_pro`; el retorno post-checkout verifica el estado mediante modal, sin activar acceso desde la redirección.
 - Estados validados: `active`, `past_due`, `cancel_at_period_end`, reembolso y disputa. La cancelación mantiene acceso hasta `current_period_end`; reembolso y disputa lo revocan de inmediato.
 - `invoice.payment_failed` mantiene el grant activo exactamente 48 horas desde el evento. Las migraciones `20260712270000` y `20260712280000` corrigen el cálculo y el backfill histórico de grants sin modificar el periodo Stripe.

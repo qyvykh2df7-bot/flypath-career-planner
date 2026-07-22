@@ -34,7 +34,7 @@ const prepared = {
   checkout_attempt_id: attemptId,
   order_id: "6cbbe005-bbf1-4241-9949-82383c95b8cc",
   product_price_id: "9c42cc52-01fc-4d4c-b1cd-47109c5fb540",
-  stripe_price_id: "price_1TvgG4KuujVRKb0PkofwZMz7",
+  stripe_price_id: "price_1Tw6JqKuujVRKb0Pr4jCc5oQ",
   stripe_checkout_session_id: null,
   checkout_status: "initiated",
 };
@@ -87,7 +87,7 @@ describe("AeroComms Pro subscription Checkout server boundary", () => {
     });
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
       mode: "subscription",
-      line_items: [{ price: "price_1TvgG4KuujVRKb0PkofwZMz7", quantity: 1 }],
+      line_items: [{ price: "price_1Tw6JqKuujVRKb0Pr4jCc5oQ", quantity: 1 }],
       success_url: "https://flypath.test/aerocomms/app/today?checkout=processing",
       cancel_url: "https://flypath.test/aerocomms/app/paywall?checkout=cancelled",
       client_reference_id: attemptId,

@@ -35,8 +35,8 @@ const PLANS = [
       "Seguimiento de habilidades",
       "Práctica de fraseología y readbacks",
     ],
-    cta: "Empezar prueba",
-    href: "#beta",
+    cta: "Desbloquear AeroComms Pro",
+    href: "/aerocomms/app/paywall",
     highlighted: true,
   },
   {

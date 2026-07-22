@@ -69,7 +69,7 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
       error: null,
     });
     mocks.priceMaybeSingle.mockResolvedValue({
-      data: { price_key: "aerocomms_pro_monthly_eur", stripe_price_id: "price_1TvgG4KuujVRKb0PkofwZMz7" },
+      data: { price_key: "aerocomms_pro_monthly_eur_599", stripe_price_id: "price_1Tw6JqKuujVRKb0Pr4jCc5oQ" },
       error: null,
     });
     mocks.customerMaybeSingle.mockResolvedValue({ data: { user_id: accountId, stripe_customer_id: "cus_aerocomms" }, error: null });
@@ -99,6 +99,16 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
       customer: "cus_aerocomms",
       return_url: "https://flypath.test/aerocomms/app/profile",
     });
+  });
+
+  it("keeps the portal available for a subscription on the closed legacy price", async () => {
+    mocks.priceMaybeSingle.mockResolvedValueOnce({
+      data: { price_key: "aerocomms_pro_monthly_eur", stripe_price_id: "price_1TvgG4KuujVRKb0PkofwZMz7" },
+      error: null,
+    });
+
+    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+      .resolves.toEqual({ url: "https://billing.stripe.com/p/session/test_aerocomms" });
   });
 
   it("rejects users without an eligible subscription or a customer linked to another account", async () => {

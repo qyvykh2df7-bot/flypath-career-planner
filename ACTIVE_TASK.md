@@ -52,7 +52,7 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 
 - **Estado:** CLOSED / COMPLETED.
 - **Commit:** `1c84833 feat(aerocomms): complete pro subscription billing flow`, publicado en `main`.
-- Catálogo recurrente cerrado: `aerocomms_pro`, **7,37 EUR/mes**, sin trial y con compra exclusiva para cuenta FlyPath autenticada.
+- Catálogo recurrente cerrado: `aerocomms_pro`, **5,99 EUR/mes**, sin trial y con compra exclusiva para cuenta FlyPath autenticada. El Price anterior de 7,37 EUR queda archivado en el catálogo FlyPath solo para suscripciones históricas.
 - Stripe Checkout server-side, webhook firmado y entitlement `aerocomms_pro` validan la activación real; el retorno post-checkout usa un modal temporal de verificación.
 - QA sandbox completado: activación Pro, cancelación al final del periodo, `invoice.payment_failed` con gracia exacta de 48 horas, refund con revocación inmediata y webhook `200`.
 - Las migraciones Production están aplicadas hasta `20260712280000`, incluidos los fixes de RPC `product_price_id`, gracia y backfill de grants.

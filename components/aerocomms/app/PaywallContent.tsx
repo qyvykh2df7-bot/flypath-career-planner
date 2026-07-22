@@ -93,7 +93,7 @@ export function PaywallContent({ onClose, checkoutNotice = null }: PaywallConten
       <div className="mt-auto space-y-3 pt-6">
         <div className="rounded-2xl border border-[#FACC15]/50 bg-[#FACC15]/10 p-4 text-center">
           <p className="text-xs uppercase tracking-wider text-slate-400">Mensual</p>
-          <p className="mt-1 text-lg font-bold">7,37 €</p>
+          <p className="mt-1 text-lg font-bold">5,99 €</p>
           <p className="text-[11px] text-slate-500">al mes</p>
         </div>
 
