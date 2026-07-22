@@ -41,7 +41,13 @@ export default async function AeroCommsAppLayout({
 
   return (
     <div className="aerocomms-app-root min-h-dvh antialiased">
-      <AppStateProvider accountProfile={accountProfile} access={accessResult.access}>{children}</AppStateProvider>
+      <AppStateProvider
+        accountProfile={accountProfile}
+        access={accessResult.access}
+        accessAccountId={accessResult.accountId}
+      >
+        {children}
+      </AppStateProvider>
     </div>
   );
 }

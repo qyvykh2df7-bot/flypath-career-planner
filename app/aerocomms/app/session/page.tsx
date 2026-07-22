@@ -14,6 +14,7 @@ import { cadetLevelProfileIdFromExerciseId } from "@/lib/aerocomms/voice/ttsProf
 import {
   ExerciseType,
   findExercise,
+  isExerciseAccessible,
   screenType,
   type ChallengeStep,
   type ChallengeStepKind,
@@ -23,6 +24,7 @@ import {
   type ScreenType,
   type Transmission,
 } from "@/lib/aerocomms/content";
+import { AeroCommsProGate } from "@/components/aerocomms/app/AeroCommsProGate";
 import { SpSessionScreen } from "@/components/aerocomms/app/student-pilot/SpSessionScreen";
 
 /* ------------------------------------------------------------------ */
@@ -3247,7 +3249,7 @@ function StudentPilotFoundationScreen({
 function SessionInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const { recordSession } = useAppState();
+  const { access, recordSession } = useAppState();
 
   const exerciseId = params.get("exerciseId") ?? undefined;
 
@@ -3312,13 +3314,26 @@ function SessionInner() {
   const [debrief, setDebrief] = useState<SessionSummary | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
+  if (found && !isExerciseAccessible(found.exercise, found.level, new Set(), access.isPro)) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[#07111F] px-6 text-white">
+        <div className="w-full max-w-lg">
+          <AeroCommsProGate description="Este ejercicio forma parte del contenido Pro. Puedes seguir practicando el tramo Free de Cadet o desbloquear el acceso completo." />
+        </div>
+      </main>
+    );
+  }
+
   const close = () => router.push(returnTo);
 
   // Next exercise inside the same topic / drill group / flat module.
   const nextExercise: Exercise | undefined = (() => {
     if (!found) return undefined;
     const list = found.topic ? found.topic.exercises : found.module.exercises;
-    return list[found.index + 1];
+    const candidate = list[found.index + 1];
+    return candidate && isExerciseAccessible(candidate, found.level, new Set(), access.isPro)
+      ? candidate
+      : undefined;
   })();
 
   const goNext = () => {

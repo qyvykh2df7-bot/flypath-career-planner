@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: CLOSED / COMPLETED.** 10B–10G están cerrados y publicados. 10F (sincronización operativa de mentorías Cal.com) está desplegado, con migración remota, webhook firmado y Ping Production validados. La QA de una reserva real queda **bloqueada externamente** hasta que Cal.com corrija su checkout de pago: ejecuta `stripe.confirmPayment()` sin un Payment Element montado. Stripe live sigue desactivado.
+**Estado: COMPLETADA.** 10B–10G y el gating Free/Pro de AeroComms están cerrados. 10F (sincronización operativa de mentorías Cal.com) está desplegado, con migración remota, webhook firmado y Ping Production validados. La QA de una reserva real queda **bloqueada externamente** hasta que Cal.com corrija su checkout de pago: ejecuta `stripe.confirmPayment()` sin un Payment Element montado. Stripe live sigue desactivado.
 
 ### Objetivos
 
@@ -546,11 +546,39 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Próxima acción cuando Cal.com corrija su checkout: crear una reserva real de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y orden temporal.
 - Cierre final de Fase 10 validado con 690 tests, TypeScript, lint focalizado y `git diff --check` correctos; worktree limpio.
 
+### AeroComms Free / Pro gating completado
+
+- El tramo inicial aproximado del 30% de cada bloque Cadet permanece Free; el resto de Cadet y todos los niveles posteriores requieren Pro.
+- La primera misión ATC Sim permanece Free y las siguientes muestran candado y CTA de upgrade.
+- El acceso se resuelve exclusivamente mediante el entitlement server-side `aerocomms_pro`; `localStorage` no autoriza contenido.
+- Usuarios anónimos y registrados sin Pro comparten el acceso Free. Los usuarios Pro acceden al catálogo completo y las cancelaciones conservan acceso hasta `current_period_end`.
+- Las rutas directas, recomendaciones y avances de sesión respetan el mismo contrato. El override interno es opt-in y solo funciona en development/test.
+
+---
+
+## Fase 10.5 — Production Launch & Hardening
+
+**Estado: Actual**
+
+### Objetivo
+
+Preparar FlyPath para el lanzamiento público.
+
+### Alcance
+
+- Finalizar páginas públicas: home, CTAs, enlaces y retirada de placeholders.
+- Completar términos y condiciones, privacidad, cookies, aviso legal y contacto.
+- Completar el diseño público de opiniones de escuelas, responsive y estados sin opiniones.
+- Auditar rendimiento con Vercel Speed Insights, Lighthouse y PageSpeed: LCP, CLS, INP, imágenes, fuentes y JavaScript.
+- Preparar dominio definitivo, DNS, SSL y variables Production; retirar Hostinger tras validación.
+- Ejecutar QA final de login, perfil, Warhome, formularios, emails, Career Planner, guía, AeroComms Free/Pro, Customer Portal, mentorías Cal.com y móvil.
+- Realizar el lanzamiento público.
+
 ---
 
 ## Fase 11 — CRM y automatizaciones avanzadas
 
-**Estado: Pendiente, con infraestructura parcialmente preparada**
+**Estado: Pendiente, con infraestructura parcialmente preparada.** Comenzar después del lanzamiento público y recopilación inicial de datos reales.
 
 Amplía el trabajo existente de Backend Core, Leads, Warhome MVP, Emails Operativos y las tablas de secuencias y automatizaciones.
 
@@ -641,7 +669,8 @@ Fase 6   Login, cuentas y perfiles      ████████████  Co
 Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 9   Backend de opiniones           ████████████  CLOSED / COMPLETED / DEPLOY READY
-Fase 10  Pagos y entitlements           ████████████  CLOSED / COMPLETED (10F con bloqueo externo Cal.com)
+Fase 10  Pagos y entitlements           ████████████  En cierre operativo antes de lanzamiento público
+Fase 10.5 Production Launch & Hardening ░░░░░░░░░░░░  Pendiente
 Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
 Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
 Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase

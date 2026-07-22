@@ -1,8 +1,18 @@
-# Última sesión — cierre de Fase 10 y bloqueo externo de Cal.com
+# Última sesión — cierre de Fase 10 y comienzo de Production Launch & Hardening
 
 **Fecha:** 2026-07-22
 **Rama:** `main`
-**Estado:** Fases 9 y 10 cerradas. 10B–10G están cerrados; los commits finales `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb` están publicados en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`, Checkout y Customer Portal; Stripe live sigue desactivado. 10F está desplegado, con migración remota, webhook HMAC, Ping Production y CTAs frontend validados; sólo queda bloqueada externamente la QA de reserva real de Cal.com.
+**Estado:** Fase 10 está completada. 10B–10G, la integración 10F y el gating Free/Pro de AeroComms están cerrados; los commits previos `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb` están publicados en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`, Checkout y Customer Portal; Stripe live sigue desactivado. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com. La fase actual es 10.5: Production Launch & Hardening.
+
+## Cierre — AeroComms Free / Pro gating
+
+- El tramo inicial aproximado del 30% de cada bloque Cadet permanece Free. El resto de Cadet y todos los niveles posteriores requieren Pro.
+- La primera misión ATC Sim permanece Free; el resto muestra candado y abre el paywall.
+- Una única capa de acceso distingue `loading`, `anonymous_free`, `authenticated_free`, `pro` y `unavailable`. Pro solo procede del entitlement server-side `aerocomms_pro` para la misma cuenta autenticada.
+- El estado local `aerocomms.v2` conserva progreso, pero no puede conceder autorización. Logout y cambio de cuenta descartan snapshots Pro anteriores.
+- Las rutas directas, Today, recomendaciones, avance de sesión, módulos, temas y misiones aplican el mismo contrato.
+- El override interno requiere `NEXT_PUBLIC_AEROCOMMS_DEV_UNLOCK_ALL=true`, solo funciona en development/test y siempre queda desactivado en producción.
+- QA visual completada en escritorio y móvil, incluida la denegación de una URL directa a un ejercicio Pro. Validación: 698 tests, TypeScript y lint focalizado correctos.
 
 ## Cierre — 10G: AeroComms Pro Subscription Billing
 
@@ -27,6 +37,14 @@
 
 - 690 tests correctos, TypeScript, lint focalizado y `git diff --check` correctos.
 - Worktree limpio tras `6e079cb feat(aerocomms): add stripe customer portal management`.
+
+## Siguiente bloque — Fase 10.5: Production Launch & Hardening
+
+- Cerrar páginas públicas, CTAs, enlaces, placeholders y textos legales.
+- Completar el diseño responsive de opiniones y sus estados sin opiniones.
+- Auditar rendimiento, imágenes, fuentes, JavaScript, dominio, DNS, SSL y variables Production.
+- Ejecutar QA final de login, perfil, Warhome, formularios, emails, Career Planner, guía, AeroComms Free/Pro, Customer Portal, Cal.com y móvil.
+- Preparar el lanzamiento público.
 
 ## Decisiones de Fase 10
 

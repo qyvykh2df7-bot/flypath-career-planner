@@ -80,10 +80,10 @@ function MissionCard({ m }: { m: AtcMission }) {
   return (
     <button
       type="button"
-      disabled={isLocked}
-      onClick={() => !isLocked && router.push(`/aerocomms/app/atc-sim/missions/${m.id}`)}
+      onClick={() => router.push(isLocked ? "/aerocomms/app/paywall" : `/aerocomms/app/atc-sim/missions/${m.id}`)}
+      aria-label={isLocked ? `${m.title}: desbloquear AeroComms Pro` : m.title}
       className={`flex w-full items-center text-left transition-colors ${
-        isLocked ? "cursor-default" : "hover:border-[rgba(148,163,184,0.16)]"
+        isLocked ? "hover:border-[#FACC15]/25" : "hover:border-[rgba(148,163,184,0.16)]"
       }`}
       style={{
         minHeight: 72,

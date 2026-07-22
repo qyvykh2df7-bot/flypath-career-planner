@@ -10,8 +10,8 @@ import {
 } from "./access";
 
 export type AeroCommsAccessResult =
-  | { status: "authenticated"; access: AeroCommsAccess }
-  | { status: "anonymous" | "unavailable"; access: AeroCommsAccess };
+  | { status: "authenticated"; accountId: string; access: AeroCommsAccess }
+  | { status: "anonymous" | "unavailable"; accountId: null; access: AeroCommsAccess };
 
 type AeroCommsAccessQueryOptions = {
   /** Test-only injection; production callers use the runtime environment. */
@@ -35,8 +35,8 @@ function toEntitlementGrant(row: GrantRow): EntitlementGrant {
   };
 }
 
-function freeAccess(environment?: string): AeroCommsAccess {
-  return resolveAeroCommsAccessFromGrants([], undefined, environment);
+function freeAccess(status: "anonymous" | "authenticated" | "unavailable", environment?: string): AeroCommsAccess {
+  return resolveAeroCommsAccessFromGrants([], undefined, environment, status);
 }
 
 /**
@@ -50,7 +50,7 @@ export async function getAeroCommsAccess(
   try {
     const session = await getFlyPathSessionState();
     if (session.status !== "authenticated") {
-      return { status: session.status, access: freeAccess(environment) };
+      return { status: session.status, accountId: null, access: freeAccess(session.status, environment) };
     }
 
     const admin = getSupabaseAdmin();
@@ -61,8 +61,14 @@ export async function getAeroCommsAccess(
       .eq("is_active", true)
       .maybeSingle();
 
-    if (entitlementError) return { status: "unavailable", access: freeAccess(environment) };
-    if (!entitlement?.id) return { status: "authenticated", access: freeAccess(environment) };
+    if (entitlementError) return { status: "unavailable", accountId: null, access: freeAccess("unavailable", environment) };
+    if (!entitlement?.id) {
+      return {
+        status: "authenticated",
+        accountId: session.account.id,
+        access: freeAccess("authenticated", environment),
+      };
+    }
 
     const { data: grants, error: grantsError } = await admin
       .from("entitlement_grants")
@@ -70,13 +76,19 @@ export async function getAeroCommsAccess(
       .eq("beneficiary_user_id", session.account.id)
       .eq("entitlement_id", entitlement.id);
 
-    if (grantsError) return { status: "unavailable", access: freeAccess(environment) };
+    if (grantsError) return { status: "unavailable", accountId: null, access: freeAccess("unavailable", environment) };
 
     return {
       status: "authenticated",
-      access: resolveAeroCommsAccessFromGrants((grants ?? []).map(toEntitlementGrant), undefined, environment),
+      accountId: session.account.id,
+      access: resolveAeroCommsAccessFromGrants(
+        (grants ?? []).map(toEntitlementGrant),
+        undefined,
+        environment,
+        "authenticated",
+      ),
     };
   } catch {
-    return { status: "unavailable", access: freeAccess(environment) };
+    return { status: "unavailable", accountId: null, access: freeAccess("unavailable", environment) };
   }
 }

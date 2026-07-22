@@ -12,6 +12,7 @@ import {
   type ScreenType,
 } from "@/lib/aerocomms/content";
 import { trainHref } from "@/lib/aerocomms/trainLevel";
+import { AeroCommsProGate } from "@/components/aerocomms/app/AeroCommsProGate";
 
 const SCREEN_META: Record<ScreenType, { color: string }> = {
   lesson: { color: "text-[#38BDF8]" },
@@ -197,6 +198,13 @@ export default function TopicPage() {
             </button>
           );
         })}
+        {!isPro && topic.exercises.some((ex) => !ex.free) && (
+          <AeroCommsProGate
+            compact
+            title="Continúa este bloque con Pro"
+            description="Has llegado al límite Free de este bloque. Desbloquea los ejercicios restantes con AeroComms Pro."
+          />
+        )}
       </div>
     </div>
   );

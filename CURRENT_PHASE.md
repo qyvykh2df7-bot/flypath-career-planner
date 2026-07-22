@@ -6,7 +6,9 @@
 
 ## Fase actual
 
-**Fase 10 — Pagos, monetización y entitlements: CLOSED / COMPLETED.**
+**Fase 10.5 — Production Launch & Hardening: ACTUAL.**
+
+La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su último cierre interno es el gating Free/Pro de AeroComms.
 
 **10B — catálogo comercial, pedidos, pagos y entitlements** está aplicado y validado en Supabase remoto mediante `20260712170000_create_commerce_foundation.sql`, con contratos puros en `lib/commerce/` y documentación técnica. La validación confirmó RLS y ACL cerradas, índices de idempotencia, compatibilidad con `products` y una prueba sintética revertida sin datos residuales. Esta base no activa Stripe: define el modelo transaccional, los compradores invitados, la reclamación segura y el acceso efectivo resuelto en servidor.
 
@@ -20,9 +22,21 @@
 
 **10F — sincronización operativa de mentorías con Cal.com** está **CLOSED con bloqueo externo documentado**. La migración `20260712220000_create_calcom_mentorship_booking_sync.sql` está aplicada en remoto; `mentorship_bookings` y `cal_webhook_events` mantienen RLS y acceso exclusivo de `service_role`. `/api/webhooks/calcom` está desplegado en Production, valida sobre body crudo la firma HMAC SHA-256 con `CALCOM_WEBHOOK_SECRET` y solo procesa `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`. La RPC atómica deduplica por hash y descarta eventos del proveedor fuera de orden. Los CTAs de mentorías de la página, pricing, escuelas, shop, blog y free report usan `FLYPATH_MENTORIA_CALCOM_URL`, con apertura externa segura y tracking conservado (`0cd06b9 feat(mentorship): connect frontend CTAs to calcom`). Cal.com sigue siendo la fuente de verdad de agenda, Meet, emails y Stripe conectado a Cal.com; FlyPath no crea productos, precios, pedidos, Checkout, pagos internos, entitlements ni emails propios para mentorías, ni vincula reservas a `auth.users` o `leads` por coincidencia de email.
 
+## Cierre de AeroComms Free / Pro gating
+
+- El 30% inicial aproximado de cada bloque Cadet es Free; el resto de Cadet y todos los niveles posteriores requieren Pro.
+- La primera misión ATC Sim es Free y las siguientes quedan bloqueadas para usuarios sin Pro.
+- Usuarios anónimos y autenticados sin Pro reciben el mismo contrato Free. Pro solo se activa con el entitlement server-side `aerocomms_pro`.
+- `localStorage` ya no puede autorizar Pro. Las rutas directas, Today, avance de sesiones y navegación aplican la misma regla.
+- Candados y CTA “Desbloquear AeroComms Pro” mantienen visible el valor premium. El override interno requiere una bandera explícita y queda anulado en producción.
+
+## Siguiente bloque — Fase 10.5: Production Launch & Hardening
+
+El siguiente trabajo es preparar el lanzamiento público: cerrar páginas, CTAs y enlaces; completar legal; terminar el diseño público de opiniones; auditar rendimiento; preparar dominio y producción; y ejecutar QA final de todas las superficies comerciales y de producto.
+
 La ruta Production y el Ping firmado están validados. La QA de una reserva real está bloqueada externamente: el frontend de checkout de Cal.com ejecuta `stripe.confirmPayment()` sin un Payment Element montado, aunque crea correctamente el PaymentIntent y presenta métodos elegibles. Cuando Cal.com lo corrija, debe completarse una reserva real y validarse creación, pago, cancelación, reprogramación, duplicados y eventos fuera de orden.
 
-La validación de cierre de Fase 10 deja 690 tests correctos, TypeScript, lint focalizado y `git diff --check` correctos, con worktree limpio. Commits finales: `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb`.
+La validación del gating deja 698 tests correctos, TypeScript y lint focalizado correctos. Commits previos de Fase 10: `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb`.
 
 Hotfix de compatibilidad PDF: los assets exclusivos del informe premium se normalizaron a PNG/JPEG reales mediante `PREMIUM_PDF_PAGE_IMAGES`, sin cambiar las previews web que mantienen sus WebP. Se revisó visualmente un PDF real completo de 11 páginas y desaparecieron los avisos `Not valid image extension`. No hubo cambios en Stripe, pagos, webhook ni lógica comercial.
 

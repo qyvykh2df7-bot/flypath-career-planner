@@ -1119,20 +1119,17 @@ const advancedOps: Level = {
  */
 export const DEV_UNLOCK_ALL_TRAIN = isAeroCommsDevelopmentOverrideEnabled();
 
-// Free tier: ~30% of each Cadet module, plus a small preview of Student Pilot.
+export const AEROCOMMS_FREE_CADET_RATIO = 0.3;
+
+// Free tier: the initial ~30% of every Cadet module. All later levels are Pro.
 function applyGating(level: Level) {
   if (level.id === "cadet") {
     for (const m of level.modules) {
-      const freeCount = Math.max(1, Math.ceil(m.exercises.length * 0.3));
+      const freeCount = Math.max(1, Math.ceil(m.exercises.length * AEROCOMMS_FREE_CADET_RATIO));
       m.exercises.forEach((ex, i) => {
         ex.free = i < freeCount;
       });
     }
-  } else if (level.id === "student-pilot") {
-    // Preview: first two exercises of the first module.
-    level.modules[0]?.exercises.forEach((ex, i) => {
-      ex.free = i < 2;
-    });
   }
 }
 

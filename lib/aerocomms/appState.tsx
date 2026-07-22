@@ -41,7 +41,11 @@ import {
   resolveAeroCommsAccountName,
   type AeroCommsAccountNamePrompt,
 } from "./account-name";
-import type { AeroCommsAccess } from "./access";
+import {
+  reconcileAeroCommsAccess,
+  type AeroCommsAccess,
+  type AeroCommsIdentityStatus,
+} from "./access";
 
 /** Local calendar date as YYYY-MM-DD (not UTC). */
 export function getLocalDateKey(date: Date = new Date()): string {
@@ -463,12 +467,30 @@ export function AppStateProvider({
   children,
   accountProfile = null,
   access,
+  accessAccountId = null,
 }: {
   children: ReactNode;
   accountProfile?: AeroCommsAccountProfile | null;
   access: AeroCommsAccess;
+  accessAccountId?: string | null;
 }) {
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
+  const [accessIdentity, setAccessIdentity] = useState<{
+    status: AeroCommsIdentityStatus;
+    accountId?: string;
+  }>(() => accessAccountId
+    ? { status: "authenticated", accountId: accessAccountId }
+    : {
+        status: access.status === "anonymous_free"
+          ? "anonymous"
+          : access.status === "loading"
+            ? "loading"
+            : "unavailable",
+      });
+  const liveAccess = useMemo(
+    () => reconcileAeroCommsAccess(access, accessAccountId, accessIdentity),
+    [access, accessAccountId, accessIdentity],
+  );
   const [hydrated, setHydrated] = useState(false);
   const [localImportDecisionRequired, setLocalImportDecisionRequired] = useState(false);
   const [foreignLocalProgressDetected, setForeignLocalProgressDetected] = useState(false);
@@ -803,6 +825,9 @@ export function AppStateProvider({
       lastSyncedFingerprintRef.current = null;
     }
     authStateRef.current = authState;
+    setAccessIdentity(authState.status === "authenticated"
+      ? { status: "authenticated", accountId: authState.account.id }
+      : { status: authState.status });
     setAuthenticatedAccountId(authState.status === "authenticated" ? authState.account.id : null);
     if (authState.status !== "authenticated") {
       setConfirmedAccountProfileName(null);
@@ -1286,7 +1311,7 @@ export function AppStateProvider({
   const value = useMemo<AppContextValue>(
     () => ({
       state,
-      access,
+      access: liveAccess,
       hydrated,
       setOnboarding,
       completeOnboarding,
@@ -1308,7 +1333,7 @@ export function AppStateProvider({
       applyAccountProfileName,
       dismissAccountNamePrompt,
     }),
-    [state, access, hydrated, setOnboarding, completeOnboarding, recordSession, recordMissionResult, setNotifications, cycleDailyGoal, cycleDifficulty, syncProgress, localImportDecisionRequired, dismissLocalImportDecision, foreignLocalProgressDetected, dismissForeignLocalProgressDecision, discardForeignLocalProgress, reset, resetProgressOnly, accountNamePrompt, keepAccountProfileName, applyAccountProfileName, dismissAccountNamePrompt],
+    [state, liveAccess, hydrated, setOnboarding, completeOnboarding, recordSession, recordMissionResult, setNotifications, cycleDailyGoal, cycleDifficulty, syncProgress, localImportDecisionRequired, dismissLocalImportDecision, foreignLocalProgressDetected, dismissForeignLocalProgressDecision, discardForeignLocalProgress, reset, resetProgressOnly, accountNamePrompt, keepAccountProfileName, applyAccountProfileName, dismissAccountNamePrompt],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

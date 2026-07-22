@@ -52,7 +52,8 @@ describe("AeroComms access server boundary", () => {
 
     await expect(getAeroCommsAccess({ environment: "production" })).resolves.toEqual({
       status: "authenticated",
-      access: { isPro: true, source: "entitlement" },
+      accountId: userId,
+      access: { status: "pro", isPro: true, source: "entitlement" },
     });
   });
 
@@ -61,7 +62,8 @@ describe("AeroComms access server boundary", () => {
 
     await expect(getAeroCommsAccess({ environment: "production" })).resolves.toEqual({
       status: "authenticated",
-      access: { isPro: false, source: "free" },
+      accountId: userId,
+      access: { status: "authenticated_free", isPro: false, source: "free" },
     });
   });
 
@@ -69,14 +71,16 @@ describe("AeroComms access server boundary", () => {
     mocks.getFlyPathSessionState.mockResolvedValueOnce({ status: "anonymous" });
     await expect(getAeroCommsAccess({ environment: "production" })).resolves.toMatchObject({
       status: "anonymous",
-      access: { isPro: false, source: "free" },
+      accountId: null,
+      access: { status: "anonymous_free", isPro: false, source: "free" },
     });
     expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled();
 
     mocks.getFlyPathSessionState.mockResolvedValueOnce({ status: "unavailable" });
     await expect(getAeroCommsAccess({ environment: "production" })).resolves.toMatchObject({
       status: "unavailable",
-      access: { isPro: false, source: "free" },
+      accountId: null,
+      access: { status: "unavailable", isPro: false, source: "free" },
     });
     expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled();
   });
@@ -86,7 +90,8 @@ describe("AeroComms access server boundary", () => {
 
     await expect(getAeroCommsAccess({ environment: "production" })).resolves.toEqual({
       status: "unavailable",
-      access: { isPro: false, source: "free" },
+      accountId: null,
+      access: { status: "unavailable", isPro: false, source: "free" },
     });
   });
 });

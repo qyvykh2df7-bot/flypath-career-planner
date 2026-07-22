@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   AEROCOMMS_PRO_ENTITLEMENT_KEY,
   isAeroCommsDevelopmentOverrideEnabled,
+  reconcileAeroCommsAccess,
   resolveAeroCommsAccess,
   resolveAeroCommsAccessFromGrants,
 } from "./access";
@@ -14,19 +15,19 @@ describe("AeroComms Pro access contract", () => {
     expect(resolveAeroCommsAccess({
       entitlementKeys: [AEROCOMMS_PRO_ENTITLEMENT_KEY],
       environment: "production",
-    })).toEqual({ isPro: true, source: "entitlement" });
+    })).toEqual({ status: "pro", isPro: true, source: "entitlement" });
 
     expect(resolveAeroCommsAccess({
       entitlementKeys: ["career_planner_premium"],
       environment: "production",
-    })).toEqual({ isPro: false, source: "free" });
+    })).toEqual({ status: "authenticated_free", isPro: false, source: "free" });
   });
 
   it("does not treat an editable local subscription value as an entitlement", () => {
     expect(resolveAeroCommsAccess({
       entitlementKeys: [],
       environment: "production",
-    })).toEqual({ isPro: false, source: "free" });
+    })).toEqual({ status: "authenticated_free", isPro: false, source: "free" });
   });
 
   it("rejects inactive, expired, pending, and revoked grants", () => {
@@ -37,17 +38,61 @@ describe("AeroComms Pro access contract", () => {
     ] as const) {
       expect(resolveAeroCommsAccessFromGrants([
         { entitlementKey: AEROCOMMS_PRO_ENTITLEMENT_KEY, ...grant },
-      ], now, "production")).toEqual({ isPro: false, source: "free" });
+      ], now, "production")).toEqual({ status: "authenticated_free", isPro: false, source: "free" });
     }
   });
 
   it("allows the internal override only in development and test", () => {
-    expect(isAeroCommsDevelopmentOverrideEnabled("production")).toBe(false);
-    expect(isAeroCommsDevelopmentOverrideEnabled("development")).toBe(true);
-    expect(isAeroCommsDevelopmentOverrideEnabled("test")).toBe(true);
-    expect(resolveAeroCommsAccess({ environment: "development" })).toEqual({
+    expect(isAeroCommsDevelopmentOverrideEnabled("production", true)).toBe(false);
+    expect(isAeroCommsDevelopmentOverrideEnabled("development", false)).toBe(false);
+    expect(isAeroCommsDevelopmentOverrideEnabled("development", true)).toBe(true);
+    expect(isAeroCommsDevelopmentOverrideEnabled("test", true)).toBe(true);
+    expect(resolveAeroCommsAccess({
+      environment: "development",
+      developmentOverride: true,
+    })).toEqual({
+      status: "pro",
       isPro: true,
       source: "development_override",
     });
+  });
+
+  it("represents loading, anonymous, authenticated Free, and unavailable distinctly", () => {
+    expect(resolveAeroCommsAccess({ identityStatus: "loading", environment: "production" }).status).toBe("loading");
+    expect(resolveAeroCommsAccess({ identityStatus: "anonymous", environment: "production" }).status).toBe("anonymous_free");
+    expect(resolveAeroCommsAccess({ identityStatus: "authenticated", environment: "production" }).status).toBe("authenticated_free");
+    expect(resolveAeroCommsAccess({ identityStatus: "unavailable", environment: "production" }).status).toBe("unavailable");
+  });
+
+  it("drops a stale Pro snapshot after logout or account change", () => {
+    const serverAccess = resolveAeroCommsAccess({
+      entitlementKeys: [AEROCOMMS_PRO_ENTITLEMENT_KEY],
+      identityStatus: "authenticated",
+      environment: "production",
+    });
+
+    expect(reconcileAeroCommsAccess(serverAccess, "user-a", {
+      status: "authenticated",
+      accountId: "user-a",
+    }, "production").status).toBe("pro");
+    expect(reconcileAeroCommsAccess(serverAccess, "user-a", {
+      status: "authenticated",
+      accountId: "user-b",
+    }, "production")).toEqual({ status: "authenticated_free", isPro: false, source: "free" });
+    expect(reconcileAeroCommsAccess(serverAccess, "user-a", {
+      status: "anonymous",
+    }, "production")).toEqual({ status: "anonymous_free", isPro: false, source: "free" });
+  });
+
+  it("keeps entitlement lookup failures unavailable after Auth resolves", () => {
+    const unavailable = resolveAeroCommsAccess({
+      identityStatus: "unavailable",
+      environment: "production",
+    });
+
+    expect(reconcileAeroCommsAccess(unavailable, null, {
+      status: "authenticated",
+      accountId: "user-a",
+    }, "production")).toEqual({ status: "unavailable", isPro: false, source: "free" });
   });
 });

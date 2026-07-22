@@ -15,6 +15,7 @@ import {
   type Topic,
 } from "@/lib/aerocomms/content";
 import { trainHref } from "@/lib/aerocomms/trainLevel";
+import { AeroCommsProGate, AeroCommsProLockIcon } from "@/components/aerocomms/app/AeroCommsProGate";
 
 const SCREEN_META: Record<ScreenType, { color: string }> = {
   lesson: { color: "text-[#38BDF8]" },
@@ -125,6 +126,10 @@ export default function ModulePage() {
   };
 
   const openTopic = (topic: Topic) => {
+    if (!topic.exercises.some((ex) => isExerciseAccessible(ex, level, completed, isPro))) {
+      router.push("/aerocomms/app/paywall");
+      return;
+    }
     // Skip the intermediate topic / training-path screen when a section has
     // exactly one exercise. Navigate directly to the session and return here.
     if (topic.exercises.length === 1) {
@@ -234,6 +239,8 @@ export default function ModulePage() {
               // Scenario topics keep their purple scenario badge; all other topic modules keep the blue lesson book.
               const firstType = topic.exercises[0]?.type;
               const isScenarioTopic = firstType ? screenType(firstType) === "scenario" : false;
+              const topicAccessible = topic.exercises.some((ex) =>
+                isExerciseAccessible(ex, level, completed, isPro));
               return (
                 <button
                   key={topic.id}
@@ -241,7 +248,7 @@ export default function ModulePage() {
                   onClick={() => openTopic(topic)}
                   className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors ${
                     tProgress === 100 ? "border-[#FACC15]/25 bg-[#0F1A2E]" : "border-white/[0.04] bg-[#0B1322] hover:border-white/10"
-                  }`}
+                  } ${!topicAccessible ? "opacity-60" : ""}`}
                 >
                   <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10 ${isScenarioTopic ? "text-[#A78BFA]" : "text-[#38BDF8]"}`}>
                     {isScenarioTopic && firstType ? (
@@ -261,7 +268,9 @@ export default function ModulePage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    {tProgress === 100 ? (
+                    {!topicAccessible ? (
+                      <AeroCommsProLockIcon className="h-5 w-5 text-slate-500" />
+                    ) : tProgress === 100 ? (
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FACC15]/15 text-[#FACC15]">
                         <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
                           <path d="M5 12.5l4 4 10-11" />
@@ -279,13 +288,14 @@ export default function ModulePage() {
             })
           : module.exercises.map((ex) => renderRow(ex, true))}
 
-        {!levelUnlocked && (
-          <button
-            onClick={() => router.push("/aerocomms/app/paywall")}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#FACC15]/30 bg-[#FACC15]/10 px-4 py-2.5 text-sm font-bold text-[#FACC15]"
-          >
-            Unlock full module with Pro
-          </button>
+        {!isPro && module.exercises.some((ex) => !ex.free) && (
+          <AeroCommsProGate
+            compact
+            title={levelUnlocked ? "Continúa este bloque con Pro" : "Nivel disponible con Pro"}
+            description={levelUnlocked
+              ? "El tramo inicial de este bloque es Free. Desbloquea el resto del contenido con AeroComms Pro."
+              : "Los niveles posteriores a Cadet requieren AeroComms Pro."}
+          />
         )}
       </div>
     </div>

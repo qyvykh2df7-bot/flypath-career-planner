@@ -1,9 +1,9 @@
-# Continuidad — Fase 10 cerrada: pagos, monetización y entitlements
+# Continuidad — Fase 10.5: Production Launch & Hardening
 
 ## Estado de la plataforma
 
 - Fases 4, 5 y 6: completadas e integradas en `main`.
-- Fase 10: **CLOSED / COMPLETED**.
+- Fase 10: **COMPLETADA**. La infraestructura de pagos, monetización, entitlements, mentorías y el gating Free/Pro de AeroComms están cerrados.
 - Fase 7: CLOSED / COMPLETED / DEPLOYED. Migración remota aplicada, QA funcional aprobado y deployment completado.
 
 ## Cierre de Fase 8
@@ -65,8 +65,20 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Cal.com mantiene agenda, reserva, Meet, emails operativos y pago Stripe; FlyPath conserva sólo la proyección operativa privada y no usa Commerce propio para mentorías.
 - **Bloqueo externo:** el checkout de Cal.com crea correctamente el PaymentIntent de 44,95 EUR, pero ejecuta `stripe.confirmPayment()` sin un Payment Element montado y no permite completar una reserva real.
 - Próxima acción cuando Cal.com corrija ese checkout: crear una reserva de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y eventos tardíos.
+
+## Siguiente bloque — Fase 10.5: Production Launch & Hardening
+
+Antes de la Fase 11, completar:
+
+- revisión de páginas públicas, CTAs, enlaces y placeholders;
+- términos, privacidad, cookies, aviso legal y contacto;
+- diseño responsive de opiniones de escuelas y estados sin opiniones;
+- auditoría de rendimiento, dominio, DNS, SSL y variables Production;
+- QA final de login, perfil, Warhome, formularios, emails, Career Planner, guía, AeroComms Free/Pro, Customer Portal, Cal.com y móvil;
+- lanzamiento público.
 - Mantener fuera de alcance: Stripe live, Commerce de mentorías, productos/precios/pedidos/pagos FlyPath, entitlements, emails FlyPath, tracking de marketing, Warhome UI y asociación automática por email con cuentas o leads.
-- Cierre técnico final: 690 tests, TypeScript, lint focalizado y `git diff --check` correctos; worktree limpio.
+- Gating ya cerrado: 30% inicial aproximado de cada bloque Cadet y primera misión Free; resto bloqueado hasta resolver el entitlement `aerocomms_pro`. Las rutas directas y recomendaciones respetan el mismo contrato y `localStorage` no autoriza Pro.
+- Validación del gating: 698 tests, TypeScript y lint focalizado correctos; QA visual de escritorio y móvil completada.
 
 - `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.
 - El producto interno existente `como_ser_piloto_guide` usa el precio cerrado `como_ser_piloto_guide_eur`: **14,95 EUR**, `one_time`, activo. El script de sincronización reutiliza o crea un único Product/Price de Stripe sandbox y vincula ese precio interno de forma idempotente.

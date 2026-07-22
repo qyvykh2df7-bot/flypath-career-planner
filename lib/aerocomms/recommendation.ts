@@ -19,6 +19,7 @@ import {
   type PracticeSkill,
   type Recommendation,
   firstIncompleteExercise,
+  isExerciseAccessible,
   moduleCompletion,
   recommendNext as recommendNextLinear,
   trainModules,
@@ -74,6 +75,7 @@ function recommendNextCadetInterleaved(
   cadetLevel: Level,
   completed: Set<string>,
   skills: Record<PracticeSkill, number>,
+  isPro: boolean,
 ): Recommendation | undefined {
   // Real learned skills — no dev bypass.
   const learnedSkills = getLearnedSkills([...completed]);
@@ -90,7 +92,8 @@ function recommendNextCadetInterleaved(
       for (const topic of trainingModule.topics) {
         const done = topic.exercises.filter((e) => completed.has(e.id)).length;
         if (done > 0 && done < topic.exercises.length) {
-          const ex = topic.exercises.find((e) => !completed.has(e.id));
+          const ex = topic.exercises.find((e) =>
+            !completed.has(e.id) && isExerciseAccessible(e, cadetLevel, completed, isPro, false));
           if (ex) return { level: cadetLevel, module: trainingModule, topic, exercise: ex, reason: "continue" };
         }
       }
@@ -99,7 +102,9 @@ function recommendNextCadetInterleaved(
       const c = moduleCompletion(trainingModule, completed);
       if (c > 0 && c < 100) {
         const hit = firstIncompleteExercise(trainingModule, completed);
-        if (hit) return { level: cadetLevel, module: trainingModule, exercise: hit.exercise, reason: "continue" };
+        if (hit && isExerciseAccessible(hit.exercise, cadetLevel, completed, isPro, false)) {
+          return { level: cadetLevel, module: trainingModule, exercise: hit.exercise, reason: "continue" };
+        }
       }
     }
   }
@@ -112,7 +117,8 @@ function recommendNextCadetInterleaved(
     for (const topic of trainingModule.topics) {
       const reqs = TOPIC_REQUIREMENTS[topic.id] ?? [];
       if (!reqs.every((skill) => learnedSkills.has(skill))) continue;
-      const ex = topic.exercises.find((e) => !completed.has(e.id));
+      const ex = topic.exercises.find((e) =>
+        !completed.has(e.id) && isExerciseAccessible(e, cadetLevel, completed, isPro, false));
       if (ex) return { level: cadetLevel, module: trainingModule, topic, exercise: ex, reason: "start" };
     }
   }
@@ -120,13 +126,17 @@ function recommendNextCadetInterleaved(
   // ── Pass 3: Start next Foundation topic not yet touched ────────────────
   for (const trainingModule of foundationModules) {
     const hit = firstIncompleteExercise(trainingModule, completed);
-    if (hit) return { level: cadetLevel, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "start" };
+    if (hit && isExerciseAccessible(hit.exercise, cadetLevel, completed, isPro, false)) {
+      return { level: cadetLevel, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "start" };
+    }
   }
 
   // ── Pass 4: Safety net — any remaining incomplete Cadet content ─────────
   for (const trainingModule of allModules) {
     const hit = firstIncompleteExercise(trainingModule, completed);
-    if (hit) return { level: cadetLevel, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "start" };
+    if (hit && isExerciseAccessible(hit.exercise, cadetLevel, completed, isPro, false)) {
+      return { level: cadetLevel, module: trainingModule, topic: hit.topic, exercise: hit.exercise, reason: "start" };
+    }
   }
 
   // ── Pass 5: Weakest-skill practice fallback ────────────────────────────
@@ -134,11 +144,17 @@ function recommendNextCadetInterleaved(
     allModules.find((m) => m.id === PRACTICE_SKILL_MODULE[weakestSkill(skills)]) ??
     allModules[0];
   if (weakMod) {
-    const hit =
-      firstIncompleteExercise(weakMod, completed) ??
-      (weakMod.topics
-        ? { topic: weakMod.topics[0], exercise: weakMod.topics[0].exercises[0] }
-        : { exercise: weakMod.exercises[0] });
+    const incomplete = firstIncompleteExercise(weakMod, completed);
+    const accessibleIncomplete = incomplete && isExerciseAccessible(incomplete.exercise, cadetLevel, completed, isPro, false)
+      ? incomplete
+      : undefined;
+    const firstAccessible = weakMod.topics
+      ?.flatMap((topic) => topic.exercises.map((exercise) => ({ topic, exercise })))
+      .find(({ exercise }) => isExerciseAccessible(exercise, cadetLevel, completed, isPro, false))
+      ?? weakMod.exercises
+        .filter((exercise) => isExerciseAccessible(exercise, cadetLevel, completed, isPro, false))
+        .map((exercise) => ({ topic: undefined, exercise }))[0];
+    const hit = accessibleIncomplete ?? firstAccessible;
     if (hit?.exercise)
       return { level: cadetLevel, module: weakMod, topic: hit.topic, exercise: hit.exercise, reason: "practice" };
   }
@@ -163,9 +179,14 @@ export function recommendNext(
   level: Level,
   completed: Set<string>,
   skills: Record<PracticeSkill, number>,
+  isPro = false,
 ): Recommendation | undefined {
   if (level.id === CADET_ID) {
-    return recommendNextCadetInterleaved(level, completed, skills);
+    return recommendNextCadetInterleaved(level, completed, skills, isPro);
   }
-  return recommendNextLinear(level, completed, skills);
+  const recommendation = recommendNextLinear(level, completed, skills);
+  if (!recommendation) return undefined;
+  return isExerciseAccessible(recommendation.exercise, level, completed, isPro, false)
+    ? recommendation
+    : undefined;
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { LEVELS, isExerciseAccessible, isLevelUnlocked } from "./content";
+import {
+  AEROCOMMS_FREE_CADET_RATIO,
+  LEVELS,
+  isExerciseAccessible,
+  isLevelUnlocked,
+} from "./content";
 import { AEROCOMMS_FREE_MISSION_ID, getMissionUnlockState } from "./progress";
 
 const completed = new Set<string>();
@@ -20,6 +25,23 @@ describe("AeroComms Free and Pro gates", () => {
     expect(isExerciseAccessible(freeCadetExercise, cadet, completed, false, false)).toBe(true);
     expect(isExerciseAccessible(proCadetExercise, cadet, completed, false, false)).toBe(false);
     expect(isLevelUnlocked(studentPilot, completed, false, false)).toBe(false);
+  });
+
+  it("makes the initial approximately 30 percent of every Cadet block Free", () => {
+    for (const trainingModule of cadet.modules) {
+      const expectedFree = Math.max(1, Math.ceil(trainingModule.exercises.length * AEROCOMMS_FREE_CADET_RATIO));
+      const freeExercises = trainingModule.exercises.filter((exercise) => exercise.free);
+
+      expect(freeExercises).toHaveLength(expectedFree);
+      expect(trainingModule.exercises.slice(0, expectedFree).every((exercise) => exercise.free)).toBe(true);
+      expect(trainingModule.exercises.slice(expectedFree).every((exercise) => !exercise.free)).toBe(true);
+    }
+  });
+
+  it("does not expose Free exercises in levels after Cadet", () => {
+    for (const level of LEVELS.filter((candidate) => candidate.id !== "cadet")) {
+      expect(level.modules.flatMap((trainingModule) => trainingModule.exercises).some((exercise) => exercise.free)).toBe(false);
+    }
   });
 
   it("unlocks all Train content for a real Pro access snapshot", () => {

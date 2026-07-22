@@ -236,7 +236,7 @@ export default function TodayPage() {
   const level = currentLevel(completed, isPro);
 
   // ── Train next exercise ────────────────────────────────────────────────────
-  const trainNextRec = recommendNext(level, completed, practiceSkills);
+  const trainNextRec = recommendNext(level, completed, practiceSkills, isPro);
   const trainRecData = trainNextRec
     ? {
         title: trainNextRec.exercise.title,
