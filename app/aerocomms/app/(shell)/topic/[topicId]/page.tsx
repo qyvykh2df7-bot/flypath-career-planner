@@ -108,7 +108,7 @@ export default function TopicPage() {
     }
     const q = new URLSearchParams({
       type: ex.type,
-      title: ex.content?.isFoundationPlaceholder ? topic.name : `${topic.name} · ${ex.title}`,
+      title: `${topic.name} · ${ex.title}`,
       moduleId: module.id,
       exerciseId: ex.id,
       minutes: ex.type === "Mission" ? "6" : "4",

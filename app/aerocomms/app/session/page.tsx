@@ -26,6 +26,8 @@ import {
 } from "@/lib/aerocomms/content";
 import { AeroCommsProGate } from "@/components/aerocomms/app/AeroCommsProGate";
 import { SpSessionScreen } from "@/components/aerocomms/app/student-pilot/SpSessionScreen";
+import { isRetiredAeroCommsExerciseId } from "@/lib/aerocomms/retired-content";
+import { trainHref } from "@/lib/aerocomms/trainLevel";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -3159,90 +3161,6 @@ function ChallengeFlowScreen({ title, content, onComplete, icao, numbers, callsi
 }
 
 /* ------------------------------------------------------------------ */
-/* Student Pilot foundation placeholder (Batch 1)                      */
-/* ------------------------------------------------------------------ */
-
-const SP_BLOCK_LABELS: Record<string, string> = {
-  "visual-briefing": "Visual Briefing",
-  "key-calls": "Key Calls",
-  "guided-practice": "Guided Practice",
-  "visual-interpretation": "Visual Interpretation",
-  "listening-readback": "Listening & Readback",
-  "speak-in-context": "Speak in Context",
-  "decision-point": "Decision Point",
-  "section-scenario": "Section Scenario",
-  checkpoint: "Checkpoint",
-  mission: "Mission",
-};
-
-function humanise(s?: string) {
-  if (!s) return undefined;
-  return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-/**
- * Internal Alpha placeholder for Student Pilot foundation exercises. Shows the
- * module / topic / block / visual metadata and a clear "content pending" state
- * instead of the misleading generic Cadet-style fallback drills. No real
- * training content and no maps live here (visual renderers arrive in a later batch).
- */
-function StudentPilotFoundationScreen({
-  title,
-  content,
-  moduleName,
-  topicName,
-  onClose,
-}: {
-  title: string;
-  content?: ExerciseContent;
-  moduleName?: string;
-  topicName?: string;
-  onClose: () => void;
-}) {
-  const meta: { label: string; value: string }[] = [];
-  if (moduleName) meta.push({ label: "Module", value: moduleName });
-  if (topicName) meta.push({ label: "Topic", value: topicName });
-  if (content?.blockType) meta.push({ label: "Block", value: SP_BLOCK_LABELS[content.blockType] ?? content.blockType });
-  if (content?.phase) meta.push({ label: "Phase", value: humanise(content.phase)! });
-  if (content?.visualType) meta.push({ label: "Visual", value: humanise(content.visualType)! });
-  if (content?.visualSceneId) meta.push({ label: "Scene", value: content.visualSceneId });
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#38BDF8]/10 text-[#38BDF8] ring-1 ring-[#38BDF8]/30">
-          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 7l9-4 9 4-9 4-9-4z" />
-            <path d="M3 7v6l9 4 9-4V7" />
-          </svg>
-        </div>
-        <h1 className="mt-4 text-xl font-bold">{title}</h1>
-        <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-400">
-          {content?.instruction ?? "Student Pilot content foundation — module content pending."}
-        </p>
-        <span className="mt-3 rounded-full bg-amber-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300 ring-1 ring-amber-400/30">
-          Internal Alpha placeholder
-        </span>
-
-        {meta.length > 0 && (
-          <div className="mt-6 w-full max-w-sm space-y-1.5 rounded-2xl border border-white/[0.06] bg-[#0B1322] p-4 text-left">
-            {meta.map((m) => (
-              <div key={m.label} className="flex items-baseline justify-between gap-3 text-[13px]">
-                <span className="shrink-0 text-slate-500">{m.label}</span>
-                <span className="text-right font-medium text-slate-200">{m.value}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="pt-4">
-        <PrimaryButton onClick={onClose}>Back</PrimaryButton>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Session controller                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -3314,6 +3232,22 @@ function SessionInner() {
   const [debrief, setDebrief] = useState<SessionSummary | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
+  if (isRetiredAeroCommsExerciseId(exerciseId)) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[#07111F] px-6 text-white">
+        <div className="w-full max-w-lg text-center">
+          <p className="text-lg font-semibold">Content unavailable</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            This training item is no longer available. Your existing progress remains unchanged.
+          </p>
+          <button onClick={() => router.push(trainHref())} className="primary-btn mt-6 max-w-[220px]">
+            Back to Train
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (found && !isExerciseAccessible(found.exercise, found.level, new Set(), access.isPro)) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[#07111F] px-6 text-white">
@@ -3361,9 +3295,9 @@ function SessionInner() {
     setDebrief(summary);
   };
 
-  // Real Student Pilot, Ready For Radio and Airline Prep exercises (no isFoundationPlaceholder).
+  // Real Student Pilot, Ready For Radio and Airline Prep exercises.
   // All use the shared block renderer (SpSessionScreen) via ExerciseContent.blockType.
-  const isStudentPilot = /^(sp|rfr|ap|ao)-/.test(exerciseId ?? "") && !content?.isFoundationPlaceholder;
+  const isStudentPilot = /^(sp|rfr|ap|ao)-/.test(exerciseId ?? "");
 
   let body: React.ReactNode;
   if (debrief !== null) {
@@ -3398,17 +3332,6 @@ function SessionInner() {
             completeAndReturn();
           }
         }}
-      />
-    );
-  } else if (content?.isFoundationPlaceholder) {
-    // Foundation placeholder for SP modules not yet implemented.
-    body = (
-      <StudentPilotFoundationScreen
-        title={title}
-        content={content}
-        moduleName={found?.module.name}
-        topicName={found?.topic?.name}
-        onClose={close}
       />
     );
   } else if (isAlphabet) {

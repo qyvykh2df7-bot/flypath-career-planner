@@ -2,6 +2,7 @@ import "server-only";
 
 import { findMission } from "./atcSim";
 import { findExercise, screenType } from "./content";
+import { findRetiredAeroCommsExercise } from "./retired-content";
 import {
   AEROCOMMS_CONTENT_VERSION,
   AEROCOMMS_POSTGRES_INTEGER_MAX,
@@ -146,7 +147,9 @@ function prepareCompletedExerciseIds(value: unknown): string[] {
   if (!Array.isArray(value) || value.length > MAX_EXERCISES) throw new AeroCommsPersistencePayloadError();
   const ids = [...new Set(value.map(safeIdentifier).filter((id): id is string => id !== null))];
   if (ids.length !== value.length) throw new AeroCommsPersistencePayloadError();
-  if (ids.some((id) => !findExercise(id))) throw new AeroCommsPersistencePayloadError();
+  if (ids.some((id) => !findExercise(id) && !findRetiredAeroCommsExercise(id))) {
+    throw new AeroCommsPersistencePayloadError();
+  }
   return ids;
 }
 
@@ -230,10 +233,11 @@ function prepareSessions(value: unknown): PreparedSession[] {
     if (activityType === "exercise") {
       const exerciseId = safeIdentifier(entry.exerciseId);
       const exercise = exerciseId ? findExercise(exerciseId) : undefined;
-      if (!exerciseId || !exercise || entry.missionId !== undefined || entry.source !== "train" || entry.stars !== undefined) {
+      const retiredExercise = exerciseId ? findRetiredAeroCommsExercise(exerciseId) : undefined;
+      if (!exerciseId || (!exercise && !retiredExercise) || entry.missionId !== undefined || entry.source !== "train" || entry.stars !== undefined) {
         throw new AeroCommsPersistencePayloadError();
       }
-      const levelId = normalizeAeroCommsLevelId(exercise.level.id);
+      const levelId = normalizeAeroCommsLevelId(exercise?.level.id ?? "student-pilot");
       if (!levelId) throw new AeroCommsPersistencePayloadError();
       return {
         client_session_id: clientSessionId,
@@ -246,7 +250,7 @@ function prepareSessions(value: unknown): PreparedSession[] {
         occurred_at: occurredAt,
         activity_date: activityDate,
         activity_timezone: timezone,
-        skill_ids: score === null ? [] : skillIdsForScreen(screenType(exercise.exercise.type)),
+        skill_ids: score === null ? [] : skillIdsForScreen(screenType(exercise?.exercise.type ?? "Mission")),
       };
     }
 

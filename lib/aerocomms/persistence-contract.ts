@@ -1,6 +1,7 @@
 import { createAeroCommsSyncProgress } from "./sync-progress";
 import { findMission } from "./atcSim";
 import { findExercise } from "./content";
+import { findRetiredAeroCommsExercise } from "./retired-content";
 
 export const AEROCOMMS_PERSISTENCE_SCHEMA_VERSION = 1 as const;
 export const AEROCOMMS_CONTENT_VERSION = "2026.07" as const;
@@ -368,7 +369,7 @@ export function createAeroCommsPersistencePayload(
     const normalized = normalizeSession(entry, timezone);
     if (!normalized) return [];
     const hasKnownContent = normalized.activityType === "exercise"
-      ? Boolean(normalized.exerciseId && findExercise(normalized.exerciseId))
+      ? Boolean(normalized.exerciseId && (findExercise(normalized.exerciseId) || findRetiredAeroCommsExercise(normalized.exerciseId)))
       : Boolean(normalized.missionId && findMission(normalized.missionId));
     if (!hasKnownContent || seenSessionIds.has(normalized.clientSessionId)) return [];
     seenSessionIds.add(normalized.clientSessionId);
@@ -388,7 +389,9 @@ export function createAeroCommsPersistencePayload(
     operationId,
     schemaVersion: AEROCOMMS_PERSISTENCE_SCHEMA_VERSION,
     contentVersion: AEROCOMMS_CONTENT_VERSION,
-    completedExerciseIds: legacy.completedExerciseIds.filter((id) => Boolean(findExercise(id))).slice(0, MAX_EXERCISES),
+    completedExerciseIds: legacy.completedExerciseIds.filter((id) => Boolean(
+      findExercise(id) || findRetiredAeroCommsExercise(id),
+    )).slice(0, MAX_EXERCISES),
     missions,
     skillStats: normalizeSkillStats(value.skillStats),
     sessions,

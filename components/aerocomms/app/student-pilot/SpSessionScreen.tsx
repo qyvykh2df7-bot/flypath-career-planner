@@ -122,7 +122,7 @@ function ContinueButton({ onContinue, label = "Continue" }: { onContinue: () => 
   // content already fits.
   return (
     <button
-      onClick={onContinue}
+      onClick={() => onContinue()}
       className="w-full rounded-2xl bg-[#FACC15] py-3.5 text-[16px] font-bold text-[#07111F] active:opacity-80 lg:sticky lg:bottom-0 lg:z-10"
     >
       {label}

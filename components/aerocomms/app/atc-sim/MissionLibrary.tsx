@@ -69,7 +69,9 @@ function MissionCard({ m }: { m: AtcMission }) {
   // Derive unlock state from the shared access contract plus real progress.
   // m.locked is passed as legacyLocked fallback for missions not yet in MISSION_REQS.
   const unlockState = getMissionUnlockState(m.id, state.completedExercises, m.locked, access.isPro);
-  const isLocked = !unlockState.effectiveUnlocked;
+  const isProLocked = unlockState.isProLocked;
+  const isProgressLocked = unlockState.isProgressLocked;
+  const isLocked = isProLocked || isProgressLocked;
   // Real completion/stars come from the user's saved mission results, not the static
   // catalog seed (m.completed / m.stars). A brand-new user must never see a mission as
   // "completed 3★" until they have actually flown it.
@@ -80,8 +82,14 @@ function MissionCard({ m }: { m: AtcMission }) {
   return (
     <button
       type="button"
-      onClick={() => router.push(isLocked ? "/aerocomms/app/paywall" : `/aerocomms/app/atc-sim/missions/${m.id}`)}
-      aria-label={isLocked ? `${m.title}: desbloquear AeroComms Pro` : m.title}
+      onClick={() => {
+        if (isProLocked) {
+          router.push("/aerocomms/app/paywall");
+          return;
+        }
+        if (!isProgressLocked) router.push(`/aerocomms/app/atc-sim/missions/${m.id}`);
+      }}
+      aria-label={isProLocked ? `${m.title}: desbloquear AeroComms Pro` : m.title}
       className={`flex w-full items-center text-left transition-colors ${
         isLocked ? "hover:border-[#FACC15]/25" : "hover:border-[rgba(148,163,184,0.16)]"
       }`}

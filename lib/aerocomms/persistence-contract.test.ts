@@ -11,6 +11,7 @@ import {
   readAeroCommsRemoteProgressSnapshot,
 } from "./persistence-contract";
 import { prepareAeroCommsPersistencePayload } from "./persistence-server";
+import { RETIRED_AEROCOMMS_EXERCISE_IDS } from "./retired-content";
 
 const operationId = "6d9e4c3d-a148-44c6-a1d8-4d54f7c81c99";
 
@@ -97,6 +98,27 @@ describe("AeroComms persistence contract", () => {
     const payload = createAeroCommsPersistencePayload(state, operationId);
 
     expect(payload?.completedExerciseIds).toEqual([]);
+  });
+
+  it("preserves retired Student Pilot activity as historical progress without restoring it to the catalog", () => {
+    const exerciseId = RETIRED_AEROCOMMS_EXERCISE_IDS[0];
+    const state = {
+      ...baseState(),
+      completedExercises: [exerciseId],
+      history: [{
+        id: "retired-session",
+        at: 1_784_351_200_000,
+        exerciseId,
+        level: "student-pilot",
+        isScored: false,
+      }],
+    };
+
+    const payload = createAeroCommsPersistencePayload(state, operationId);
+
+    expect(payload?.completedExerciseIds).toEqual([exerciseId]);
+    expect(payload?.sessions[0]).toMatchObject({ exerciseId, levelId: "student-pilot", isScored: false });
+    expect(() => prepareAeroCommsPersistencePayload(payload)).not.toThrow();
   });
 
   it("uses a stable UUID for a legacy session identifier", () => {

@@ -1,5 +1,6 @@
 import { findMission } from "./atcSim";
 import { findExercise } from "./content";
+import { findRetiredAeroCommsExercise } from "./retired-content";
 import { createLegacyAeroCommsSessionId, type AeroCommsRemoteProgressSnapshot } from "./persistence-contract";
 import type { AppState, MissionResultSummary, SessionRecord, SkillStatsMap, Skills } from "./appState";
 
@@ -21,10 +22,11 @@ function sessionIdentity(session: Pick<SessionRecord, "id" | "at" | "missionId" 
 
 function toLocalSession(snapshot: AeroCommsRemoteProgressSnapshot["sessions"][number]): SessionRecord {
   const exercise = snapshot.exerciseId ? findExercise(snapshot.exerciseId)?.exercise : undefined;
+  const retiredExercise = snapshot.exerciseId ? findRetiredAeroCommsExercise(snapshot.exerciseId) : undefined;
   const mission = snapshot.missionId ? findMission(snapshot.missionId) : undefined;
   return {
     id: snapshot.clientSessionId,
-    name: mission?.title ?? exercise?.title ?? (snapshot.activityType === "mission" ? "ATC Sim mission" : "Training exercise"),
+    name: mission?.title ?? exercise?.title ?? retiredExercise?.title ?? (snapshot.activityType === "mission" ? "ATC Sim mission" : "Training exercise"),
     detail: snapshot.activityType === "mission" ? "ATC Sim" : "Training",
     ...(snapshot.score !== undefined ? { score: snapshot.score } : {}),
     isScored: snapshot.isScored,

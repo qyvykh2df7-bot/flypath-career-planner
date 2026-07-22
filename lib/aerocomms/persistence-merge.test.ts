@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mergeAeroCommsRemoteProgress } from "./persistence-merge";
 import type { AppState } from "./appState";
 import type { AeroCommsRemoteProgressSnapshot } from "./persistence-contract";
+import { RETIRED_AEROCOMMS_EXERCISE_IDS } from "./retired-content";
 
 const localState: AppState = {
   onboarded: true,
@@ -88,5 +89,27 @@ describe("AeroComms remote progress merge", () => {
     expect(merged.scoreSum).toBe(148);
     expect(merged.accuracy).toBe(49);
     expect(merged.scoredCount).toBe(3);
+  });
+
+  it("keeps a retired exercise readable when it exists in a remote history snapshot", () => {
+    const exerciseId = RETIRED_AEROCOMMS_EXERCISE_IDS[0];
+    const merged = mergeAeroCommsRemoteProgress(localState, {
+      ...snapshot,
+      completedExerciseIds: [exerciseId],
+      sessions: [{
+        ...snapshot.sessions[0],
+        activityType: "exercise",
+        source: "train",
+        exerciseId,
+        missionId: undefined,
+        levelId: "student-pilot",
+        isScored: false,
+        score: undefined,
+        stars: undefined,
+      }],
+    });
+
+    expect(merged.completedExercises).toContain(exerciseId);
+    expect(merged.history[0]).toMatchObject({ exerciseId, name: "Circuit Training" });
   });
 });

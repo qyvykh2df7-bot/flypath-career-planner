@@ -351,7 +351,7 @@ export interface UnlockState {
    * effectiveUnlocked = realUnlocked OR the relevant DEV flag is true.
    */
   effectiveUnlocked: boolean;
-  /** True when realUnlocked is false — this item would be locked in production. */
+  /** True when the item is currently locked under production access rules. */
   wouldBeLocked: boolean;
   /** Topic IDs whose completion is required but missing. */
   missingTopics: string[];
@@ -359,6 +359,16 @@ export interface UnlockState {
   missingSkills: AeroSkill[];
   /** Human-readable reason shown in lock UI, e.g. "Complete Taxi Basics to unlock". */
   reason: string;
+}
+
+/**
+ * Mission access keeps commercial and pedagogical state distinct. Product
+ * access is decided by an entitlement; progress remains useful for Today and
+ * recommendations, but never blocks a Pro member from the mission catalog.
+ */
+export interface MissionUnlockState extends UnlockState {
+  isProLocked: boolean;
+  isProgressLocked: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -449,20 +459,25 @@ export function getMissionUnlockState(
   legacyLocked = false,
   isPro = false,
   developmentOverride = isAeroCommsDevelopmentOverrideEnabled(),
-): UnlockState {
+): MissionUnlockState {
   const isFreeMission = missionId === AEROCOMMS_FREE_MISSION_ID;
   const reqs = MISSION_REQS[missionId];
   if (!reqs) {
     // No requirements defined. Fall back to the legacy locked field from mission data.
     const realUnlocked = !legacyLocked;
-    const effectiveUnlocked = developmentOverride || (isPro && realUnlocked);
+    const isProLocked = !developmentOverride && !isPro && !isFreeMission;
+    // Mission progress informs recommendations only; it is not an access gate.
+    const isProgressLocked = false;
+    const effectiveUnlocked = developmentOverride || isPro || isFreeMission;
     return {
       realUnlocked,
       effectiveUnlocked,
       wouldBeLocked: !effectiveUnlocked,
       missingTopics: [],
       missingSkills: [],
-      reason: legacyLocked ? "Mission not yet available" : isPro ? "" : "AeroComms Pro required",
+      reason: isProLocked ? "AeroComms Pro required" : "",
+      isProLocked,
+      isProgressLocked,
     };
   }
 
@@ -472,16 +487,20 @@ export function getMissionUnlockState(
   const missingTopics = reqs.requiredTopics.filter((t) => !completedTopics.has(t));
   const missingSkills = reqs.requiredSkills.filter((s) => !learnedSkills.has(s));
   const realUnlocked = isFreeMission || (missingTopics.length === 0 && missingSkills.length === 0);
-  const effectiveUnlocked = developmentOverride || (isFreeMission ? realUnlocked : isPro && realUnlocked);
+  // Pro is the complete catalog entitlement. Pedagogical requirements still
+  // inform Today and recommendations through realUnlocked, but do not gate Pro.
+  const isProLocked = !developmentOverride && !isPro && !isFreeMission;
+  const isProgressLocked = false;
+  const effectiveUnlocked = developmentOverride || isPro || isFreeMission;
   const wouldBeLocked = !effectiveUnlocked;
 
   const reason = wouldBeLocked
     ? (() => {
-        if (!isFreeMission && !isPro) return "AeroComms Pro required";
-        if (missingTopics.length > 0) {
-          return `Complete ${missingTopics.map(topicDisplayName).join(", ")} to unlock`;
-        }
-        if (missingSkills.length > 0) {
+        if (isProLocked) return "AeroComms Pro required";
+        if (isProgressLocked) {
+          if (missingTopics.length > 0) {
+            return `Complete ${missingTopics.map(topicDisplayName).join(", ")} to unlock`;
+          }
           const teachers = teachingTopicNamesFor(missingSkills);
           return teachers.length > 0
             ? `Complete ${teachers.join(", ")} to unlock`
@@ -498,6 +517,8 @@ export function getMissionUnlockState(
     missingTopics,
     missingSkills,
     reason,
+    isProLocked,
+    isProgressLocked,
   };
 }
 

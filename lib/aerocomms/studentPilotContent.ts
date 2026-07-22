@@ -1,7 +1,6 @@
 // AeroComms — Student Pilot Alpha catalog.
 //
-// Module 1 (Preflight & Initial Contact) is fully implemented in Batch 3.
-// Modules 2–8 remain foundation placeholders marked `isFoundationPlaceholder: true`.
+// Student Pilot content is built from reusable exercise and scenario contracts.
 //
 // ID convention: sp-{module-slug}.{topic-slug}.{block-type}
 // Operational constants: PREFLIGHT_OP_STATE in studentPilotScenarios.ts
@@ -12,7 +11,6 @@ import { PREFLIGHT_SCENARIO_STEPS, TAXI_LINEUP_MISSION_STEPS, TAKEOFF_SCENARIO_S
 import type {
   Exercise,
   ExerciseContent,
-  ExerciseType,
   Module,
   SpAtisInfo,
   SpClearanceInfo,
@@ -28,141 +26,8 @@ import type {
   SpReadbackRound,
   SpReadbackSection,
   SpListeningMultiData,
-  StudentPilotBlockType,
-  StudentPilotPhase,
-  StudentPilotVisualType,
   Topic,
 } from "./content";
-
-function slug(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-/** Map a Student Pilot block type onto an existing screen category for glyphs/labels. */
-function blockExerciseType(block: StudentPilotBlockType): ExerciseType {
-  switch (block) {
-    case "visual-briefing":
-    case "key-calls":
-      return "Lesson";
-    case "guided-practice":
-    case "speak-in-context":
-      return "Speaking";
-    case "listening-readback":
-    case "listening-choice":
-    case "fill-in-the-blanks":
-    case "data-extraction":
-    case "clearance-construction":
-    case "readback-construction":
-      return "Listening";
-    case "visual-interpretation":
-    case "decision-point":
-    case "checkpoint":
-      return "Choice";
-    case "section-scenario":
-      return "Scenario";
-    case "mission":
-      return "Mission";
-    case "aerodrome-chart":
-    case "taxi-lesson":
-      return "Lesson";
-  }
-}
-
-/** Spec for one placeholder block inside a topic. */
-interface BlockSpec {
-  block: StudentPilotBlockType;
-  visualType?: StudentPilotVisualType;
-  visualSceneId?: string;
-}
-
-/** Spec for one topic inside a module. */
-interface TopicSpec {
-  name: string;
-  description: string;
-  blocks: BlockSpec[];
-}
-
-function buildExercise(
-  moduleId: string,
-  topicSlug: string,
-  phase: StudentPilotPhase,
-  spec: BlockSpec,
-): Exercise {
-  const content: ExerciseContent = {
-    instruction: "Student Pilot content foundation — module content pending.",
-    blockType: spec.block,
-    phase,
-    visualType: spec.visualType,
-    visualSceneId: spec.visualSceneId,
-    isFoundationPlaceholder: true,
-    scenarioKind: spec.block === "section-scenario" ? "section" : spec.block === "mission" ? "mission" : undefined,
-    checkpointKind: spec.block === "checkpoint" ? "completion-only" : undefined,
-  };
-  return {
-    id: `${moduleId}.${topicSlug}.${spec.block}`,
-    title: blockTitle(spec.block),
-    type: blockExerciseType(spec.block),
-    description: undefined,
-    free: false,
-    content,
-  };
-}
-
-function blockTitle(block: StudentPilotBlockType): string {
-  switch (block) {
-    case "visual-briefing":    return "Visual Briefing";
-    case "key-calls":          return "Key Calls";
-    case "guided-practice":    return "Guided Practice";
-    case "visual-interpretation": return "Visual Interpretation";
-    case "listening-readback": return "Listening & Readback";
-    case "listening-choice":   return "Listening";
-    case "fill-in-the-blanks": return "Fill in the Blanks";
-    case "data-extraction":         return "Data Extraction";
-    case "clearance-construction":  return "Clearance Construction";
-    case "readback-construction":   return "Readback";
-    case "speak-in-context":        return "Speak in Context";
-    case "decision-point":     return "Decision Point";
-    case "section-scenario":         return "Section Scenario";
-    case "checkpoint":               return "Checkpoint";
-    case "mission":                  return "Mission";
-    case "aerodrome-chart":          return "Aerodrome Chart";
-    case "taxi-lesson":              return "Lesson";
-  }
-}
-
-function buildTopic(moduleId: string, phase: StudentPilotPhase, spec: TopicSpec): Topic {
-  const topicSlug = slug(spec.name);
-  const topicId = `${moduleId}.${topicSlug}`;
-  return {
-    id: topicId,
-    name: spec.name,
-    description: spec.description,
-    unit: "steps",
-    exercises: spec.blocks.map((b) => buildExercise(moduleId, topicSlug, phase, b)),
-  };
-}
-
-function buildTopicModule(
-  id: string,
-  name: string,
-  phase: StudentPilotPhase,
-  subtitle: string,
-  topics: TopicSpec[],
-): Module {
-  const built = topics.map((t) => buildTopic(id, phase, t));
-  return {
-    id,
-    name,
-    subtitle,
-    unit: "topics",
-    topics: built,
-    exercises: built.flatMap((t) => t.exercises),
-  };
-}
-
-/* Convenience block builders --------------------------------------- */
-const SCENARIO_BLOCK: BlockSpec = { block: "section-scenario" };
-const CHECKPOINT_BLOCK: BlockSpec = { block: "checkpoint" };
 
 /* ------------------------------------------------------------------ */
 /* 1. Preflight & Initial Contact  (Batch 3 — real content)           */
@@ -5362,41 +5227,6 @@ const parking: Module = {
 };
 
 /* ------------------------------------------------------------------ */
-/* 9. Student Pilot Missions  (flat module; each mission opens directly)*/
-/* ------------------------------------------------------------------ */
-function missionExercise(missionSlug: string, title: string, description: string, implementedLast = false): Exercise {
-  return {
-    id: `sp-missions.${missionSlug}.mission`,
-    title,
-    type: "Mission",
-    description,
-    free: false,
-    content: {
-      instruction: "Student Pilot content foundation — module content pending.",
-      blockType: "mission",
-      phase: "mission",
-      isFoundationPlaceholder: true,
-      scenarioKind: "mission",
-      missionStatus: implementedLast ? "implemented-last" : "essential",
-    },
-  };
-}
-
-const missions: Module = {
-  id: "sp-missions",
-  name: "Student Pilot Missions",
-  subtitle: "Guided local circuits and flights",
-  unit: "missions",
-  trainExcluded: true,
-  exercises: [
-    missionExercise("circuit-training", "Circuit Training", "Multi-section guided local circuit."),
-    missionExercise("touch-and-go-session", "Touch & Go Session", "Several guided circuits with touch-and-go / full-stop choices."),
-    missionExercise("local-training-flight", "Local Training Flight", "Startup through parking — the Alpha capstone."),
-    missionExercise("first-solo", "First Solo", "Playable Student Pilot capstone — implemented last.", true),
-  ],
-};
-
-/* ------------------------------------------------------------------ */
 /* Exports                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -5408,7 +5238,6 @@ export const STUDENT_PILOT_MODULES: Module[] = [
   arrival,
   landing,
   parking,
-  missions,
 ];
 
 /** Optional visual grouping for the Train level selector. */

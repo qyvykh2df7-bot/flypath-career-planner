@@ -140,7 +140,7 @@ export default function ModulePage() {
       }
       const q = new URLSearchParams({
         type: ex.type,
-        title: ex.content?.isFoundationPlaceholder ? topic.name : ex.title,
+        title: ex.title,
         moduleId: module.id,
         exerciseId: ex.id,
         minutes: ex.type === "Mission" ? "6" : "4",

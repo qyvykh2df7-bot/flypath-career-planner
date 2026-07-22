@@ -6,6 +6,7 @@ import {
   isExerciseAccessible,
   isLevelUnlocked,
 } from "./content";
+import { MISSIONS } from "./atcSim";
 import { AEROCOMMS_FREE_MISSION_ID, getMissionUnlockState } from "./progress";
 
 const completed = new Set<string>();
@@ -49,13 +50,32 @@ describe("AeroComms Free and Pro gates", () => {
     expect(isLevelUnlocked(studentPilot, completed, true, false)).toBe(true);
   });
 
-  it("keeps only Mission 1 free and requires Pro plus progress for later missions", () => {
+  it("keeps only Mission 1 free and marks every other mission as commercially locked for Free", () => {
     expect(getMissionUnlockState(AEROCOMMS_FREE_MISSION_ID, [], false, false, false).effectiveUnlocked).toBe(true);
     expect(getMissionUnlockState("cadet-taxi-hold-short", [], false, false, false)).toMatchObject({
       effectiveUnlocked: false,
       reason: "AeroComms Pro required",
+      isProLocked: true,
+      isProgressLocked: false,
     });
-    expect(getMissionUnlockState("cadet-taxi-hold-short", [], false, true, false).effectiveUnlocked).toBe(false);
+  });
+
+  it("unlocks the complete mission catalog for Pro regardless of progress", () => {
+    for (const mission of MISSIONS) {
+      expect(getMissionUnlockState(mission.id, [], mission.locked, true, false)).toMatchObject({
+        effectiveUnlocked: true,
+        isProLocked: false,
+        isProgressLocked: false,
+      });
+    }
+  });
+
+  it("does not let a legacy catalog lock override a Pro entitlement", () => {
+    expect(getMissionUnlockState("future-mission", [], true, true, false)).toMatchObject({
+      effectiveUnlocked: true,
+      isProLocked: false,
+      isProgressLocked: false,
+    });
   });
 
   it("permits the internal override only when explicitly passed by a non-production caller", () => {

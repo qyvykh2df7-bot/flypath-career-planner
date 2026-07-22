@@ -94,9 +94,44 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * The outbox crosses a durable storage boundary. Keep only the primitive
+ * session contract needed to merge progress and retry synchronization.
+ */
+function toPersistableSessionRecord(value: SessionRecord): SessionRecord | null {
+  if (
+    typeof value.id !== "string" ||
+    typeof value.name !== "string" ||
+    typeof value.detail !== "string" ||
+    typeof value.at !== "number" ||
+    !Number.isFinite(value.at)
+  ) return null;
+
+  const score = typeof value.score === "number" && Number.isFinite(value.score) && value.score >= 0 && value.score <= 100
+    ? value.score
+    : undefined;
+  const isScored = value.isScored === true && score !== undefined;
+  const stars = typeof value.stars === "number" && Number.isInteger(value.stars) && value.stars >= 0 && value.stars <= 3
+    ? value.stars
+    : undefined;
+
+  return {
+    id: value.id,
+    name: value.name,
+    detail: value.detail,
+    at: value.at,
+    isScored,
+    ...(score !== undefined ? { score } : {}),
+    ...(value.source === "train" || value.source === "atc-mission" ? { source: value.source } : {}),
+    ...(typeof value.missionId === "string" ? { missionId: value.missionId } : {}),
+    ...(typeof value.exerciseId === "string" ? { exerciseId: value.exerciseId } : {}),
+    ...(typeof value.level === "string" ? { level: value.level } : {}),
+    ...(stars !== undefined ? { stars } : {}),
+  };
+}
+
 function isSessionRecord(value: unknown): value is SessionRecord {
-  return isRecord(value) && typeof value.id === "string" && typeof value.at === "number" &&
-    Number.isFinite(value.at) && typeof value.name === "string" && typeof value.detail === "string";
+  return isRecord(value) && toPersistableSessionRecord(value as SessionRecord) !== null;
 }
 
 function isOutboxEntry(value: unknown): value is AeroCommsOutboxEntry {
@@ -113,10 +148,13 @@ export function appendAeroCommsSyncOutbox(
   storage?: StorageLike,
 ): AeroCommsOutboxEntry[] {
   const existing = readAeroCommsSyncOutbox(storage);
-  if (existing.some((item) => item.ownerId === entry.ownerId && item.session.id === entry.session.id)) {
+  const session = toPersistableSessionRecord(entry.session);
+  const ownerId = entry.ownerId === null || typeof entry.ownerId === "string" ? entry.ownerId : null;
+  if (!session) return existing;
+  if (existing.some((item) => item.ownerId === ownerId && item.session.id === session.id)) {
     return existing;
   }
-  const next = [...existing, entry];
+  const next = [...existing, { ownerId, session }];
   writeJson(AEROCOMMS_SYNC_OUTBOX_STORAGE_KEY, next, storage);
   return next;
 }

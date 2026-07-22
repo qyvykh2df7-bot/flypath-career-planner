@@ -9,6 +9,7 @@ import {
   writeAeroCommsPersistenceIntent,
 } from "./persistence-local";
 import { AEROCOMMS_CONTENT_VERSION, AEROCOMMS_PERSISTENCE_SCHEMA_VERSION } from "./persistence-contract";
+import type { SessionRecord } from "./appState";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -95,6 +96,26 @@ describe("AeroComms local persistence operations", () => {
 
     expect(getAeroCommsOutboxSessions("account-a", false, restrictedStorage)).toEqual([session(1)]);
     expect(getAeroCommsOutboxSessions("account-b", false, restrictedStorage)).toEqual([session(2)]);
+  });
+
+  it("persists only the primitive session contract when a caller supplies a cyclic value", () => {
+    const storage = createStorage();
+    const cyclicScore: { self?: unknown } = {};
+    cyclicScore.self = cyclicScore;
+    const malformedSession = {
+      ...session(1),
+      isScored: true,
+      score: cyclicScore,
+    } as unknown as SessionRecord;
+
+    expect(() => appendAeroCommsSyncOutbox({ ownerId: "account-a", session: malformedSession }, storage)).not.toThrow();
+    expect(getAeroCommsOutboxSessions("account-a", false, storage)).toEqual([
+      expect.objectContaining({
+        id: session(1).id,
+        isScored: false,
+      }),
+    ]);
+    expect(getAeroCommsOutboxSessions("account-a", false, storage)[0]).not.toHaveProperty("score");
   });
 
   it("does not let a second account send the first account's sessions after logout", () => {

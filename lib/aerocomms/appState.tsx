@@ -1010,9 +1010,16 @@ export function AppStateProvider({
 
   const recordSession = useCallback((input: RecordSessionInput) => {
     claimAuthenticatedWorkspaceForNewActivity();
-    const scored = input.isScored === true;
-    // No random fallback. Completion-only sessions have no score.
-    const score = scored ? input.score : undefined;
+    // Only a genuine bounded numeric result can affect scoring. This also keeps
+    // browser events or other runtime values out of durable progress state.
+    const score = input.isScored === true &&
+      typeof input.score === "number" &&
+      Number.isFinite(input.score) &&
+      input.score >= 0 &&
+      input.score <= 100
+      ? input.score
+      : undefined;
+    const scored = score !== undefined;
     const minutes = input.minutes ?? 5;
     const record: SessionRecord = {
       id: createAeroCommsClientSessionId(),
