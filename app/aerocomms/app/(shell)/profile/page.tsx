@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { useAppState, type AeroCommsSyncStatus } from "@/lib/aerocomms/appState";
 import { currentLevel } from "@/lib/aerocomms/content";
 import { resolveAeroCommsLocalImportAction } from "@/lib/aerocomms/persistence-client";
+import { startAeroCommsProCustomerPortal } from "@/lib/aerocomms/pro-customer-portal-client";
 import { saveAeroCommsAccountName } from "@/app/aerocomms/app/account-name-actions";
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -157,6 +158,8 @@ export default function ProfilePage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncChoice, setSyncChoice] = useState<"import" | "foreign" | null>(null);
   const [nameSaveState, setNameSaveState] = useState<"idle" | "saving" | "error">("idle");
+  const [portalState, setPortalState] = useState<"idle" | "loading" | "error">("idle");
+  const [portalError, setPortalError] = useState<string | null>(null);
   // Subscription UI mapping uses the server-resolved AeroComms access contract:
   //   "pro"  → badge "Pro" + "AeroComms Pro Active" (no upgrade CTA)
   //   "free" → badge "Free" + "Upgrade to AeroComms Pro" button → /paywall
@@ -248,6 +251,21 @@ export default function ProfilePage() {
       return;
     }
     setNameSaveState("error");
+  };
+
+  const handleManageSubscription = async () => {
+    if (portalState === "loading") return;
+    setPortalState("loading");
+    setPortalError(null);
+
+    const result = await startAeroCommsProCustomerPortal();
+    if (result.status === "redirect") {
+      window.location.assign(result.url);
+      return;
+    }
+
+    setPortalState("error");
+    setPortalError(result.message);
   };
 
   // ── Preference rows ───────────────────────────────────────────────────────
@@ -455,11 +473,22 @@ export default function ProfilePage() {
               Upgrade to AeroComms Pro
             </button>
           ) : (
-            <div className="mt-3.5 flex h-[46px] w-full items-center justify-center gap-2 rounded-[13px] border border-[#FACC15]/25 bg-[#FACC15]/8 text-[13px] font-bold uppercase tracking-wide text-[#FACC15]">
-              <svg viewBox="0 0 20 20" width={15} height={15} fill="currentColor">
-                <path fillRule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5z" clipRule="evenodd" />
-              </svg>
-              AeroComms Pro Active
+            <div className="mt-3.5 space-y-2">
+              <div className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[13px] border border-[#FACC15]/25 bg-[#FACC15]/8 text-[13px] font-bold uppercase tracking-wide text-[#FACC15]">
+                <svg viewBox="0 0 20 20" width={15} height={15} fill="currentColor">
+                  <path fillRule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5z" clipRule="evenodd" />
+                </svg>
+                AeroComms Pro Active
+              </div>
+              <button
+                type="button"
+                onClick={() => { void handleManageSubscription(); }}
+                disabled={portalState === "loading"}
+                className="flex h-[42px] w-full items-center justify-center rounded-[13px] border border-white/15 text-[12px] font-bold uppercase tracking-wide text-slate-200 transition hover:border-white/30 hover:bg-white/[0.04] disabled:cursor-wait disabled:opacity-60"
+              >
+                {portalState === "loading" ? "Abriendo gestión..." : "Gestionar suscripción"}
+              </button>
+              {portalError && <p className="text-center text-[11px] text-red-300" role="alert">{portalError}</p>}
             </div>
           )}
         </section>
