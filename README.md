@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 10 — Pagos, monetización y entitlements: CLOSED / COMPLETED.** 10B–10G están cerrados en `main`. AeroComms Pro requiere una cuenta FlyPath, usa Stripe Checkout server-side a **7,37 EUR/mes** y activa el acceso exclusivamente mediante el entitlement `aerocomms_pro` confirmado por webhook; incluye cancelación al final del periodo, gracia de 48 horas ante `invoice.payment_failed` y revocación inmediata ante reembolso o disputa. 10F sincroniza operativamente las mentorías de Cal.com mediante webhook firmado, con migración remota y ruta Production activas. La QA de una reserva real queda bloqueada externamente: el checkout de Cal.com intenta confirmar el pago sin un Payment Element montado. Stripe live sigue desactivado.
+**Fase 10 — Pagos, monetización y entitlements: CLOSED / COMPLETED.** 10B–10G están cerrados en `main`. AeroComms Pro requiere una cuenta FlyPath, usa Stripe Checkout server-side a **7,37 EUR/mes**, activa el acceso exclusivamente mediante el entitlement `aerocomms_pro` confirmado por webhook y permite gestionar la suscripción desde Stripe Customer Portal. Incluye cancelación al final del periodo, gracia de 48 horas ante `invoice.payment_failed` y revocación inmediata ante reembolso o disputa. 10F sincroniza operativamente las mentorías de Cal.com mediante webhook firmado y CTAs de frontend con migración remota y ruta Production activas. La QA de una reserva real queda bloqueada externamente: el checkout de Cal.com intenta confirmar el pago sin un Payment Element montado. Validación final: 690 tests, TypeScript y lint correctos; worktree limpio. Stripe live sigue desactivado.
 
 ## Comandos
 

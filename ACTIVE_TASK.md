@@ -56,14 +56,17 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Stripe Checkout server-side, webhook firmado y entitlement `aerocomms_pro` validan la activación real; el retorno post-checkout usa un modal temporal de verificación.
 - QA sandbox completado: activación Pro, cancelación al final del periodo, `invoice.payment_failed` con gracia exacta de 48 horas, refund con revocación inmediata y webhook `200`.
 - Las migraciones Production están aplicadas hasta `20260712280000`, incluidos los fixes de RPC `product_price_id`, gracia y backfill de grants.
+- El cierre incluye Stripe Customer Portal sandbox: `POST /api/stripe/customer-portal` verifica cuenta, suscripción `aerocomms_pro` y cliente Stripe vinculado; Perfil Pro permite cancelar al final de periodo, actualizar método de pago y ver facturas sin exponer referencias Stripe al navegador. Commit: `6e079cb`.
 
 ## Seguimiento externo — 10F: Cal.com Mentorship Booking Sync
 
 - La implementación 10F está cerrada: migración `20260712220000_create_calcom_mentorship_booking_sync.sql` aplicada, webhook `/api/webhooks/calcom` desplegado en Production, HMAC, idempotencia y Ping firmados validados.
+- Los CTAs de mentorías de página, pricing, escuelas, shop, blog y free report apuntan al evento Cal.com mediante `FLYPATH_MENTORIA_CALCOM_URL`; el tracking existente se conserva. Commit: `0cd06b9`.
 - Cal.com mantiene agenda, reserva, Meet, emails operativos y pago Stripe; FlyPath conserva sólo la proyección operativa privada y no usa Commerce propio para mentorías.
 - **Bloqueo externo:** el checkout de Cal.com crea correctamente el PaymentIntent de 44,95 EUR, pero ejecuta `stripe.confirmPayment()` sin un Payment Element montado y no permite completar una reserva real.
 - Próxima acción cuando Cal.com corrija ese checkout: crear una reserva de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y eventos tardíos.
 - Mantener fuera de alcance: Stripe live, Commerce de mentorías, productos/precios/pedidos/pagos FlyPath, entitlements, emails FlyPath, tracking de marketing, Warhome UI y asociación automática por email con cuentas o leads.
+- Cierre técnico final: 690 tests, TypeScript, lint focalizado y `git diff --check` correctos; worktree limpio.
 
 - `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.
 - El producto interno existente `como_ser_piloto_guide` usa el precio cerrado `como_ser_piloto_guide_eur`: **14,95 EUR**, `one_time`, activo. El script de sincronización reutiliza o crea un único Product/Price de Stripe sandbox y vincula ese precio interno de forma idempotente.

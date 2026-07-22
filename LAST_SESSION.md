@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-07-22
 **Rama:** `main`
-**Estado:** Fases 9 y 10 cerradas. 10B–10G están cerrados; `1c84833 feat(aerocomms): complete pro subscription billing flow` está publicado en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`; Stripe live sigue desactivado. 10F está desplegado, con migración remota, webhook HMAC y Ping Production validados; sólo queda bloqueada externamente la QA de reserva real de Cal.com.
+**Estado:** Fases 9 y 10 cerradas. 10B–10G están cerrados; los commits finales `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb` están publicados en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`, Checkout y Customer Portal; Stripe live sigue desactivado. 10F está desplegado, con migración remota, webhook HMAC, Ping Production y CTAs frontend validados; sólo queda bloqueada externamente la QA de reserva real de Cal.com.
 
 ## Cierre — 10G: AeroComms Pro Subscription Billing
 
@@ -12,14 +12,21 @@
 - Estados QA: `active`, `past_due`, `cancel_at_period_end`, refund y dispute. La cancelación conserva acceso hasta el final del periodo; refund y dispute revocan de inmediato.
 - `invoice.payment_failed` mantiene el grant activo 48 horas desde el evento. Se corrigieron la ambigüedad `product_price_id`, el cálculo de gracia y el backfill histórico de grants.
 - QA sandbox completado: Checkout, activación, cancelación, Test Clock de fallo de pago, refund y webhook Stripe `200`.
+- Customer Portal sandbox cerrado mediante `6e079cb`: `POST /api/stripe/customer-portal` solo abre una sesión temporal para el cliente Stripe perteneciente a la cuenta y su suscripción `aerocomms_pro`. El Perfil Pro permite cancelación al final de periodo, actualización del método de pago e historial de facturas; los webhooks siguen siendo la fuente de sincronización.
 
 ## Cierre — 10F: sincronización operativa de mentorías Cal.com
 
 - `20260712220000_create_calcom_mentorship_booking_sync.sql` está aplicada en Supabase remoto. `mentorship_bookings` y `cal_webhook_events` son proyecciones privadas con RLS cerrada, permisos exclusivos de `service_role` e idempotencia por hash.
 - `/api/webhooks/calcom` está desplegado en Production, usa body crudo, HMAC SHA-256 con `CALCOM_WEBHOOK_SECRET`, filtra el event type de mentorías y admite creación, pago, cancelación y reprogramación. El Ping firmado llega correctamente al endpoint.
+- `0cd06b9 feat(mentorship): connect frontend CTAs to calcom` conecta los CTAs de mentorías de página, pricing, escuelas, shop, blog y free report al evento real mediante `FLYPATH_MENTORIA_CALCOM_URL`, sin perder el tracking existente.
 - Cal.com conserva agenda, calendario, Meet, emails operativos y pago Stripe. FlyPath no crea Commerce de mentorías, productos, precios, pedidos, pagos internos, entitlements, emails ni asociaciones automáticas por email.
 - **Bloqueo externo:** el checkout de Cal.com crea el PaymentIntent de 44,95 EUR y tiene métodos elegibles, pero su frontend ejecuta `stripe.confirmPayment()` sin un Payment Element montado. No es un fallo de FlyPath, Stripe backend ni webhook.
 - Próxima acción cuando Cal.com publique la corrección: realizar una reserva real de QA y validar los cuatro eventos, idempotencia y protección frente a eventos fuera de orden.
+
+## Validación final de Fase 10
+
+- 690 tests correctos, TypeScript, lint focalizado y `git diff --check` correctos.
+- Worktree limpio tras `6e079cb feat(aerocomms): add stripe customer portal management`.
 
 ## Decisiones de Fase 10
 

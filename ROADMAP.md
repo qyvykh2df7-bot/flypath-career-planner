@@ -530,6 +530,9 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Estados validados: `active`, `past_due`, `cancel_at_period_end`, reembolso y disputa. La cancelación mantiene acceso hasta `current_period_end`; reembolso y disputa lo revocan de inmediato.
 - `invoice.payment_failed` mantiene el grant activo exactamente 48 horas desde el evento. Las migraciones `20260712270000` y `20260712280000` corrigen el cálculo y el backfill histórico de grants sin modificar el periodo Stripe.
 - Migraciones Supabase Production aplicadas hasta `20260712280000`; QA sandbox completado para Checkout, activación, cancelación, fallo de pago con Test Clock, refund y webhook `200`.
+- `POST /api/stripe/customer-portal` crea una sesión Stripe Billing Portal solo para la cuenta autenticada con una suscripción `aerocomms_pro` vinculada. El portal sandbox permite cancelación al final de periodo, actualización de método de pago e historial de facturas; `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` e `invoice.payment_failed` mantienen la proyección interna al día.
+- El perfil Pro expone “Gestionar suscripción” con estados de carga y error. No acepta `customer_id` ni destinos de retorno desde el navegador.
+- Commit final de gestión: `6e079cb feat(aerocomms): add stripe customer portal management`.
 
 ### 10F cerrado con bloqueo externo — sincronización operativa de mentorías Cal.com
 
@@ -538,8 +541,10 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Una RPC `SECURITY DEFINER` con `search_path` fijo registra y proyecta cada evento en la misma transacción, deduplica por hash y evita que eventos antiguos del proveedor sobrescriban datos más recientes.
 - La proyección conserva referencias Cal.com, asistente, fechas, zona horaria y estados operativos. No persiste payloads, enlaces Meet, notas, Commerce FlyPath, leads, suscripciones ni identificadores de pago propios.
 - Production sirve la ruta y `CALCOM_WEBHOOK_SECRET` está configurado; el Ping firmado llega correctamente al endpoint.
+- Los CTAs de mentorías de la página de mentorías, pricing, escuelas, shop, blog y free report usan `FLYPATH_MENTORIA_CALCOM_URL`, abren Cal.com de forma segura y conservan el tracking existente. Commit: `0cd06b9 feat(mentorship): connect frontend CTAs to calcom`.
 - **Bloqueo externo:** Cal.com crea el PaymentIntent y muestra el precio de 44,95 EUR, pero su frontend ejecuta `stripe.confirmPayment()` sin un Payment Element montado. No es un problema de FlyPath, del backend Stripe ni del webhook.
 - Próxima acción cuando Cal.com corrija su checkout: crear una reserva real de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y orden temporal.
+- Cierre final de Fase 10 validado con 690 tests, TypeScript, lint focalizado y `git diff --check` correctos; worktree limpio.
 
 ---
 
