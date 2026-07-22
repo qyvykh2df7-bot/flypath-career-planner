@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 10 — Pagos, monetización y entitlements.** 10C y 10D están **CLOSED / COMPLETED / TESTED** en Stripe sandbox para Career Planner Premium (5,95 EUR, pago único, invitado o autenticado). El webhook firmado es la fuente de verdad, registra el pago interno y deja los estados de éxito y fallo coherentes. La success URL solo muestra un popup de verificación y la entrega usa un token opaco `HttpOnly`, hasheado, limitado a cinco descargas y con caducidad. No crea entitlements y Stripe live permanece desactivado.
+**Fase 10 — Pagos, monetización y entitlements.** El bloque **10G — AeroComms Pro Subscription Billing** está **CLOSED / COMPLETED** en `main` mediante `1c84833`. AeroComms Pro requiere una cuenta FlyPath, usa Stripe Checkout server-side con un precio cerrado de **7,37 EUR/mes** y activa el acceso exclusivamente mediante el entitlement `aerocomms_pro` confirmado por webhook. Incluye cancelación al final del periodo, gracia de 48 horas ante `invoice.payment_failed` y revocación inmediata ante reembolso o disputa. Stripe live sigue desactivado.
 
 ## Comandos
 

@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: Activa — 10B aplicado y validado; 10C, 10D y 10E están CLOSED / COMPLETED / TESTED en Stripe sandbox. Stripe live sigue desactivado.**
+**Estado: Activa — 10B aplicado y validado; 10C, 10D, 10E y 10G están CLOSED / COMPLETED / TESTED. 10F (sincronización operativa de mentorías Cal.com) está implementado localmente y pendiente de auditoría, aplicación remota y QA. Stripe live sigue desactivado.**
 
 ### Objetivos
 
@@ -491,9 +491,9 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 - Pagar no exige una cuenta FlyPath global.
 - **Career Planner Premium:** Stripe Checkout directo, compra invitada permitida y pago confirmado exclusivamente por webhook. El PDF se descarga en el navegador y tendrá recuperación segura si falla la descarga o se cierra la pestaña.
-- **AeroComms Pro:** Stripe Checkout directo, también para invitados. Solo el uso Pro exige cuenta FlyPath: una compra autenticada se vinculará a la cuenta y una compra invitada quedará pendiente de reclamación mediante email verificado o token seguro. El entitlement server-side sustituirá el estado Pro editable en `localStorage`.
+- **AeroComms Pro:** requiere una cuenta FlyPath y usa Stripe Checkout de suscripción. El acceso se resuelve solo con el entitlement server-side `aerocomms_pro`; `localStorage` no es una fuente de autorización.
 - **Guías digitales:** compra invitada con Stripe Checkout, confirmación por webhook y enlace de descarga seguro. Pre-PPL seguirá como waitlist hasta estar terminado; después usará este mismo flujo.
-- **Mentorías:** el CTA llevará a Cal.com; Cal.com gestiona agenda y pago mediante Stripe. La futura integración será por webhook de Cal.com, no por Checkout creado por FlyPath.
+- **Mentorías:** el CTA lleva a Cal.com; Cal.com gestiona agenda, reserva, Google Meet, emails operativos y pago mediante Stripe. FlyPath recibe una proyección operativa mediante webhook firmado de Cal.com, no crea Checkout, pedidos ni pagos propios y no vincula por email una reserva con una cuenta o lead.
 - **Guía física:** CTA externo a Amazon; Amazon gestiona pago, envío, dirección, devoluciones y facturación. FlyPath solo registra el clic de salida.
 - Moneda inicial: **EUR**. Un reembolso digital total revoca el acceso o invalida la entrega; los reembolsos parciales pasan inicialmente a revisión manual.
 
@@ -521,6 +521,24 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - El pago confirmado por webhook habilita una entrega distinta `como_ser_piloto_guide_delivery`, con token opaco `HttpOnly`, hash, caducidad y máximo de cinco descargas. El control de producto evita el acceso cruzado con el informe Career Planner. No crea entitlements.
 - El PDF final de la guía se retiró de `public/` y se sirve solo desde el asset privado tras comprobar el token y el pago. La QA sandbox confirmó Checkout a 14,95 EUR, ledger interno, popup y descarga protegida.
 - La auditoría independiente de 10E quedó **APROBADA**, sin hallazgos Critical ni Major. Queda como mejora futura no bloqueante validar metadata también al reutilizar un Price Stripe existente; el vínculo sandbox actual es correcto.
+
+### 10G cerrado — AeroComms Pro Subscription Billing
+
+- Commit `1c84833 feat(aerocomms): complete pro subscription billing flow`, publicado en `main`.
+- Catálogo recurrente cerrado para `aerocomms_pro`: **7,37 EUR/mes**, sin trial y con Checkout server-side solo para usuarios autenticados.
+- Stripe webhook sincroniza suscripción y entitlement `aerocomms_pro`; el retorno post-checkout verifica el estado mediante modal, sin activar acceso desde la redirección.
+- Estados validados: `active`, `past_due`, `cancel_at_period_end`, reembolso y disputa. La cancelación mantiene acceso hasta `current_period_end`; reembolso y disputa lo revocan de inmediato.
+- `invoice.payment_failed` mantiene el grant activo exactamente 48 horas desde el evento. Las migraciones `20260712270000` y `20260712280000` corrigen el cálculo y el backfill histórico de grants sin modificar el periodo Stripe.
+- Migraciones Supabase Production aplicadas hasta `20260712280000`; QA sandbox completado para Checkout, activación, cancelación, fallo de pago con Test Clock, refund y webhook `200`.
+
+### 10F preparado localmente — sincronización operativa de mentorías Cal.com
+
+- `20260712220000_create_calcom_mentorship_booking_sync.sql` crea `mentorship_bookings` y `cal_webhook_events`, con RLS cerrada, permisos exclusivos de `service_role`, constraints de estado y ledger por hash de body. La migración todavía no se ha aplicado en remoto.
+- `/api/webhooks/calcom` verifica `x-cal-signature-256` sobre el body crudo con HMAC SHA-256 y `CALCOM_WEBHOOK_SECRET`. Solo permite `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`.
+- Una RPC `SECURITY DEFINER` con `search_path` fijo registra y proyecta cada evento en la misma transacción, deduplica por hash y evita que eventos antiguos del proveedor sobrescriban datos más recientes.
+- La proyección conserva referencias Cal.com, asistente, fechas, zona horaria y estados operativos. No persiste payloads, enlaces Meet, notas, Commerce FlyPath, leads, suscripciones ni identificadores de pago propios.
+- Próximo paso: auditoría de migración/contrato, aplicación remota, configuración del webhook en Cal.com y QA real de los cuatro eventos.
+- Validación local actual: 623 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
 
 ---
 
@@ -617,7 +635,7 @@ Fase 6   Login, cuentas y perfiles      ████████████  Co
 Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 9   Backend de opiniones           ████████████  CLOSED / COMPLETED / DEPLOY READY
-Fase 10  Pagos y entitlements           ░░░░░░░░░░░░  Actual: auditoría inicial
+Fase 10  Pagos y entitlements           ████████░░░░  10G cerrado; siguiente bloque por definir
 Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
 Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
 Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase

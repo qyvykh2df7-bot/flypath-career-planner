@@ -1,13 +1,26 @@
-# Última sesión — sincronización operativa de mentorías con Cal.com
+# Última sesión — cierre de AeroComms Pro Subscription Billing 10G
 
-**Fecha:** 2026-07-21
+**Fecha:** 2026-07-22
 **Rama:** `main`
-**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B–10E están cerrados y probados en Stripe sandbox; `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. 10F está implementado localmente y pendiente de auditoría, aplicación remota y QA con Cal.com. No hay Stripe live, entitlements, suscripciones ni otros productos activados.
+**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B–10E y 10G están cerrados; `1c84833 feat(aerocomms): complete pro subscription billing flow` está publicado en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`; Stripe live sigue desactivado. 10F permanece implementado localmente y pendiente de auditoría, aplicación remota y QA con Cal.com.
+
+## Cierre — 10G: AeroComms Pro Subscription Billing
+
+- Catálogo recurrente `aerocomms_pro` a **7,37 EUR/mes**, sin trial y solo para usuarios FlyPath autenticados.
+- Stripe Checkout server-side no activa Pro desde la redirección: el webhook firmado crea y sincroniza el entitlement `aerocomms_pro`.
+- El modal de retorno post-checkout verifica el acceso y confirma la activación sin sustituir el paywall comercial.
+- Estados QA: `active`, `past_due`, `cancel_at_period_end`, refund y dispute. La cancelación conserva acceso hasta el final del periodo; refund y dispute revocan de inmediato.
+- `invoice.payment_failed` mantiene el grant activo 48 horas desde el evento. Se corrigieron la ambigüedad `product_price_id`, el cálculo de gracia y el backfill histórico de grants.
+- QA sandbox completado: Checkout, activación, cancelación, Test Clock de fallo de pago, refund y webhook Stripe `200`.
+
+## Siguiente trabajo
+
+Definir y comenzar el siguiente bloque priorizado del roadmap. Fase 10 sigue activa; 10F de Cal.com queda preparado localmente, pero necesita auditoría, aplicación remota y QA propios.
 
 ## Decisiones de Fase 10
 
 - Una cuenta FlyPath no es obligatoria para pagar. Career Planner Premium y guías digitales admitirán Stripe Checkout como invitado; un webhook validará el pago en servidor y la entrega deberá recuperarse con seguridad.
-- AeroComms Pro se podrá comprar como invitado, pero se utilizará con cuenta FlyPath. Las compras sin cuenta quedarán pendientes de reclamación por email verificado o token seguro; el entitlement server-side reemplazará el estado Pro local editable.
+- AeroComms Pro requiere una cuenta FlyPath para comprar y utilizar el acceso. El entitlement server-side reemplaza el estado Pro local editable.
 - Pre-PPL sigue como waitlist. Mentorías usan Cal.com para agenda y pago; la sincronización operativa se implementó en local mediante webhook firmado y no usa Commerce FlyPath. La guía física dirige a Amazon y FlyPath solo registra el clic externo.
 - La moneda inicial es EUR. El reembolso digital total revoca acceso/entrega; el parcial se revisa manualmente al inicio.
 

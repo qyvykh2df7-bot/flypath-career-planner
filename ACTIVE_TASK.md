@@ -42,11 +42,24 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Hotfix de compatibilidad PDF cerrado: `PREMIUM_PDF_PAGE_IMAGES` usa PNG/JPEG reales para el informe premium, conserva los WebP de las previews web y elimina los avisos `Not valid image extension`. El PDF real de 11 páginas se validó visualmente; no cambió Stripe, pagos, webhook ni lógica comercial.
 - Validación local: 583 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores nuevos.
 - Validación de cierre 10C: 554 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
-- Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro reclamable si se compró sin cuenta; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL sigue en waitlist.
+- Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro requiere cuenta FlyPath para compra y uso, con acceso exclusivo por entitlement; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL sigue en waitlist.
 
 ## Cierre — 10E
 
 10E está **CLOSED / COMPLETED / TESTED** en Stripe sandbox para la guía digital **Cómo ser Piloto**.
+
+## Cierre — 10G: AeroComms Pro Subscription Billing
+
+- **Estado:** CLOSED / COMPLETED.
+- **Commit:** `1c84833 feat(aerocomms): complete pro subscription billing flow`, publicado en `main`.
+- Catálogo recurrente cerrado: `aerocomms_pro`, **7,37 EUR/mes**, sin trial y con compra exclusiva para cuenta FlyPath autenticada.
+- Stripe Checkout server-side, webhook firmado y entitlement `aerocomms_pro` validan la activación real; el retorno post-checkout usa un modal temporal de verificación.
+- QA sandbox completado: activación Pro, cancelación al final del periodo, `invoice.payment_failed` con gracia exacta de 48 horas, refund con revocación inmediata y webhook `200`.
+- Las migraciones Production están aplicadas hasta `20260712280000`, incluidos los fixes de RPC `product_price_id`, gracia y backfill de grants.
+
+## Siguiente trabajo
+
+Definir y comenzar el siguiente bloque priorizado del roadmap. La Fase 10 continúa activa; 10F de mentorías con Cal.com permanece preparado localmente y requiere su propia auditoría, aplicación remota y QA antes de considerarse cerrado.
 
 - `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.
 - El producto interno existente `como_ser_piloto_guide` usa el precio cerrado `como_ser_piloto_guide_eur`: **14,95 EUR**, `one_time`, activo. El script de sincronización reutiliza o crea un único Product/Price de Stripe sandbox y vincula ese precio interno de forma idempotente.
