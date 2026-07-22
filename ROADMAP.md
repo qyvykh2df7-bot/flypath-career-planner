@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: Activa — 10B aplicado y validado; 10C, 10D, 10E y 10G están CLOSED / COMPLETED / TESTED. 10F (sincronización operativa de mentorías Cal.com) está implementado localmente y pendiente de auditoría, aplicación remota y QA. Stripe live sigue desactivado.**
+**Estado: CLOSED / COMPLETED.** 10B–10G están cerrados y publicados. 10F (sincronización operativa de mentorías Cal.com) está desplegado, con migración remota, webhook firmado y Ping Production validados. La QA de una reserva real queda **bloqueada externamente** hasta que Cal.com corrija su checkout de pago: ejecuta `stripe.confirmPayment()` sin un Payment Element montado. Stripe live sigue desactivado.
 
 ### Objetivos
 
@@ -531,14 +531,15 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - `invoice.payment_failed` mantiene el grant activo exactamente 48 horas desde el evento. Las migraciones `20260712270000` y `20260712280000` corrigen el cálculo y el backfill histórico de grants sin modificar el periodo Stripe.
 - Migraciones Supabase Production aplicadas hasta `20260712280000`; QA sandbox completado para Checkout, activación, cancelación, fallo de pago con Test Clock, refund y webhook `200`.
 
-### 10F preparado localmente — sincronización operativa de mentorías Cal.com
+### 10F cerrado con bloqueo externo — sincronización operativa de mentorías Cal.com
 
-- `20260712220000_create_calcom_mentorship_booking_sync.sql` crea `mentorship_bookings` y `cal_webhook_events`, con RLS cerrada, permisos exclusivos de `service_role`, constraints de estado y ledger por hash de body. La migración todavía no se ha aplicado en remoto.
+- `20260712220000_create_calcom_mentorship_booking_sync.sql` está aplicada en Supabase remoto. Crea `mentorship_bookings` y `cal_webhook_events`, con RLS cerrada, permisos exclusivos de `service_role`, constraints de estado y ledger por hash de body.
 - `/api/webhooks/calcom` verifica `x-cal-signature-256` sobre el body crudo con HMAC SHA-256 y `CALCOM_WEBHOOK_SECRET`. Solo permite `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`.
 - Una RPC `SECURITY DEFINER` con `search_path` fijo registra y proyecta cada evento en la misma transacción, deduplica por hash y evita que eventos antiguos del proveedor sobrescriban datos más recientes.
 - La proyección conserva referencias Cal.com, asistente, fechas, zona horaria y estados operativos. No persiste payloads, enlaces Meet, notas, Commerce FlyPath, leads, suscripciones ni identificadores de pago propios.
-- Próximo paso: auditoría de migración/contrato, aplicación remota, configuración del webhook en Cal.com y QA real de los cuatro eventos.
-- Validación local actual: 623 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
+- Production sirve la ruta y `CALCOM_WEBHOOK_SECRET` está configurado; el Ping firmado llega correctamente al endpoint.
+- **Bloqueo externo:** Cal.com crea el PaymentIntent y muestra el precio de 44,95 EUR, pero su frontend ejecuta `stripe.confirmPayment()` sin un Payment Element montado. No es un problema de FlyPath, del backend Stripe ni del webhook.
+- Próxima acción cuando Cal.com corrija su checkout: crear una reserva real de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y orden temporal.
 
 ---
 
@@ -635,7 +636,7 @@ Fase 6   Login, cuentas y perfiles      ████████████  Co
 Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 9   Backend de opiniones           ████████████  CLOSED / COMPLETED / DEPLOY READY
-Fase 10  Pagos y entitlements           ████████░░░░  10G cerrado; siguiente bloque por definir
+Fase 10  Pagos y entitlements           ████████████  CLOSED / COMPLETED (10F con bloqueo externo Cal.com)
 Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
 Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
 Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase

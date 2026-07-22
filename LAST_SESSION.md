@@ -1,8 +1,8 @@
-# Última sesión — cierre de AeroComms Pro Subscription Billing 10G
+# Última sesión — cierre de Fase 10 y bloqueo externo de Cal.com
 
 **Fecha:** 2026-07-22
 **Rama:** `main`
-**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B–10E y 10G están cerrados; `1c84833 feat(aerocomms): complete pro subscription billing flow` está publicado en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`; Stripe live sigue desactivado. 10F permanece implementado localmente y pendiente de auditoría, aplicación remota y QA con Cal.com.
+**Estado:** Fases 9 y 10 cerradas. 10B–10G están cerrados; `1c84833 feat(aerocomms): complete pro subscription billing flow` está publicado en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`; Stripe live sigue desactivado. 10F está desplegado, con migración remota, webhook HMAC y Ping Production validados; sólo queda bloqueada externamente la QA de reserva real de Cal.com.
 
 ## Cierre — 10G: AeroComms Pro Subscription Billing
 
@@ -13,9 +13,13 @@
 - `invoice.payment_failed` mantiene el grant activo 48 horas desde el evento. Se corrigieron la ambigüedad `product_price_id`, el cálculo de gracia y el backfill histórico de grants.
 - QA sandbox completado: Checkout, activación, cancelación, Test Clock de fallo de pago, refund y webhook Stripe `200`.
 
-## Siguiente trabajo
+## Cierre — 10F: sincronización operativa de mentorías Cal.com
 
-Definir y comenzar el siguiente bloque priorizado del roadmap. Fase 10 sigue activa; 10F de Cal.com queda preparado localmente, pero necesita auditoría, aplicación remota y QA propios.
+- `20260712220000_create_calcom_mentorship_booking_sync.sql` está aplicada en Supabase remoto. `mentorship_bookings` y `cal_webhook_events` son proyecciones privadas con RLS cerrada, permisos exclusivos de `service_role` e idempotencia por hash.
+- `/api/webhooks/calcom` está desplegado en Production, usa body crudo, HMAC SHA-256 con `CALCOM_WEBHOOK_SECRET`, filtra el event type de mentorías y admite creación, pago, cancelación y reprogramación. El Ping firmado llega correctamente al endpoint.
+- Cal.com conserva agenda, calendario, Meet, emails operativos y pago Stripe. FlyPath no crea Commerce de mentorías, productos, precios, pedidos, pagos internos, entitlements, emails ni asociaciones automáticas por email.
+- **Bloqueo externo:** el checkout de Cal.com crea el PaymentIntent de 44,95 EUR y tiene métodos elegibles, pero su frontend ejecuta `stripe.confirmPayment()` sin un Payment Element montado. No es un fallo de FlyPath, Stripe backend ni webhook.
+- Próxima acción cuando Cal.com publique la corrección: realizar una reserva real de QA y validar los cuatro eventos, idempotencia y protección frente a eventos fuera de orden.
 
 ## Decisiones de Fase 10
 
@@ -66,16 +70,16 @@ Definir y comenzar el siguiente bloque priorizado del roadmap. Fase 10 sigue act
 - Auditoría independiente: **APROBADA**, sin hallazgos Critical ni Major. Se identificó solo una mejora futura no bloqueante para validar metadata al reutilizar un Price Stripe ya existente; el catálogo sandbox actual está correctamente vinculado.
 - Validación local: 605 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
 
-## Implementación local — 10F: sincronización operativa de mentorías Cal.com
+## Historial — implementación 10F: sincronización operativa de mentorías Cal.com
 
-- Nueva migración local: `20260712220000_create_calcom_mentorship_booking_sync.sql`. Aún no está aplicada en Supabase remoto.
+- Migración: `20260712220000_create_calcom_mentorship_booking_sync.sql`, ya aplicada en Supabase remoto.
 - `mentorship_bookings` es una proyección privada de Cal.com: referencias de reserva/evento, asistente, fechas, zona horaria y estados cerrados de reserva/pago. `user_id` y `lead_id` son opcionales, pero el webhook no intenta asociarlos por email.
 - `cal_webhook_events` almacena solo el hash SHA-256 del body, tipo de evento, UID de reserva, tiempos y estado de proceso. No conserva body, enlaces Meet, notas, datos de pago o secretos.
 - `/api/webhooks/calcom` usa body crudo y HMAC SHA-256 (`x-cal-signature-256` + `CALCOM_WEBHOOK_SECRET`), admite exclusivamente `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`.
 - La RPC `apply_calcom_mentorship_webhook_event` es `SECURITY DEFINER`, fija `search_path`, se ejecuta solo con `service_role`, deduplica por hash y descarta eventos con fecha de proveedor anterior a la última aplicada.
 - Cal.com sigue siendo fuente de verdad de disponibilidad, reserva, calendario, Meet, emails y pago Stripe conectado a Cal.com. FlyPath no usa Commerce, no crea productos, precios, pedidos, Checkout, pagos internos, entitlements, emails ni marketing para mentorías.
 - Referencia técnica: `docs/ai/payments/flypath-phase-10-calcom-mentorship-sync.md`.
-- Validación local: 623 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos. No se aplicó la migración ni se configuró un webhook en Cal.com.
+- La implementación, despliegue Production y Ping firmado quedaron validados. La reserva real sigue pendiente sólo por el bloqueo externo del checkout de Cal.com.
 
 ## Cierre de Fase 9
 
@@ -92,12 +96,10 @@ Definir y comenzar el siguiente bloque priorizado del roadmap. Fase 10 sigue act
 - QA manual completado: envío de opinión, verificación, listado y detalle Warhome, moderación, publicación pública, ficha, comparador y estrellas del Career Planner. No se crearon leads, suscripciones, cuentas ni compras.
 - Mejora futura no bloqueante: el layout visual de las opiniones públicas necesita una iteración de diseño para recuperar y mejorar la presentación prevista inicialmente.
 
-## Siguiente tarea — Fase 10
+## Próxima acción externa
 
-- Auditar `20260712220000_create_calcom_mentorship_booking_sync.sql`, `lib/mentorias/calcom-webhooks.ts` y `/api/webhooks/calcom` antes de aplicar la migración.
-- Configurar el webhook de Cal.com con el secreto server-only y probar creación, pago, cancelación, reprogramación, duplicados y eventos fuera de orden.
-- Mantener Stripe live, suscripciones, entitlements, AeroComms Pro, Commerce de mentorías, Warhome UI, emails FlyPath y tracking de marketing fuera de alcance.
-- Mantener cuentas, marketing, leads, opiniones y entitlements como entidades separadas.
+- Esperar la corrección de Cal.com y ejecutar entonces una reserva real de QA; validar creación, pago, cancelación, reprogramación, duplicados y eventos fuera de orden.
+- Mantener Stripe live, Commerce de mentorías, Warhome UI, emails FlyPath y tracking de marketing fuera de alcance.
 
 ## Cierre confirmado de Fase 8
 

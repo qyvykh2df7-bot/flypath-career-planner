@@ -1,9 +1,9 @@
-# Tarea activa — Fase 10: Pagos, monetización y entitlements
+# Continuidad — Fase 10 cerrada: pagos, monetización y entitlements
 
 ## Estado de la plataforma
 
 - Fases 4, 5 y 6: completadas e integradas en `main`.
-- Fase actual: **Fase 10 — Pagos, monetización y entitlements**.
+- Fase 10: **CLOSED / COMPLETED**.
 - Fase 7: CLOSED / COMPLETED / DEPLOYED. Migración remota aplicada, QA funcional aprobado y deployment completado.
 
 ## Cierre de Fase 8
@@ -57,9 +57,13 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - QA sandbox completado: activación Pro, cancelación al final del periodo, `invoice.payment_failed` con gracia exacta de 48 horas, refund con revocación inmediata y webhook `200`.
 - Las migraciones Production están aplicadas hasta `20260712280000`, incluidos los fixes de RPC `product_price_id`, gracia y backfill de grants.
 
-## Siguiente trabajo
+## Seguimiento externo — 10F: Cal.com Mentorship Booking Sync
 
-Definir y comenzar el siguiente bloque priorizado del roadmap. La Fase 10 continúa activa; 10F de mentorías con Cal.com permanece preparado localmente y requiere su propia auditoría, aplicación remota y QA antes de considerarse cerrado.
+- La implementación 10F está cerrada: migración `20260712220000_create_calcom_mentorship_booking_sync.sql` aplicada, webhook `/api/webhooks/calcom` desplegado en Production, HMAC, idempotencia y Ping firmados validados.
+- Cal.com mantiene agenda, reserva, Meet, emails operativos y pago Stripe; FlyPath conserva sólo la proyección operativa privada y no usa Commerce propio para mentorías.
+- **Bloqueo externo:** el checkout de Cal.com crea correctamente el PaymentIntent de 44,95 EUR, pero ejecuta `stripe.confirmPayment()` sin un Payment Element montado y no permite completar una reserva real.
+- Próxima acción cuando Cal.com corrija ese checkout: crear una reserva de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y eventos tardíos.
+- Mantener fuera de alcance: Stripe live, Commerce de mentorías, productos/precios/pedidos/pagos FlyPath, entitlements, emails FlyPath, tracking de marketing, Warhome UI y asociación automática por email con cuentas o leads.
 
 - `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.
 - El producto interno existente `como_ser_piloto_guide` usa el precio cerrado `como_ser_piloto_guide_eur`: **14,95 EUR**, `one_time`, activo. El script de sincronización reutiliza o crea un único Product/Price de Stripe sandbox y vincula ese precio interno de forma idempotente.
@@ -69,14 +73,6 @@ Definir y comenzar el siguiente bloque priorizado del roadmap. La Fase 10 contin
 - QA sandbox: Checkout muestra el producto y 14,95 EUR; el webhook creó el pago y marcó el pedido confirmado; el popup pasó a `confirmed` y la entrega consumió un uso correctamente. No se crearon entitlements.
 - Auditoría independiente: **APROBADA**, sin hallazgos Critical ni Major. La única observación menor es endurecer la verificación de metadata al reutilizar un Price existente en una futura mejora; el catálogo sandbox actual ya es correcto.
 - Validación local: 605 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
-
-## Tarea activa — 10F: sincronización operativa de mentorías Cal.com
-
-- La migración local `20260712220000_create_calcom_mentorship_booking_sync.sql` y la ruta server-only `/api/webhooks/calcom` están implementadas, sin aplicar todavía en Supabase remoto.
-- Cal.com es la fuente de verdad para disponibilidad, reserva, calendario, Google Meet, emails operativos y el pago Stripe conectado a Cal.com. FlyPath recibe solo una proyección operativa idempotente de reservas y eventos.
-- La siguiente tarea es auditar la migración y el contrato del webhook antes de aplicarlos, después configurar el webhook en Cal.com con `CALCOM_WEBHOOK_SECRET` y hacer QA real de creación, pago, cancelación, reprogramación y evento tardío.
-- Validación local actual: 623 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
-- Mantener fuera de alcance: Stripe live, Commerce de mentorías, productos/precios/pedidos/pagos FlyPath, entitlements, emails FlyPath, tracking de marketing, Warhome UI y asociación automática de reservas por email con cuentas o leads.
 
 ## Implementado en Fase 7
 
