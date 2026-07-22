@@ -1,35 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { BookOpen, CheckCircle2, Tablet } from "lucide-react";
 import { formatCommerceEur, COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT } from "@/lib/commerce/checkout";
 import { GuideDigitalCheckoutButton } from "@/components/guia/GuideDigitalCheckoutButton";
 
-const TOAST_MS = 2800;
+const PHYSICAL_GUIDE_AMAZON_URL = "https://www.amazon.es/Guía-Cómo-ser-Piloto-Construye/dp/B0GNZ43J66/ref=sr_1_1";
 
 export function GuiaFormatCards() {
-  const [toast, setToast] = useState<string | null>(null);
-
-  const showPhysicalToast = useCallback(() => setToast("Compra física próximamente"), []);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast((t) => (t === toast ? null : t)), TOAST_MS);
-    return () => window.clearTimeout(id);
-  }, [toast]);
-
   return (
     <>
-      {toast ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed right-3 top-3 z-50 max-w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2.5 text-[15px] text-white shadow-lg sm:right-5 sm:top-5"
-        >
-          {toast}
-        </div>
-      ) : null}
-
       <section
         id="formatos-guia"
         className="border-b border-white/5 bg-header-navy pt-14 pb-10 text-white lg:pt-20 lg:pb-12"
@@ -89,13 +68,14 @@ export function GuiaFormatCards() {
                     </span>
                   </li>
                 </ul>
-                <button
-                  type="button"
-                  onClick={showPhysicalToast}
+                <a
+                  href={PHYSICAL_GUIDE_AMAZON_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/30 bg-transparent px-6 py-3 text-[15px] font-semibold text-white transition hover:border-white/50 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
                   Comprar física
-                </button>
+                </a>
               </article>
 
               {/* Tarjeta digital — recomendada */}
