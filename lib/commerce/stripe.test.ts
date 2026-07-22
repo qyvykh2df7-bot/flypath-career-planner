@@ -6,6 +6,8 @@ import {
   getStripeTestConfiguration,
   resolveStripeAppUrl,
   StripeConfigurationError,
+  StripeProviderError,
+  toStripeProviderError,
 } from "./stripe";
 
 describe("Stripe sandbox configuration", () => {
@@ -13,8 +15,9 @@ describe("Stripe sandbox configuration", () => {
     expect(getStripeTestConfiguration({ STRIPE_SECRET_KEY: "sk_test_example" })).toEqual({
       secretKey: "sk_test_example",
     });
-    expect(() => getStripeTestConfiguration({})).toThrow(StripeConfigurationError);
-    expect(() => getStripeTestConfiguration({ STRIPE_SECRET_KEY: "sk_live_example" })).toThrow(StripeConfigurationError);
+    expect(() => getStripeTestConfiguration({})).toThrow(expect.objectContaining({ issue: "missing_secret" }));
+    expect(() => getStripeTestConfiguration({ STRIPE_SECRET_KEY: "sk_live_example" }))
+      .toThrow(expect.objectContaining({ issue: "non_test_secret" }));
   });
 
   it("uses a canonical configured URL and permits localhost only outside production", () => {
@@ -24,5 +27,11 @@ describe("Stripe sandbox configuration", () => {
       NEXT_PUBLIC_APP_URL: "https://flypath.example",
     })).toBe("https://flypath.example");
     expect(() => resolveStripeAppUrl("http://localhost:3000", { NODE_ENV: "production" })).toThrow(StripeConfigurationError);
+  });
+
+  it("classifies provider failures without retaining provider details", () => {
+    const authenticationError = new StripeProviderError("authentication");
+    expect(authenticationError).toMatchObject({ issue: "authentication", message: "Stripe provider is unavailable" });
+    expect(toStripeProviderError(new Error("secret provider detail"))).toMatchObject({ issue: "unknown" });
   });
 });

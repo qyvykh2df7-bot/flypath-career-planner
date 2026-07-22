@@ -21,6 +21,16 @@ const INVALID_REQUEST = "Solicitud de suscripción inválida.";
 const AUTHENTICATION_REQUIRED = "Inicia sesión para suscribirte a AeroComms Pro.";
 const CHECKOUT_UNAVAILABLE = "No hemos podido abrir la suscripción. Inténtalo de nuevo.";
 
+function logCheckoutUnavailable(error: AeroCommsProCheckoutError | StripeConfigurationError | StripeProviderError) {
+  const diagnostic = error instanceof AeroCommsProCheckoutError
+    ? `checkout_${error.kind}`
+    : error instanceof StripeConfigurationError
+      ? `stripe_configuration_${error.issue}`
+      : `stripe_provider_${error.issue}`;
+
+  console.error(`[FlyPath] AeroComms Pro Checkout unavailable: ${diagnostic}.`);
+}
+
 function response(body: Record<string, unknown>, status: number, intentId: string | null) {
   const result = NextResponse.json(body, { status });
   if (intentId) {
@@ -87,6 +97,7 @@ export async function POST(request: Request) {
       error instanceof StripeConfigurationError ||
       error instanceof StripeProviderError
     ) {
+      logCheckoutUnavailable(error);
       return response({ error: CHECKOUT_UNAVAILABLE }, 503, intentId);
     }
 

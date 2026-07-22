@@ -2,15 +2,30 @@ import "server-only";
 
 import Stripe from "stripe";
 
+export type StripeConfigurationIssue =
+  | "missing_secret"
+  | "non_test_secret"
+  | "invalid_app_url"
+  | "missing_production_app_url";
+
 export class StripeConfigurationError extends Error {
-  constructor() {
+  constructor(public readonly issue: StripeConfigurationIssue) {
     super("Stripe configuration is unavailable");
     this.name = "StripeConfigurationError";
   }
 }
 
+export type StripeProviderIssue =
+  | "authentication"
+  | "invalid_request"
+  | "idempotency"
+  | "rate_limit"
+  | "connection"
+  | "api"
+  | "unknown";
+
 export class StripeProviderError extends Error {
-  constructor() {
+  constructor(public readonly issue: StripeProviderIssue = "unknown") {
     super("Stripe provider is unavailable");
     this.name = "StripeProviderError";
   }
@@ -34,9 +49,8 @@ export function getStripeTestConfiguration(environment: StripeEnvironment = proc
   secretKey: string;
 } {
   const secretKey = readTrimmed(environment, "STRIPE_SECRET_KEY");
-  if (!secretKey || !secretKey.startsWith("sk_test_")) {
-    throw new StripeConfigurationError();
-  }
+  if (!secretKey) throw new StripeConfigurationError("missing_secret");
+  if (!secretKey.startsWith("sk_test_")) throw new StripeConfigurationError("non_test_secret");
 
   return { secretKey };
 }
@@ -68,21 +82,26 @@ export function resolveStripeAppUrl(
   try {
     url = new URL(candidate);
   } catch {
-    throw new StripeConfigurationError();
+    throw new StripeConfigurationError("invalid_app_url");
   }
 
   if (url.protocol !== "https:" && !(environment.NODE_ENV !== "production" && url.protocol === "http:" && url.hostname === "localhost")) {
-    throw new StripeConfigurationError();
+    throw new StripeConfigurationError("invalid_app_url");
   }
 
   if (!configuredUrl && environment.NODE_ENV === "production") {
-    throw new StripeConfigurationError();
+    throw new StripeConfigurationError("missing_production_app_url");
   }
 
   return url.origin;
 }
 
 export function toStripeProviderError(error: unknown): StripeProviderError {
-  if (error instanceof Stripe.errors.StripeError) return new StripeProviderError();
+  if (error instanceof Stripe.errors.StripeAuthenticationError) return new StripeProviderError("authentication");
+  if (error instanceof Stripe.errors.StripeInvalidRequestError) return new StripeProviderError("invalid_request");
+  if (error instanceof Stripe.errors.StripeIdempotencyError) return new StripeProviderError("idempotency");
+  if (error instanceof Stripe.errors.StripeRateLimitError) return new StripeProviderError("rate_limit");
+  if (error instanceof Stripe.errors.StripeConnectionError) return new StripeProviderError("connection");
+  if (error instanceof Stripe.errors.StripeAPIError) return new StripeProviderError("api");
   return new StripeProviderError();
 }

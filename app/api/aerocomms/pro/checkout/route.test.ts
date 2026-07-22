@@ -9,6 +9,7 @@ vi.mock("@/lib/commerce/aerocomms-pro-checkout", async (importOriginal) => {
 });
 
 import { AeroCommsProCheckoutError } from "@/lib/commerce/aerocomms-pro-checkout";
+import { StripeConfigurationError, StripeProviderError } from "@/lib/commerce/stripe";
 import { POST } from "./route";
 
 const origin = "https://flypath.test";
@@ -27,6 +28,7 @@ function request(payload: unknown, options: { origin?: string; cookie?: string }
 describe("POST /api/aerocomms/pro/checkout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.createCheckout.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_aerocomms" });
   });
 
@@ -76,5 +78,25 @@ describe("POST /api/aerocomms/pro/checkout", () => {
     const response = await POST(request({}));
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({ error: "No hemos podido abrir la suscripción. Inténtalo de nuevo." });
+    expect(console.error).toHaveBeenCalledWith(
+      "[FlyPath] AeroComms Pro Checkout unavailable: checkout_provider.",
+    );
+  });
+
+  it("logs only closed diagnostics for Stripe failures", async () => {
+    mocks.createCheckout.mockRejectedValue(new StripeConfigurationError("non_test_secret"));
+    const configurationResponse = await POST(request({}));
+    expect(configurationResponse.status).toBe(503);
+    expect(console.error).toHaveBeenLastCalledWith(
+      "[FlyPath] AeroComms Pro Checkout unavailable: stripe_configuration_non_test_secret.",
+    );
+
+    mocks.createCheckout.mockRejectedValue(new StripeProviderError("authentication"));
+    const providerResponse = await POST(request({}));
+    expect(providerResponse.status).toBe(503);
+    await expect(providerResponse.json()).resolves.toEqual({ error: "No hemos podido abrir la suscripción. Inténtalo de nuevo." });
+    expect(console.error).toHaveBeenLastCalledWith(
+      "[FlyPath] AeroComms Pro Checkout unavailable: stripe_provider_authentication.",
+    );
   });
 });
