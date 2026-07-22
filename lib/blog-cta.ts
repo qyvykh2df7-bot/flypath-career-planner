@@ -1,4 +1,5 @@
 import type { BlogPostMeta } from "./blog-types";
+import { FLYPATH_MENTORIA_CALCOM_URL } from "./mentorias/calcom";
 
 export type BlogCtaVariant = "routes" | "english" | "atpl" | "class1";
 
@@ -15,7 +16,7 @@ const ROUTES_CTA: BlogCtaContent = {
   title: "¿Quieres revisar tu ruta antes de tomar una decisión?",
   text: "Si estás comparando escuelas, costes o rutas de formación, empieza por la guía o reserva una mentoría FlyPath para revisar tu caso.",
   primary: { label: "Ver guía", href: "/guia-como-ser-piloto" },
-  secondary: { label: "Reservar mentoría", href: "/mentorias" },
+  secondary: { label: "Reservar mentoría", href: FLYPATH_MENTORIA_CALCOM_URL },
 };
 
 const ENGLISH_CTA: BlogCtaContent = {
@@ -23,14 +24,14 @@ const ENGLISH_CTA: BlogCtaContent = {
   title: "¿El inglés te está frenando?",
   text: "Si quieres practicar speaking, fraseología o comunicaciones ATC, prueba AeroComms.",
   primary: { label: "Ver AeroComms", href: "/aerocomms" },
-  secondary: { label: "Reservar mentoría", href: "/mentorias" },
+  secondary: { label: "Reservar mentoría", href: FLYPATH_MENTORIA_CALCOM_URL },
 };
 
 const ATPL_CTA: BlogCtaContent = {
   variant: "atpl",
   title: "¿Necesitas ayuda con tus asignaturas?",
   text: "Si una asignatura se te está atascando o quieres revisar tu ruta de estudio, reserva una mentoría FlyPath para priorizar con calma.",
-  primary: { label: "Reservar mentoría", href: "/mentorias" },
+  primary: { label: "Reservar mentoría", href: FLYPATH_MENTORIA_CALCOM_URL },
   secondary: { label: "Ver guía", href: "/guia-como-ser-piloto" },
 };
 
@@ -39,7 +40,7 @@ const CLASS1_CTA: BlogCtaContent = {
   title: "¿Quieres revisar tu ruta antes de tomar una decisión?",
   text: "Si estás comparando escuelas, costes o rutas de formación, empieza por la guía o reserva una mentoría FlyPath para revisar tu caso.",
   primary: { label: "Ver guía", href: "/guia-como-ser-piloto" },
-  secondary: { label: "Reservar mentoría", href: "/mentorias" },
+  secondary: { label: "Reservar mentoría", href: FLYPATH_MENTORIA_CALCOM_URL },
 };
 
 const ATPL_SLUGS = new Set([

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { FLYPATH_MENTORIA_CALCOM_URL } from "@/lib/mentorias/calcom";
 import {
   FREE_REPORT_NAVY_DIVIDER,
   FREE_REPORT_VALIDATION_BODY,
@@ -82,12 +82,14 @@ export function FreeReportValidationBlock() {
         />
         <p className="mt-6 text-center text-xs leading-relaxed text-[#faf8f4]/60">
           También puedes{" "}
-          <Link
-            href="/mentorias"
+          <a
+            href={FLYPATH_MENTORIA_CALCOM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-semibold text-[#c9a454] underline decoration-[#c9a454]/45 underline-offset-2 hover:decoration-[#c9a454]"
           >
             reservar una mentoría FlyPath
-          </Link>
+          </a>
           .
         </p>
       </div>

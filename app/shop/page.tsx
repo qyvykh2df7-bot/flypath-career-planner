@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { ShopInteractiveContent } from "@/components/shop/ShopInteractiveContent";
+import { FLYPATH_MENTORIA_CALCOM_URL } from "@/lib/mentorias/calcom";
 
 export default function ShopPage() {
   return (
@@ -74,13 +75,15 @@ export default function ShopPage() {
               >
                 Ver guía
               </Link>
-              <Link
-                href="/mentorias"
+              <a
+                href={FLYPATH_MENTORIA_CALCOM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-8 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-sm transition hover:border-[#c9a454]/45 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35 sm:w-auto"
               >
                 Reservar mentoría
                 <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-              </Link>
+              </a>
             </div>
           </div>
         </section>

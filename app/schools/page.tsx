@@ -26,6 +26,7 @@ import {
   trackPageViewed,
 } from "@/lib/tracking/client";
 import { initializeTrackingContext } from "@/lib/tracking/session";
+import { FLYPATH_MENTORIA_CALCOM_URL } from "@/lib/mentorias/calcom";
 
 const MAX_SELECTED = 2;
 const SELECTED_IDS_STORAGE_KEY = "flypath-schools-selected-ids";
@@ -236,12 +237,11 @@ function SchoolsPageContent() {
     };
   }, [searchParams, router, selectionHydrated, schoolsDataset]);
 
-  const notifyMentoring = () => {
+  const trackMentoringBooking = () => {
     const metadata = createTrackingCtaMetadata("schools_comparator_request_mentorship", {
       school_count: selectedSchools.length as 0 | 1 | 2,
     });
     if (metadata) trackCtaClicked(metadata);
-    showToast("Mentoría FlyPath próximamente");
   };
 
   const handleOpenCareerPlanner = useCallback(() => {
@@ -456,13 +456,15 @@ function SchoolsPageContent() {
                   >
                     Abrir Career Planner
                   </button>
-                  <button
-                    type="button"
-                    onClick={notifyMentoring}
+                  <a
+                    href={FLYPATH_MENTORIA_CALCOM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={trackMentoringBooking}
                     className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/22 bg-white/[0.07] px-6 py-2.5 text-[15px] font-semibold text-white transition hover:border-white/35 hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 lg:w-auto"
                   >
                     Reservar mentoría
-                  </button>
+                  </a>
                 </div>
               </div>
             </section>

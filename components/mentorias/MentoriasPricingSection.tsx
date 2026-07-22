@@ -1,16 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import { Calendar, CheckCircle2, ShieldCheck, User } from "lucide-react";
 import { MentorshipSupportModal } from "@/components/mentorias/MentorshipSupportModal";
+import { FLYPATH_MENTORIA_CALCOM_URL } from "@/lib/mentorias/calcom";
 import { trackPageViewed } from "@/lib/tracking/client";
 import { initializeTrackingContext } from "@/lib/tracking/session";
-
-const TOAST_MS = 2800;
-const MAIN_TOAST = "Reserva de mentoría próximamente";
-
-/** Sustituir por URL real de Cal.com cuando esté disponible */
-const CALCOM_MENTORIA_URL = "#";
 
 const MENTORIA_IDEAL_FOR = [
   "Dudas concretas",
@@ -29,24 +24,7 @@ const ACOMPANIMENT_INCLUDES = [
 const SECTION_LIGHT_BG = "bg-[#F7F8FA]";
 
 export function MentoriasPricingSection() {
-  const [toast, setToast] = useState<string | null>(null);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
-
-  const handleCalLinkClick = useCallback(
-    (e: MouseEvent<HTMLAnchorElement>, href: string, toastMessage?: string) => {
-      if (href === "#") {
-        e.preventDefault();
-        setToast(toastMessage ?? MAIN_TOAST);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast((t) => (t === toast ? null : t)), TOAST_MS);
-    return () => window.clearTimeout(id);
-  }, [toast]);
 
   useEffect(() => {
     initializeTrackingContext();
@@ -55,16 +33,6 @@ export function MentoriasPricingSection() {
 
   return (
     <>
-      {toast ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed right-3 top-3 z-50 max-w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2.5 text-[15px] text-white shadow-lg sm:right-5 sm:top-5"
-        >
-          {toast}
-        </div>
-      ) : null}
-
       <section
         id="modalidades-mentorias"
         className={`border-t border-[#071224]/[0.06] ${SECTION_LIGHT_BG} py-12 sm:py-14`}
@@ -113,8 +81,9 @@ export function MentoriasPricingSection() {
               </ul>
               <div className="mt-auto pt-5">
                 <a
-                  href={CALCOM_MENTORIA_URL}
-                  onClick={(e) => handleCalLinkClick(e, CALCOM_MENTORIA_URL, MAIN_TOAST)}
+                  href={FLYPATH_MENTORIA_CALCOM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#c9a454] bg-[#c9a454] px-6 py-2.5 text-[15px] font-semibold text-[#0f1a33] shadow-[0_10px_28px_rgba(201,164,84,0.3)] transition hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
                 >
                   <Calendar className="h-4 w-4 shrink-0" aria-hidden />

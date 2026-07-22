@@ -5,6 +5,7 @@ import { HomeFooter } from "@/components/home/HomeFooter";
 import { MentoriasMobileProcess } from "@/components/mentorias/MentoriasMobileProcess";
 import { MentoriasMobileReviews } from "@/components/mentorias/MentoriasMobileReviews";
 import { MentoriasPricingSection } from "@/components/mentorias/MentoriasPricingSection";
+import { FLYPATH_MENTORIA_CALCOM_URL } from "@/lib/mentorias/calcom";
 import {
   ArrowRight,
   BookOpen,
@@ -226,10 +227,12 @@ export default function MentoriasPage() {
                   ))}
                 </div>
 
-                {/* Native anchor buttons — scroll without JS */}
+                {/* Native anchors keep the booking CTA independent from client state. */}
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <a
-                    href="#modalidades-mentorias"
+                    href={FLYPATH_MENTORIA_CALCOM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-[#c9a454] bg-[#c9a454] px-7 py-3 text-[15px] font-semibold text-[#0f1a33] shadow-[0_12px_36px_rgba(201,164,84,0.4)] transition hover:border-[#ddb75c] hover:bg-[#ddb75c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/50"
                   >
                     <svg
