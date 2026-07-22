@@ -57,9 +57,13 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Auditoría independiente: **APROBADA**, sin hallazgos Critical ni Major. La única observación menor es endurecer la verificación de metadata al reutilizar un Price existente en una futura mejora; el catálogo sandbox actual ya es correcto.
 - Validación local: 605 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
 
-## Siguiente tarea
+## Tarea activa — 10F: sincronización operativa de mentorías Cal.com
 
-Commit, push y verificación de deployment de 10E. Mantener Stripe live, suscripciones, entitlements, AeroComms Pro, mentorías y guía física fuera de alcance.
+- La migración local `20260712220000_create_calcom_mentorship_booking_sync.sql` y la ruta server-only `/api/webhooks/calcom` están implementadas, sin aplicar todavía en Supabase remoto.
+- Cal.com es la fuente de verdad para disponibilidad, reserva, calendario, Google Meet, emails operativos y el pago Stripe conectado a Cal.com. FlyPath recibe solo una proyección operativa idempotente de reservas y eventos.
+- La siguiente tarea es auditar la migración y el contrato del webhook antes de aplicarlos, después configurar el webhook en Cal.com con `CALCOM_WEBHOOK_SECRET` y hacer QA real de creación, pago, cancelación, reprogramación y evento tardío.
+- Validación local actual: 623 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
+- Mantener fuera de alcance: Stripe live, Commerce de mentorías, productos/precios/pedidos/pagos FlyPath, entitlements, emails FlyPath, tracking de marketing, Warhome UI y asociación automática de reservas por email con cuentas o leads.
 
 ## Implementado en Fase 7
 

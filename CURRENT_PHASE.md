@@ -16,6 +16,10 @@
 
 **10E — Guía digital "Cómo ser Piloto"** está **CLOSED / COMPLETED / TESTED** en Stripe sandbox y su auditoría independiente quedó **APROBADA**, sin hallazgos Critical ni Major. Reutiliza el checkout, webhook firmado, ledger y entrega protegida de 10C–10D con el producto cerrado `como_ser_piloto_guide`, precio único de **14,95 EUR** y compra invitada o autenticada. La migración `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto; el Product y Price sandbox se sincronizan idempotentemente contra `product_prices`. El navegador solo envía la clave cerrada del producto. El webhook confirma el pago y emite una entrega independiente `como_ser_piloto_guide_delivery`: su token opaco `HttpOnly`, hasheado, limitado a cinco usos y con caducidad no puede descargar el informe Career Planner ni a la inversa. El PDF final de 95 páginas ya no está en `public`; se sirve solo desde el asset privado tras validar el pago. La QA sandbox completó Checkout a 14,95 EUR, webhook firmado, pago interno, popup `confirmed` y consumo correcto de la entrega. No hay entitlement y Stripe live permanece desactivado.
 
+**10F — sincronización operativa de mentorías con Cal.com** está implementado localmente y pendiente de auditoría, aplicación remota y QA con eventos reales. `20260712220000_create_calcom_mentorship_booking_sync.sql` crea la proyección privada `mentorship_bookings` y el ledger mínimo `cal_webhook_events`; ambos quedan con RLS y acceso exclusivo de `service_role`. `/api/webhooks/calcom` valida sobre body crudo la firma HMAC SHA-256 con `CALCOM_WEBHOOK_SECRET` y solo procesa `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`. La RPC atómica deduplica por hash y descarta eventos del proveedor fuera de orden. Cal.com sigue siendo la fuente de verdad de agenda, Meet, emails y Stripe conectado a Cal.com; FlyPath no crea productos, precios, pedidos, Checkout, pagos internos, entitlements ni emails propios para mentorías. Tampoco vincula una reserva a `auth.users` o `leads` por coincidencia de email.
+
+Validación local de 10F: 623 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos. La migración no se ha aplicado ni se ha configurado todavía el webhook en Cal.com.
+
 Hotfix de compatibilidad PDF: los assets exclusivos del informe premium se normalizaron a PNG/JPEG reales mediante `PREMIUM_PDF_PAGE_IMAGES`, sin cambiar las previews web que mantienen sus WebP. Se revisó visualmente un PDF real completo de 11 páginas y desaparecieron los avisos `Not valid image extension`. No hubo cambios en Stripe, pagos, webhook ni lógica comercial.
 
 Validación local de 10E: 605 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
@@ -24,7 +28,7 @@ Validación local de 10E: 605 pruebas correctas, TypeScript y `git diff --check`
 
 - No hay cuenta FlyPath obligatoria para pagar. Career Planner Premium y las guías digitales podrán comprarse como invitado; la confirmación real siempre llegará por webhook y la entrega tendrá recuperación segura.
 - AeroComms Pro puede pagarse como invitado, pero requiere una cuenta FlyPath para utilizar el acceso. Las compras de invitado se reclamarán mediante email verificado o token seguro; el entitlement server-side sustituirá el indicador Pro editable de `localStorage`.
-- Pre-PPL conserva waitlist hasta terminarse. Mentorías pasan por Cal.com y su futuro webhook; la guía física abre Amazon y no crea un checkout FlyPath.
+- Pre-PPL conserva waitlist hasta terminarse. Mentorías pasan por Cal.com: la proyección server-only ya está preparada localmente y espera su aplicación/QA de webhook; la guía física abre Amazon y no crea un checkout FlyPath.
 - EUR es la moneda inicial. Reembolso digital total: revocación de acceso/entrega; parcial: revisión manual inicial.
 
 ## Cierre técnico de Fase 9

@@ -1,14 +1,14 @@
-# Última sesión — guía digital Cómo ser Piloto integrada en Commerce
+# Última sesión — sincronización operativa de mentorías con Cal.com
 
 **Fecha:** 2026-07-21
 **Rama:** `main`
-**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B–10E están cerrados y probados en Stripe sandbox; `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. No hay Stripe live, entitlements, suscripciones ni otros productos activados.
+**Estado:** Fase 9 permanece cerrada. Fase 10 continúa activa. 10B–10E están cerrados y probados en Stripe sandbox; `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. 10F está implementado localmente y pendiente de auditoría, aplicación remota y QA con Cal.com. No hay Stripe live, entitlements, suscripciones ni otros productos activados.
 
 ## Decisiones de Fase 10
 
 - Una cuenta FlyPath no es obligatoria para pagar. Career Planner Premium y guías digitales admitirán Stripe Checkout como invitado; un webhook validará el pago en servidor y la entrega deberá recuperarse con seguridad.
 - AeroComms Pro se podrá comprar como invitado, pero se utilizará con cuenta FlyPath. Las compras sin cuenta quedarán pendientes de reclamación por email verificado o token seguro; el entitlement server-side reemplazará el estado Pro local editable.
-- Pre-PPL sigue como waitlist. Mentorías usan Cal.com para agenda y pago, con integración futura por webhook de Cal.com. La guía física dirige a Amazon y FlyPath solo registra el clic externo.
+- Pre-PPL sigue como waitlist. Mentorías usan Cal.com para agenda y pago; la sincronización operativa se implementó en local mediante webhook firmado y no usa Commerce FlyPath. La guía física dirige a Amazon y FlyPath solo registra el clic externo.
 - La moneda inicial es EUR. El reembolso digital total revoca acceso/entrega; el parcial se revisa manualmente al inicio.
 
 ## Cierre — 10B
@@ -53,6 +53,17 @@
 - Auditoría independiente: **APROBADA**, sin hallazgos Critical ni Major. Se identificó solo una mejora futura no bloqueante para validar metadata al reutilizar un Price Stripe ya existente; el catálogo sandbox actual está correctamente vinculado.
 - Validación local: 605 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos.
 
+## Implementación local — 10F: sincronización operativa de mentorías Cal.com
+
+- Nueva migración local: `20260712220000_create_calcom_mentorship_booking_sync.sql`. Aún no está aplicada en Supabase remoto.
+- `mentorship_bookings` es una proyección privada de Cal.com: referencias de reserva/evento, asistente, fechas, zona horaria y estados cerrados de reserva/pago. `user_id` y `lead_id` son opcionales, pero el webhook no intenta asociarlos por email.
+- `cal_webhook_events` almacena solo el hash SHA-256 del body, tipo de evento, UID de reserva, tiempos y estado de proceso. No conserva body, enlaces Meet, notas, datos de pago o secretos.
+- `/api/webhooks/calcom` usa body crudo y HMAC SHA-256 (`x-cal-signature-256` + `CALCOM_WEBHOOK_SECRET`), admite exclusivamente `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`.
+- La RPC `apply_calcom_mentorship_webhook_event` es `SECURITY DEFINER`, fija `search_path`, se ejecuta solo con `service_role`, deduplica por hash y descarta eventos con fecha de proveedor anterior a la última aplicada.
+- Cal.com sigue siendo fuente de verdad de disponibilidad, reserva, calendario, Meet, emails y pago Stripe conectado a Cal.com. FlyPath no usa Commerce, no crea productos, precios, pedidos, Checkout, pagos internos, entitlements, emails ni marketing para mentorías.
+- Referencia técnica: `docs/ai/payments/flypath-phase-10-calcom-mentorship-sync.md`.
+- Validación local: 623 pruebas correctas, TypeScript, lint focalizado y `git diff --check` correctos. No se aplicó la migración ni se configuró un webhook en Cal.com.
+
 ## Cierre de Fase 9
 
 - `20260712130000_harden_public_school_catalog_access.sql` está aplicada en remoto: la lectura anónima de catálogo pasa por un contrato público cerrado, sin `internal_notes`, `school_entry_snapshot`, `comparator_exclusion_note`, notas editoriales ni metadata de gestión.
@@ -70,8 +81,9 @@
 
 ## Siguiente tarea — Fase 10
 
-- Commit, push y verificación de deployment de 10E.
-- Mantener Stripe live, suscripciones, entitlements, AeroComms Pro, mentorías y guía física fuera de alcance.
+- Auditar `20260712220000_create_calcom_mentorship_booking_sync.sql`, `lib/mentorias/calcom-webhooks.ts` y `/api/webhooks/calcom` antes de aplicar la migración.
+- Configurar el webhook de Cal.com con el secreto server-only y probar creación, pago, cancelación, reprogramación, duplicados y eventos fuera de orden.
+- Mantener Stripe live, suscripciones, entitlements, AeroComms Pro, Commerce de mentorías, Warhome UI, emails FlyPath y tracking de marketing fuera de alcance.
 - Mantener cuentas, marketing, leads, opiniones y entitlements como entidades separadas.
 
 ## Cierre confirmado de Fase 8
