@@ -11,7 +11,7 @@ function PaywallPageContent() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-[#07111F] px-6 pb-8 pt-6">
-      <PaywallContent onClose={() => router.back()} checkoutNotice={checkoutNotice} />
+      <PaywallContent onClose={() => router.replace("/aerocomms/app/today")} checkoutNotice={checkoutNotice} />
     </main>
   );
 }
