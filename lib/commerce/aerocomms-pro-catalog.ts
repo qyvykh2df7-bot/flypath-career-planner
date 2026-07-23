@@ -1,6 +1,7 @@
 /**
  * Closed catalog contract for the future AeroComms Pro subscription.
- * This module deliberately contains no Stripe identifiers or checkout logic.
+ * This client-safe module deliberately contains no Stripe identifiers or
+ * checkout logic. Provider bindings live in the server-only stripe catalog.
  */
 export const AEROCOMMS_PRO_CATALOG = {
   productKey: "aerocomms_pro",
@@ -13,8 +14,6 @@ export const AEROCOMMS_PRO_CATALOG = {
   billingInterval: "month",
   intervalCount: 1,
   gracePeriodDays: 2,
-  // Stripe Test identifier bound in the immutable server-side price catalog.
-  stripePriceId: "price_1Tw6JqKuujVRKb0Pr4jCc5oQ",
 } as const;
 
 /**
@@ -29,22 +28,4 @@ export const AEROCOMMS_PRO_LEGACY_CATALOG = {
   billingType: "recurring",
   billingInterval: "month",
   intervalCount: 1,
-  stripePriceId: "price_1TvgG4KuujVRKb0PkofwZMz7",
 } as const;
-
-export function isAeroCommsProStripePriceId(value: unknown): value is string {
-  return value === AEROCOMMS_PRO_CATALOG.stripePriceId
-    || value === AEROCOMMS_PRO_LEGACY_CATALOG.stripePriceId;
-}
-
-export function isAeroCommsProCatalogPrice(value: {
-  priceKey: string;
-  stripePriceId: string | null;
-}): boolean {
-  return (
-    (value.priceKey === AEROCOMMS_PRO_CATALOG.priceKey
-      && value.stripePriceId === AEROCOMMS_PRO_CATALOG.stripePriceId)
-    || (value.priceKey === AEROCOMMS_PRO_LEGACY_CATALOG.priceKey
-      && value.stripePriceId === AEROCOMMS_PRO_LEGACY_CATALOG.stripePriceId)
-  );
-}

@@ -3,21 +3,26 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import {
-  getStripeTestConfiguration,
+  getStripeConfiguration,
   resolveStripeAppUrl,
   StripeConfigurationError,
   StripeProviderError,
   toStripeProviderError,
 } from "./stripe";
 
-describe("Stripe sandbox configuration", () => {
-  it("requires a test key and rejects a live key", () => {
-    expect(getStripeTestConfiguration({ STRIPE_SECRET_KEY: "sk_test_example" })).toEqual({
+describe("Stripe configuration", () => {
+  it("derives the provider mode from a supported server-only key", () => {
+    expect(getStripeConfiguration({ STRIPE_SECRET_KEY: "sk_test_example" })).toEqual({
       secretKey: "sk_test_example",
+      mode: "test",
     });
-    expect(() => getStripeTestConfiguration({})).toThrow(expect.objectContaining({ issue: "missing_secret" }));
-    expect(() => getStripeTestConfiguration({ STRIPE_SECRET_KEY: "sk_live_example" }))
-      .toThrow(expect.objectContaining({ issue: "non_test_secret" }));
+    expect(getStripeConfiguration({ STRIPE_SECRET_KEY: "sk_live_example" })).toEqual({
+      secretKey: "sk_live_example",
+      mode: "live",
+    });
+    expect(() => getStripeConfiguration({})).toThrow(expect.objectContaining({ issue: "missing_secret" }));
+    expect(() => getStripeConfiguration({ STRIPE_SECRET_KEY: "not_a_stripe_key" }))
+      .toThrow(expect.objectContaining({ issue: "invalid_secret" }));
   });
 
   it("uses a canonical configured URL and permits localhost only outside production", () => {

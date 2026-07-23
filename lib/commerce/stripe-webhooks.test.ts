@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: mocks.getAdmin }));
 vi.mock("./stripe", () => ({
+  getStripeConfiguration: () => ({ mode: "test" }),
   getStripeClient: () => ({
     webhooks: { constructEvent: mocks.constructEvent },
     checkout: { sessions: { retrieve: mocks.retrieve } },
@@ -85,7 +86,9 @@ describe("Career Planner Stripe webhook boundary", () => {
     await expect(processCareerPlannerStripeWebhook(event("checkout.session.completed"), "{}"))
       .resolves.toBe("processed");
     expect(mocks.retrieve).toHaveBeenCalledWith("cs_test_valid", { expand: ["line_items.data.price"] });
-    expect(mocks.rpc).toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.objectContaining({
+    expect(mocks.rpc).toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.objectContaining({
+      p_stripe_mode: "test",
+      p_product_key: "career_planner",
       p_checkout_attempt_id: attemptId,
       p_order_id: orderId,
       p_product_price_id: priceId,
@@ -98,7 +101,7 @@ describe("Career Planner Stripe webhook boundary", () => {
   it("keeps existing one-time Checkout settlement on the shared webhook route", async () => {
     await expect(processStripeWebhook(event("checkout.session.completed"), "{}"))
       .resolves.toBe("processed");
-    expect(mocks.rpc).toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.anything());
+    expect(mocks.rpc).toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.anything());
   });
 
   it.each([
@@ -111,13 +114,13 @@ describe("Career Planner Stripe webhook boundary", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("record_career_planner_stripe_webhook_ignored", expect.objectContaining({
       p_error_code: "checkout_validation_failed",
     }));
-    expect(mocks.rpc).not.toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.anything());
+    expect(mocks.rpc).not.toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.anything());
   });
 
   it("passes the Stripe price to the atomic database boundary, which rejects a catalog mismatch", async () => {
     mocks.retrieve.mockResolvedValue(paidSession({ line_items: { data: [{ price: { id: "price_wrong" } }] } }));
     await processCareerPlannerStripeWebhook(event("checkout.session.completed"), "{}");
-    expect(mocks.rpc).toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.objectContaining({
+    expect(mocks.rpc).toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.objectContaining({
       p_stripe_price_id: "price_wrong",
     }));
   });
@@ -126,11 +129,12 @@ describe("Career Planner Stripe webhook boundary", () => {
     mocks.retrieve.mockResolvedValue(paidGuideSession());
     await expect(processCareerPlannerStripeWebhook(event("checkout.session.completed"), "{}"))
       .resolves.toBe("processed");
-    expect(mocks.rpc).toHaveBeenCalledWith("process_como_ser_piloto_guide_checkout_completed", expect.objectContaining({
+    expect(mocks.rpc).toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.objectContaining({
+      p_product_key: "como_ser_piloto_guide",
       p_amount: 1495,
       p_stripe_price_id: "price_test_como_ser_piloto_guide",
     }));
-    expect(mocks.rpc).not.toHaveBeenCalledWith("process_career_planner_checkout_completed", expect.anything());
+    expect(mocks.rpc).not.toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.objectContaining({ p_product_key: "career_planner" }));
   });
 
   it("records payment success as redundant so it cannot create a second payment", async () => {

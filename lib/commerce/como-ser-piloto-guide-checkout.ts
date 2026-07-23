@@ -9,7 +9,8 @@ import {
   isStripeCheckoutUrl,
 } from "./checkout";
 import { CommerceCheckoutError } from "./career-planner-checkout";
-import { getStripeClient, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
+import { getStripeCatalogBinding } from "./stripe-catalog";
+import { getStripeClient, getStripeConfiguration, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
 
 type PreparedGuideCheckoutAttempt = {
   checkout_attempt_id: string;
@@ -32,13 +33,23 @@ function asPreparedGuideCheckoutAttempt(value: unknown): PreparedGuideCheckoutAt
   return value as PreparedGuideCheckoutAttempt;
 }
 
-async function prepareCheckoutAttempt(idempotencyKey: string, userId: string | null): Promise<PreparedGuideCheckoutAttempt> {
-  const { data, error } = await getSupabaseAdmin().rpc("prepare_como_ser_piloto_guide_checkout", {
+async function prepareCheckoutAttempt(
+  idempotencyKey: string,
+  userId: string | null,
+  stripeMode: "test" | "live",
+  expectedStripePriceId: string,
+): Promise<PreparedGuideCheckoutAttempt> {
+  const { data, error } = await getSupabaseAdmin().rpc("prepare_stripe_catalog_checkout", {
+    p_product_key: "como_ser_piloto_guide",
+    p_price_key: COMO_SER_PILOTO_GUIDE_PRICE_KEY,
+    p_stripe_mode: stripeMode,
     p_idempotency_key: idempotencyKey,
     p_user_id: userId,
   }).single();
   const prepared = asPreparedGuideCheckoutAttempt(data);
-  if (error || !prepared) throw new CommerceCheckoutError("catalog");
+  if (error || !prepared || prepared.stripe_price_id !== expectedStripePriceId) {
+    throw new CommerceCheckoutError("catalog");
+  }
   return prepared;
 }
 
@@ -75,7 +86,9 @@ export async function createComoSerPilotoGuideCheckout(input: { idempotencyKey: 
   const sessionState = await getFlyPathSessionState();
   if (sessionState.status === "unavailable") throw new CommerceCheckoutError("session");
   const currentUserId = sessionState.status === "authenticated" ? sessionState.account.id : null;
-  const prepared = await prepareCheckoutAttempt(input.idempotencyKey, currentUserId);
+  const stripeConfiguration = getStripeConfiguration();
+  const expectedStripePriceId = getStripeCatalogBinding("como_ser_piloto_guide", stripeConfiguration.mode).stripePriceId;
+  const prepared = await prepareCheckoutAttempt(input.idempotencyKey, currentUserId, stripeConfiguration.mode, expectedStripePriceId);
   if (await getCheckoutAttemptOwner(prepared.checkout_attempt_id) !== currentUserId) throw new CommerceCheckoutError("intent_conflict");
   if (prepared.stripe_checkout_session_id) return { url: await getExistingStripeCheckoutUrl(prepared.stripe_checkout_session_id) };
 

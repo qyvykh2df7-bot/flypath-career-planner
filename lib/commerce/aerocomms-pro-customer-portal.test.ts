@@ -5,10 +5,11 @@ const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   createPortalSession: vi.fn(),
   getStripeClient: vi.fn(),
+  getStripeConfiguration: vi.fn(),
   resolveStripeAppUrl: vi.fn(),
   toProviderError: vi.fn(),
   subscriptionMaybeSingle: vi.fn(),
-  priceMaybeSingle: vi.fn(),
+  bindingMaybeSingle: vi.fn(),
   customerMaybeSingle: vi.fn(),
 }));
 
@@ -17,6 +18,7 @@ vi.mock("@/lib/auth/session", () => ({ getFlyPathSessionState: mocks.getSessionS
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: () => ({ from: mocks.from }) }));
 vi.mock("./stripe", () => ({
   getStripeClient: mocks.getStripeClient,
+  getStripeConfiguration: mocks.getStripeConfiguration,
   resolveStripeAppUrl: mocks.resolveStripeAppUrl,
   toStripeProviderError: mocks.toProviderError,
 }));
@@ -34,9 +36,11 @@ function setupPersistence() {
       return {
         select: () => ({
           eq: () => ({
-            in: () => ({
-              order: () => ({
-                limit: () => ({ maybeSingle: mocks.subscriptionMaybeSingle }),
+            eq: () => ({
+              in: () => ({
+                order: () => ({
+                  limit: () => ({ maybeSingle: mocks.subscriptionMaybeSingle }),
+                }),
               }),
             }),
           }),
@@ -44,10 +48,14 @@ function setupPersistence() {
       };
     }
 
-    if (table === "product_prices") {
+    if (table === "stripe_catalog_bindings") {
       return {
         select: () => ({
-          eq: () => ({ maybeSingle: mocks.priceMaybeSingle }),
+          eq: () => ({
+            eq: () => ({
+              eq: () => ({ maybeSingle: mocks.bindingMaybeSingle }),
+            }),
+          }),
         }),
       };
     }
@@ -64,14 +72,12 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getSessionState.mockResolvedValue({ status: "authenticated", account: { id: accountId, email: null } });
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "test" });
     mocks.subscriptionMaybeSingle.mockResolvedValue({
       data: { product_price_id: "price-record", stripe_customer_record_id: "customer-record" },
       error: null,
     });
-    mocks.priceMaybeSingle.mockResolvedValue({
-      data: { price_key: "aerocomms_pro_monthly_eur_599", stripe_price_id: "price_1Tw6JqKuujVRKb0Pr4jCc5oQ" },
-      error: null,
-    });
+    mocks.bindingMaybeSingle.mockResolvedValue({ data: { id: "binding-record" }, error: null });
     mocks.customerMaybeSingle.mockResolvedValue({ data: { user_id: accountId, stripe_customer_id: "cus_aerocomms" }, error: null });
     mocks.resolveStripeAppUrl.mockReturnValue("https://flypath.test");
     mocks.createPortalSession.mockResolvedValue({ url: "https://billing.stripe.com/p/session/test_aerocomms" });
@@ -93,7 +99,7 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
       .resolves.toEqual({ url: "https://billing.stripe.com/p/session/test_aerocomms" });
 
     expect(mocks.from).toHaveBeenNthCalledWith(1, "subscriptions");
-    expect(mocks.from).toHaveBeenNthCalledWith(2, "product_prices");
+    expect(mocks.from).toHaveBeenNthCalledWith(2, "stripe_catalog_bindings");
     expect(mocks.from).toHaveBeenNthCalledWith(3, "stripe_customers");
     expect(mocks.createPortalSession).toHaveBeenCalledWith({
       customer: "cus_aerocomms",
@@ -101,14 +107,13 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
     });
   });
 
-  it("keeps the portal available for a subscription on the closed legacy price", async () => {
-    mocks.priceMaybeSingle.mockResolvedValueOnce({
-      data: { price_key: "aerocomms_pro_monthly_eur", stripe_price_id: "price_1TvgG4KuujVRKb0PkofwZMz7" },
-      error: null,
-    });
+  it("does not open a Live portal from a Test subscription record", async () => {
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "live" });
+    mocks.subscriptionMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
 
     await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
-      .resolves.toEqual({ url: "https://billing.stripe.com/p/session/test_aerocomms" });
+      .rejects.toMatchObject({ kind: "subscription" });
+    expect(mocks.createPortalSession).not.toHaveBeenCalled();
   });
 
   it("rejects users without an eligible subscription or a customer linked to another account", async () => {
@@ -125,10 +130,7 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
       .rejects.toMatchObject({ kind: "subscription" });
     expect(mocks.createPortalSession).not.toHaveBeenCalled();
 
-    mocks.priceMaybeSingle.mockResolvedValueOnce({
-      data: { price_key: "another_product_monthly_eur", stripe_price_id: "price_other" },
-      error: null,
-    });
+    mocks.bindingMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
     await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
       .rejects.toMatchObject({ kind: "subscription" });
     expect(mocks.createPortalSession).not.toHaveBeenCalled();

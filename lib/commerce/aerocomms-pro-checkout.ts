@@ -3,8 +3,9 @@ import "server-only";
 import { getFlyPathSessionState } from "@/lib/auth/session";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { AEROCOMMS_PRO_CATALOG } from "./aerocomms-pro-catalog";
+import { getStripeCatalogBinding } from "./stripe-catalog";
 import { isStripeCheckoutUrl } from "./checkout";
-import { getStripeClient, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
+import { getStripeClient, getStripeConfiguration, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
 import { AEROCOMMS_PRO_CHECKOUT_RETURN_PATH } from "@/lib/aerocomms/pro-checkout-return";
 
 export class AeroCommsProCheckoutError extends Error {
@@ -46,14 +47,19 @@ function asPreparedAeroCommsProCheckout(value: unknown): PreparedAeroCommsProChe
 async function prepareCheckoutAttempt(
   idempotencyKey: string,
   userId: string,
+  stripeMode: "test" | "live",
+  expectedStripePriceId: string,
 ): Promise<PreparedAeroCommsProCheckout> {
-  const { data, error } = await getSupabaseAdmin().rpc("prepare_aerocomms_pro_subscription_checkout", {
+  const { data, error } = await getSupabaseAdmin().rpc("prepare_aerocomms_pro_subscription_checkout_v2", {
     p_idempotency_key: idempotencyKey,
     p_user_id: userId,
+    p_stripe_mode: stripeMode,
   }).single();
 
   const prepared = asPreparedAeroCommsProCheckout(data);
-  if (error || !prepared) throw new AeroCommsProCheckoutError("catalog");
+  if (error || !prepared || prepared.stripePriceId !== expectedStripePriceId) {
+    throw new AeroCommsProCheckoutError("catalog");
+  }
   return prepared;
 }
 
@@ -97,7 +103,7 @@ async function getExistingStripeCheckoutUrl(sessionId: string): Promise<string> 
 }
 
 /**
- * Starts a hosted Stripe Test subscription Checkout for the validated account.
+ * Starts a hosted Stripe subscription Checkout for the validated account.
  * It intentionally creates neither a subscription record nor an entitlement.
  */
 export async function createAeroCommsProSubscriptionCheckout(input: {
@@ -107,8 +113,10 @@ export async function createAeroCommsProSubscriptionCheckout(input: {
   const sessionState = await getFlyPathSessionState();
   if (sessionState.status === "unavailable") throw new AeroCommsProCheckoutError("session");
   if (sessionState.status !== "authenticated") throw new AeroCommsProCheckoutError("authentication_required");
+  const stripeConfiguration = getStripeConfiguration();
+  const expectedStripePriceId = getStripeCatalogBinding("aerocomms_pro", stripeConfiguration.mode).stripePriceId;
 
-  const prepared = await prepareCheckoutAttempt(input.idempotencyKey, sessionState.account.id);
+  const prepared = await prepareCheckoutAttempt(input.idempotencyKey, sessionState.account.id, stripeConfiguration.mode, expectedStripePriceId);
   if (await getCheckoutAttemptOwner(prepared.checkoutAttemptId) !== sessionState.account.id) {
     throw new AeroCommsProCheckoutError("intent_conflict");
   }

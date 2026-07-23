@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import Stripe from "stripe";
 import { isCommerceUuid } from "./contracts";
 import { COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT } from "./checkout";
-import { getStripeClient, StripeConfigurationError } from "./stripe";
+import { getStripeClient, getStripeConfiguration, StripeConfigurationError } from "./stripe";
 import {
   AeroCommsProWebhookUnavailableError,
   processAeroCommsProStripeWebhook,
@@ -149,28 +149,12 @@ async function processCompletedEvent(event: Stripe.Event, rawPayload: string): P
     return;
   }
 
-  if (guide) {
-    const { error } = await getSupabaseAdmin().rpc("process_como_ser_piloto_guide_checkout_completed", {
-      p_event_id: event.id,
-      p_payload_hash: payloadHash(rawPayload),
-      p_provider_created_at: occurredAt(event),
-      p_stripe_session_id: session.id,
-      p_stripe_payment_intent_id: paymentIntentId,
-      p_checkout_attempt_id: references.checkoutAttemptId,
-      p_order_id: references.orderId,
-      p_product_price_id: references.productPriceId,
-      p_stripe_price_id: stripePriceId,
-      p_amount: session.amount_total,
-      p_currency: session.currency,
-    });
-    if (error) throw new StripeWebhookError("unavailable");
-    return;
-  }
-
-  const { error } = await getSupabaseAdmin().rpc("process_career_planner_checkout_completed", {
+  const { error } = await getSupabaseAdmin().rpc("settle_stripe_catalog_checkout_v2", {
     p_event_id: event.id,
     p_payload_hash: payloadHash(rawPayload),
     p_provider_created_at: occurredAt(event),
+    p_stripe_mode: getStripeConfiguration().mode,
+    p_product_key: guide ? "como_ser_piloto_guide" : "career_planner",
     p_stripe_session_id: session.id,
     p_stripe_payment_intent_id: paymentIntentId,
     p_checkout_attempt_id: references.checkoutAttemptId,

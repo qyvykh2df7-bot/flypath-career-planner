@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getSessionState: vi.fn(),
   getAdmin: vi.fn(),
   getStripeClient: vi.fn(),
+  getStripeConfiguration: vi.fn(),
   resolveAppUrl: vi.fn(),
   toProviderError: vi.fn(),
   rpc: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("@/lib/auth/session", () => ({ getFlyPathSessionState: mocks.getSessionS
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: mocks.getAdmin }));
 vi.mock("./stripe", () => ({
   getStripeClient: mocks.getStripeClient,
+  getStripeConfiguration: mocks.getStripeConfiguration,
   resolveStripeAppUrl: mocks.resolveAppUrl,
   toStripeProviderError: mocks.toProviderError,
 }));
@@ -42,7 +44,7 @@ const prepared = {
   checkout_attempt_id: attemptId,
   order_id: "7b1d8768-7a01-4e6f-b2dd-0d399857f8dd",
   product_price_id: "8b1d8768-7a01-4e6f-b2dd-0d399857f8dd",
-  stripe_price_id: "price_test_como_ser_piloto_guide",
+  stripe_price_id: "price_1TvcPrKuujVRKb0P6Z8XGp7v",
   stripe_checkout_session_id: null,
   checkout_status: "initiated",
 };
@@ -51,6 +53,7 @@ describe("Cómo ser Piloto guide Checkout server boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getSessionState.mockResolvedValue({ status: "anonymous" });
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "test" });
     mocks.single.mockResolvedValue({ data: prepared, error: null });
     mocks.rpc.mockReturnValue({ single: mocks.single });
     mocks.or.mockReturnValue({ select: mocks.select });
@@ -74,7 +77,10 @@ describe("Cómo ser Piloto guide Checkout server boundary", () => {
     await expect(createComoSerPilotoGuideCheckout({ idempotencyKey: attemptId, requestOrigin: "http://localhost:3000" })).resolves.toEqual({
       url: "https://checkout.stripe.com/c/pay/cs_test_guide",
     });
-    expect(mocks.rpc).toHaveBeenCalledWith("prepare_como_ser_piloto_guide_checkout", {
+    expect(mocks.rpc).toHaveBeenCalledWith("prepare_stripe_catalog_checkout", {
+      p_product_key: "como_ser_piloto_guide",
+      p_price_key: "como_ser_piloto_guide_eur",
+      p_stripe_mode: "test",
       p_idempotency_key: attemptId,
       p_user_id: null,
     });
@@ -93,7 +99,10 @@ describe("Cómo ser Piloto guide Checkout server boundary", () => {
     mocks.getSessionState.mockResolvedValue({ status: "authenticated", account: { id: accountId, email: null } });
     mocks.ownerMaybeSingle.mockResolvedValue({ data: { user_id: accountId }, error: null });
     await createComoSerPilotoGuideCheckout({ idempotencyKey: attemptId, requestOrigin: "http://localhost:3000" });
-    expect(mocks.rpc).toHaveBeenCalledWith("prepare_como_ser_piloto_guide_checkout", {
+    expect(mocks.rpc).toHaveBeenCalledWith("prepare_stripe_catalog_checkout", {
+      p_product_key: "como_ser_piloto_guide",
+      p_price_key: "como_ser_piloto_guide_eur",
+      p_stripe_mode: "test",
       p_idempotency_key: attemptId,
       p_user_id: accountId,
     });
@@ -116,6 +125,14 @@ describe("Cómo ser Piloto guide Checkout server boundary", () => {
     mocks.getSessionState.mockResolvedValue({ status: "unavailable" });
     await expect(createComoSerPilotoGuideCheckout({ idempotencyKey: attemptId, requestOrigin: "http://localhost:3000" })).rejects.toMatchObject({ kind: "session" });
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the prepared price belongs to another Stripe mode", async () => {
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "live" });
+
+    await expect(createComoSerPilotoGuideCheckout({ idempotencyKey: attemptId, requestOrigin: "http://localhost:3000" }))
+      .rejects.toMatchObject({ kind: "catalog" });
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it("keeps the approved guide commercial constants explicit", () => {

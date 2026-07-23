@@ -3,11 +3,9 @@ import "server-only";
 import { createHash } from "node:crypto";
 import Stripe from "stripe";
 import { isCommerceUuid } from "./contracts";
-import {
-  AEROCOMMS_PRO_CATALOG,
-  isAeroCommsProStripePriceId,
-} from "./aerocomms-pro-catalog";
-import { getStripeClient } from "./stripe";
+import { AEROCOMMS_PRO_CATALOG } from "./aerocomms-pro-catalog";
+import { isAeroCommsProStripePriceId } from "./stripe-catalog";
+import { getStripeClient, getStripeConfiguration, type StripeMode } from "./stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const AEROCOMMS_PRO_EVENT_TYPES = [
@@ -104,7 +102,7 @@ function normalizeSubscriptionStatus(value: unknown): AeroCommsSubscriptionSnaps
     : null;
 }
 
-function asSubscriptionSnapshot(value: unknown): AeroCommsSubscriptionSnapshot | null {
+function asSubscriptionSnapshot(value: unknown, stripeMode: StripeMode): AeroCommsSubscriptionSnapshot | null {
   if (!isRecord(value)) return null;
   const subscriptionId = objectId(value);
   const customerId = resourceId(value.customer);
@@ -117,7 +115,7 @@ function asSubscriptionSnapshot(value: unknown): AeroCommsSubscriptionSnapshot |
   const stripePriceId = resourceId(item.price);
   const currentPeriodStart = integerTimestampToIso(item.current_period_start);
   const currentPeriodEnd = integerTimestampToIso(item.current_period_end);
-  if (!stripePriceId || !isAeroCommsProStripePriceId(stripePriceId) || !currentPeriodEnd) return null;
+  if (!stripePriceId || !isAeroCommsProStripePriceId(stripeMode, stripePriceId) || !currentPeriodEnd) return null;
 
   return {
     subscriptionId,
@@ -163,11 +161,12 @@ async function applySnapshot(
   amount: number | null = null,
   currency: string | null = null,
 ): Promise<"processed" | "ignored"> {
-  const { data, error } = await getSupabaseAdmin().rpc("apply_aerocomms_pro_subscription_webhook_event", {
+  const { data, error } = await getSupabaseAdmin().rpc("apply_aerocomms_pro_subscription_webhook_event_v2", {
     p_event_id: event.id,
     p_event_type: event.type,
     p_payload_hash: payloadHash(rawPayload),
     p_provider_created_at: occurredAt(event),
+    p_stripe_mode: getStripeConfiguration().mode,
     p_stripe_object_id: stripeObjectId,
     p_action: action,
     p_stripe_subscription_id: snapshot.subscriptionId,
@@ -176,6 +175,7 @@ async function applySnapshot(
     p_order_id: action === "subscription_sync" ? snapshot.references.orderId : null,
     p_user_id: action === "subscription_sync" ? snapshot.references.userId : null,
     p_product_price_id: action === "subscription_sync" ? snapshot.references.productPriceId : null,
+    p_stripe_price_id: snapshot.stripePriceId,
     // Invoice and charge events are linked to the current Subscription fetched
     // from Stripe. The RPC uses this to prevent an old invoice from reviving a
     // subscription Stripe has already ended or revoked.
@@ -193,15 +193,22 @@ async function applySnapshot(
   return data === "ignored" ? "ignored" : "processed";
 }
 
-async function retrieveSubscription(subscriptionId: string): Promise<AeroCommsSubscriptionSnapshot | null> {
+async function retrieveSubscription(
+  subscriptionId: string,
+  stripeMode: StripeMode,
+): Promise<AeroCommsSubscriptionSnapshot | null> {
   try {
-    return asSubscriptionSnapshot(await getStripeClient().subscriptions.retrieve(subscriptionId));
+    return asSubscriptionSnapshot(await getStripeClient().subscriptions.retrieve(subscriptionId), stripeMode);
   } catch {
     throw new AeroCommsProWebhookUnavailableError();
   }
 }
 
-async function processCheckoutCompleted(event: Stripe.Event, rawPayload: string): Promise<ProcessingResult> {
+async function processCheckoutCompleted(
+  event: Stripe.Event,
+  rawPayload: string,
+  stripeMode: StripeMode,
+): Promise<ProcessingResult> {
   const sessionId = objectId(event.data.object);
   if (!sessionId) return "not_aerocomms";
 
@@ -217,14 +224,14 @@ async function processCheckoutCompleted(event: Stripe.Event, rawPayload: string)
   const subscriptionId = resourceId(session.subscription);
   const lineItems = session.line_items?.data;
   const stripePriceId = lineItems?.length === 1 ? resourceId(lineItems[0]?.price) : null;
-  const snapshot = subscriptionId ? await retrieveSubscription(subscriptionId) : null;
+  const snapshot = subscriptionId ? await retrieveSubscription(subscriptionId, stripeMode) : null;
   if (
     session.mode !== "subscription"
     || session.status !== "complete"
     || session.payment_status !== "paid"
     || !subscriptionId
     || !snapshot
-    || !isAeroCommsProStripePriceId(stripePriceId)
+    || !isAeroCommsProStripePriceId(stripeMode, stripePriceId)
     || snapshot.references.checkoutAttemptId !== sessionMetadata.checkoutAttemptId
     || snapshot.references.orderId !== sessionMetadata.orderId
     || snapshot.references.productPriceId !== sessionMetadata.productPriceId
@@ -237,8 +244,12 @@ async function processCheckoutCompleted(event: Stripe.Event, rawPayload: string)
   return applySnapshot(event, rawPayload, snapshot, "subscription_sync", session.id);
 }
 
-async function processSubscriptionEvent(event: Stripe.Event, rawPayload: string): Promise<ProcessingResult> {
-  const snapshot = asSubscriptionSnapshot(event.data.object);
+async function processSubscriptionEvent(
+  event: Stripe.Event,
+  rawPayload: string,
+  stripeMode: StripeMode,
+): Promise<ProcessingResult> {
+  const snapshot = asSubscriptionSnapshot(event.data.object, stripeMode);
   if (!snapshot) {
     const metadata = isRecord(event.data.object) ? event.data.object.metadata : null;
     if (!asReferences(metadata)) return "not_aerocomms";
@@ -248,13 +259,18 @@ async function processSubscriptionEvent(event: Stripe.Event, rawPayload: string)
   return applySnapshot(event, rawPayload, snapshot, "subscription_sync", snapshot.subscriptionId);
 }
 
-async function processInvoiceEvent(event: Stripe.Event, rawPayload: string, action: "invoice_paid" | "invoice_payment_failed"): Promise<ProcessingResult> {
+async function processInvoiceEvent(
+  event: Stripe.Event,
+  rawPayload: string,
+  action: "invoice_paid" | "invoice_payment_failed",
+  stripeMode: StripeMode,
+): Promise<ProcessingResult> {
   const invoice = event.data.object;
   const invoiceId = objectId(invoice);
   const subscriptionId = asInvoiceSubscriptionId(invoice);
   if (!invoiceId || !subscriptionId) return "not_aerocomms";
 
-  const snapshot = await retrieveSubscription(subscriptionId);
+  const snapshot = await retrieveSubscription(subscriptionId, stripeMode);
   if (!snapshot) return "not_aerocomms";
   const invoiceData: Record<string, unknown> = isRecord(invoice) ? invoice : {};
   const amount = action === "invoice_paid" ? invoiceData.amount_paid : invoiceData.amount_due;
@@ -266,7 +282,12 @@ async function processInvoiceEvent(event: Stripe.Event, rawPayload: string, acti
   return applySnapshot(event, rawPayload, snapshot, action, invoiceId, amount, currency);
 }
 
-async function processChargeEvent(event: Stripe.Event, rawPayload: string, action: "revoke_refund" | "revoke_dispute"): Promise<ProcessingResult> {
+async function processChargeEvent(
+  event: Stripe.Event,
+  rawPayload: string,
+  action: "revoke_refund" | "revoke_dispute",
+  stripeMode: StripeMode,
+): Promise<ProcessingResult> {
   const charge = event.data.object;
   const chargeId = objectId(charge);
   const invoiceId = isRecord(charge) ? resourceId(charge.invoice) : null;
@@ -280,7 +301,7 @@ async function processChargeEvent(event: Stripe.Event, rawPayload: string, actio
   }
   const subscriptionId = asInvoiceSubscriptionId(invoice);
   if (!subscriptionId) return "not_aerocomms";
-  const snapshot = await retrieveSubscription(subscriptionId);
+  const snapshot = await retrieveSubscription(subscriptionId, stripeMode);
   if (!snapshot) return "not_aerocomms";
   return applySnapshot(event, rawPayload, snapshot, action, chargeId);
 }
@@ -291,13 +312,14 @@ async function processChargeEvent(event: Stripe.Event, rawPayload: string, actio
  * product handling or safely record an unrelated supported event as ignored.
  */
 export async function processAeroCommsProStripeWebhook(event: Stripe.Event, rawPayload: string): Promise<ProcessingResult> {
+  const stripeMode = getStripeConfiguration().mode;
   if (!isSupportedAeroCommsEvent(event)) return "not_aerocomms";
-  if (event.type === "checkout.session.completed") return processCheckoutCompleted(event, rawPayload);
+  if (event.type === "checkout.session.completed") return processCheckoutCompleted(event, rawPayload, stripeMode);
   if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
-    return processSubscriptionEvent(event, rawPayload);
+    return processSubscriptionEvent(event, rawPayload, stripeMode);
   }
-  if (event.type === "invoice.paid") return processInvoiceEvent(event, rawPayload, "invoice_paid");
-  if (event.type === "invoice.payment_failed") return processInvoiceEvent(event, rawPayload, "invoice_payment_failed");
-  if (event.type === "charge.refunded") return processChargeEvent(event, rawPayload, "revoke_refund");
-  return processChargeEvent(event, rawPayload, "revoke_dispute");
+  if (event.type === "invoice.paid") return processInvoiceEvent(event, rawPayload, "invoice_paid", stripeMode);
+  if (event.type === "invoice.payment_failed") return processInvoiceEvent(event, rawPayload, "invoice_payment_failed", stripeMode);
+  if (event.type === "charge.refunded") return processChargeEvent(event, rawPayload, "revoke_refund", stripeMode);
+  return processChargeEvent(event, rawPayload, "revoke_dispute", stripeMode);
 }

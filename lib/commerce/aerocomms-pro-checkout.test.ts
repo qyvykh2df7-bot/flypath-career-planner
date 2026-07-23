@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   retrieve: vi.fn(),
   getStripeClient: vi.fn(),
+  getStripeConfiguration: vi.fn(),
   resolveStripeAppUrl: vi.fn(),
   toProviderError: vi.fn(),
 }));
@@ -19,6 +20,7 @@ vi.mock("@/lib/auth/session", () => ({ getFlyPathSessionState: mocks.getSessionS
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: () => ({ rpc: mocks.rpc, from: mocks.from }) }));
 vi.mock("./stripe", () => ({
   getStripeClient: mocks.getStripeClient,
+  getStripeConfiguration: mocks.getStripeConfiguration,
   resolveStripeAppUrl: mocks.resolveStripeAppUrl,
   toStripeProviderError: mocks.toProviderError,
 }));
@@ -56,6 +58,7 @@ describe("AeroComms Pro subscription Checkout server boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getSessionState.mockResolvedValue({ status: "authenticated", account: { id: accountId, email: null } });
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "test" });
     mocks.rpc.mockReturnValue({ single: mocks.rpcSingle });
     mocks.rpcSingle.mockResolvedValue({ data: prepared, error: null });
     mocks.ownerMaybeSingle.mockResolvedValue({ data: { user_id: accountId }, error: null });
@@ -81,9 +84,10 @@ describe("AeroComms Pro subscription Checkout server boundary", () => {
     await expect(createAeroCommsProSubscriptionCheckout({ idempotencyKey: attemptId, requestOrigin: "https://flypath.test" }))
       .resolves.toEqual({ url: "https://checkout.stripe.com/c/pay/cs_test_aerocomms" });
 
-    expect(mocks.rpc).toHaveBeenCalledWith("prepare_aerocomms_pro_subscription_checkout", {
+    expect(mocks.rpc).toHaveBeenCalledWith("prepare_aerocomms_pro_subscription_checkout_v2", {
       p_idempotency_key: attemptId,
       p_user_id: accountId,
+      p_stripe_mode: "test",
     });
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
       mode: "subscription",
@@ -119,5 +123,13 @@ describe("AeroComms Pro subscription Checkout server boundary", () => {
     await expect(createAeroCommsProSubscriptionCheckout({ idempotencyKey: attemptId, requestOrigin: "https://flypath.test" }))
       .rejects.toMatchObject({ kind: "session" });
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("does not create a Live Checkout from a Test catalog binding", async () => {
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "live" });
+
+    await expect(createAeroCommsProSubscriptionCheckout({ idempotencyKey: attemptId, requestOrigin: "https://flypath.test" }))
+      .rejects.toMatchObject({ kind: "catalog" });
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 });

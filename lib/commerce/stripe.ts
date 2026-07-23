@@ -4,7 +4,7 @@ import Stripe from "stripe";
 
 export type StripeConfigurationIssue =
   | "missing_secret"
-  | "non_test_secret"
+  | "invalid_secret"
   | "invalid_app_url"
   | "missing_production_app_url";
 
@@ -38,33 +38,40 @@ type StripeEnvironment = {
   NODE_ENV?: string;
 };
 
-let stripeClient: Stripe | null = null;
+export type StripeMode = "test" | "live";
+
+let stripeClient: { secretKey: string; client: Stripe } | null = null;
 
 function readTrimmed(environment: StripeEnvironment, key: "STRIPE_SECRET_KEY" | "NEXT_PUBLIC_APP_URL" | "APP_URL"): string | null {
   const value = environment[key]?.trim();
   return value ? value : null;
 }
 
-export function getStripeTestConfiguration(environment: StripeEnvironment = process.env): {
+export function getStripeConfiguration(environment: StripeEnvironment = process.env): {
   secretKey: string;
+  mode: StripeMode;
 } {
   const secretKey = readTrimmed(environment, "STRIPE_SECRET_KEY");
   if (!secretKey) throw new StripeConfigurationError("missing_secret");
-  if (!secretKey.startsWith("sk_test_")) throw new StripeConfigurationError("non_test_secret");
+  if (secretKey.startsWith("sk_test_")) return { secretKey, mode: "test" };
+  if (secretKey.startsWith("sk_live_")) return { secretKey, mode: "live" };
 
-  return { secretKey };
+  throw new StripeConfigurationError("invalid_secret");
 }
 
 export function getStripeClient(environment: StripeEnvironment = process.env): Stripe {
-  const { secretKey } = getStripeTestConfiguration(environment);
-  if (!stripeClient) {
-    stripeClient = new Stripe(secretKey, {
+  const { secretKey } = getStripeConfiguration(environment);
+  if (!stripeClient || stripeClient.secretKey !== secretKey) {
+    stripeClient = {
+      secretKey,
+      client: new Stripe(secretKey, {
       apiVersion: "2026-06-24.dahlia",
       maxNetworkRetries: 1,
-    });
+      }),
+    };
   }
 
-  return stripeClient;
+  return stripeClient.client;
 }
 
 /**

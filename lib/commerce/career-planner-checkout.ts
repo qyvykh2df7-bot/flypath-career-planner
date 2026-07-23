@@ -8,7 +8,8 @@ import {
   CAREER_PLANNER_PREMIUM_UNIT_AMOUNT,
   isStripeCheckoutUrl,
 } from "./checkout";
-import { getStripeClient, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
+import { getStripeCatalogBinding } from "./stripe-catalog";
+import { getStripeClient, getStripeConfiguration, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
 
 export class CommerceCheckoutError extends Error {
   constructor(public readonly kind: "catalog" | "persistence" | "provider" | "session" | "intent_conflict") {
@@ -63,15 +64,20 @@ function asPreparedCheckoutAttempt(value: unknown): PreparedCheckoutAttempt | nu
 async function prepareCheckoutAttempt(
   idempotencyKey: string,
   userId: string | null,
+  stripeMode: "test" | "live",
+  expectedStripePriceId: string,
 ): Promise<PreparedCheckoutAttempt> {
   const admin = getSupabaseAdmin();
-  const { data, error } = await admin.rpc("prepare_career_planner_premium_checkout", {
+  const { data, error } = await admin.rpc("prepare_stripe_catalog_checkout", {
+    p_product_key: "career_planner",
+    p_price_key: CAREER_PLANNER_PREMIUM_PRICE_KEY,
+    p_stripe_mode: stripeMode,
     p_idempotency_key: idempotencyKey,
     p_user_id: userId,
   }).single();
 
   const prepared = asPreparedCheckoutAttempt(data);
-  if (error || !prepared) {
+  if (error || !prepared || prepared.stripePriceId !== expectedStripePriceId) {
     throw new CommerceCheckoutError("catalog");
   }
 
@@ -134,10 +140,14 @@ export async function createCareerPlannerPremiumCheckout(input: {
   const sessionState = await getFlyPathSessionState();
   if (sessionState.status === "unavailable") throw new CommerceCheckoutError("session");
   const currentUserId = sessionState.status === "authenticated" ? sessionState.account.id : null;
+  const stripeConfiguration = getStripeConfiguration();
+  const expectedStripePriceId = getStripeCatalogBinding("career_planner", stripeConfiguration.mode).stripePriceId;
 
   const prepared = await prepareCheckoutAttempt(
     input.idempotencyKey,
     currentUserId,
+    stripeConfiguration.mode,
+    expectedStripePriceId,
   );
 
   const attemptOwner = await getCheckoutAttemptOwner(prepared.checkoutAttemptId);

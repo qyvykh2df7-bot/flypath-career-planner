@@ -2,8 +2,7 @@ import "server-only";
 
 import { getFlyPathSessionState } from "@/lib/auth/session";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { isAeroCommsProCatalogPrice } from "./aerocomms-pro-catalog";
-import { getStripeClient, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
+import { getStripeClient, getStripeConfiguration, resolveStripeAppUrl, toStripeProviderError } from "./stripe";
 
 const PORTAL_ELIGIBLE_SUBSCRIPTION_STATUSES = ["active", "past_due", "canceling", "unpaid"] as const;
 const AEROCOMMS_PRO_PORTAL_RETURN_PATH = "/aerocomms/app/profile";
@@ -20,10 +19,7 @@ type SubscriptionRow = {
   stripe_customer_record_id: string | null;
 };
 
-type ProductPriceRow = {
-  price_key: string;
-  stripe_price_id: string | null;
-};
+type CatalogBindingRow = { id: string };
 
 type CustomerRow = {
   user_id: string | null;
@@ -43,10 +39,12 @@ function isHostedStripePortalUrl(value: unknown): value is string {
 
 async function getCustomerIdForAccount(userId: string): Promise<string> {
   const admin = getSupabaseAdmin();
+  const stripeMode = getStripeConfiguration().mode;
   const { data: subscription, error: subscriptionError } = await admin
     .from("subscriptions")
     .select("product_price_id, stripe_customer_record_id")
     .eq("user_id", userId)
+    .eq("stripe_mode", stripeMode)
     .in("status", PORTAL_ELIGIBLE_SUBSCRIPTION_STATUSES)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -57,17 +55,16 @@ async function getCustomerIdForAccount(userId: string): Promise<string> {
     throw new AeroCommsProCustomerPortalError("subscription");
   }
 
-  const { data: price, error: priceError } = await admin
-    .from("product_prices")
-    .select("price_key, stripe_price_id")
-    .eq("id", subscription.product_price_id)
-    .maybeSingle<ProductPriceRow>();
+  const { data: binding, error: bindingError } = await admin
+    .from("stripe_catalog_bindings")
+    .select("id")
+    .eq("product_price_id", subscription.product_price_id)
+    .eq("stripe_mode", stripeMode)
+    .eq("is_active", true)
+    .maybeSingle<CatalogBindingRow>();
 
-  if (priceError) throw new AeroCommsProCustomerPortalError("persistence");
-  if (!price || !isAeroCommsProCatalogPrice({
-    priceKey: price.price_key,
-    stripePriceId: price.stripe_price_id,
-  })) {
+  if (bindingError) throw new AeroCommsProCustomerPortalError("persistence");
+  if (!binding) {
     throw new AeroCommsProCustomerPortalError("subscription");
   }
 
@@ -86,7 +83,7 @@ async function getCustomerIdForAccount(userId: string): Promise<string> {
 }
 
 /**
- * Creates a hosted Stripe Test Customer Portal Session for the authenticated
+ * Creates a hosted Stripe Customer Portal Session for the authenticated
  * account's own current AeroComms Pro subscription. The browser never chooses
  * a Stripe customer or return destination.
  */

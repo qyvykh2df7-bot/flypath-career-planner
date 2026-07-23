@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getSessionState: vi.fn(),
   getAdmin: vi.fn(),
   getStripeClient: vi.fn(),
+  getStripeConfiguration: vi.fn(),
   resolveAppUrl: vi.fn(),
   toProviderError: vi.fn(),
   rpc: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("@/lib/auth/session", () => ({ getFlyPathSessionState: mocks.getSessionS
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: mocks.getAdmin }));
 vi.mock("./stripe", () => ({
   getStripeClient: mocks.getStripeClient,
+  getStripeConfiguration: mocks.getStripeConfiguration,
   resolveStripeAppUrl: mocks.resolveAppUrl,
   toStripeProviderError: mocks.toProviderError,
 }));
@@ -42,7 +44,7 @@ const prepared = {
   checkout_attempt_id: attemptId,
   order_id: "7b1d8768-7a01-4e6f-b2dd-0d399857f8dd",
   product_price_id: "8b1d8768-7a01-4e6f-b2dd-0d399857f8dd",
-  stripe_price_id: "price_test_career_planner",
+  stripe_price_id: "price_1TvO3TKuujVRKb0PLb2gr8tI",
   stripe_checkout_session_id: null,
   checkout_status: "initiated",
 };
@@ -51,6 +53,7 @@ describe("Career Planner Premium Checkout server boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getSessionState.mockResolvedValue({ status: "anonymous" });
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "test" });
     mocks.single.mockResolvedValue({ data: prepared, error: null });
     mocks.rpc.mockReturnValue({ single: mocks.single });
     mocks.or.mockReturnValue({ select: mocks.select });
@@ -75,7 +78,10 @@ describe("Career Planner Premium Checkout server boundary", () => {
       url: "https://checkout.stripe.com/c/pay/cs_test_career",
     });
 
-    expect(mocks.rpc).toHaveBeenCalledWith("prepare_career_planner_premium_checkout", {
+    expect(mocks.rpc).toHaveBeenCalledWith("prepare_stripe_catalog_checkout", {
+      p_product_key: "career_planner",
+      p_price_key: "career_planner_premium_eur",
+      p_stripe_mode: "test",
       p_idempotency_key: attemptId,
       p_user_id: null,
     });
@@ -101,7 +107,10 @@ describe("Career Planner Premium Checkout server boundary", () => {
     mocks.ownerMaybeSingle.mockResolvedValue({ data: { user_id: accountId }, error: null });
     await createCareerPlannerPremiumCheckout({ idempotencyKey: attemptId, requestOrigin: "http://localhost:3000" });
 
-    expect(mocks.rpc).toHaveBeenCalledWith("prepare_career_planner_premium_checkout", {
+    expect(mocks.rpc).toHaveBeenCalledWith("prepare_stripe_catalog_checkout", {
+      p_product_key: "career_planner",
+      p_price_key: "career_planner_premium_eur",
+      p_stripe_mode: "test",
       p_idempotency_key: attemptId,
       p_user_id: accountId,
     });
@@ -159,6 +168,14 @@ describe("Career Planner Premium Checkout server boundary", () => {
       kind: "session",
     });
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the prepared price belongs to another Stripe mode", async () => {
+    mocks.getStripeConfiguration.mockReturnValue({ mode: "live" });
+
+    await expect(createCareerPlannerPremiumCheckout({ idempotencyKey: attemptId, requestOrigin: "http://localhost:3000" }))
+      .rejects.toMatchObject({ kind: "catalog" });
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it("keeps the approved commercial constants explicit", () => {

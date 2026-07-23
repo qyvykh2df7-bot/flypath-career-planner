@@ -84,11 +84,11 @@ describe("POST /api/aerocomms/pro/checkout", () => {
   });
 
   it("logs only closed diagnostics for Stripe failures", async () => {
-    mocks.createCheckout.mockRejectedValue(new StripeConfigurationError("non_test_secret"));
+    mocks.createCheckout.mockRejectedValue(new StripeConfigurationError("invalid_secret"));
     const configurationResponse = await POST(request({}));
     expect(configurationResponse.status).toBe(503);
     expect(console.error).toHaveBeenLastCalledWith(
-      "[FlyPath] AeroComms Pro Checkout unavailable: stripe_configuration_non_test_secret.",
+      "[FlyPath] AeroComms Pro Checkout unavailable: stripe_configuration_invalid_secret.",
     );
 
     mocks.createCheckout.mockRejectedValue(new StripeProviderError("authentication"));
