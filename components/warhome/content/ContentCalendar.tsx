@@ -2,56 +2,97 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useOptimistic, useState, useTransition } from "react";
+import {
+  useCallback,
+  useMemo,
+  useOptimistic,
+  useState,
+  useTransition,
+  type CSSProperties,
+  type DragEvent,
+} from "react";
 import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   GripVertical,
-  Sparkles,
+  Plus,
 } from "lucide-react";
 import { moveContentOsCalendarEventAction } from "@/app/warhome/(protected)/content/actions";
 import {
-  contentOsMadridLocalDateTimeToIso,
   getContentOsAdjacentDate,
   type ContentOsCalendarEvent,
   type ContentOsCalendarParameters,
   type ContentOsItem,
 } from "@/lib/warhome/content-os-contract";
-import { ContentCalendarEventForm, DeleteContentCalendarEventButton } from "./ContentCalendarEventForm";
-import { CONTENT_OS_EVENT_TYPE_LABELS } from "./ContentOsLabels";
+import { ContentCalendarEventModal } from "./ContentCalendarEventModal";
+import {
+  CONTENT_OS_EVENT_TYPE_LABELS,
+  CONTENT_OS_ITEM_STATUS_LABELS,
+} from "./ContentOsLabels";
+import {
+  CONTENT_OS_CALENDAR_END_HOUR,
+  CONTENT_OS_CALENDAR_SLOT_HEIGHT,
+  CONTENT_OS_CALENDAR_START_HOUR,
+  contentOsMadridDate,
+  contentOsMadridTime,
+  getContentOsQuickCreateRange,
+  getContentOsWeekEventLayout,
+  moveContentOsEventToSlot,
+} from "./content-calendar-utils";
 
 const eventStyles = {
-  record: "border-cyan-300/20 bg-cyan-300/[0.08] text-cyan-100",
-  edit: "border-violet-300/20 bg-violet-300/[0.08] text-violet-100",
-  publish: "border-[#d6ae4f]/25 bg-[#d6ae4f]/10 text-[#f0ca70]",
+  record: "border-cyan-300/25 bg-cyan-300/[0.1] text-cyan-100",
+  edit: "border-violet-300/25 bg-violet-300/[0.1] text-violet-100",
+  publish: "border-[#d6ae4f]/30 bg-[#d6ae4f]/10 text-[#f0ca70]",
 } as const;
 
-function madridDate(value: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(value));
-}
+const calendarHours = Array.from(
+  { length: CONTENT_OS_CALENDAR_END_HOUR - CONTENT_OS_CALENDAR_START_HOUR },
+  (_, index) => CONTENT_OS_CALENDAR_START_HOUR + index,
+);
 
-function madridTime(value: string): string {
-  return new Intl.DateTimeFormat("es-ES", {
-    timeZone: "Europe/Madrid",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(value));
-}
+type CalendarModalState =
+  | {
+      mode: "create";
+      defaultDate: string;
+      startsAt: string;
+      endsAt: string;
+    }
+  | {
+      mode: "edit";
+      eventId: string;
+    }
+  | null;
 
-function dateHeading(value: string, compact = false): string {
+function dateHeading(value: string): string {
   return new Intl.DateTimeFormat("es-ES", {
     timeZone: "UTC",
-    weekday: compact ? undefined : "short",
+    weekday: "short",
     day: "numeric",
-    month: compact ? undefined : "short",
+    month: "short",
+  }).format(new Date(`${value}T00:00:00.000Z`));
+}
+
+function weekdayHeading(value: string): string {
+  return new Intl.DateTimeFormat("es-ES", {
+    timeZone: "UTC",
+    weekday: "short",
+  }).format(new Date(`${value}T00:00:00.000Z`));
+}
+
+function dayNumber(value: string): string {
+  return new Intl.DateTimeFormat("es-ES", {
+    timeZone: "UTC",
+    day: "numeric",
+  }).format(new Date(`${value}T00:00:00.000Z`));
+}
+
+function dayMonthHeading(value: string): string {
+  return new Intl.DateTimeFormat("es-ES", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "short",
   }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
@@ -74,46 +115,53 @@ function calendarTitle(parameters: ContentOsCalendarParameters): string {
   return `${formatter.format(first)} – ${formatter.format(last)}`;
 }
 
-function moveEventToDate(
-  event: ContentOsCalendarEvent,
-  targetDate: string,
-): { startsAt: string; endsAt: string } | null {
-  const startTime = madridTime(event.startsAt);
-  const nextStart = contentOsMadridLocalDateTimeToIso(`${targetDate}T${startTime}`);
-  if (!nextStart) return null;
-  const duration = new Date(event.endsAt).getTime() - new Date(event.startsAt).getTime();
-  return {
-    startsAt: nextStart,
-    endsAt: new Date(new Date(nextStart).getTime() + duration).toISOString(),
-  };
-}
-
 function CalendarEventCard({
   event,
+  item,
+  onOpen,
+  compact = false,
+  style,
+  className = "",
 }: {
   event: ContentOsCalendarEvent;
+  item?: ContentOsItem;
+  onOpen: () => void;
+  compact?: boolean;
+  style?: CSSProperties;
+  className?: string;
 }) {
   return (
-    <div
+    <button
+      type="button"
       draggable
+      onClick={onOpen}
       onDragStart={(dragEvent) => {
+        dragEvent.stopPropagation();
         dragEvent.dataTransfer.setData("text/content-os-event-id", event.id);
         dragEvent.dataTransfer.effectAllowed = "move";
       }}
-      className={`group rounded-lg border p-2.5 text-xs ${eventStyles[event.eventType]}`}
+      style={style}
+      className={`group overflow-hidden rounded-lg border text-left text-xs shadow-lg shadow-black/10 backdrop-blur-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#d6ae4f]/50 ${
+        compact ? "px-2 py-1.5" : "p-2.5"
+      } ${eventStyles[event.eventType]} ${className}`}
     >
-      <div className="flex items-start gap-1.5">
-        <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-45" aria-hidden />
-        <div className="min-w-0">
-          <p className="truncate font-semibold">{event.title}</p>
-          <p className="mt-1 flex items-center gap-1 opacity-70">
-            <Clock3 className="h-3 w-3" aria-hidden />
-            {madridTime(event.startsAt)}
-          </p>
-          {event.contentTitle ? <p className="mt-1 truncate opacity-70">{event.contentTitle}</p> : null}
-        </div>
-      </div>
-    </div>
+      <span className="flex items-start gap-1.5">
+        <GripVertical className="mt-0.5 h-3 w-3 shrink-0 opacity-35" aria-hidden />
+        <span className="min-w-0">
+          <span className="block truncate font-semibold">{event.title}</span>
+          <span className="mt-0.5 block truncate text-[10px] font-medium uppercase opacity-70">
+            {CONTENT_OS_EVENT_TYPE_LABELS[event.eventType]} ·{" "}
+            {contentOsMadridTime(event.startsAt)}
+            {item ? ` · ${CONTENT_OS_ITEM_STATUS_LABELS[item.status]}` : ""}
+          </span>
+          {!compact && event.contentTitle ? (
+            <span className="mt-1 block truncate opacity-70">
+              {event.contentTitle}
+            </span>
+          ) : null}
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -140,12 +188,19 @@ export function ContentCalendar({
       ),
   );
   const [message, setMessage] = useState<string | null>(null);
+  const [modal, setModal] = useState<CalendarModalState>(null);
   const [isMoving, startMoving] = useTransition();
   const byDay = useMemo(() => {
     const result = new Map<string, ContentOsCalendarEvent[]>();
     for (const event of optimisticEvents) {
-      const date = madridDate(event.startsAt);
+      const date = contentOsMadridDate(event.startsAt);
       result.set(date, [...(result.get(date) ?? []), event]);
+    }
+    for (const dayEvents of result.values()) {
+      dayEvents.sort(
+        (left, right) =>
+          new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+      );
     }
     return result;
   }, [optimisticEvents]);
@@ -153,19 +208,59 @@ export function ContentCalendar({
     () => new Map(optimisticEvents.map((event) => [event.id, event])),
     [optimisticEvents],
   );
+  const itemById = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
+  );
+  const eventCounts = useMemo(
+    () =>
+      optimisticEvents.reduce(
+        (counts, event) => ({
+          ...counts,
+          [event.eventType]: counts[event.eventType] + 1,
+        }),
+        { record: 0, edit: 0, publish: 0 },
+      ),
+    [optimisticEvents],
+  );
   const previousDate = getContentOsAdjacentDate(parameters, "previous");
   const nextDate = getContentOsAdjacentDate(parameters, "next");
+  const today = contentOsMadridDate(new Date().toISOString());
+  const selectedEvent =
+    modal?.mode === "edit" ? eventById.get(modal.eventId) : undefined;
   const viewHref = (view: "week" | "month", date = parameters.anchorDate) =>
     `/warhome/content?view=${view}&date=${date}`;
 
-  function handleDrop(eventId: string, targetDate: string): void {
+  const closeModal = useCallback(() => setModal(null), []);
+  const handleSaved = useCallback(() => {
+    setModal(null);
+    router.refresh();
+  }, [router]);
+
+  function openCreate(targetDate: string, targetHour = 10): void {
+    const range = getContentOsQuickCreateRange(targetDate, targetHour);
+    if (!range) {
+      setMessage("No se ha podido preparar el nuevo bloque.");
+      return;
+    }
+    setMessage(null);
+    setModal({ mode: "create", defaultDate: targetDate, ...range });
+  }
+
+  function handleDrop(
+    eventId: string,
+    targetDate: string,
+    targetHour?: number,
+  ): void {
     const event = eventById.get(eventId);
-    if (!event || madridDate(event.startsAt) === targetDate) return;
-    const moved = moveEventToDate(event, targetDate);
+    if (!event) return;
+    const moved = moveContentOsEventToSlot(event, targetDate, targetHour);
     if (!moved) {
       setMessage("No se ha podido mover el bloque.");
       return;
     }
+    if (moved.startsAt === event.startsAt) return;
+
     setMessage(null);
     startMoving(async () => {
       updateOptimisticEvent({ eventId, ...moved });
@@ -176,168 +271,396 @@ export function ContentCalendar({
       );
       if (result.status === "error") {
         setMessage(result.message);
+        router.refresh();
         return;
       }
       router.refresh();
     });
   }
 
+  function handleDropEvent(
+    dragEvent: DragEvent,
+    targetDate: string,
+    targetHour?: number,
+  ): void {
+    dragEvent.preventDefault();
+    dragEvent.stopPropagation();
+    handleDrop(
+      dragEvent.dataTransfer.getData("text/content-os-event-id"),
+      targetDate,
+      targetHour,
+    );
+  }
+
   return (
-    <div className="mt-8 grid gap-7 2xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <section className="min-w-0">
-        <div className="flex flex-col gap-4 border-b border-white/[0.08] pb-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-2">
-            <Link
-              href={viewHref(parameters.view, previousDate)}
-              aria-label="Periodo anterior"
-              title="Periodo anterior"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.09] text-slate-300 hover:border-white/[0.16] hover:text-white"
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden />
-            </Link>
-            <Link
-              href={viewHref(parameters.view, nextDate)}
-              aria-label="Periodo siguiente"
-              title="Periodo siguiente"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.09] text-slate-300 hover:border-white/[0.16] hover:text-white"
-            >
-              <ChevronRight className="h-4 w-4" aria-hidden />
-            </Link>
-            <h2 className="ml-2 text-lg font-semibold capitalize text-white">
-              {calendarTitle(parameters)}
-            </h2>
-          </div>
-          <div className="inline-flex w-fit rounded-lg border border-white/[0.09] bg-[#091524] p-1">
-            <Link
-              href={viewHref("week")}
-              className={`rounded-md px-3 py-2 text-sm font-medium ${
-                parameters.view === "week"
-                  ? "bg-white/[0.09] text-white"
-                  : "text-slate-500 hover:text-slate-200"
-              }`}
-            >
-              Semana
-            </Link>
-            <Link
-              href={viewHref("month")}
-              className={`rounded-md px-3 py-2 text-sm font-medium ${
-                parameters.view === "month"
-                  ? "bg-white/[0.09] text-white"
-                  : "text-slate-500 hover:text-slate-200"
-              }`}
-            >
-              Mes
-            </Link>
-          </div>
-        </div>
-
-        <p aria-live="polite" className="mt-3 min-h-5 text-sm text-rose-300">
-          {message ?? (isMoving ? "Actualizando calendario..." : "")}
-        </p>
-
-        <div className="mt-2 overflow-x-auto">
-          <div
-            className={`grid min-w-[880px] gap-px overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.08] ${
-              parameters.view === "week" ? "grid-cols-7" : "grid-cols-7"
-            }`}
-          >
-            {parameters.days.map((day) => {
-              const dayEvents = byDay.get(day) ?? [];
-              const outsideMonth =
-                parameters.view === "month" &&
-                day.slice(0, 7) !== parameters.anchorDate.slice(0, 7);
-              return (
-                <div
-                  key={day}
-                  onDragOver={(dragEvent) => {
-                    dragEvent.preventDefault();
-                    dragEvent.dataTransfer.dropEffect = "move";
-                  }}
-                  onDrop={(dragEvent) => {
-                    dragEvent.preventDefault();
-                    handleDrop(
-                      dragEvent.dataTransfer.getData("text/content-os-event-id"),
-                      day,
-                    );
-                  }}
-                  className={`min-h-44 bg-[#0d192a] p-2.5 ${
-                    outsideMonth ? "opacity-45" : ""
+    <>
+      <div className="mt-8 grid gap-7 2xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <section className="min-w-0">
+          <div className="flex flex-col gap-4 border-b border-white/[0.08] pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <Link
+                href={viewHref(parameters.view, previousDate)}
+                aria-label="Periodo anterior"
+                title="Periodo anterior"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.09] text-slate-300 hover:border-white/[0.16] hover:text-white"
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+              </Link>
+              <Link
+                href={viewHref(parameters.view, nextDate)}
+                aria-label="Periodo siguiente"
+                title="Periodo siguiente"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.09] text-slate-300 hover:border-white/[0.16] hover:text-white"
+              >
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </Link>
+              <h2 className="ml-2 text-lg font-semibold capitalize text-white">
+                {calendarTitle(parameters)}
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => openCreate(parameters.anchorDate)}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#d6ae4f] px-3 text-sm font-semibold text-[#07111f] transition hover:bg-[#e2bd62]"
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                Nuevo bloque
+              </button>
+              <div className="inline-flex w-fit rounded-lg border border-white/[0.09] bg-[#091524] p-1">
+                <Link
+                  href={viewHref("week")}
+                  className={`rounded-md px-3 py-2 text-sm font-medium ${
+                    parameters.view === "week"
+                      ? "bg-white/[0.09] text-white"
+                      : "text-slate-500 hover:text-slate-200"
                   }`}
                 >
-                  <p className="mb-2 text-xs font-semibold capitalize text-slate-500">
-                    {dateHeading(day, parameters.view === "month")}
-                  </p>
-                  <div className="grid gap-2">
-                    {dayEvents.map((event) => (
-                      <CalendarEventCard key={event.id} event={event} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-8">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-white">Bloques programados</h2>
-            <span className="text-sm tabular-nums text-slate-500">{events.length}</span>
-          </div>
-          {events.length ? (
-            <div className="mt-4 grid gap-3">
-              {events.map((event) => (
-                <details
-                  key={event.id}
-                  className="relative rounded-lg border border-white/[0.08] bg-[#0d192a]"
+                  Semana
+                </Link>
+                <Link
+                  href={viewHref("month")}
+                  className={`rounded-md px-3 py-2 text-sm font-medium ${
+                    parameters.view === "month"
+                      ? "bg-white/[0.09] text-white"
+                      : "text-slate-500 hover:text-slate-200"
+                  }`}
                 >
-                  <summary className="cursor-pointer list-none px-4 py-3 pr-16">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">{event.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {CONTENT_OS_EVENT_TYPE_LABELS[event.eventType]} · {dateHeading(madridDate(event.startsAt))} · {madridTime(event.startsAt)}
-                      </p>
+                  Mes
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <p aria-live="polite" className="mt-3 min-h-5 text-sm text-rose-300">
+            {message ?? (isMoving ? "Actualizando calendario..." : "")}
+          </p>
+
+          {parameters.view === "week" ? (
+            <div className="mt-2 overflow-hidden rounded-lg border border-white/[0.09] bg-[#091524] shadow-xl shadow-black/10">
+              <div className="overflow-x-auto">
+                <div className="grid min-w-[980px] grid-cols-[4.25rem_repeat(7,minmax(0,1fr))]">
+                <div className="border-b border-r border-white/[0.08] bg-[#0a1626] px-2 py-3 text-center text-[10px] font-semibold uppercase text-slate-600">
+                  Hora
+                </div>
+                {parameters.days.map((day) => (
+                  <div
+                    key={day}
+                    className={`border-b border-r border-white/[0.08] px-2 py-3 text-center last:border-r-0 ${
+                      day === today
+                        ? "bg-[#172333] text-[#f0ca70]"
+                        : "bg-[#0d192a] text-slate-400"
+                    }`}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
+                      {weekdayHeading(day)}
+                    </p>
+                    <p className="mt-0.5 text-base font-semibold capitalize">
+                      {dayMonthHeading(day)}
+                    </p>
+                  </div>
+                ))}
+
+                <div className="border-r border-white/[0.08] bg-[#0a1626]">
+                  {calendarHours.map((hour) => (
+                    <div
+                      key={hour}
+                      style={{ height: CONTENT_OS_CALENDAR_SLOT_HEIGHT }}
+                      className={`pr-2 pt-1 text-right text-[10px] tabular-nums text-slate-600 ${
+                        hour % 2 === 0
+                          ? "border-b border-white/[0.07]"
+                          : "border-b border-white/[0.025]"
+                      }`}
+                    >
+                      {hour % 2 === 0
+                        ? `${String(hour).padStart(2, "0")}:00`
+                        : ""}
                     </div>
-                  </summary>
-                  <div className="absolute right-2 top-1.5">
-                    <DeleteContentCalendarEventButton eventId={event.id} />
-                  </div>
-                  <div className="border-t border-white/[0.07] p-4">
-                    <ContentCalendarEventForm
-                      event={event}
-                      items={items}
-                      defaultDate={madridDate(event.startsAt)}
-                    />
-                  </div>
-                </details>
-              ))}
+                  ))}
+                </div>
+
+                {parameters.days.map((day) => {
+                  const dayEvents = byDay.get(day) ?? [];
+                  return (
+                    <div
+                      key={day}
+                      onDragOver={(dragEvent) => {
+                        dragEvent.preventDefault();
+                        dragEvent.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(dragEvent) => {
+                        const bounds = dragEvent.currentTarget.getBoundingClientRect();
+                        const relativeY = Math.max(
+                          0,
+                          dragEvent.clientY - bounds.top,
+                        );
+                        const targetHour = Math.min(
+                          CONTENT_OS_CALENDAR_END_HOUR - 1,
+                          CONTENT_OS_CALENDAR_START_HOUR +
+                            Math.floor(
+                              relativeY / CONTENT_OS_CALENDAR_SLOT_HEIGHT,
+                            ),
+                        );
+                        handleDropEvent(dragEvent, day, targetHour);
+                      }}
+                      className={`relative border-r border-white/[0.075] last:border-r-0 ${
+                        day === today ? "bg-[#111f31]" : "bg-[#0d192a]"
+                      }`}
+                    >
+                      {calendarHours.map((hour) => (
+                        <button
+                          key={hour}
+                          type="button"
+                          aria-label={`Añadir bloque el ${day} a las ${String(hour).padStart(2, "0")}:00`}
+                          onClick={() => openCreate(day, hour)}
+                          onDragOver={(dragEvent) => {
+                            dragEvent.preventDefault();
+                            dragEvent.dataTransfer.dropEffect = "move";
+                          }}
+                          onDrop={(dragEvent) =>
+                            handleDropEvent(dragEvent, day, hour)
+                          }
+                          style={{ height: CONTENT_OS_CALENDAR_SLOT_HEIGHT }}
+                          className={`block w-full text-left transition hover:bg-[#d6ae4f]/[0.035] focus:bg-[#d6ae4f]/[0.05] focus:outline-none ${
+                            hour % 2 === 0
+                              ? "border-b border-white/[0.07]"
+                              : "border-b border-white/[0.025]"
+                          }`}
+                        />
+                      ))}
+                      {dayEvents.map((event) => {
+                        const layout = getContentOsWeekEventLayout(event);
+                        return (
+                          <CalendarEventCard
+                            key={event.id}
+                            event={event}
+                            item={
+                              event.contentItemId
+                                ? itemById.get(event.contentItemId)
+                                : undefined
+                            }
+                            onOpen={() =>
+                              setModal({ mode: "edit", eventId: event.id })
+                            }
+                            compact
+                            style={{
+                              top: layout.top + 2,
+                              height: Math.max(34, layout.height - 4),
+                            }}
+                            className="absolute left-1.5 right-1.5 z-10 w-[calc(100%-0.75rem)]"
+                          />
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.1] bg-[#0d192a]/60 px-6 text-center">
-              <CalendarDays className="h-7 w-7 text-slate-600" aria-hidden />
-              <p className="mt-3 text-sm font-medium text-white">Calendario vacío</p>
+            <div className="mt-2 overflow-x-auto rounded-lg border border-white/[0.09] bg-[#091524] shadow-xl shadow-black/10">
+              <div className="grid min-w-[880px] grid-cols-7 gap-px bg-white/[0.08]">
+                {parameters.days.slice(0, 7).map((day) => (
+                  <div
+                    key={`weekday-${day}`}
+                    className="bg-[#0a1626] px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                  >
+                    {weekdayHeading(day)}
+                  </div>
+                ))}
+                {parameters.days.map((day) => {
+                  const dayEvents = byDay.get(day) ?? [];
+                  const outsideMonth =
+                    day.slice(0, 7) !== parameters.anchorDate.slice(0, 7);
+                  return (
+                    <div
+                      key={day}
+                      onDragOver={(dragEvent) => {
+                        dragEvent.preventDefault();
+                        dragEvent.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(dragEvent) => handleDropEvent(dragEvent, day)}
+                      className={`group/day flex min-h-32 flex-col p-2.5 transition ${
+                        outsideMonth
+                          ? "bg-[#0a1626] text-slate-700"
+                          : day === today
+                            ? "bg-[#111f31]"
+                            : "bg-[#0d192a]"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p
+                          className={`inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1.5 text-xs font-semibold ${
+                            day === today
+                              ? "bg-[#d6ae4f] text-[#07111f]"
+                              : outsideMonth
+                                ? "text-slate-700"
+                                : "text-slate-400"
+                          }`}
+                        >
+                          {dayNumber(day)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => openCreate(day)}
+                          aria-label={`Crear bloque el ${day}`}
+                          title="Añadir bloque"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-700 opacity-0 transition hover:bg-white/[0.06] hover:text-slate-300 focus:opacity-100 focus:outline-none group-hover/day:opacity-100"
+                        >
+                          <Plus className="h-3.5 w-3.5" aria-hidden />
+                        </button>
+                      </div>
+                      <div className="grid gap-2">
+                        {dayEvents.map((event) => (
+                          <CalendarEventCard
+                            key={event.id}
+                            event={event}
+                            item={
+                              event.contentItemId
+                                ? itemById.get(event.contentItemId)
+                                : undefined
+                            }
+                            onOpen={() =>
+                              setModal({ mode: "edit", eventId: event.id })
+                            }
+                            compact
+                          />
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openCreate(day)}
+                        aria-label={`Añadir bloque el ${day}`}
+                        className="mt-2 min-h-6 flex-1 rounded-md border border-transparent transition hover:border-dashed hover:border-white/[0.08] hover:bg-white/[0.015] focus:border-white/[0.1] focus:outline-none"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
-        </div>
-      </section>
 
-      <aside className="space-y-4">
-        <section className="rounded-lg border border-white/[0.08] bg-[#0d192a] p-5">
-          <h2 className="font-semibold text-white">Nuevo bloque</h2>
-          <div className="mt-5">
-            <ContentCalendarEventForm
-              items={items}
-              defaultDate={parameters.anchorDate}
-            />
+          <div className="mt-8 lg:hidden">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold text-white">Agenda del periodo</h2>
+              <span className="text-sm tabular-nums text-slate-500">
+                {optimisticEvents.length}
+              </span>
+            </div>
+            {optimisticEvents.length ? (
+              <div className="mt-4 grid gap-2 md:grid-cols-2">
+                {optimisticEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => setModal({ mode: "edit", eventId: event.id })}
+                    className="flex items-center justify-between gap-4 rounded-lg border border-white/[0.08] bg-[#0d192a] px-4 py-3 text-left transition hover:border-white/[0.14]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-white">
+                        {event.title}
+                      </span>
+                      <span className="mt-1 block text-xs text-slate-500">
+                        {CONTENT_OS_EVENT_TYPE_LABELS[event.eventType]} ·{" "}
+                        {dateHeading(contentOsMadridDate(event.startsAt))} ·{" "}
+                        {contentOsMadridTime(event.startsAt)}
+                      </span>
+                    </span>
+                    {event.contentItemId && itemById.get(event.contentItemId) ? (
+                      <span className="shrink-0 text-xs text-slate-500">
+                        {
+                          CONTENT_OS_ITEM_STATUS_LABELS[
+                            itemById.get(event.contentItemId)!.status
+                          ]
+                        }
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.1] bg-[#0d192a]/60 px-6 text-center">
+                <CalendarDays className="h-7 w-7 text-slate-600" aria-hidden />
+                <p className="mt-3 text-sm font-medium text-white">
+                  Calendario vacío
+                </p>
+              </div>
+            )}
           </div>
         </section>
-        <section className="flex items-center justify-between gap-4 border-t border-white/[0.08] px-1 py-4">
-          <div className="flex items-center gap-2 text-sm text-slate-400">
-            <Sparkles className="h-4 w-4 text-[#d6ae4f]" aria-hidden />
-            Propuestas IA
-          </div>
-          <span className="text-xs tabular-nums text-slate-600">0 pendientes</span>
-        </section>
-      </aside>
-    </div>
+
+        <aside className="space-y-4">
+          <section className="rounded-lg border border-white/[0.08] bg-[#0d192a] p-5 2xl:sticky 2xl:top-6">
+            <h2 className="font-semibold text-white">Plan del periodo</h2>
+            <dl className="mt-5 grid gap-3 text-sm">
+              {(["record", "edit", "publish"] as const).map((eventType) => (
+                <div
+                  key={eventType}
+                  className="flex items-center justify-between gap-4 border-b border-white/[0.07] pb-3 last:border-0 last:pb-0"
+                >
+                  <dt className="text-slate-400">
+                    {CONTENT_OS_EVENT_TYPE_LABELS[eventType]}
+                  </dt>
+                  <dd className="font-semibold tabular-nums text-white">
+                    {eventCounts[eventType]}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <button
+              type="button"
+              onClick={() => openCreate(parameters.anchorDate)}
+              className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#d6ae4f]/35 text-sm font-semibold text-[#e4c46d] transition hover:bg-[#d6ae4f]/10"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Añadir bloque
+            </button>
+          </section>
+        </aside>
+      </div>
+
+      {modal ? (
+        <ContentCalendarEventModal
+          key={
+            modal.mode === "edit"
+              ? `edit-${modal.eventId}`
+              : `create-${modal.startsAt}`
+          }
+          event={selectedEvent}
+          items={items}
+          defaultDate={
+            modal.mode === "create"
+              ? modal.defaultDate
+              : selectedEvent
+                ? contentOsMadridDate(selectedEvent.startsAt)
+                : parameters.anchorDate
+          }
+          defaultStartsAt={modal.mode === "create" ? modal.startsAt : undefined}
+          defaultEndsAt={modal.mode === "create" ? modal.endsAt : undefined}
+          onClose={closeModal}
+          onSaved={handleSaved}
+        />
+      ) : null}
+    </>
   );
 }

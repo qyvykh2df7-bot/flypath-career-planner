@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import {
   CONTENT_OS_INITIAL_ACTION_STATE,
@@ -14,7 +14,10 @@ import {
   type ContentOsCalendarEvent,
   type ContentOsItem,
 } from "@/lib/warhome/content-os-contract";
-import { CONTENT_OS_EVENT_TYPE_LABELS } from "./ContentOsLabels";
+import {
+  CONTENT_OS_EVENT_TYPE_LABELS,
+  CONTENT_OS_ITEM_STATUS_LABELS,
+} from "./ContentOsLabels";
 import { ContentOsSubmitButton } from "./ContentOsSubmitButton";
 
 const inputClass =
@@ -44,15 +47,27 @@ function CalendarFields({
   event,
   items,
   defaultDate,
+  defaultStartsAt,
+  defaultEndsAt,
+  autoFocus,
 }: {
   event?: ContentOsCalendarEvent;
   items: ContentOsItem[];
   defaultDate: string;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
+  autoFocus?: boolean;
 }) {
   const defaultStart = event
     ? madridDateTimeInput(event.startsAt)
-    : `${defaultDate}T10:00`;
-  const defaultEnd = event ? madridDateTimeInput(event.endsAt) : `${defaultDate}T11:00`;
+    : defaultStartsAt
+      ? madridDateTimeInput(defaultStartsAt)
+      : `${defaultDate}T10:00`;
+  const defaultEnd = event
+    ? madridDateTimeInput(event.endsAt)
+    : defaultEndsAt
+      ? madridDateTimeInput(defaultEndsAt)
+      : `${defaultDate}T11:00`;
 
   return (
     <>
@@ -63,6 +78,7 @@ function CalendarFields({
           defaultValue={event?.title}
           maxLength={CONTENT_OS_LIMITS.calendarTitle}
           required
+          autoFocus={autoFocus}
           className={inputClass}
         />
       </label>
@@ -87,7 +103,7 @@ function CalendarFields({
             <option value="">Sin asociar</option>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.title}
+                {item.title} · {CONTENT_OS_ITEM_STATUS_LABELS[item.status]}
               </option>
             ))}
           </select>
@@ -133,10 +149,18 @@ export function ContentCalendarEventForm({
   event,
   items,
   defaultDate,
+  defaultStartsAt,
+  defaultEndsAt,
+  autoFocus = false,
+  onSaved,
 }: {
   event?: ContentOsCalendarEvent;
   items: ContentOsItem[];
   defaultDate: string;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
+  autoFocus?: boolean;
+  onSaved?: () => void;
 }) {
   const updateAction = event
     ? updateContentOsCalendarEventAction.bind(null, event.id)
@@ -146,9 +170,20 @@ export function ContentCalendarEventForm({
     CONTENT_OS_INITIAL_ACTION_STATE,
   );
 
+  useEffect(() => {
+    if (state.status === "success") onSaved?.();
+  }, [onSaved, state.status]);
+
   return (
     <form action={action} className="grid gap-4">
-      <CalendarFields event={event} items={items} defaultDate={defaultDate} />
+      <CalendarFields
+        event={event}
+        items={items}
+        defaultDate={defaultDate}
+        defaultStartsAt={defaultStartsAt}
+        defaultEndsAt={defaultEndsAt}
+        autoFocus={autoFocus}
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p
           aria-live="polite"
@@ -166,19 +201,36 @@ export function ContentCalendarEventForm({
 
 export function DeleteContentCalendarEventButton({
   eventId,
+  onDeleted,
 }: {
   eventId: string;
+  onDeleted?: () => void;
 }) {
   const action = deleteContentOsCalendarEventAction.bind(null, eventId);
+  const [state, formAction] = useActionState(
+    action,
+    CONTENT_OS_INITIAL_ACTION_STATE,
+  );
+
+  useEffect(() => {
+    if (state.status === "success") onDeleted?.();
+  }, [onDeleted, state.status]);
+
   return (
-    <form action={action}>
+    <form action={formAction} className="flex items-center gap-3">
+      {state.status === "error" ? (
+        <p role="alert" className="text-sm text-rose-300">
+          {state.message}
+        </p>
+      ) : null}
       <button
         type="submit"
         aria-label="Eliminar bloque"
         title="Eliminar bloque"
-        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-400/10 hover:text-rose-300"
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-400 transition hover:bg-rose-400/10 hover:text-rose-300"
       >
         <Trash2 className="h-4 w-4" aria-hidden />
+        Eliminar bloque
       </button>
     </form>
   );

@@ -197,17 +197,21 @@ export async function updateContentOsCalendarEventAction(
 
 export async function deleteContentOsCalendarEventAction(
   eventId: string,
+  _previousState: ContentOsActionState,
   formData: FormData,
-): Promise<void> {
+): Promise<ContentOsActionState> {
   void formData;
-  if (!isContentOsUuid(eventId)) return;
+  if (!isContentOsUuid(eventId)) {
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
   try {
     await deleteContentOsCalendarEvent(eventId);
   } catch {
     console.error("[Warhome Content OS] Calendar event deletion failed");
-    return;
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
   }
   revalidateContentOs();
+  return { status: "success", message: "Bloque eliminado." };
 }
 
 export async function upsertContentOsMetricAction(
