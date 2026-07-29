@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-07-29
 **Alcance:** revisión final del bloque 12A antes de commit.
-**Resultado:** **APROBADO CON CAMBIOS DOCUMENTALES**
+**Resultado:** **APROBADO**
 
 ## Resumen ejecutivo
 
@@ -10,7 +10,7 @@ El MVP implementado respeta el alcance funcional aprobado: calendario editorial 
 
 La arquitectura mantiene el patrón existente de FlyPath: páginas Server Component protegidas por Warhome, acciones server-only, DTOs cerrados, acceso a Supabase mediante `service_role` y una RPC `SECURITY DEFINER` para la promoción atómica de ideas. La migración se aplicó en Supabase remoto y el QA sintético confirmó creación, edición, promoción idempotente, aislamiento de calendario, métricas, rechazo de ideas descartadas, autorización y limpieza de datos de prueba.
 
-No se observan hallazgos críticos ni mayores en código, migración o seguridad. Antes del commit queda una corrección documental necesaria: varios documentos todavía describen la migración como pendiente y contienen cifras de validación anteriores.
+No se observan hallazgos críticos, mayores ni bloqueos documentales después de actualizar el estado de la migración y la validación.
 
 ## 1. Cumplimiento funcional
 
@@ -114,7 +114,7 @@ Como observación de diseño futuro, `content_ideas` y `content_metrics` no llev
 
 1. El acceso a ideas es global dentro de la tabla `content_ideas`, aunque el módulo es deliberadamente privado y de un solo workspace. Documentado como deuda futura si se amplía el alcance.
 2. La migración amplía el check global de estados de `content_items` para soportar `production`. La aplicación local y la migración remota son coherentes; cualquier futuro consumidor de `content_items` deberá usar el conjunto ampliado de estados.
-3. Los documentos de continuidad todavía describen la migración como pendiente y usan cifras de validación anteriores. Esto debe corregirse antes del commit documental final, pero no es un defecto funcional ni de seguridad.
+3. El estado documental ya se ha alineado con la migración aplicada, el QA remoto completado y la suite actual.
 
 ## 6. Alcance y exclusiones
 
@@ -136,7 +136,7 @@ Los campos `proposal_source` y `proposal_status` dejan preparado el contrato par
 Validaciones realizadas durante la implementación y el QA remoto:
 
 - Tests focalizados de Content OS: correctos.
-- Suite completa: **800 tests correctos**.
+- Suite completa: **823 tests correctos**.
 - TypeScript: correcto.
 - Lint focalizado: correcto.
 - Build Webpack: correcto.
@@ -154,16 +154,16 @@ La auditoría de este documento no ejecutó una nueva mutación remota ni creó 
 | MAJOR | RPC sin autorización, sin atomicidad o con acceso cliente | No encontrado | Ninguna |
 | MAJOR | Cruce de workspace en calendario | No encontrado | FK compuesta y filtros verificados |
 | MINOR | Ideas/métricas sin workspace propio | Observación aceptable para MVP privado | Revisar solo al ampliar a más workspaces |
-| MINOR | Documentación indica migración pendiente y cifras antiguas | Pendiente de actualización | Corregir documentos de estado antes del cierre documental |
+| MINOR | Documentación histórica desactualizada | Corregido | Estado remoto y validación actualizados |
 
 ## 9. Veredicto
 
-**APROBADO CON CAMBIOS DOCUMENTALES.**
+**APROBADO.**
 
-El código, la migración aplicada y la seguridad están listos para commit. No hay cambios funcionales necesarios antes de cerrar 12A. Para que el cierre sea completamente coherente, deben actualizarse los documentos de continuidad y la auditoría previa para reflejar que:
+El código, la migración aplicada y la seguridad están listos para commit. El cierre documental refleja ahora que:
 
-- `20260729120000_create_content_os_pilotfeliu_mvp.sql` ya está aplicada en remoto;
+- `20260729120000_create_content_os_pilotfeliu_mvp.sql` y `20260729130000_add_content_os_roster_and_ai_planner.sql` están aplicadas en remoto;
 - el QA sintético remoto está completado;
-- la validación actual es de 800 tests, además de TypeScript, lint, build y diff check.
+- la validación actual es de 823 tests, además de TypeScript, lint, build y diff check.
 
 No se modificaron código ni migraciones durante esta auditoría. El único archivo añadido es este informe: `docs/audits/content-os-final-review.md`.

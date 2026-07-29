@@ -6,6 +6,10 @@ import type {
   ContentOsObjective,
   ContentOsPlatform,
 } from "@/lib/warhome/content-os-contract";
+import type {
+  ContentOsAvailabilityType,
+  ContentOsPlanningProposalStatus,
+} from "@/lib/warhome/content-os-planning-contract";
 
 export const CONTENT_OS_PLATFORM_LABELS: Record<ContentOsPlatform, string> = {
   tiktok_pilotfeliu: "TikTok PilotFeliu",
@@ -49,4 +53,23 @@ export const CONTENT_OS_EVENT_TYPE_LABELS: Record<ContentOsEventType, string> = 
   record: "Grabar",
   edit: "Editar",
   publish: "Publicar",
+};
+
+export const CONTENT_OS_AVAILABILITY_TYPE_LABELS: Record<
+  ContentOsAvailabilityType,
+  string
+> = {
+  work: "Trabajo",
+  rest: "Descanso / día libre",
+  travel: "Viaje",
+  recording_available: "Disponible para grabación",
+};
+
+export const CONTENT_OS_PLANNING_STATUS_LABELS: Record<
+  ContentOsPlanningProposalStatus,
+  string
+> = {
+  proposed: "Pendiente de revisión",
+  approved: "Aprobada",
+  rejected: "Rechazada",
 };

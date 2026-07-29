@@ -15,12 +15,24 @@ import {
   upsertContentOsMetric,
 } from "@/lib/warhome/content-os";
 import {
+  createContentOsAiProposal,
+  createContentOsAvailability,
+  ContentOsPlannerRateLimitError,
+  deleteContentOsAvailability,
+  reviewContentOsAiProposal,
+  updateContentOsAvailability,
+} from "@/lib/warhome/content-os-planning";
+import {
   isContentOsUuid,
   parseContentOsCalendarEventForm,
   parseContentOsIdeaForm,
   parseContentOsItemForm,
   parseContentOsMetricForm,
 } from "@/lib/warhome/content-os-contract";
+import {
+  isContentOsPlanningDecision,
+  parseContentOsAvailabilityForm,
+} from "@/lib/warhome/content-os-planning-contract";
 
 export type ContentOsActionState = {
   status: "idle" | "success" | "error";
@@ -37,9 +49,129 @@ const SAVE_ERROR_MESSAGE = "No se ha podido guardar. Inténtalo de nuevo.";
 
 function revalidateContentOs(contentItemId?: string): void {
   revalidatePath("/warhome/content");
+  revalidatePath("/warhome/content/availability");
+  revalidatePath("/warhome/content/planner");
   revalidatePath("/warhome/content/ideas");
   revalidatePath("/warhome/content/library");
   if (contentItemId) revalidatePath(`/warhome/content/library/${contentItemId}`);
+}
+
+export async function createContentOsAvailabilityAction(
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  const input = parseContentOsAvailabilityForm(formData);
+  if (!input) return { status: "error", message: INVALID_INPUT_MESSAGE };
+
+  try {
+    await createContentOsAvailability(input);
+  } catch {
+    console.error("[Warhome Content OS] Availability creation failed");
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  revalidateContentOs();
+  return { status: "success", message: "Disponibilidad guardada." };
+}
+
+export async function updateContentOsAvailabilityAction(
+  slotId: string,
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  if (!isContentOsUuid(slotId)) {
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+  const input = parseContentOsAvailabilityForm(formData);
+  if (!input) return { status: "error", message: INVALID_INPUT_MESSAGE };
+
+  try {
+    await updateContentOsAvailability(slotId, input);
+  } catch {
+    console.error("[Warhome Content OS] Availability update failed");
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  revalidateContentOs();
+  return { status: "success", message: "Disponibilidad actualizada." };
+}
+
+export async function deleteContentOsAvailabilityAction(
+  slotId: string,
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  void formData;
+  if (!isContentOsUuid(slotId)) {
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  try {
+    await deleteContentOsAvailability(slotId);
+  } catch {
+    console.error("[Warhome Content OS] Availability deletion failed");
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  revalidateContentOs();
+  return { status: "success", message: "Disponibilidad eliminada." };
+}
+
+export async function createContentOsAiProposalAction(
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  void formData;
+  try {
+    await createContentOsAiProposal();
+  } catch (error) {
+    if (error instanceof ContentOsPlannerRateLimitError) {
+      return {
+        status: "error",
+        message: "Espera un momento antes de generar otra propuesta.",
+      };
+    }
+    console.error("[Warhome Content OS] AI planning proposal failed");
+    return {
+      status: "error",
+      message:
+        "No se ha podido generar la propuesta. Revisa el roster y vuelve a intentarlo.",
+    };
+  }
+
+  revalidateContentOs();
+  return { status: "success", message: "Propuesta preparada para revisión." };
+}
+
+export async function reviewContentOsAiProposalAction(
+  proposalId: string,
+  decision: string,
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  void formData;
+  if (
+    !isContentOsUuid(proposalId) ||
+    !isContentOsPlanningDecision(decision)
+  ) {
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  try {
+    await reviewContentOsAiProposal(proposalId, decision);
+  } catch {
+    console.error("[Warhome Content OS] AI proposal review failed");
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  revalidateContentOs();
+  return {
+    status: "success",
+    message:
+      decision === "approved"
+        ? "Propuesta aprobada y añadida al calendario."
+        : "Propuesta rechazada.",
+  };
 }
 
 export async function createContentOsIdeaAction(

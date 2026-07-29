@@ -683,9 +683,16 @@ Estado del MVP 12A:
 - Biblioteca y ficha operativa de contenido.
 - Calendario semanal/mensual con bloques de grabación, edición y publicación.
 - Métricas manuales por fecha.
-- Contrato de propuestas IA preparado, sin agentes activos.
-- Migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` aplicada en Supabase remoto y QA sintético remoto completado; validación actual: 800 tests correctos, TypeScript, lint, build Webpack y `git diff --check` correctos.
-- Roster y planificación IA quedan para el siguiente bloque; no forman parte del MVP manual aplicado.
+- Roster manual y primer planificador IA MVP completados: propuestas
+  quincenales separadas del calendario, protección contra solapamientos,
+  intervalo configurable de generación y aprobación manual transaccional.
+- Migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql` y
+  `20260729130000_add_content_os_roster_and_ai_planner.sql` aplicadas en Supabase
+  remoto y QA sintético remoto completado; validación actual: 823 tests correctos,
+  TypeScript, lint focalizado, build Webpack y `git diff --check` correctos.
+- No hay agentes
+  autónomos, memoria avanzada, ejecución continua, publicación automática, APIs
+  sociales ni cambios de calendario sin aprobación.
 
 La especificación funcional se mantiene en [Content OS PilotFeliu - AI Content Command Center](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El adelanto de 12A no activa implementación del Command Center completo, no crea una base separada y no modifica el alcance de AeroComms.
 

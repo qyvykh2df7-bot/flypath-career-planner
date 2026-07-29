@@ -4,7 +4,7 @@
 **Alcance:** auditoría local previa a aplicar `20260729120000_create_content_os_pilotfeliu_mvp.sql` en Supabase remoto.
 **Resultado original:** **APROBADO CON CAMBIOS**
 
-La implementación es segura para permanecer local y está preparada para QA. Las observaciones MINOR de este informe quedaron corregidas localmente en una revisión posterior; la migración sigue pendiente de revisión final y de aplicación remota.
+Las observaciones MINOR de este informe quedaron corregidas en una revisión posterior. La migración se aplicó en remoto y el QA sintético del MVP quedó completado.
 
 ## Seguimiento de observaciones MINOR
 
@@ -185,7 +185,7 @@ La implementación local ya tenía las siguientes validaciones y las he contrast
 
 Estas comprobaciones no sustituyen una validación de esquema remoto ni QA con datos sintéticos.
 
-## 8. Recomendaciones antes de aplicar en remoto
+## 8. Recomendaciones históricas antes de aplicar en remoto
 
 1. Confirmar en remoto que `content_items` existe exactamente con la migración base `20260711270000`, sus checks existentes y RLS activa.
 2. Comprobar que no existen ya las constraints o tablas de la migración 12A con nombres parcialmente creados.
@@ -195,9 +195,9 @@ Estas comprobaciones no sustituyen una validación de esquema remoto ni QA con d
 
 ## 9. Veredicto
 
-**APROBADO PARA APLICAR, PENDIENTE DE VERIFICACIÓN REMOTA.**
+**APROBADO Y VALIDADO REMOTAMENTE.**
 
-No hay hallazgos críticos, mayores ni menores bloqueantes y la migración no muestra una vía pública de acceso ni una ruptura inmediata del MVP. Antes de aplicar en Supabase remoto solo deben confirmarse las precondiciones remotas, aplicar de forma trazable y ejecutar QA sintético.
+No hay hallazgos críticos, mayores ni menores bloqueantes. Las precondiciones remotas, la aplicación trazable y el QA sintético descritos en este informe se completaron posteriormente.
 
 ## Estado de cambios
 

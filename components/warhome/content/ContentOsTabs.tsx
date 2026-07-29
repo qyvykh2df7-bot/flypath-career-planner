@@ -1,18 +1,33 @@
 import Link from "next/link";
-import { CalendarDays, Clapperboard, Library, Lightbulb } from "lucide-react";
+import {
+  CalendarDays,
+  Clapperboard,
+  Library,
+  Lightbulb,
+  Sparkles,
+  Timer,
+} from "lucide-react";
 
 const tabs = [
   { href: "/warhome/content", label: "Calendario", icon: CalendarDays },
   { href: "/warhome/content/ideas", label: "Banco de ideas", icon: Lightbulb },
   { href: "/warhome/content/library", label: "Biblioteca", icon: Library },
+  { href: "/warhome/content/availability", label: "Disponibilidad", icon: Timer },
+  { href: "/warhome/content/planner", label: "Planificador IA", icon: Sparkles },
   { href: "/warhome/content/library/new", label: "Nueva pieza", icon: Clapperboard },
 ] as const;
 
-export function ContentOsTabs({ active }: { active: "calendar" | "ideas" | "library" | "new" }) {
+export function ContentOsTabs({
+  active,
+}: {
+  active: "calendar" | "ideas" | "library" | "availability" | "planner" | "new";
+}) {
   const activeHref = {
     calendar: "/warhome/content",
     ideas: "/warhome/content/ideas",
     library: "/warhome/content/library",
+    availability: "/warhome/content/availability",
+    planner: "/warhome/content/planner",
     new: "/warhome/content/library/new",
   }[active];
 

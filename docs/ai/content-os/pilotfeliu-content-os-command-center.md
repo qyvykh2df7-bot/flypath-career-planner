@@ -33,6 +33,16 @@ La migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` está aplica
 
 Las columnas `proposal_source` y `proposal_status` preparan el flujo futuro **IA propone -> PilotFeliu revisa -> PilotFeliu decide**. En el MVP las altas manuales quedan aprobadas; no existe generación automática.
 
+## Bloque 12A.6 — Roster y planificador IA MVP
+
+El roster manual y el primer planificador IA están completados como la siguiente capa privada de Content OS. La migración `20260729130000_add_content_os_roster_and_ai_planner.sql` está aplicada en Supabase remoto y el QA sintético remoto está completado.
+
+La disponibilidad registra trabajo, descanso, viaje y franjas disponibles para grabación. Impide solapamientos del mismo tipo y cualquier cruce que incluya trabajo o viaje; una franja de grabación puede quedar dentro de una franja de descanso.
+
+El planificador crea propuestas editoriales de hasta dos semanas a partir del roster, ideas y contenido pendiente. Una propuesta nunca modifica el calendario al generarse: requiere aprobación manual transaccional. Antes de aprobarla se rechazan conflictos con eventos existentes y solapamientos internos. La generación tiene un intervalo mínimo configurable para evitar ejecuciones repetidas accidentales.
+
+Este bloque no introduce un agente autónomo, memoria avanzada, ejecución continua, publicación automática, APIs sociales ni movimientos de calendario sin aprobación.
+
 ### Límites editoriales del MVP
 
 La ficha inicial cubre los campos operativos cerrados para 12A: título, plataforma, objetivo, categoría, hook, guion, CTA, estado, fechas y notas. La persistencia aplica los mismos límites de longitud que el contrato y los formularios para conservar la integridad del contenido.
@@ -228,12 +238,13 @@ El calendario es la pantalla principal del módulo.
 
 ### Flujo de trabajo
 
-El MVP permite crear, editar, asociar y mover manualmente bloques de grabación, edición y publicación. La integración de roster y el botón para generar propuestas quincenales quedan preparados como evolución posterior:
+El MVP permite crear, editar, asociar y mover manualmente bloques de grabación, edición y publicación. El bloque 12A.6 añade roster manual y una primera herramienta de propuesta quincenal:
 
 1. PilotFeliu introduce roster y compromisos relevantes.
 2. Pulsa generar calendario.
-3. La IA propone las dos semanas siguientes.
-4. PilotFeliu mueve, edita o rechaza bloques antes de usarlos.
+3. La IA prepara una propuesta separada para las dos semanas siguientes.
+4. PilotFeliu revisa y aprueba o rechaza la propuesta.
+5. Solo una propuesta aprobada se materializa en el calendario; sus bloques siguen siendo editables.
 
 ### Propuestas de la IA
 
@@ -248,6 +259,34 @@ No puede:
 - bloquear horarios automáticamente;
 - publicar automáticamente;
 - asumir disponibilidad no introducida por el usuario.
+
+### Roster manual
+
+La disponibilidad se introduce dentro de Warhome, sin calendarios externos, y usa
+cuatro tipos cerrados:
+
+- trabajo;
+- descanso o día libre;
+- viaje;
+- disponible para grabación.
+
+Cada franja conserva inicio, fin, zona horaria `Europe/Madrid` y notas opcionales.
+El planificador solo puede proponer dentro de franjas de descanso o disponibilidad
+de grabación y debe respetar trabajo y viajes como bloqueos.
+
+### Primera capa IA
+
+El planificador es una herramienta server-side de propuesta, no un agente autónomo.
+Recibe un contexto acotado de catorce días con roster, ideas activas, piezas
+pendientes y objetivos editoriales. La respuesta usa un contrato estructurado y
+solo puede referenciar identificadores ya existentes.
+
+Las propuestas y sus bloques se guardan aparte del calendario. La aprobación se
+resuelve mediante una operación transaccional e idempotente; el rechazo no crea
+eventos. No se persisten prompts, respuestas crudas del proveedor ni memoria de
+conversación. El modelo operativo sigue siendo:
+
+**IA propone → PilotFeliu revisa → PilotFeliu decide.**
 
 La planificación debe aspirar a conservar un margen aproximado de una semana de contenido preparado, sin tratarlo como una cuota rígida.
 
@@ -366,7 +405,7 @@ Estas automatizaciones deben ser revisables y no ejecutar publicación ni cambio
 | 1. Documentación y diseño funcional | Consolidar visión, límites, flujos y agentes. | Completada. Esta especificación es la referencia. |
 | 2. Base de datos de contenidos | Diseñar y crear el modelo mínimo para ideas, piezas, planificación y métricas. | Completada; migración aplicada en remoto y QA sintético validado. |
 | 3. Calendario interactivo | Crear calendario semanal/mensual y el flujo manual de planificación. | Completado dentro de Warhome para crear, asociar, mover, editar y eliminar bloques. |
-| 4. Sistema de agentes | Conectar asistentes de estrategia, ideas, guion, producción, edición, analytics, lifestyle, crecimiento y marca. | Propuestas trazables y siempre revisables. |
+| 4. Sistema de agentes | Conectar progresivamente asistentes de estrategia, ideas, guion, producción, edición, analytics, lifestyle, crecimiento y marca. | Primera herramienta de planificación implementada como propuesta revisable; agentes autónomos pendientes. |
 | 5. Analytics y conexión con ventas | Registrar rendimiento y relacionar, cuando sea verificable, contenido con leads y ventas. | Aprendizaje por objetivo sin atribución engañosa. |
 | 6. Automatizaciones avanzadas | Añadir generación quincenal, análisis semanal, avisos y recomendaciones. | Operación asistida, no autónoma. |
 
@@ -378,4 +417,4 @@ La auditoría CRM confirmó que `content_items` ya era el catálogo privado adec
 
 ## Estado del diseño
 
-Las decisiones funcionales principales de Content OS PilotFeliu quedan cerradas. El MVP manual está completado dentro de Warhome, con migración remota aplicada y QA sintético remoto validado. Roster, integraciones, APIs de plataformas y automatizaciones avanzadas siguen sus bloques de construcción correspondientes.
+Las decisiones funcionales principales de Content OS PilotFeliu quedan cerradas. El MVP manual, el roster y el primer asistente planificador están completados dentro de Warhome, con las migraciones remotas aplicadas y QA sintético remoto validado. La validación actual registra 823 tests correctos. No existen todavía agentes autónomos, APIs de plataformas, publicación automática ni automatizaciones sociales.

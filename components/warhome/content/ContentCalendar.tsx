@@ -153,6 +153,7 @@ function CalendarEventCard({
             {CONTENT_OS_EVENT_TYPE_LABELS[event.eventType]} ·{" "}
             {contentOsMadridTime(event.startsAt)}
             {item ? ` · ${CONTENT_OS_ITEM_STATUS_LABELS[item.status]}` : ""}
+            {event.proposalSource === "ai" ? " · IA" : ""}
           </span>
           {!compact && event.contentTitle ? (
             <span className="mt-1 block truncate opacity-70">

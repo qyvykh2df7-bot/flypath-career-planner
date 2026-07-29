@@ -24,6 +24,8 @@ const clientFiles = [
   "components/warhome/content/ContentCalendarEventForm.tsx",
   "components/warhome/content/content-calendar-utils.ts",
   "components/warhome/content/ContentIdeaWorkspace.tsx",
+  "components/warhome/content/ContentAvailabilityWorkspace.tsx",
+  "components/warhome/content/ContentAiPlannerWorkspace.tsx",
   "components/warhome/content/ContentItemForm.tsx",
   "components/warhome/content/ContentMetricsPanel.tsx",
   "app/warhome/(protected)/leads/[leadId]/page.tsx",
@@ -34,6 +36,8 @@ const clientFiles = [
   "app/warhome/(protected)/reviews/[reviewId]/page.tsx",
   "app/warhome/(protected)/content/page.tsx",
   "app/warhome/(protected)/content/ideas/page.tsx",
+  "app/warhome/(protected)/content/availability/page.tsx",
+  "app/warhome/(protected)/content/planner/page.tsx",
   "app/warhome/(protected)/content/library/page.tsx",
   "app/warhome/(protected)/content/library/[contentId]/page.tsx",
 ];

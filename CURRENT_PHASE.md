@@ -29,7 +29,7 @@ Pendiente en Fase 11:
 
 ## Bloque adelantado 12A — Content OS PilotFeliu
 
-La especificación de la herramienta interna personal de contenido está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado como módulo privado dentro de Warhome: calendario semanal/mensual, banco de ideas, biblioteca, fichas y métricas manuales. La migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` está aplicada en Supabase remoto y el QA sintético remoto está completado. Roster, agentes IA, APIs externas y automatizaciones sociales no están activos. El Command Center completo sigue siendo posterior.
+La especificación de la herramienta interna personal de contenido está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado como módulo privado dentro de Warhome: calendario semanal/mensual, banco de ideas, biblioteca, fichas y métricas manuales. Las migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql` y `20260729130000_add_content_os_roster_and_ai_planner.sql` están aplicadas en Supabase remoto y el QA sintético remoto está completado. Los bloques 12A.6.1/12A.6.2 quedan cerrados con roster manual y un planificador IA MVP de propuestas revisables, protección de solapamientos, intervalo configurable contra repeticiones accidentales y aprobación transaccional. La validación actual registra 823 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, APIs externas, publicación automática ni automatizaciones sociales. El Command Center completo sigue siendo posterior.
 
 ## Cierre técnico reciente — SEO e indexación
 
@@ -63,7 +63,7 @@ La especificación de la herramienta interna personal de contenido está en [doc
 
 ## Alcance de la fase actual
 
-Fase 11 continúa con la consolidación CRM y las automatizaciones pendientes. Content OS PilotFeliu dispone ya de un MVP 12A completado y validado dentro de Warhome. Sus siguientes bloques son roster, agentes IA, integraciones y automatizaciones avanzadas; Warhome / Warboard / Command Center completo permanece en Fase 12.
+Fase 11 continúa con la consolidación CRM y las automatizaciones pendientes. Content OS PilotFeliu dispone de un MVP 12A completado y validado dentro de Warhome, incluido el roster y planificador 12A.6. Sus siguientes bloques posteriores son agentes especializados, integraciones y automatizaciones avanzadas; Warhome / Warboard / Command Center completo permanece en Fase 12.
 
 ## Optimización de rendimiento pre-lanzamiento
 
