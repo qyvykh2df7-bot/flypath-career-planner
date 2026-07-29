@@ -134,7 +134,7 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 
 - Mantener separadas identidad, lead, consentimiento, actividad y compra.
 - Completar automatizaciones, secuencias, journeys y analytics de negocio MVP sobre la infraestructura existente.
-- Content OS PilotFeliu se gestiona como 12A adelantado: MVP manual, roster y Planner IA completados dentro de Warhome, con sus migraciones remotas aplicadas y QA sintético validado. El AI Content Strategist 12A.6.3 está implementado y auditado con revisión humana, deduplicación y balance configurable; `20260729140000_add_content_os_ai_strategist.sql` queda pendiente de aplicación remota y QA sintético posterior. Integraciones y automatizaciones avanzadas siguen fuera de alcance; el resto de Warhome / Warboard / Command Center continúa en Fase 12.
+- Content OS PilotFeliu se gestiona como 12A adelantado: MVP manual, roster, Planner IA y AI Content Strategist 12A.6.3 completados dentro de Warhome, con sus migraciones remotas aplicadas y QA sintético validado. El Strategist mantiene revisión humana, deduplicación y balance configurable antes de que una propuesta llegue al banco operativo. Integraciones y automatizaciones avanzadas siguen fuera de alcance; el resto de Warhome / Warboard / Command Center continúa en Fase 12.
 - No crear una migración ni implementar automatizaciones nuevas sin mantener las fuentes de verdad y evitar duplicados.
 
 - `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.

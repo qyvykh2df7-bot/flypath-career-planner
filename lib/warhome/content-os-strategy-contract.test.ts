@@ -91,6 +91,16 @@ describe("Content OS strategy contract", () => {
     expect(parseContentOsStrategyOutput(output, context)).toBeNull();
   });
 
+  it("rechaza plataformas duplicadas aunque el schema del proveedor no las bloquee", () => {
+    const output = validOutput();
+    output.suggestions[0].platforms = [
+      "tiktok_pilotfeliu",
+      "tiktok_pilotfeliu",
+    ];
+
+    expect(parseContentOsStrategyOutput(output, context)).toBeNull();
+  });
+
   it("valida un balance configurable que suma cien", () => {
     expect(
       parseContentOsStrategyBalanceForm(

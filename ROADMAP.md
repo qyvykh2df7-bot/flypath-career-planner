@@ -686,15 +686,14 @@ Estado del MVP 12A:
 - Roster manual y primer planificador IA MVP completados: propuestas
   quincenales separadas del calendario, protección contra solapamientos,
   intervalo configurable de generación y aprobación manual transaccional.
-- AI Content Strategist MVP implementado y auditado: contexto de marca,
+- AI Content Strategist MVP implementado, auditado y validado en remoto: contexto de marca,
   audiencia y productos, balance 40/30/20/10 configurable, propuestas
   estructuradas, deduplicación básica y revisión manual antes de entrar en el
-  banco operativo. La auditoría final está aprobada; la migración
-  `20260729140000_add_content_os_ai_strategist.sql` queda pendiente de aplicación
-  remota y QA sintético posterior.
+  banco operativo. La migración `20260729140000_add_content_os_ai_strategist.sql`
+  está aplicada en remoto y el QA sintético quedó completado.
 - Migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql` y
   `20260729130000_add_content_os_roster_and_ai_planner.sql` aplicadas en Supabase
-  remoto y QA sintético remoto completado; validación local actual: 843 tests correctos,
+  remoto y QA sintético remoto completado; validación local actual: 844 tests correctos,
   TypeScript, lint focalizado, build Webpack y `git diff --check` correctos.
 - No hay agentes
   autónomos, memoria avanzada, ejecución continua, publicación automática, APIs

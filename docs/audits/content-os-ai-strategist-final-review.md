@@ -126,7 +126,7 @@ Los dos últimos puntos son pasos de despliegue y validación posteriores, no de
 
 ## 9. Validación local
 
-- Suite completa: **843 tests correctos**.
+- Suite completa: **844 tests correctos**.
 - TypeScript: correcto.
 - Lint focalizado: correcto.
 - Build Webpack: correcto.
@@ -134,7 +134,7 @@ Los dos últimos puntos son pasos de despliegue y validación posteriores, no de
 
 ## 10. Conclusión
 
-El bloque 12A.6.3 queda listo para commit y push como MVP de aplicación. El estado funcional es **IA propone -> PilotFeliu revisa -> banco de ideas -> Planner IA**. La siguiente operación técnica, fuera de esta auditoría, es aplicar la migración en remoto y ejecutar QA sintético antes de activar el flujo en producción.
+El bloque 12A.6.3 queda listo para commit y push como MVP de aplicación. El estado funcional es **IA propone -> PilotFeliu revisa -> banco de ideas -> Planner IA**.
 
 ## Archivos revisados
 
@@ -150,4 +150,16 @@ El bloque 12A.6.3 queda listo para commit y push como MVP de aplicación. El est
 
 ## Cambios realizados durante esta auditoría
 
-Se creó únicamente este informe. No se modificó código, migraciones ni configuración, y no se aplicó la migración remota.
+Se creó únicamente este informe. No se modificó código, migraciones ni configuración durante la auditoría inicial.
+
+## Seguimiento de aplicación remota
+
+El 2026-07-30 se aplicó la migración `20260729140000_add_content_os_ai_strategist.sql` en Supabase remoto y se completó QA sintético con datos eliminados al finalizar.
+
+- Se generaron diez propuestas reales con salida JSON estructurada validada.
+- La persistencia creó las propuestas en estado `proposed` con todos los campos editoriales requeridos.
+- Una propuesta aprobada pasó al banco de ideas operativo; otra rechazada quedó descartada sin crear contenido.
+- Repetir la misma decisión fue idempotente.
+- Una propuesta pendiente no pudo promocionarse y no se creó ningún evento de calendario.
+- Acceso anónimo y un usuario sin autorización Warhome fueron rechazados; `service_role` operó correctamente.
+- No quedaron propuestas, ideas, eventos ni registros de throttle sintéticos.

@@ -75,6 +75,12 @@ describe("Content OS AI strategist", () => {
         },
       }),
     );
+    const request = create.mock.calls[0]?.[0] as {
+      text: { format: { schema: unknown } };
+    };
+    expect(JSON.stringify(request.text.format.schema)).not.toContain(
+      "uniqueItems",
+    );
   });
 
   it("rechaza respuestas que no respetan el contrato editorial", async () => {

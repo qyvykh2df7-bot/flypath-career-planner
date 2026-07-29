@@ -95,7 +95,6 @@ const CONTENT_OS_STRATEGY_SCHEMA = {
             type: "array",
             minItems: 1,
             maxItems: CONTENT_OS_PLATFORMS.length,
-            uniqueItems: true,
             items: {
               type: "string",
               enum: CONTENT_OS_PLATFORMS,
