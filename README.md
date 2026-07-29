@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase actual: 10.5 — Production Launch & Hardening.** La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**: Stripe Live preparado con productos y Price IDs de AeroComms Pro, Career Planner Premium y la guía Cómo ser Piloto; Checkout, webhooks, Customer Portal, entitlements y separación Test/Live validados. Las APIs de voz de AeroComms ya tienen validación cerrada, cuotas distribuidas y fallo cerrado ante infraestructura no disponible. También está integrada la sincronización operativa de mentorías con Cal.com; su QA de reserva real sigue bloqueada por un problema externo del checkout de Cal.com. Antes del lanzamiento quedan el diseño público de opiniones de escuelas, la auditoría de datos del comparador, rendimiento y la migración al dominio definitivo. Validación técnica: 755 tests, TypeScript y lint correctos.
+**Fase actual: 10.5 — Production Launch & Hardening.** La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. El hardening web previo al lanzamiento incorpora origen canónico server-side, cabeceras de seguridad, límites de webhooks y bloqueo de herramientas internas en producción. `next` está actualizado a `16.2.12`; la auditoría de dependencias de producción queda en cero vulnerabilidades. Validación local: 771 tests, TypeScript, lint y build Webpack correctos.
 
 ## Comandos
 
@@ -24,6 +24,7 @@ Copia `.env.example` a `.env.local` y rellena:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (solo servidor; nunca en cliente)
 - `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` (solo servidor; el entorno Test/Live se separa por configuración)
+- `FLYPATH_CANONICAL_ORIGIN` (URL HTTPS pública aprobada; requerida fuera de desarrollo)
 
 ## Documentación operativa
 

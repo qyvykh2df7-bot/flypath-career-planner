@@ -89,13 +89,13 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
   it("requires a validated FlyPath account", async () => {
     mocks.getSessionState.mockResolvedValue({ status: "anonymous" });
 
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .rejects.toMatchObject({ kind: "authentication_required" });
     expect(mocks.from).not.toHaveBeenCalled();
   });
 
   it("creates a portal only for the authenticated account's current subscription", async () => {
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://request-origin.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .resolves.toEqual({ url: "https://billing.stripe.com/p/session/test_aerocomms" });
 
     expect(mocks.from).toHaveBeenNthCalledWith(1, "subscriptions");
@@ -111,14 +111,14 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
     mocks.getStripeConfiguration.mockReturnValue({ mode: "live" });
     mocks.subscriptionMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
 
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .rejects.toMatchObject({ kind: "subscription" });
     expect(mocks.createPortalSession).not.toHaveBeenCalled();
   });
 
   it("rejects users without an eligible subscription or a customer linked to another account", async () => {
     mocks.subscriptionMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .rejects.toMatchObject({ kind: "subscription" });
     expect(mocks.createPortalSession).not.toHaveBeenCalled();
 
@@ -126,24 +126,24 @@ describe("AeroComms Pro Customer Portal server boundary", () => {
       data: { user_id: "6e2d5f1b-87b5-47a8-a0b0-908ceb5ab3ac", stripe_customer_id: "cus_other" },
       error: null,
     });
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .rejects.toMatchObject({ kind: "subscription" });
     expect(mocks.createPortalSession).not.toHaveBeenCalled();
 
     mocks.bindingMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .rejects.toMatchObject({ kind: "subscription" });
     expect(mocks.createPortalSession).not.toHaveBeenCalled();
   });
 
   it("fails closed for Stripe failures and unexpected redirect destinations", async () => {
     mocks.createPortalSession.mockRejectedValueOnce(new Error("provider detail"));
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .rejects.toMatchObject({ kind: "provider" });
     expect(mocks.toProviderError).toHaveBeenCalled();
 
     mocks.createPortalSession.mockResolvedValueOnce({ url: "https://attacker.test/portal" });
-    await expect(createAeroCommsProCustomerPortal({ requestOrigin: "https://flypath.test" }))
+    await expect(createAeroCommsProCustomerPortal())
       .rejects.toMatchObject({ kind: "provider" });
   });
 });

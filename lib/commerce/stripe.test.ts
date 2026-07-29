@@ -26,12 +26,12 @@ describe("Stripe configuration", () => {
   });
 
   it("uses a canonical configured URL and permits localhost only outside production", () => {
-    expect(resolveStripeAppUrl("http://localhost:3000", { NODE_ENV: "development" })).toBe("http://localhost:3000");
-    expect(resolveStripeAppUrl("http://localhost:3000", {
+    expect(resolveStripeAppUrl({ NODE_ENV: "development" })).toBe("http://localhost:3000");
+    expect(resolveStripeAppUrl({
       NODE_ENV: "production",
-      NEXT_PUBLIC_APP_URL: "https://flypath.example",
+      FLYPATH_CANONICAL_ORIGIN: "https://flypath.example",
     })).toBe("https://flypath.example");
-    expect(() => resolveStripeAppUrl("http://localhost:3000", { NODE_ENV: "production" })).toThrow(StripeConfigurationError);
+    expect(() => resolveStripeAppUrl({ NODE_ENV: "production" })).toThrow(StripeConfigurationError);
   });
 
   it("classifies provider failures without retaining provider details", () => {

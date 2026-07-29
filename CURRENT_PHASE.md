@@ -34,6 +34,15 @@ La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su últ
 
 El siguiente trabajo es preparar el lanzamiento público: cerrar el diseño público de opiniones de escuelas; auditar la consistencia de escuelas, precios, costes, extras, riesgos y fuentes del comparador; medir rendimiento con Lighthouse, Vercel Speed Insights y PageSpeed; y configurar el dominio definitivo, DNS, SSL y variables Production antes de retirar Hostinger. Después se ejecutará el QA final de todas las superficies comerciales y de producto.
 
+## Hardening web previo al lanzamiento — validado localmente
+
+- `FLYPATH_CANONICAL_ORIGIN` ya centraliza los retornos Stripe, enlaces de confirmación, contexto server-side y validación same-origin. Production y Preview lo tienen configurado como variable sensible; nunca se deriva una URL pública desde `Host`.
+- La configuración global añade CSP cerrada, anti-embedding, HSTS, `nosniff`, política de referrer, permissions policy y aislamiento de recursos. `/review/*`, previews y herramientas QA devuelven `404` fuera de desarrollo/test y no son indexables.
+- Stripe, Cal.com y Resend limitan el body antes de leerlo y mantienen la verificación de firma sobre body crudo; sus límites son respectivamente 1 MiB, 256 KiB y 256 KiB.
+- Validación local: 771 tests correctos, TypeScript, lint focalizado, `git diff --check` y build Webpack correctos.
+- `next` y `eslint-config-next` se actualizaron de `16.2.4` a `16.2.12`; React/React DOM continúan en `19.2.4`. `postcss`, `sharp` y `js-yaml` quedaron corregidos mediante actualizaciones compatibles.
+- `npm audit --omit=dev` queda en **0 vulnerabilidades**. El audit completo conserva un High de `brace-expansion` y un Low de `esbuild`, ambos limitados a tooling de desarrollo y no incluidos en Vercel. Deployment Production `dpl_66uEFUVQSeAFSGADCrfVDCvYtD1S` validó cabeceras, rutas internas `404`, páginas públicas y límites `413` de webhook.
+
 ## Hardening de APIs de voz AeroComms
 
 **Completado y desplegado en Production.** La migración `20260712310000_add_aerocomms_voice_rate_limits.sql` está aplicada. TTS y STT validan inputs antes de OpenAI, resuelven identidad y entitlement en servidor, consumen cuota distribuida en Supabase y fallan con `503` si falta autenticación, configuración o infraestructura. Las cuotas son: anónimo TTS 8/10 min y STT 2/h; Free autenticado TTS 30/10 min y STT 8/h; Pro TTS 90/10 min y STT 100/h. `AEROCOMMS_VOICE_RATE_LIMIT_SALT` está configurado como variable sensible en Vercel Production y Preview, sin valor versionado.

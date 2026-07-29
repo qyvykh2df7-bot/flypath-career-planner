@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getSupabaseAdmin: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/email/config", () => ({ getResendWebhookSecret: mocks.getResendWebhookSecret }));
 vi.mock("@/lib/email/resend-webhooks", () => ({
   verifyResendWebhook: mocks.verifyResendWebhook,
@@ -115,5 +116,11 @@ describe("POST /api/webhooks/resend", () => {
     expect(await response.json()).toEqual({ error: "Webhook no disponible." });
     expect(error).toHaveBeenCalledWith("[FlyPath] Resend webhook processing failed.");
     error.mockRestore();
+  });
+
+  it("rejects oversized raw bodies before signature verification", async () => {
+    const response = await POST(createRequest("{}", { "content-length": "262145" }));
+    expect(response.status).toBe(413);
+    expect(mocks.verifyResendWebhook).not.toHaveBeenCalled();
   });
 });

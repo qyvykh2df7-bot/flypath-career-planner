@@ -31,7 +31,7 @@ describe("POST /api/webhooks/calcom", () => {
   it("verifies and processes the exact raw request body", async () => {
     const response = await POST(new Request("https://flypath.test/api/webhooks/calcom", {
       method: "POST",
-      headers: { "x-cal-signature-256": "signed" },
+      headers: { "x-cal-signature-256": "signed", "content-type": "application/json" },
       body: '{"triggerEvent":"BOOKING_CREATED"}',
     }));
     expect(response.status).toBe(200);
@@ -46,7 +46,7 @@ describe("POST /api/webhooks/calcom", () => {
 
     mocks.verify.mockImplementation(() => { throw new mocks.WebhookError("signature"); });
     const invalid = await POST(new Request("https://flypath.test/api/webhooks/calcom", {
-      method: "POST", headers: { "x-cal-signature-256": "bad" }, body: "{}",
+      method: "POST", headers: { "x-cal-signature-256": "bad", "content-type": "application/json" }, body: "{}",
     }));
     expect(invalid.status).toBe(400);
     expect(mocks.apply).not.toHaveBeenCalled();
@@ -55,16 +55,26 @@ describe("POST /api/webhooks/calcom", () => {
   it("returns a retryable generic response when configuration or processing is unavailable", async () => {
     mocks.verify.mockImplementation(() => { throw new mocks.WebhookError("configuration"); });
     const configuration = await POST(new Request("https://flypath.test/api/webhooks/calcom", {
-      method: "POST", headers: { "x-cal-signature-256": "signed" }, body: "{}",
+      method: "POST", headers: { "x-cal-signature-256": "signed", "content-type": "application/json" }, body: "{}",
     }));
     expect(configuration.status).toBe(503);
 
     mocks.verify.mockReset();
     mocks.apply.mockRejectedValue(new Error("database detail"));
     const unavailable = await POST(new Request("https://flypath.test/api/webhooks/calcom", {
-      method: "POST", headers: { "x-cal-signature-256": "signed" }, body: "{}",
+      method: "POST", headers: { "x-cal-signature-256": "signed", "content-type": "application/json" }, body: "{}",
     }));
     expect(unavailable.status).toBe(503);
     await expect(unavailable.text()).resolves.toBe("Webhook no disponible.");
+  });
+
+  it("rejects oversized bodies before signature verification", async () => {
+    const response = await POST(new Request("https://flypath.test/api/webhooks/calcom", {
+      method: "POST",
+      headers: { "x-cal-signature-256": "signed", "content-type": "application/json", "content-length": "262145" },
+      body: "{}",
+    }));
+    expect(response.status).toBe(413);
+    expect(mocks.verify).not.toHaveBeenCalled();
   });
 });

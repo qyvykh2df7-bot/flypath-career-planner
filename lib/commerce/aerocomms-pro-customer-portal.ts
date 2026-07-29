@@ -87,9 +87,7 @@ async function getCustomerIdForAccount(userId: string): Promise<string> {
  * account's own current AeroComms Pro subscription. The browser never chooses
  * a Stripe customer or return destination.
  */
-export async function createAeroCommsProCustomerPortal(input: {
-  requestOrigin: string;
-}): Promise<{ url: string }> {
+export async function createAeroCommsProCustomerPortal(): Promise<{ url: string }> {
   const session = await getFlyPathSessionState();
   if (session.status === "unavailable") throw new AeroCommsProCustomerPortalError("session");
   if (session.status !== "authenticated") throw new AeroCommsProCustomerPortalError("authentication_required");
@@ -99,7 +97,7 @@ export async function createAeroCommsProCustomerPortal(input: {
   try {
     const session = await getStripeClient().billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${resolveStripeAppUrl(input.requestOrigin)}${AEROCOMMS_PRO_PORTAL_RETURN_PATH}`,
+      return_url: `${resolveStripeAppUrl()}${AEROCOMMS_PRO_PORTAL_RETURN_PATH}`,
     });
 
     if (!isHostedStripePortalUrl(session.url)) {

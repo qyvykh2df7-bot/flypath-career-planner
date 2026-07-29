@@ -21,7 +21,7 @@ describe("POST /api/webhooks/stripe", () => {
 
   it("uses the raw request body after signature verification", async () => {
     const response = await POST(new Request("https://flypath.test/api/webhooks/stripe", {
-      method: "POST", headers: { "stripe-signature": "t=1,v1=signed" }, body: "{\"id\":\"evt_test\"}",
+      method: "POST", headers: { "stripe-signature": "t=1,v1=signed", "content-type": "application/json" }, body: "{\"id\":\"evt_test\"}",
     }));
     expect(response.status).toBe(200);
     expect(mocks.verify).toHaveBeenCalledWith("{\"id\":\"evt_test\"}", "t=1,v1=signed");
@@ -32,9 +32,24 @@ describe("POST /api/webhooks/stripe", () => {
     expect((await POST(new Request("https://flypath.test/api/webhooks/stripe", { method: "POST", body: "{}" }))).status).toBe(400);
     mocks.process.mockRejectedValue(new Error("database detail"));
     const response = await POST(new Request("https://flypath.test/api/webhooks/stripe", {
-      method: "POST", headers: { "stripe-signature": "t=1,v1=signed" }, body: "{}",
+      method: "POST", headers: { "stripe-signature": "t=1,v1=signed", "content-type": "application/json" }, body: "{}",
     }));
     expect(response.status).toBe(503);
     await expect(response.text()).resolves.toBe("Webhook unavailable");
+  });
+
+  it("rejects oversized and unexpected payloads before signature verification", async () => {
+    const oversized = await POST(new Request("https://flypath.test/api/webhooks/stripe", {
+      method: "POST",
+      headers: { "stripe-signature": "t=1,v1=signed", "content-type": "application/json", "content-length": "1048577" },
+      body: "{}",
+    }));
+    expect(oversized.status).toBe(413);
+    expect(mocks.verify).not.toHaveBeenCalled();
+
+    const contentType = await POST(new Request("https://flypath.test/api/webhooks/stripe", {
+      method: "POST", headers: { "stripe-signature": "t=1,v1=signed", "content-type": "text/plain" }, body: "{}",
+    }));
+    expect(contentType.status).toBe(415);
   });
 });

@@ -6,10 +6,19 @@ Fase 10 está **COMPLETADA**. Stripe Live está preparado con los productos y Pr
 
 ## Tareas activas antes del lanzamiento
 
-1. Revisar el diseño público de opiniones de escuelas: layout, responsive, estados sin opiniones y estrellas.
-2. Auditar la consistencia de datos públicos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
-3. Medir y mejorar rendimiento con Lighthouse, Vercel Speed Insights y PageSpeed: LCP, CLS, INP, imágenes, fuentes y JavaScript.
-4. Configurar dominio definitivo, DNS, SSL y variables Production; validar rutas, emails, Stripe, Supabase y webhooks antes de retirar Hostinger.
+1. Desplegar y verificar cabeceras, origen canónico, límites de webhooks y denegación de rutas internas en Production y Preview.
+2. Revisar el diseño público de opiniones de escuelas: layout, responsive, estados sin opiniones y estrellas.
+3. Auditar la consistencia de datos públicos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
+4. Medir y mejorar rendimiento con Lighthouse, Vercel Speed Insights y PageSpeed: LCP, CLS, INP, imágenes, fuentes y JavaScript.
+5. Configurar dominio definitivo, DNS, SSL y variables Production; validar rutas, emails, Stripe, Supabase y webhooks antes de retirar Hostinger.
+
+## Hardening web local pendiente de despliegue
+
+- `FLYPATH_CANONICAL_ORIGIN` está configurada localmente y como variable sensible de Vercel en Production/Preview. Centraliza enlaces absolutos y evita confiar en hosts enviados por clientes.
+- CSP sin `unsafe-eval` en producción, HSTS, `nosniff`, anti-embedding, referrer policy, permissions policy y resource policy ya están definidos.
+- Webhooks Stripe, Cal.com y Resend rechazan tipo inesperado y tamaños declarados/reales por encima de 1 MiB, 256 KiB y 256 KiB respectivamente, antes de firma o persistencia.
+- Herramientas `/review/*`, previews y QA son solo de desarrollo/test y añaden `noindex`.
+- Dependencias corregidas: `next`/`eslint-config-next` `16.2.12`, `vitest` `3.2.6`, `vite` `7.3.5`, `esbuild` `0.28.1`, y actualizaciones compatibles de `postcss`, `sharp` y `js-yaml`. `npm audit --omit=dev` queda a cero; el audit completo conserva avisos limitados al tooling local (`brace-expansion` y `esbuild`).
 
 La auditoría legal inicial, los informes reales del Career Planner, los enlaces Amazon de logbooks y la revisión de restos visibles no tienen bloqueos confirmados. Las rutas preview/mock son herramientas internas de diseño.
 

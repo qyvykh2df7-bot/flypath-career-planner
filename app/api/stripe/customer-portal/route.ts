@@ -5,7 +5,6 @@ import {
 } from "@/lib/commerce/aerocomms-pro-customer-portal";
 import { StripeConfigurationError, StripeProviderError } from "@/lib/commerce/stripe";
 import {
-  getRequestOrigin,
   isSameOriginRequest,
   readJsonBodyWithinLimit,
   RequestBodyTooLargeError,
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const portal = await createAeroCommsProCustomerPortal({ requestOrigin: getRequestOrigin(request) });
+    const portal = await createAeroCommsProCustomerPortal();
     return NextResponse.json({ url: portal.url });
   } catch (error) {
     if (error instanceof AeroCommsProCustomerPortalError && error.kind === "authentication_required") {

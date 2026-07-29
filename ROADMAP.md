@@ -569,6 +569,14 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - QA Production: TTS/STT válidos, validaciones de body/MIME y `429` de STT anónimo verificados. QA por cuenta Free/Pro pendiente.
 - Mejoras posteriores no bloqueantes: parsing multipart en streaming, limpieza periódica de filas de cuota y prueba de concurrencia real contra Supabase.
 
+### Hardening web previo al lanzamiento — validado localmente, pendiente de despliegue
+
+- Origen único `FLYPATH_CANONICAL_ORIGIN` para Checkout, correo, callbacks, URLs absolutas y comprobación same-origin; no se acepta `Host` de cliente como fuente de URL pública. Production y Preview están configurados con el origen HTTPS aprobado.
+- CSP, HSTS, anti-embedding, `nosniff`, referrer policy, permissions policy y resource policy definidos. Producción no permite `unsafe-eval`; la excepción `unsafe-inline` de Next.js se mantiene documentada.
+- Stripe, Cal.com y Resend limitan body antes de firma o persistencia (1 MiB, 256 KiB y 256 KiB). Las herramientas `/review/*`, previews y QA se bloquean fuera de desarrollo/test y se marcan `noindex`.
+- Validación local: 771 tests, TypeScript, lint focalizado, `git diff --check` y build Webpack correctos.
+- Dependencias corregidas: `next`/`eslint-config-next` `16.2.12`, además de las actualizaciones compatibles de `postcss`, `sharp` y `js-yaml`. `npm audit --omit=dev` informa **0 vulnerabilidades**. El audit completo conserva un High de `brace-expansion` y un Low de `esbuild`, ambos transitivos de herramientas locales de lint/pruebas y no desplegados.
+
 ### Hardening de formularios públicos y marketing completado
 
 - Migración `20260712320000_harden_public_forms_and_marketing_opt_in.sql` aplicada en Production. Newsletter, Career Planner, Pre-PPL, mentorías y opiniones usan rate limiting distribuido en Supabase con subjects HMAC, body limitado, same-origin, honeypot y tiempo mínimo de formulario.

@@ -6,11 +6,13 @@ import {
   type ResendWebhookHeaders,
 } from "@/lib/email/resend-webhooks";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { hasJsonContentType, readWebhookBodyWithinLimit, WebhookBodyError } from "@/lib/security/webhook-body";
 
 export const runtime = "nodejs";
 
 const INVALID_WEBHOOK_MESSAGE = "Solicitud de webhook inválida.";
 const UNAVAILABLE_WEBHOOK_MESSAGE = "Webhook no disponible.";
+const RESEND_WEBHOOK_MAX_BYTES = 262_144;
 
 function getSvixHeaders(request: Request): ResendWebhookHeaders | null {
   const id = request.headers.get("svix-id");
@@ -33,12 +35,16 @@ export async function POST(request: Request) {
   if (!headers) {
     return Response.json({ error: INVALID_WEBHOOK_MESSAGE }, { status: 400 });
   }
+  if (!hasJsonContentType(request)) return Response.json({ error: INVALID_WEBHOOK_MESSAGE }, { status: 415 });
 
   let payload: string;
   try {
-    payload = await request.text();
-  } catch {
-    return Response.json({ error: INVALID_WEBHOOK_MESSAGE }, { status: 400 });
+    payload = await readWebhookBodyWithinLimit(request, RESEND_WEBHOOK_MAX_BYTES);
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof WebhookBodyError && error.kind === "too_large" ? "Payload demasiado grande." : INVALID_WEBHOOK_MESSAGE },
+      { status: error instanceof WebhookBodyError && error.kind === "too_large" ? 413 : 400 },
+    );
   }
 
   let event;

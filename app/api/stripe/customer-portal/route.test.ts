@@ -34,7 +34,7 @@ describe("POST /api/stripe/customer-portal", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ url: "https://billing.stripe.com/p/session/test_aerocomms" });
-    expect(mocks.createPortal).toHaveBeenCalledWith({ requestOrigin: origin });
+    expect(mocks.createPortal).toHaveBeenCalledWith();
   });
 
   it("requires same-origin, an account, and an eligible subscription", async () => {

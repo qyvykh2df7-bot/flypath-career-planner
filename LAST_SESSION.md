@@ -4,6 +4,17 @@
 **Rama:** `main`
 **Estado:** Fase 10 está completada. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la separación Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com por su checkout. La fase actual es 10.5: Production Launch & Hardening.
 
+## Hardening web previo al lanzamiento — dependencias corregidas, pendiente de despliegue
+
+- Se añadió `FLYPATH_CANONICAL_ORIGIN` como único origen server-side para retornos Stripe, confirmaciones por email, URLs absolutas, tracking y validación same-origin. La URL no se deriva de `Host`; Production y Preview ya tienen la variable sensible configurada, y local usa su valor no versionado.
+- Se definieron CSP de producción sin `unsafe-eval`, HSTS, anti-embedding, `nosniff`, referrer policy, permissions policy y Cross-Origin Resource/Opener Policy. La excepción `unsafe-inline` queda documentada para la inyección actual de Next.js/next-font.
+- Stripe, Cal.com y Resend limitan body real y `Content-Length` antes de firma o procesamiento: 1 MiB, 256 KiB y 256 KiB. Los logs se mantienen cerrados, sin payloads, firmas ni datos personales.
+- `/review/*`, previews de informes y herramientas Supabase pasan a `404` fuera de desarrollo/test y reciben directiva `noindex`; las opiniones públicas legítimas no cambian.
+- Validación local: 771 tests, TypeScript, lint focalizado, `git diff --check` y build Webpack correctos.
+- `next` y `eslint-config-next` pasaron de `16.2.4` a `16.2.12`; React y React DOM permanecen en `19.2.4`. También se actualizaron de forma compatible `vitest` a `3.2.6`, `vite` a `7.3.5`, `esbuild` a `0.28.1`, `js-yaml` a `3.15.0` y los árboles de `postcss`/`sharp` requeridos por Next.
+- `npm audit --omit=dev` ahora informa **0 vulnerabilidades**. El audit completo conserva solo un High de `brace-expansion` y un Low de `esbuild`, transitivos de ESLint/Vite para desarrollo y no presentes en el deployment.
+- Deployment Production `dpl_66uEFUVQSeAFSGADCrfVDCvYtD1S` quedó `Ready`. La QA remota confirmó cabeceras, `404` de rutas internas, `200` de opiniones/escuelas y `413` real para los límites de Stripe, Cal.com y Resend. Pendiente: commit y push.
+
 ## Cierre — Hardening de formularios públicos
 
 - Migración `20260712320000_harden_public_forms_and_marketing_opt_in.sql` aplicada en Supabase Production. Crea una tabla privada de cuotas HMAC, tokens de confirmación de marketing y cuatro RPCs `SECURITY DEFINER` con `search_path` fijo y `EXECUTE` exclusivo de `service_role`.

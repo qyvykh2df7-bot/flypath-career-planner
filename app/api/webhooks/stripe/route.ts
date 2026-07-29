@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 import { StripeWebhookError, processStripeWebhook, verifyStripeWebhook } from "@/lib/commerce/stripe-webhooks";
+import { hasJsonContentType, readWebhookBodyWithinLimit, WebhookBodyError } from "@/lib/security/webhook-body";
+
+const STRIPE_WEBHOOK_MAX_BYTES = 1_048_576;
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
   if (!signature) return new NextResponse("Invalid signature", { status: 400 });
+  if (!hasJsonContentType(request)) return new NextResponse("Invalid content type", { status: 415 });
 
-  const rawPayload = await request.text();
+  let rawPayload: string;
+  try {
+    rawPayload = await readWebhookBodyWithinLimit(request, STRIPE_WEBHOOK_MAX_BYTES);
+  } catch (error) {
+    return new NextResponse(error instanceof WebhookBodyError && error.kind === "too_large" ? "Payload too large" : "Invalid payload", {
+      status: error instanceof WebhookBodyError && error.kind === "too_large" ? 413 : 400,
+    });
+  }
   let event;
   try {
     event = verifyStripeWebhook(rawPayload, signature);

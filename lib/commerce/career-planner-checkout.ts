@@ -159,7 +159,7 @@ export async function createCareerPlannerPremiumCheckout(input: {
     return { url: await getExistingStripeCheckoutUrl(prepared.stripeCheckoutSessionId) };
   }
 
-  const appUrl = resolveStripeAppUrl(input.requestOrigin);
+  const appUrl = resolveStripeAppUrl();
   let checkoutSession;
   try {
     checkoutSession = await getStripeClient().checkout.sessions.create({

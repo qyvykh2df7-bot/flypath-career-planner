@@ -94,7 +94,7 @@ export async function createComoSerPilotoGuideCheckout(input: { idempotencyKey: 
 
   let checkoutSession;
   try {
-    const appUrl = resolveStripeAppUrl(input.requestOrigin);
+    const appUrl = resolveStripeAppUrl();
     checkoutSession = await getStripeClient().checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: prepared.stripe_price_id, quantity: 1 }],

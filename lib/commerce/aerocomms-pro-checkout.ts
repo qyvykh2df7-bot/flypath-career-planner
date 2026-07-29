@@ -126,7 +126,7 @@ export async function createAeroCommsProSubscriptionCheckout(input: {
 
   let checkoutSession;
   try {
-    const appUrl = resolveStripeAppUrl(input.requestOrigin);
+    const appUrl = resolveStripeAppUrl();
     const metadata = {
       flypath_product_key: AEROCOMMS_PRO_CATALOG.productKey,
       flypath_user_id: sessionState.account.id,

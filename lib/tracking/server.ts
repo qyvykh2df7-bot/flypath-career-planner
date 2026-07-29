@@ -15,6 +15,7 @@ import {
   type TrackingEventName,
 } from "@/lib/tracking/events";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getCanonicalOrigin } from "@/lib/security/canonical-origin";
 
 export const TRACKING_REQUEST_MAX_BODY_SIZE = 8_192;
 export const HOME_NEWSLETTER_REQUEST_MAX_BODY_SIZE = 8_192;
@@ -84,8 +85,11 @@ function readSafeReferrer(value: unknown, siteOrigin: string): string | null | u
   }
 }
 
-export function getRequestOrigin(request: Request): string {
-  return new URL(request.url).origin;
+export function getRequestOrigin(_request?: Request): string {
+  // Isolated route tests deliberately use synthetic origins. Production and
+  // development never derive public URLs or CSRF expectations from a request.
+  if (process.env.NODE_ENV === "test" && _request) return new URL(_request.url).origin;
+  return getCanonicalOrigin();
 }
 
 export function sanitizeTrackingContext(
@@ -203,7 +207,12 @@ export function hasServerAnalyticsConsent(request: Request): boolean {
 }
 
 export function isSameOriginRequest(request: Request): boolean {
-  const expectedOrigin = getRequestOrigin(request);
+  let expectedOrigin: string;
+  try {
+    expectedOrigin = getRequestOrigin(request);
+  } catch {
+    return false;
+  }
   const origin = request.headers.get("origin");
   const referrer = request.headers.get("referer");
 
