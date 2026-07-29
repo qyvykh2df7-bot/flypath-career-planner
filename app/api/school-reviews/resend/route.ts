@@ -5,7 +5,11 @@ import {
   readJsonBodyWithinLimit,
   RequestBodyTooLargeError,
 } from "@/lib/tracking/server";
-import { isSchoolReviewRateLimited } from "@/lib/school-reviews/rate-limit";
+import {
+  authorizePublicFormSubmission,
+  isJsonRequest,
+  PublicFormSecurityError,
+} from "@/lib/security/public-form-security";
 
 export const runtime = "nodejs";
 
@@ -20,7 +24,7 @@ function parseResendPayload(value: unknown): { reviewId: string; email: string }
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return Response.json({ status: "invalid" }, { status: 403 });
-  if (isSchoolReviewRateLimited(request, "resend")) return Response.json({ status: "invalid" }, { status: 429 });
+  if (!isJsonRequest(request)) return Response.json({ status: "invalid" }, { status: 415 });
   let body: unknown;
   try {
     body = await readJsonBodyWithinLimit(request, MAX_BODY_SIZE);
@@ -29,6 +33,17 @@ export async function POST(request: Request) {
   }
   const payload = parseResendPayload(body);
   if (!payload) return Response.json({ status: "invalid" }, { status: 400 });
+  try {
+    await authorizePublicFormSubmission(request, {
+      ipScope: "school_review_resend_ip",
+      identityScope: "school_review_identity",
+      identitySubject: `review:${payload.reviewId}:email:${payload.email.trim().toLowerCase()}`,
+    });
+  } catch (error) {
+    const status = error instanceof PublicFormSecurityError && error.kind === "unavailable" ? 503
+      : error instanceof PublicFormSecurityError && error.kind === "rate_limited" ? 429 : 400;
+    return Response.json({ status: "invalid" }, { status });
+  }
   try {
     const status = await resendSchoolReviewVerification({ ...payload, publicOrigin: getRequestOrigin(request) });
     return Response.json({ status });

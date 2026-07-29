@@ -3,16 +3,16 @@ import "server-only";
 import {
   insertUserEvent,
   LeadCaptureError,
-  upsertEmailSubscriptionForLead,
   upsertLeadByEmail,
 } from "@/lib/leads/capture-shared";
 import { HOME_NEWSLETTER_MARKETING_CONSENT_TEXT } from "@/lib/leads/home-newsletter-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { TrackingContext } from "@/lib/tracking/events";
+import { requestMarketingConfirmation } from "./marketing-confirmation";
 
 const SOURCE = "home_newsletter";
 const LIST_KEY = "home_newsletter";
-const EVENT_NAME = "home_newsletter_subscribed";
+const EVENT_NAME = "home_newsletter_confirmation_requested";
 const EVENT_CATEGORY = "lead";
 
 export class HomeNewsletterLeadCaptureError extends LeadCaptureError {
@@ -23,7 +23,7 @@ export class HomeNewsletterLeadCaptureError extends LeadCaptureError {
 }
 
 /**
- * Persiste lead, suscripción y evento de newsletter home.
+ * Persiste el lead e inicia un double opt-in; la suscripción solo se activa al confirmar.
  *
  * Nota: Supabase JS no ofrece transacciones multi-tabla sin RPC.
  * Si un paso posterior falla, los anteriores pueden quedar escritos.
@@ -32,6 +32,7 @@ export async function captureHomeNewsletterSubscription(
   normalizedEmail: string,
   idempotencyKey: string,
   trackingContext?: TrackingContext | null,
+  publicOrigin?: string,
 ): Promise<void> {
   const admin = getSupabaseAdmin();
   const now = new Date().toISOString();
@@ -40,15 +41,9 @@ export async function captureHomeNewsletterSubscription(
   try {
     leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
       source: SOURCE,
-      marketingConsent: true,
+      marketingConsent: false,
+      touchMarketingConsent: false,
     });
-
-    await upsertEmailSubscriptionForLead(admin, leadId, now, {
-      listKey: LIST_KEY,
-      source: SOURCE,
-      consentText: HOME_NEWSLETTER_MARKETING_CONSENT_TEXT,
-    });
-
   } catch (error) {
     if (error instanceof LeadCaptureError) {
       throw new HomeNewsletterLeadCaptureError();
@@ -69,5 +64,20 @@ export async function captureHomeNewsletterSubscription(
     });
   } catch {
     console.error("[FlyPath] Newsletter conversion event persistence failed.");
+  }
+
+  if (!publicOrigin) throw new HomeNewsletterLeadCaptureError();
+  try {
+    await requestMarketingConfirmation(admin, {
+      leadId,
+      listKey: LIST_KEY,
+      source: SOURCE,
+      consentText: HOME_NEWSLETTER_MARKETING_CONSENT_TEXT,
+      requestId: idempotencyKey,
+      recipientEmail: normalizedEmail,
+      publicOrigin,
+    });
+  } catch {
+    throw new HomeNewsletterLeadCaptureError();
   }
 }

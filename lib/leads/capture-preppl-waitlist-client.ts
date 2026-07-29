@@ -12,6 +12,8 @@ export async function capturePrepplWaitlistLead(
   email: string,
   trackingContext: TrackingContext | null,
   idempotencyKey: string,
+  formStartedAt?: number,
+  honeypot = "",
 ): Promise<CapturePrepplWaitlistResult> {
   let response: Response;
 
@@ -22,6 +24,8 @@ export async function capturePrepplWaitlistLead(
       body: JSON.stringify({
         email,
         idempotency_key: idempotencyKey,
+        form_started_at: formStartedAt,
+        honeypot,
         ...(trackingContext ? { tracking: trackingContext } : {}),
       }),
     });

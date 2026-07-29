@@ -40,6 +40,12 @@ El siguiente trabajo es preparar el lanzamiento público: cerrar el diseño púb
 
 La QA remota confirmó TTS y STT válidos, rechazos de formato/body y el `429` de cuota anónima STT. Free y Pro remoto quedan como comprobación manual por cuenta. Hardening posterior no bloqueante: parser multipart en streaming, limpieza programada de cuotas y prueba de concurrencia real contra Supabase.
 
+## Hardening de formularios públicos
+
+**Completado y desplegado en Production.** La migración `20260712320000_harden_public_forms_and_marketing_opt_in.sql` protege newsletter, Career Planner, Pre-PPL, mentorías y opiniones con cuotas distribuidas en Supabase, subjects HMAC, body limitado, same-origin, honeypot y timestamp de formulario. Los rechazos se producen antes de crear leads, opiniones, jobs de email o alertas.
+
+`PUBLIC_FORM_RATE_LIMIT_SALT` está configurado como variable sensible en local, Production y Preview, sin valor versionado. Newsletter y el consentimiento explícito del Career Planner pasan a doble opt-in: no se activa marketing hasta confirmar un token opaco de 48 horas, almacenado solo como hash. Pre-PPL, mentorías y opiniones no activan marketing. La limpieza futura se puede realizar mediante la RPC privada `purge_public_form_security_data`; falta programarla junto con el hardening posterior no bloqueante.
+
 La ruta Production y el Ping firmado están validados. La QA de una reserva real está bloqueada externamente: el frontend de checkout de Cal.com ejecuta `stripe.confirmPayment()` sin un Payment Element montado, aunque crea correctamente el PaymentIntent y presenta métodos elegibles. Cuando Cal.com lo corrija, debe completarse una reserva real y validarse creación, pago, cancelación, reprogramación, duplicados y eventos fuera de orden.
 
 La validación del gating deja 698 tests correctos, TypeScript y lint focalizado correctos. La auditoría legal inicial, los informes reales del Planner, los logbooks con enlaces Amazon y la auditoría de restos visibles no presentan bloqueos confirmados. Commits previos de Fase 10: `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb`.

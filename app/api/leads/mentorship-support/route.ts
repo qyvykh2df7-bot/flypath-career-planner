@@ -14,6 +14,14 @@ import {
   RequestBodyTooLargeError,
   sanitizeTrackingContext,
 } from "@/lib/tracking/server";
+import {
+  authorizePublicFormSubmission,
+  hasOnlyPublicFormKeys,
+  isJsonRequest,
+  PublicFormSecurityError,
+  publicFormSecurityErrorResponse,
+  validatePublicFormProof,
+} from "@/lib/security/public-form-security";
 
 export const runtime = "nodejs";
 
@@ -33,6 +41,8 @@ type MentorshipSupportPayload = {
   helpText?: unknown;
   tracking?: unknown;
   idempotency_key?: unknown;
+  honeypot?: unknown;
+  form_started_at?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -46,6 +56,7 @@ function normalizeOptionalPhone(value: unknown): string | null {
 }
 
 export async function POST(request: Request) {
+  if (!isJsonRequest(request)) return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 415 });
   let body: unknown;
 
   try {
@@ -62,8 +73,11 @@ export async function POST(request: Request) {
   }
 
   const payload = body as MentorshipSupportPayload;
+  if (!hasOnlyPublicFormKeys(payload, ["fullName", "email", "phone", "situation", "helpText", "tracking", "idempotency_key", "honeypot", "form_started_at"])) {
+    return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
+  }
 
-  if (typeof payload.fullName !== "string" || !payload.fullName.trim()) {
+  if (typeof payload.fullName !== "string" || !payload.fullName.trim() || payload.fullName.trim().length > 120) {
     return Response.json({ error: INVALID_NAME_MESSAGE }, { status: 400 });
   }
 
@@ -83,7 +97,7 @@ export async function POST(request: Request) {
     return Response.json({ error: INVALID_SITUATION_MESSAGE }, { status: 400 });
   }
 
-  if (typeof payload.helpText !== "string" || !payload.helpText.trim()) {
+  if (typeof payload.helpText !== "string" || !payload.helpText.trim() || payload.helpText.trim().length > 3000) {
     return Response.json({ error: INVALID_HELP_MESSAGE }, { status: 400 });
   }
 
@@ -95,6 +109,7 @@ export async function POST(request: Request) {
   ) {
     return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
   }
+  if (phone && phone.length > 40) return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
 
   if (!isTrackingUuid(payload.idempotency_key)) {
     return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
@@ -106,6 +121,18 @@ export async function POST(request: Request) {
       : sanitizeTrackingContext(payload.tracking, getRequestOrigin(request));
   if (payload.tracking !== undefined && !trackingContext) {
     return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
+  }
+
+  try {
+    validatePublicFormProof(request, { honeypot: payload.honeypot, formStartedAt: payload.form_started_at });
+    await authorizePublicFormSubmission(request, {
+      ipScope: "mentorship_ip",
+      identityScope: "mentorship_email",
+      identitySubject: `email:${normalizedEmail}`,
+    });
+  } catch (error) {
+    if (error instanceof PublicFormSecurityError) return publicFormSecurityErrorResponse(error);
+    return publicFormSecurityErrorResponse(new PublicFormSecurityError("unavailable"));
   }
 
   try {

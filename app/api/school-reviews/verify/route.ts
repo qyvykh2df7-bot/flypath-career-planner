@@ -4,7 +4,11 @@ import {
   readJsonBodyWithinLimit,
   RequestBodyTooLargeError,
 } from "@/lib/tracking/server";
-import { isSchoolReviewRateLimited } from "@/lib/school-reviews/rate-limit";
+import {
+  authorizePublicFormSubmission,
+  isJsonRequest,
+  PublicFormSecurityError,
+} from "@/lib/security/public-form-security";
 
 export const runtime = "nodejs";
 
@@ -19,7 +23,7 @@ function getToken(value: unknown): string | null {
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return Response.json({ status: "invalid_or_expired" }, { status: 403 });
-  if (isSchoolReviewRateLimited(request, "verify")) return Response.json({ status: "invalid_or_expired" }, { status: 429 });
+  if (!isJsonRequest(request)) return Response.json({ status: "invalid_or_expired" }, { status: 415 });
   let body: unknown;
   try {
     body = await readJsonBodyWithinLimit(request, MAX_BODY_SIZE);
@@ -28,6 +32,17 @@ export async function POST(request: Request) {
   }
   const token = getToken(body);
   if (!token) return Response.json({ status: "invalid_or_expired" }, { status: 400 });
+  try {
+    await authorizePublicFormSubmission(request, {
+      ipScope: "school_review_verify_ip",
+      identityScope: "school_review_verify_token",
+      identitySubject: `token:${token}`,
+    });
+  } catch (error) {
+    const status = error instanceof PublicFormSecurityError && error.kind === "unavailable" ? 503
+      : error instanceof PublicFormSecurityError && error.kind === "rate_limited" ? 429 : 400;
+    return Response.json({ status: "invalid_or_expired" }, { status });
+  }
   try {
     const status = await verifySchoolReviewEmail(token);
     return Response.json({ status });

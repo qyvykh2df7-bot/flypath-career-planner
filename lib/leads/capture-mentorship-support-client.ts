@@ -20,6 +20,8 @@ export async function captureMentorshipSupportLead(
   input: MentorshipSupportFormInput,
   trackingContext: TrackingContext | null,
   idempotencyKey: string,
+  formStartedAt?: number,
+  honeypot = "",
 ): Promise<CaptureMentorshipSupportResult> {
   let response: Response;
 
@@ -30,6 +32,8 @@ export async function captureMentorshipSupportLead(
       body: JSON.stringify({
         ...input,
         idempotency_key: idempotencyKey,
+        form_started_at: formStartedAt,
+        honeypot,
         ...(trackingContext ? { tracking: trackingContext } : {}),
       }),
     });

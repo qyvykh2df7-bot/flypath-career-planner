@@ -6,7 +6,7 @@ import {
 } from "@/lib/school-reviews/validation";
 
 export type SchoolReviewFormPayloadResult =
-  | { ok: true; payload: SchoolReviewSubmissionInput }
+  | { ok: true; payload: SchoolReviewSubmissionInput & { honeypot: string; form_started_at: number } }
   | { ok: false; field: SchoolReviewValidationField };
 
 export function buildSchoolReviewFormPayload(input: {
@@ -14,6 +14,7 @@ export function buildSchoolReviewFormPayload(input: {
   submissionId: string;
   ratings: Record<string, number>;
   includeEmail: boolean;
+  formStartedAt?: number;
 }): SchoolReviewFormPayloadResult {
   const approximateYearText = String(input.data.get("approxYear") ?? "").trim();
   const rawPayload = {
@@ -37,10 +38,16 @@ export function buildSchoolReviewFormPayload(input: {
     improvements: String(input.data.get("improvements") ?? "").trim(),
     advice: String(input.data.get("advice") ?? "").trim(),
     consent: input.data.get("acceptReview") === "on",
+    honeypot: String(input.data.get("website") ?? ""),
+    form_started_at: input.formStartedAt ?? 0,
   };
 
   try {
-    return { ok: true, payload: parseSchoolReviewSubmission(rawPayload) };
+    const parsed = parseSchoolReviewSubmission(rawPayload);
+    return {
+      ok: true,
+      payload: { ...parsed, honeypot: rawPayload.honeypot, form_started_at: rawPayload.form_started_at },
+    };
   } catch (error) {
     if (error instanceof SchoolReviewValidationError) {
       return { ok: false, field: error.field };

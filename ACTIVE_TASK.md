@@ -20,6 +20,13 @@ La auditoría legal inicial, los informes reales del Career Planner, los enlaces
 - QA Production: TTS/STT válidos, validaciones `400`/`413` y límite STT anónimo `429` verificados. La comprobación real con cuentas Free y Pro queda pendiente de QA manual.
 - Seguimiento no bloqueante: multipart en streaming, purga de filas de cuota inactivas y prueba de concurrencia contra Supabase.
 
+## Cierre técnico reciente — Formularios públicos y marketing
+
+- Hardening completado: `20260712320000_harden_public_forms_and_marketing_opt_in.sql` aplica rate limiting distribuido privado para newsletter, Career Planner, Pre-PPL, mentorías y opiniones. Las cuotas combinan IP de Vercel e identidad HMAC; los fallos de salt/RPC/Supabase devuelven `503` antes de cualquier efecto secundario.
+- `PUBLIC_FORM_RATE_LIMIT_SALT` está presente como secreto sensible en local, Production y Preview. El navegador no recibe IPs, emails ni salts almacenados.
+- Newsletter Home y consentimiento explícito del Career Planner usan doble opt-in: el POST inicial solo crea una confirmación opaca y el consentimiento se activa después de confirmar. Pre-PPL, mentorías y opiniones siguen sin marketing automático.
+- Pendiente no bloqueante: programar `purge_public_form_security_data`, evaluar multipart streaming y ejecutar una prueba de concurrencia real de la cuota.
+
 ## Estado de la plataforma
 
 - Fases 4, 5 y 6: completadas e integradas en `main`.

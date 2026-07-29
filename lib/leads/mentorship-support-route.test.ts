@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const ID = "4d3c2b1a-1234-4abc-8def-1234567890ab";
 
 const route = vi.hoisted(() => {
@@ -33,6 +35,10 @@ vi.mock("@/lib/tracking/server", () => ({
   readJsonBodyWithinLimit: route.readJsonBodyWithinLimit,
   RequestBodyTooLargeError: route.RequestBodyTooLargeError,
   sanitizeTrackingContext: route.sanitizeTrackingContext,
+}));
+vi.mock("@/lib/security/public-form-security", () => ({
+  authorizePublicFormSubmission: vi.fn(), hasOnlyPublicFormKeys: vi.fn(() => true), isJsonRequest: vi.fn(() => true),
+  PublicFormSecurityError: class PublicFormSecurityError extends Error {}, publicFormSecurityErrorResponse: vi.fn(), validatePublicFormProof: vi.fn(),
 }));
 
 import { POST, runtime } from "@/app/api/leads/mentorship-support/route";

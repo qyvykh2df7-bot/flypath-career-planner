@@ -69,6 +69,7 @@ export function OpinionesInteractiveContent({
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [pendingVerification, setPendingVerification] = useState<{ reviewId: string; email: string } | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [reviewFormStartedAt, setReviewFormStartedAt] = useState(0);
   const reviewFormRef = useRef<HTMLFormElement>(null);
 
   const selectedSchoolLabel =
@@ -92,6 +93,7 @@ export function OpinionesInteractiveContent({
     setRatings({});
     setPendingVerification(null);
     setSubmissionId(null);
+    setReviewFormStartedAt(Date.now());
     setFormKey((k) => k + 1);
     setReviewModalOpen(true);
   };
@@ -107,6 +109,7 @@ export function OpinionesInteractiveContent({
       submissionId: requestId,
       ratings,
       includeEmail: !authenticatedEmail,
+      formStartedAt: reviewFormStartedAt,
     });
     if (!formPayload.ok || !email) {
       setValidationField(
@@ -438,6 +441,13 @@ export function OpinionesInteractiveContent({
                   onSubmit={handleReviewSubmit}
                   className="space-y-7"
                 >
+                  <input
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    name="website"
+                    className="sr-only"
+                  />
                   <div className="space-y-2">
                     <p className="text-sm leading-relaxed text-slate-600">{REVIEW_FORM_INTRO}</p>
                     <p className="rounded-xl border border-[#c9a454]/30 bg-[#fffdf6] px-3 py-1.5 text-sm leading-snug text-[#7a5a16]">

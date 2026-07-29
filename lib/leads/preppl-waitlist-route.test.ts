@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const route = vi.hoisted(() => {
   class MockRequestBodyTooLargeError extends Error {}
 
@@ -27,6 +29,10 @@ vi.mock("@/lib/tracking/server", () => ({
   readJsonBodyWithinLimit: route.readJsonBodyWithinLimit,
   RequestBodyTooLargeError: route.RequestBodyTooLargeError,
   sanitizeTrackingContext: route.sanitizeTrackingContext,
+}));
+vi.mock("@/lib/security/public-form-security", () => ({
+  authorizePublicFormSubmission: vi.fn(), hasOnlyPublicFormKeys: vi.fn(() => true), isJsonRequest: vi.fn(() => true),
+  PublicFormSecurityError: class PublicFormSecurityError extends Error {}, publicFormSecurityErrorResponse: vi.fn(), validatePublicFormProof: vi.fn(),
 }));
 
 import { POST } from "@/app/api/leads/preppl-waitlist/route";

@@ -12,6 +12,8 @@ export async function captureHomeNewsletterLead(
   email: string,
   trackingContext?: TrackingContext | null,
   idempotencyKey?: string,
+  formStartedAt?: number,
+  honeypot = "",
 ): Promise<CaptureHomeNewsletterResult> {
   let response: Response;
 
@@ -23,6 +25,8 @@ export async function captureHomeNewsletterLead(
         email,
         tracking: trackingContext ?? undefined,
         idempotency_key: idempotencyKey,
+        form_started_at: formStartedAt,
+        honeypot,
       }),
     });
   } catch {

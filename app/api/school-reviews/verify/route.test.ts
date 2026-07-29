@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const mocks = vi.hoisted(() => ({
   verify: vi.fn(),
   sameOrigin: vi.fn(),
   readBody: vi.fn(),
-  isRateLimited: vi.fn(),
+  authorize: vi.fn(),
+  PublicFormSecurityError: class PublicFormSecurityError extends Error {
+    constructor(public readonly kind: string) { super(kind); }
+  },
 }));
 vi.mock("@/lib/school-reviews/service", () => ({
   verifySchoolReviewEmail: mocks.verify,
@@ -15,14 +20,18 @@ vi.mock("@/lib/tracking/server", () => ({
   readJsonBodyWithinLimit: mocks.readBody,
   RequestBodyTooLargeError: class RequestBodyTooLargeError extends Error {},
 }));
-vi.mock("@/lib/school-reviews/rate-limit", () => ({ isSchoolReviewRateLimited: mocks.isRateLimited }));
+vi.mock("@/lib/security/public-form-security", () => ({
+  authorizePublicFormSubmission: mocks.authorize,
+  isJsonRequest: vi.fn(() => true),
+  PublicFormSecurityError: mocks.PublicFormSecurityError,
+}));
 import { POST } from "./route";
 
 describe("POST /api/school-reviews/verify", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.sameOrigin.mockReturnValue(true);
-    mocks.isRateLimited.mockReturnValue(false);
+    mocks.authorize.mockResolvedValue(undefined);
     mocks.readBody.mockResolvedValue({ token: "A".repeat(43) });
   });
   it("verifies only a one-field opaque token payload", async () => {
@@ -36,10 +45,11 @@ describe("POST /api/school-reviews/verify", () => {
     const response = await POST(new Request("https://flypath.test/api/school-reviews/verify", { method: "POST", headers: { origin: "https://flypath.test" }, body: "{}" }));
     expect(await response.json()).toEqual({ status: "invalid_or_expired" });
   });
-  it("returns a generic retryable response when verification is rate limited", async () => {
-    mocks.isRateLimited.mockReturnValue(true);
-    const response = await POST(new Request("https://flypath.test/api/school-reviews/verify", { method: "POST", headers: { origin: "https://flypath.test" } }));
+  it("does not verify a token when the distributed quota rejects the request", async () => {
+    const error = new mocks.PublicFormSecurityError("rate_limited");
+    mocks.authorize.mockRejectedValue(error);
+    const response = await POST(new Request("https://flypath.test/api/school-reviews/verify", { method: "POST", headers: { origin: "https://flypath.test" }, body: "{}" }));
     expect(response.status).toBe(429);
-    expect(mocks.readBody).not.toHaveBeenCalled();
+    expect(mocks.verify).not.toHaveBeenCalled();
   });
 });

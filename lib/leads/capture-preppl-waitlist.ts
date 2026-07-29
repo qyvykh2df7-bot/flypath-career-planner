@@ -3,18 +3,15 @@ import "server-only";
 import {
   insertUserEvent,
   LeadCaptureError,
-  upsertEmailSubscriptionForLead,
   upsertLeadByEmail,
   upsertLeadProductInterest,
 } from "@/lib/leads/capture-shared";
-import { PREPPL_WAITLIST_CONSENT_TEXT } from "@/lib/leads/preppl-consent";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { TrackingContext } from "@/lib/tracking/events";
 import { queuePrepplWaitlistConfirmation } from "@/lib/email/send-transactional-email";
 
 const SOURCE = "preppl";
 const PRODUCT_KEY = "preppl_guide";
-const LIST_KEY = "preppl";
 const INTEREST_STATUS = "waitlist";
 const EVENT_NAME = "preppl_waitlist_joined";
 const EVENT_CATEGORY = "lead";
@@ -27,7 +24,7 @@ export class PrepplWaitlistLeadCaptureError extends LeadCaptureError {
 }
 
 /**
- * Persiste lead, interés, suscripción y evento de lista de espera Pre-PPL.
+ * Persiste lead, interés y evento de lista de espera Pre-PPL sin consentimiento de marketing implícito.
  *
  * Nota: Supabase JS no ofrece transacciones multi-tabla sin RPC.
  * Si un paso posterior falla, los anteriores pueden quedar escritos.
@@ -56,18 +53,13 @@ export async function capturePrepplWaitlistJoin(
     productId = product.id;
     leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
       source: SOURCE,
-      marketingConsent: true,
+      marketingConsent: false,
+      touchMarketingConsent: false,
     });
 
     await upsertLeadProductInterest(admin, leadId, productId, now, {
       source: SOURCE,
       status: INTEREST_STATUS,
-    });
-
-    await upsertEmailSubscriptionForLead(admin, leadId, now, {
-      listKey: LIST_KEY,
-      source: SOURCE,
-      consentText: PREPPL_WAITLIST_CONSENT_TEXT,
     });
 
   } catch (error) {

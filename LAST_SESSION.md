@@ -4,6 +4,15 @@
 **Rama:** `main`
 **Estado:** Fase 10 está completada. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la separación Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com por su checkout. La fase actual es 10.5: Production Launch & Hardening.
 
+## Cierre — Hardening de formularios públicos
+
+- Migración `20260712320000_harden_public_forms_and_marketing_opt_in.sql` aplicada en Supabase Production. Crea una tabla privada de cuotas HMAC, tokens de confirmación de marketing y cuatro RPCs `SECURITY DEFINER` con `search_path` fijo y `EXECUTE` exclusivo de `service_role`.
+- Newsletter, Career Planner, Pre-PPL, mentorías y opiniones validan origen, content type, tamaño, claves, honeypot y tiempo de formulario antes de consumir una cuota distribuida. IP se obtiene solo del header de Vercel en producción. Si el control no está disponible, responden `503` y no crean datos ni envían email.
+- Cuotas: newsletter 3/h por IP y 2/día por email; Career Planner, Pre-PPL y mentorías 5/h por IP y 3/día por email; opiniones 5/h por IP y 5/día por escuela/email o usuario. `429` incluye `Retry-After`.
+- `PUBLIC_FORM_RATE_LIMIT_SALT` se configuró como secreto sensible en local, Vercel Production y Preview. No se versiona ni se expone al navegador.
+- Newsletter y el consentimiento explícito del Career Planner ya usan doble opt-in, con token opaco hasheado y caducidad de 48 h. Pre-PPL, mentorías y opiniones no crean consentimiento de marketing automático.
+- Validación local: 760 tests correctos, TypeScript, lint focalizado, `git diff --check` y build Webpack correctos. Pendientes no bloqueantes: ejecutar una limpieza programada mediante `purge_public_form_security_data`, multipart streaming y una prueba de concurrencia real.
+
 ## Cierre — Hardening de APIs de voz AeroComms
 
 - Migración `20260712310000_add_aerocomms_voice_rate_limits.sql` aplicada y verificada en Supabase Production: tabla privada con RLS, clave primaria e índice; RPC con `SECURITY DEFINER`, `search_path` fijo y `EXECUTE` solo para `service_role`.

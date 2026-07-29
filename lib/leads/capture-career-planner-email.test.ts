@@ -6,10 +6,10 @@ const dependencies = vi.hoisted(() => {
   return {
     LeadCaptureError: MockLeadCaptureError,
     insertUserEvent: vi.fn(),
-    upsertEmailSubscriptionForLead: vi.fn(),
     upsertLeadByEmail: vi.fn(),
     upsertLeadProductInterest: vi.fn(),
     queueCareerPlannerConfirmation: vi.fn(),
+    requestMarketingConfirmation: vi.fn(),
   };
 });
 const admin = vi.hoisted(() => ({ from: vi.fn() }));
@@ -23,12 +23,13 @@ vi.mock("@/lib/leads/career-planner-consent", () => ({
 vi.mock("@/lib/email/send-transactional-email", () => ({
   queueCareerPlannerConfirmation: dependencies.queueCareerPlannerConfirmation,
 }));
+vi.mock("@/lib/leads/marketing-confirmation", () => ({ requestMarketingConfirmation: dependencies.requestMarketingConfirmation }));
 
 import { captureCareerPlannerReportDownload } from "./capture-career-planner-report";
 
 const IDEMPOTENCY_KEY = "4d3c2b1a-1234-4abc-8def-1234567890ab";
 
-function prepareCapture(subscriptionStatus: string) {
+function prepareCapture() {
   admin.from.mockReturnValue({
     select: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
@@ -38,7 +39,6 @@ function prepareCapture(subscriptionStatus: string) {
   });
   dependencies.upsertLeadByEmail.mockResolvedValue("lead-id");
   dependencies.upsertLeadProductInterest.mockResolvedValue(undefined);
-  dependencies.upsertEmailSubscriptionForLead.mockResolvedValue(subscriptionStatus);
   dependencies.insertUserEvent.mockResolvedValue("inserted");
 }
 
@@ -49,7 +49,7 @@ afterEach(() => {
 
 describe("Career Planner operational email integration", () => {
   it("queues one server-side confirmation after the valid lead capture", async () => {
-    prepareCapture("subscribed");
+    prepareCapture();
     dependencies.queueCareerPlannerConfirmation.mockResolvedValue("sent");
 
     await expect(
@@ -60,16 +60,11 @@ describe("Career Planner operational email integration", () => {
       leadId: "lead-id",
       idempotencyKey: IDEMPOTENCY_KEY,
     });
-    expect(dependencies.upsertEmailSubscriptionForLead).toHaveBeenCalledWith(
-      admin,
-      "lead-id",
-      expect.any(String),
-      expect.objectContaining({ listKey: "career_planner" }),
-    );
+    expect(dependencies.requestMarketingConfirmation).not.toHaveBeenCalled();
   });
 
   it("does not convert a valid capture into a failure when email processing fails", async () => {
-    prepareCapture("subscribed");
+    prepareCapture();
     dependencies.queueCareerPlannerConfirmation.mockRejectedValue(new Error("provider failure"));
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
@@ -81,17 +76,16 @@ describe("Career Planner operational email integration", () => {
     );
   });
 
-  it.each(["unsubscribed", "bounced", "complained", "blocked"])(
-    "queues the operational confirmation regardless of the marketing subscription state %s",
-    async (status) => {
-      prepareCapture(status);
+  it("starts double opt-in only after explicit consent", async () => {
+      prepareCapture();
 
-      await captureCareerPlannerReportDownload("pilot@example.com", IDEMPOTENCY_KEY);
-
-      expect(dependencies.queueCareerPlannerConfirmation).toHaveBeenCalledWith(admin, {
-        leadId: "lead-id",
-        idempotencyKey: IDEMPOTENCY_KEY,
+      await captureCareerPlannerReportDownload("pilot@example.com", IDEMPOTENCY_KEY, null, {
+        marketingConsent: true,
+        publicOrigin: "https://flypath.test",
       });
-    },
-  );
+
+      expect(dependencies.requestMarketingConfirmation).toHaveBeenCalledWith(admin, expect.objectContaining({
+        leadId: "lead-id", listKey: "career_planner",
+      }));
+  });
 });

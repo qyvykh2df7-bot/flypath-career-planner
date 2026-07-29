@@ -6,8 +6,8 @@ const leadCapture = vi.hoisted(() => {
   return {
     LeadCaptureError: MockLeadCaptureError,
     insertUserEvent: vi.fn(),
-    upsertEmailSubscriptionForLead: vi.fn(),
     upsertLeadByEmail: vi.fn(),
+    requestMarketingConfirmation: vi.fn(),
   };
 });
 
@@ -17,13 +17,16 @@ vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: () => ({}) }));
 vi.mock("@/lib/leads/home-newsletter-consent", () => ({
   HOME_NEWSLETTER_MARKETING_CONSENT_TEXT: "consent",
 }));
+vi.mock("@/lib/leads/marketing-confirmation", () => ({
+  requestMarketingConfirmation: leadCapture.requestMarketingConfirmation,
+}));
 
 import { captureHomeNewsletterSubscription } from "./capture-home-newsletter";
 
 describe("captureHomeNewsletterSubscription", () => {
-  it("confirma la suscripción aunque falle el evento analítico", async () => {
+  it("inicia double opt-in aunque falle el evento analítico", async () => {
     leadCapture.upsertLeadByEmail.mockResolvedValue("lead-id");
-    leadCapture.upsertEmailSubscriptionForLead.mockResolvedValue(undefined);
+    leadCapture.requestMarketingConfirmation.mockResolvedValue(undefined);
     leadCapture.insertUserEvent.mockRejectedValue(new leadCapture.LeadCaptureError());
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
@@ -31,10 +34,14 @@ describe("captureHomeNewsletterSubscription", () => {
       captureHomeNewsletterSubscription(
         "pilot@example.com",
         "4d3c2b1a-1234-4abc-8def-1234567890ab",
+        null,
+        "https://flypath.test",
       ),
     ).resolves.toBeUndefined();
 
-    expect(leadCapture.upsertEmailSubscriptionForLead).toHaveBeenCalledOnce();
+    expect(leadCapture.requestMarketingConfirmation).toHaveBeenCalledWith(
+      expect.anything(), expect.objectContaining({ leadId: "lead-id", listKey: "home_newsletter" }),
+    );
     expect(leadCapture.insertUserEvent).toHaveBeenCalledOnce();
     expect(consoleError).toHaveBeenCalledWith(
       "[FlyPath] Newsletter conversion event persistence failed.",

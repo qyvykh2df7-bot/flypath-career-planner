@@ -1254,11 +1254,14 @@ export function FlyPathApp({
   const [reportMarketingConsent, setReportMarketingConsent] = useState(false);
   const [reportMarketingConsentHint, setReportMarketingConsentHint] = useState(false);
   const [reportConversionId, setReportConversionId] = useState<string | null>(null);
+  const [reportHoneypot, setReportHoneypot] = useState("");
+  const [reportFormStartedAt] = useState(() => Date.now());
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [generatedEmailKey, setGeneratedEmailKey] = useState<number | null>(null);
   const [newSchool, setNewSchool] = useState<School>(createEmptySchool());
   const [schoolEditActiveId, setSchoolEditActiveId] = useState<number | null>(null);
   const schoolFormPanelRef = useRef<HTMLDivElement>(null);
+
   // Apertura inicial del acordeón "Añadir escuela manualmente": abierto si el usuario es nuevo
   // (sin escuelas en localStorage ni en deep-link). Tras la decisión inicial el usuario controla
   // libremente con su toggle; no se reabre automáticamente al cambiar schools.length.
@@ -2408,6 +2411,8 @@ export function FlyPathApp({
         reportMarketingConsent,
         getTrackingContext(),
         idempotencyKey,
+        reportFormStartedAt,
+        reportHoneypot,
       );
       if (!captureResult.ok) {
         setReportLeadCaptureError(captureResult.message);
@@ -3062,17 +3067,24 @@ export function FlyPathApp({
                           {!plannerPremiumContentVisible ? (
                             <div className="mt-2">
                               <div className="relative">
+                                <input
+                                  tabIndex={-1}
+                                  autoComplete="off"
+                                  aria-hidden="true"
+                                  name="website"
+                                  value={reportHoneypot}
+                                  onChange={(event) => setReportHoneypot(event.target.value)}
+                                  className="sr-only"
+                                />
                                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" aria-hidden />
                                 <input
                                   id="report-email"
                                   type="email"
                                   autoComplete="email"
                                   value={reportEmail}
-                                  onFocus={() =>
-                                    trackEventOncePerSession("form_started", {
-                                      form_id: "career_planner_report",
-                                    })
-                                  }
+                                  onFocus={() => {
+                                    trackEventOncePerSession("form_started", { form_id: "career_planner_report" });
+                                  }}
                                   onChange={(e) => {
                                     setReportEmail(e.target.value);
                                     if (isValidReportEmail(e.target.value)) {

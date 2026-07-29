@@ -569,6 +569,14 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - QA Production: TTS/STT válidos, validaciones de body/MIME y `429` de STT anónimo verificados. QA por cuenta Free/Pro pendiente.
 - Mejoras posteriores no bloqueantes: parsing multipart en streaming, limpieza periódica de filas de cuota y prueba de concurrencia real contra Supabase.
 
+### Hardening de formularios públicos y marketing completado
+
+- Migración `20260712320000_harden_public_forms_and_marketing_opt_in.sql` aplicada en Production. Newsletter, Career Planner, Pre-PPL, mentorías y opiniones usan rate limiting distribuido en Supabase con subjects HMAC, body limitado, same-origin, honeypot y tiempo mínimo de formulario.
+- Las cuotas combinan IP de plataforma e identidad: newsletter 3/h + 2/día por email; Career Planner, Pre-PPL y mentorías 5/h + 3/día por email; opiniones 5/h + 5/día por escuela/email o usuario. Los límites responden `429` con `Retry-After`; salt, RPC o Supabase no disponibles responden `503` antes de crear datos o enviar email.
+- `PUBLIC_FORM_RATE_LIMIT_SALT` se mantiene como secreto sensible en local, Vercel Production y Preview. No se persisten IPs ni emails en claro para las cuotas.
+- Newsletter Home y el consentimiento explícito del Career Planner aplican doble opt-in con token opaco hasheado y caducidad de 48 h. Pre-PPL, mentorías y opiniones no crean consentimiento de marketing automático.
+- Seguimiento no bloqueante: programar `purge_public_form_security_data`, evaluar multipart streaming y probar concurrencia real contra la RPC de cuota.
+
 ### Objetivo
 
 Preparar FlyPath para el lanzamiento público.

@@ -2,7 +2,6 @@ import {
   captureCareerPlannerReportDownload,
   CareerPlannerLeadCaptureError,
 } from "@/lib/leads/capture-career-planner-report";
-import { CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE } from "@/lib/leads/career-planner-consent";
 import { normalizeLeadEmail } from "@/lib/leads/normalize-email";
 import { isTrackingUuid } from "@/lib/tracking/events";
 import {
@@ -12,6 +11,14 @@ import {
   RequestBodyTooLargeError,
   sanitizeTrackingContext,
 } from "@/lib/tracking/server";
+import {
+  authorizePublicFormSubmission,
+  hasOnlyPublicFormKeys,
+  isJsonRequest,
+  PublicFormSecurityError,
+  publicFormSecurityErrorResponse,
+  validatePublicFormProof,
+} from "@/lib/security/public-form-security";
 
 export const runtime = "nodejs";
 
@@ -26,6 +33,8 @@ type CareerPlannerReportPayload = {
   marketingConsent?: unknown;
   tracking?: unknown;
   idempotency_key?: unknown;
+  honeypot?: unknown;
+  form_started_at?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,6 +42,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function POST(request: Request) {
+  if (!isJsonRequest(request)) return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 415 });
   let body: unknown;
 
   try {
@@ -49,17 +59,15 @@ export async function POST(request: Request) {
   }
 
   const payload = body as CareerPlannerReportPayload;
+  if (!hasOnlyPublicFormKeys(payload, ["email", "downloadType", "marketingConsent", "tracking", "idempotency_key", "honeypot", "form_started_at"])) {
+    return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
+  }
 
   if (payload.downloadType !== "free_report") {
     return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
   }
 
-  if (payload.marketingConsent !== true) {
-    return Response.json(
-      { error: CAREER_PLANNER_MARKETING_CONSENT_REQUIRED_MESSAGE },
-      { status: 400 },
-    );
-  }
+  if (typeof payload.marketingConsent !== "boolean") return Response.json({ error: INVALID_REQUEST_MESSAGE }, { status: 400 });
 
   if (typeof payload.email !== "string") {
     return Response.json({ error: INVALID_EMAIL_MESSAGE }, { status: 400 });
@@ -83,10 +91,23 @@ export async function POST(request: Request) {
   }
 
   try {
+    validatePublicFormProof(request, { honeypot: payload.honeypot, formStartedAt: payload.form_started_at });
+    await authorizePublicFormSubmission(request, {
+      ipScope: "career_planner_ip",
+      identityScope: "career_planner_email",
+      identitySubject: `email:${normalizedEmail}`,
+    });
+  } catch (error) {
+    if (error instanceof PublicFormSecurityError) return publicFormSecurityErrorResponse(error);
+    return publicFormSecurityErrorResponse(new PublicFormSecurityError("unavailable"));
+  }
+
+  try {
     await captureCareerPlannerReportDownload(
       normalizedEmail,
       payload.idempotency_key,
       trackingContext,
+      { marketingConsent: payload.marketingConsent, publicOrigin: getRequestOrigin(request) },
     );
     return Response.json({ ok: true }, { status: 200 });
   } catch (error) {

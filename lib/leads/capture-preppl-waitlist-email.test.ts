@@ -6,7 +6,6 @@ const dependencies = vi.hoisted(() => {
   return {
     LeadCaptureError: MockLeadCaptureError,
     insertUserEvent: vi.fn(),
-    upsertEmailSubscriptionForLead: vi.fn(),
     upsertLeadByEmail: vi.fn(),
     upsertLeadProductInterest: vi.fn(),
     queuePrepplWaitlistConfirmation: vi.fn(),
@@ -17,7 +16,6 @@ const admin = vi.hoisted(() => ({ from: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/leads/capture-shared", () => dependencies);
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: () => admin }));
-vi.mock("@/lib/leads/preppl-consent", () => ({ PREPPL_WAITLIST_CONSENT_TEXT: "consent" }));
 vi.mock("@/lib/email/send-transactional-email", () => ({
   queuePrepplWaitlistConfirmation: dependencies.queuePrepplWaitlistConfirmation,
 }));
@@ -26,7 +24,7 @@ import { capturePrepplWaitlistJoin } from "./capture-preppl-waitlist";
 
 const IDEMPOTENCY_KEY = "4d3c2b1a-1234-4abc-8def-1234567890ab";
 
-function prepareCapture(subscriptionStatus: string) {
+function prepareCapture() {
   admin.from.mockReturnValue({
     select: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
@@ -36,7 +34,6 @@ function prepareCapture(subscriptionStatus: string) {
   });
   dependencies.upsertLeadByEmail.mockResolvedValue("lead-id");
   dependencies.upsertLeadProductInterest.mockResolvedValue(undefined);
-  dependencies.upsertEmailSubscriptionForLead.mockResolvedValue(subscriptionStatus);
   dependencies.insertUserEvent.mockResolvedValue("inserted");
 }
 
@@ -47,7 +44,7 @@ afterEach(() => {
 
 describe("Pre-PPL operational email integration", () => {
   it("queues one server-side confirmation after the valid waitlist capture", async () => {
-    prepareCapture("subscribed");
+    prepareCapture();
     dependencies.queuePrepplWaitlistConfirmation.mockResolvedValue("sent");
 
     await expect(capturePrepplWaitlistJoin("pilot@example.com", IDEMPOTENCY_KEY)).resolves.toBeUndefined();
@@ -56,16 +53,10 @@ describe("Pre-PPL operational email integration", () => {
       leadId: "lead-id",
       idempotencyKey: IDEMPOTENCY_KEY,
     });
-    expect(dependencies.upsertEmailSubscriptionForLead).toHaveBeenCalledWith(
-      admin,
-      "lead-id",
-      expect.any(String),
-      expect.objectContaining({ listKey: "preppl" }),
-    );
   });
 
   it("keeps a valid waitlist capture successful when email processing fails", async () => {
-    prepareCapture("subscribed");
+    prepareCapture();
     dependencies.queuePrepplWaitlistConfirmation.mockRejectedValue(new Error("provider failure"));
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
@@ -75,10 +66,8 @@ describe("Pre-PPL operational email integration", () => {
     );
   });
 
-  it.each(["unsubscribed", "bounced", "complained", "blocked"])(
-    "queues the operational confirmation regardless of the marketing subscription state %s",
-    async (status) => {
-      prepareCapture(status);
+  it("does not create marketing consent from a waitlist request", async () => {
+      prepareCapture();
 
       await capturePrepplWaitlistJoin("pilot@example.com", IDEMPOTENCY_KEY);
 
@@ -86,6 +75,5 @@ describe("Pre-PPL operational email integration", () => {
         leadId: "lead-id",
         idempotencyKey: IDEMPOTENCY_KEY,
       });
-    },
-  );
+  });
 });

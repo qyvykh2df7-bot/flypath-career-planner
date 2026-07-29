@@ -14,6 +14,8 @@ export async function captureCareerPlannerReportLead(
   marketingConsent: boolean,
   trackingContext: TrackingContext | null,
   idempotencyKey: string,
+  formStartedAt?: number,
+  honeypot = "",
 ): Promise<CaptureCareerPlannerReportResult> {
   let response: Response;
 
@@ -26,6 +28,8 @@ export async function captureCareerPlannerReportLead(
         downloadType: "free_report",
         marketingConsent,
         idempotency_key: idempotencyKey,
+        form_started_at: formStartedAt,
+        honeypot,
         ...(trackingContext ? { tracking: trackingContext } : {}),
       }),
     });

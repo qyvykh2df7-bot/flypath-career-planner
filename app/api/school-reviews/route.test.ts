@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const mocks = vi.hoisted(() => ({
   createServerClient: vi.fn(),
   getUser: vi.fn(),
@@ -31,7 +33,10 @@ vi.mock("@/lib/tracking/server", () => ({
   readJsonBodyWithinLimit: mocks.readJsonBodyWithinLimit,
   RequestBodyTooLargeError: class RequestBodyTooLargeError extends Error {},
 }));
-vi.mock("@/lib/school-reviews/rate-limit", () => ({ isSchoolReviewRateLimited: mocks.isRateLimited }));
+vi.mock("@/lib/security/public-form-security", () => ({
+  authorizePublicFormSubmission: vi.fn(), hasOnlyPublicFormKeys: vi.fn(() => true), isJsonRequest: vi.fn(() => true),
+  PublicFormSecurityError: class PublicFormSecurityError extends Error {}, publicFormSecurityErrorResponse: vi.fn(), validatePublicFormProof: vi.fn(),
+}));
 
 import { POST } from "./route";
 import { SchoolReviewValidationError } from "@/lib/school-reviews/validation";
@@ -42,7 +47,6 @@ describe("POST /api/school-reviews", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isSameOriginRequest.mockReturnValue(true);
-    mocks.isRateLimited.mockReturnValue(false);
     mocks.getRequestOrigin.mockReturnValue("https://flypath.test");
     mocks.readJsonBodyWithinLimit.mockResolvedValue({});
     mocks.parseSchoolReviewSubmission.mockReturnValue(input);
@@ -68,6 +72,13 @@ describe("POST /api/school-reviews", () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const response = await POST(new Request("https://flypath.test/api/school-reviews", { method: "POST", headers: { origin: "https://flypath.test" }, body: "{}" }));
     expect(response.status).toBe(400);
+    expect(mocks.createSchoolReview).not.toHaveBeenCalled();
+  });
+
+  it("fails closed instead of treating an authentication outage as anonymous", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: new Error("auth unavailable") });
+    const response = await POST(new Request("https://flypath.test/api/school-reviews", { method: "POST", headers: { origin: "https://flypath.test" }, body: "{}" }));
+    expect(response.status).toBe(503);
     expect(mocks.createSchoolReview).not.toHaveBeenCalled();
   });
 
@@ -120,10 +131,4 @@ describe("POST /api/school-reviews", () => {
     expect(mocks.readJsonBodyWithinLimit).not.toHaveBeenCalled();
   });
 
-  it("rejects a rate-limited public submission before reading the body", async () => {
-    mocks.isRateLimited.mockReturnValue(true);
-    const response = await POST(new Request("https://flypath.test/api/school-reviews", { method: "POST", headers: { origin: "https://flypath.test" } }));
-    expect(response.status).toBe(429);
-    expect(mocks.readJsonBodyWithinLimit).not.toHaveBeenCalled();
-  });
 });

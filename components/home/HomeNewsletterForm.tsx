@@ -22,10 +22,13 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const subscriptionEventIdRef = useRef<string | null>(null);
+  const formStartedAtRef = useRef<number | null>(null);
+  const [honeypot, setHoneypot] = useState("");
   const isDark = variant === "dark";
 
   useEffect(() => {
     initializeTrackingContext();
+    formStartedAtRef.current = Date.now();
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -41,6 +44,8 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
       email,
       getTrackingContext(),
       idempotencyKey,
+      formStartedAtRef.current ?? 0,
+      honeypot,
     );
 
     setIsLoading(false);
@@ -63,13 +68,22 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
             : "rounded-2xl border border-[#D6AE4F]/35 bg-[#D6AE4F]/10 px-5 py-4 text-[14px] font-semibold text-[#071224]"
         }
       >
-        Gracias. Te avisaremos con recursos útiles para tu ruta.
+        Revisa tu correo para confirmar la suscripción.
       </p>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
+      <input
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        name="website"
+        value={honeypot}
+        onChange={(event) => setHoneypot(event.target.value)}
+        className="sr-only"
+      />
       <div
         className={
           isDark
@@ -87,9 +101,9 @@ export function HomeNewsletterForm({ variant = "light" }: HomeNewsletterFormProp
           required
           disabled={isLoading}
           value={email}
-          onFocus={() =>
-            trackEventOncePerSession("form_started", { form_id: "home_newsletter" })
-          }
+          onFocus={() => {
+            trackEventOncePerSession("form_started", { form_id: "home_newsletter" });
+          }}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="tu@email.com"
           className={

@@ -4,13 +4,13 @@ import { CAREER_PLANNER_MARKETING_CONSENT_TEXT } from "@/lib/leads/career-planne
 import {
   insertUserEvent,
   LeadCaptureError,
-  upsertEmailSubscriptionForLead,
   upsertLeadByEmail,
   upsertLeadProductInterest,
 } from "@/lib/leads/capture-shared";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { TrackingContext } from "@/lib/tracking/events";
 import { queueCareerPlannerConfirmation } from "@/lib/email/send-transactional-email";
+import { requestMarketingConfirmation } from "./marketing-confirmation";
 
 const SOURCE = "career_planner";
 const PRODUCT_KEY = "career_planner";
@@ -27,7 +27,7 @@ export class CareerPlannerLeadCaptureError extends LeadCaptureError {
 }
 
 /**
- * Persiste lead, interés, suscripción y evento de solicitud de descarga.
+ * Persiste lead, interés y evento. El marketing explícito requiere double opt-in.
  *
  * Nota: Supabase JS no ofrece transacciones multi-tabla sin RPC.
  * Si un paso posterior falla, los anteriores pueden quedar escritos.
@@ -36,6 +36,7 @@ export async function captureCareerPlannerReportDownload(
   normalizedEmail: string,
   idempotencyKey: string,
   trackingContext?: TrackingContext | null,
+  options: { marketingConsent?: boolean; publicOrigin?: string } = {},
 ): Promise<void> {
   const admin = getSupabaseAdmin();
   const now = new Date().toISOString();
@@ -56,17 +57,13 @@ export async function captureCareerPlannerReportDownload(
     productId = product.id;
     leadId = await upsertLeadByEmail(admin, normalizedEmail, now, {
       source: SOURCE,
-      marketingConsent: true,
+      marketingConsent: false,
+      touchMarketingConsent: false,
     });
 
     await upsertLeadProductInterest(admin, leadId, productId, now, {
       source: SOURCE,
       status: INTEREST_STATUS,
-    });
-    await upsertEmailSubscriptionForLead(admin, leadId, now, {
-      listKey: LIST_KEY,
-      source: SOURCE,
-      consentText: CAREER_PLANNER_MARKETING_CONSENT_TEXT,
     });
   } catch (error) {
     if (error instanceof CareerPlannerLeadCaptureError) {
@@ -101,5 +98,22 @@ export async function captureCareerPlannerReportDownload(
     await queueCareerPlannerConfirmation(admin, { leadId, idempotencyKey });
   } catch {
     console.error("[FlyPath] Career Planner confirmation email processing failed.");
+  }
+
+  if (options.marketingConsent) {
+    if (!options.publicOrigin) throw new CareerPlannerLeadCaptureError();
+    try {
+      await requestMarketingConfirmation(admin, {
+        leadId,
+        listKey: LIST_KEY,
+        source: SOURCE,
+        consentText: CAREER_PLANNER_MARKETING_CONSENT_TEXT,
+        requestId: idempotencyKey,
+        recipientEmail: normalizedEmail,
+        publicOrigin: options.publicOrigin,
+      });
+    } catch {
+      throw new CareerPlannerLeadCaptureError();
+    }
   }
 }

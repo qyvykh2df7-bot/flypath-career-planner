@@ -6,7 +6,6 @@ const leadCapture = vi.hoisted(() => {
   return {
     LeadCaptureError: MockLeadCaptureError,
     insertUserEvent: vi.fn(),
-    upsertEmailSubscriptionForLead: vi.fn(),
     upsertLeadByEmail: vi.fn(),
     upsertLeadProductInterest: vi.fn(),
   };
@@ -20,7 +19,6 @@ vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: () => admin }));
 vi.mock("@/lib/leads/career-planner-consent", () => ({
   CAREER_PLANNER_MARKETING_CONSENT_TEXT: "consent",
 }));
-vi.mock("@/lib/leads/preppl-consent", () => ({ PREPPL_WAITLIST_CONSENT_TEXT: "consent" }));
 
 import { captureCareerPlannerReportDownload } from "./capture-career-planner-report";
 import { capturePrepplWaitlistJoin } from "./capture-preppl-waitlist";
@@ -49,7 +47,6 @@ function prepareSuccessfulLeadCapture(): void {
   });
   leadCapture.upsertLeadByEmail.mockResolvedValue("lead-id");
   leadCapture.upsertLeadProductInterest.mockResolvedValue(undefined);
-  leadCapture.upsertEmailSubscriptionForLead.mockResolvedValue(undefined);
 }
 
 afterEach(() => {
@@ -67,7 +64,6 @@ describe("tracked lead conversions", () => {
       captureCareerPlannerReportDownload("pilot@example.com", ID, CONTEXT),
     ).resolves.toBeUndefined();
 
-    expect(leadCapture.upsertEmailSubscriptionForLead).toHaveBeenCalledOnce();
     expect(leadCapture.insertUserEvent).toHaveBeenCalledWith(
       admin,
       expect.objectContaining({

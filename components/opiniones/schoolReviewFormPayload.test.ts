@@ -45,7 +45,8 @@ describe("school review form payload", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(parseSchoolReviewSubmission(result.payload)).toEqual(result.payload);
+    const { honeypot: _honeypot, form_started_at: _formStartedAt, ...submission } = result.payload;
+    expect(parseSchoolReviewSubmission(result.payload)).toEqual(submission);
     expect(result.payload.email).toBe("pilot@example.com");
     expect(result.payload.consent).toBe(true);
   });

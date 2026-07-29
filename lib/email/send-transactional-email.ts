@@ -29,6 +29,10 @@ import {
   type MentorshipInternalAlertTemplateInput,
 } from "./templates/mentorship-internal-alert";
 import { getSchoolReviewVerificationTemplate } from "./templates/school-review-verification";
+import {
+  getMarketingOptInConfirmationTemplate,
+  MARKETING_OPT_IN_CONFIRMATION_TEMPLATE_KEY,
+} from "./templates/marketing-opt-in-confirmation";
 
 const TRANSACTIONAL_EMAIL_WORKER = "lead_capture_request";
 
@@ -95,6 +99,28 @@ export async function queueSchoolReviewVerification(
   const { job } = await createTransactionalEmailJob(admin, {
     schoolReviewId: input.reviewId,
     templateKey: SCHOOL_REVIEW_VERIFICATION_TEMPLATE_KEY,
+    idempotencyKey: input.idempotencyKey,
+  });
+  return sendTransactionalEmail(admin, job, { template, recipientEmail: input.recipientEmail });
+}
+
+export async function queueMarketingOptInConfirmation(
+  admin: EmailAdminClient,
+  input: {
+    leadId: string;
+    idempotencyKey: string;
+    recipientEmail: string;
+    confirmationLink: string;
+    expiresAt: string;
+  },
+): Promise<TransactionalEmailDispatchResult> {
+  const template = getMarketingOptInConfirmationTemplate({
+    confirmationLink: input.confirmationLink,
+    expiresAt: input.expiresAt,
+  });
+  const { job } = await createTransactionalEmailJob(admin, {
+    leadId: input.leadId,
+    templateKey: MARKETING_OPT_IN_CONFIRMATION_TEMPLATE_KEY,
     idempotencyKey: input.idempotencyKey,
   });
   return sendTransactionalEmail(admin, job, { template, recipientEmail: input.recipientEmail });

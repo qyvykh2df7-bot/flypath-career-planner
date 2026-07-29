@@ -35,6 +35,8 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const submissionIdRef = useRef<string | null>(null);
+  const formStartedAtRef = useRef<number | null>(null);
+  const [honeypot, setHoneypot] = useState("");
 
   const handleClose = useCallback(() => {
     setFullName("");
@@ -46,12 +48,15 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
     setErrorMessage(null);
     setSubmitted(false);
     submissionIdRef.current = null;
+    formStartedAtRef.current = null;
+    setHoneypot("");
     onClose();
   }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
 
+    formStartedAtRef.current = Date.now();
     initializeTrackingContext();
     trackEventOncePerSession("popup_opened", { popup_id: "mentorship_support" });
 
@@ -85,7 +90,7 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
       phone: phone.trim() || undefined,
       situation,
       helpText,
-    }, getTrackingContext(), idempotencyKey);
+    }, getTrackingContext(), idempotencyKey, formStartedAtRef.current ?? 0, honeypot);
 
     setIsLoading(false);
 
@@ -140,6 +145,15 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
                 cómo podemos ayudarte.
               </p>
               <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
+                <input
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  name="website"
+                  value={honeypot}
+                  onChange={(event) => setHoneypot(event.target.value)}
+                  className="sr-only"
+                />
                 <div>
                   <label htmlFor="mentorship-support-name" className="sr-only">
                     Nombre
@@ -152,11 +166,9 @@ export function MentorshipSupportModal({ open, onClose }: MentorshipSupportModal
                     required
                     disabled={isLoading}
                     value={fullName}
-                    onFocus={() =>
-                      trackEventOncePerSession("form_started", {
-                        form_id: "mentorship_support",
-                      })
-                    }
+                    onFocus={() => {
+                      trackEventOncePerSession("form_started", { form_id: "mentorship_support" });
+                    }}
                     onChange={(event) => setFullName(event.target.value)}
                     placeholder="Nombre"
                     className={FIELD_CLASS}
