@@ -22,15 +22,12 @@ function PostCover({ src, alt }: { src: string; alt: string }) {
 
   return (
     <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[#eef2f8] ring-1 ring-slate-200/70">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={src}
         alt={alt}
-        width={1200}
-        height={675}
-        loading="lazy"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        sizes="(max-width: 768px) 100vw, 768px"
+        className="object-cover"
         onError={() => setFailed(true)}
       />
     </div>

@@ -569,13 +569,21 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - QA Production: TTS/STT válidos, validaciones de body/MIME y `429` de STT anónimo verificados. QA por cuenta Free/Pro pendiente.
 - Mejoras posteriores no bloqueantes: parsing multipart en streaming, limpieza periódica de filas de cuota y prueba de concurrencia real contra Supabase.
 
-### Hardening web previo al lanzamiento — validado localmente, pendiente de despliegue
+### Hardening web previo al lanzamiento — completado y desplegado
 
 - Origen único `FLYPATH_CANONICAL_ORIGIN` para Checkout, correo, callbacks, URLs absolutas y comprobación same-origin; no se acepta `Host` de cliente como fuente de URL pública. Production y Preview están configurados con el origen HTTPS aprobado.
 - CSP, HSTS, anti-embedding, `nosniff`, referrer policy, permissions policy y resource policy definidos. Producción no permite `unsafe-eval`; la excepción `unsafe-inline` de Next.js se mantiene documentada.
 - Stripe, Cal.com y Resend limitan body antes de firma o persistencia (1 MiB, 256 KiB y 256 KiB). Las herramientas `/review/*`, previews y QA se bloquean fuera de desarrollo/test y se marcan `noindex`.
 - Validación local: 771 tests, TypeScript, lint focalizado, `git diff --check` y build Webpack correctos.
 - Dependencias corregidas: `next`/`eslint-config-next` `16.2.12`, además de las actualizaciones compatibles de `postcss`, `sharp` y `js-yaml`. `npm audit --omit=dev` informa **0 vulnerabilidades**. El audit completo conserva un High de `brace-expansion` y un Low de `esbuild`, ambos transitivos de herramientas locales de lint/pruebas y no desplegados.
+
+### Optimización de rendimiento pre-lanzamiento completada
+
+- Auditoría con build Webpack, Lighthouse móvil/escritorio, análisis de bundles, recursos visuales, fuentes, renderizado y peticiones de rutas públicas y de producto representativas.
+- La home ya no descarga los PNG originales de sus miniaturas: `next/image` y `sizes` reducen la transferencia móvil local de **6,21 MiB a 676 KiB** (-89 %) y la de escritorio de **7,54 MiB a 820 KiB**, conservando el diseño y los mockups. En Production, la home pasó de **6,24 MiB a 709 KiB** en móvil (-89 %), sin regresión de TBT o CLS.
+- El formulario modal Pre-PPL se carga bajo demanda y las imágenes de portada/tarjetas del blog usan el pipeline optimizado de Next.
+- Las rutas públicas siguen prerenderizadas cuando corresponde; datos privados, sesión, pagos, entitlements y progreso siguen dinámicos y no se cachean públicamente.
+- Documento de medición y decisiones: `docs/ai/performance/flypath-production-performance-audit.md`. Pendiente no bloqueante: Vercel Speed Insights, PageSpeed sobre dominio definitivo y mediciones con sesión real de producto.
 
 ### Hardening de formularios públicos y marketing completado
 
@@ -608,9 +616,9 @@ Preparar FlyPath para el lanzamiento público.
 2. **Auditoría de datos del comparador**
    - Revisar escuelas, precios, costes, extras, riesgos y fuentes.
    - Confirmar la consistencia de todos los datos públicos.
-3. **Rendimiento y velocidad web**
-   - Lighthouse, Vercel Speed Insights y PageSpeed.
-   - Revisar LCP, CLS, INP, imágenes, fuentes y JavaScript.
+3. **Monitorización de rendimiento en producción**
+   - Activar/contrastar Vercel Speed Insights y PageSpeed sobre el dominio definitivo.
+   - Repetir las mediciones de producto con sesión real y vigilar LCP, CLS e INP de campo.
 4. **Dominio definitivo y migración final**
    - Configurar dominio, DNS, SSL y variables Production en Vercel.
    - Validar rutas, emails, Stripe, Supabase y webhooks.

@@ -1,9 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { PrePplWaitlistModal } from "@/components/home/PrePplWaitlistModal";
 import {
   createTrackingCtaMetadata,
   trackCtaClicked,
@@ -11,6 +12,11 @@ import {
 } from "@/lib/tracking/client";
 import type { TrackingCtaId } from "@/lib/tracking/events";
 import { initializeTrackingContext } from "@/lib/tracking/session";
+
+const PrePplWaitlistModal = dynamic(
+  () => import("@/components/home/PrePplWaitlistModal").then((module) => module.PrePplWaitlistModal),
+  { ssr: false },
+);
 
 type ResourceType = "HERRAMIENTA" | "GUÍA" | "APP" | "MENTORÍA";
 
@@ -91,13 +97,12 @@ const RESOURCE_CTA_CLASS =
 
 function ResourceMockupImage({ src, alt }: { src: string; alt: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={src}
       alt={alt}
-      loading="lazy"
-      decoding="async"
-      className="h-full w-full max-h-[260px] object-contain object-center sm:max-h-[280px]"
+      fill
+      sizes="(max-width: 640px) 78vw, (max-width: 1024px) 300px, 280px"
+      className="object-contain object-center"
     />
   );
 }

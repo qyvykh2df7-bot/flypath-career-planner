@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, FileText } from "lucide-react";
@@ -18,15 +19,12 @@ function CoverImage({ src, alt }: { src: string; alt: string }) {
 
   return (
     <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#eef2f8]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={src}
         alt={alt}
-        width={640}
-        height={400}
-        loading="lazy"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+        className="object-cover"
         onError={() => setFailed(true)}
       />
     </div>

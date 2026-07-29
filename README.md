@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase actual: 10.5 — Production Launch & Hardening.** La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. El hardening web previo al lanzamiento incorpora origen canónico server-side, cabeceras de seguridad, límites de webhooks y bloqueo de herramientas internas en producción. `next` está actualizado a `16.2.12`; la auditoría de dependencias de producción queda en cero vulnerabilidades. Validación local: 771 tests, TypeScript, lint y build Webpack correctos.
+**Fase actual: 10.5 — Production Launch & Hardening.** La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. El hardening web previo al lanzamiento incorpora origen canónico server-side, cabeceras de seguridad, límites de webhooks y bloqueo de herramientas internas en producción. La optimización pre-lanzamiento pasó recursos visuales públicos al pipeline responsivo de Next y redujo la transferencia móvil de la home de 6,21 MiB a 676 KiB en Lighthouse local, sin cambio visual. `next` está actualizado a `16.2.12`; la auditoría de dependencias de producción queda en cero vulnerabilidades. Validación local: 771 tests, TypeScript, lint y build Webpack correctos.
 
 ## Comandos
 

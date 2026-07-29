@@ -52,14 +52,14 @@ export function BlogListingClient({ posts, featuredPosts }: BlogListingClientPro
       <main>
         <section className="relative overflow-hidden border-b border-[#0f1a33]/10 bg-gradient-to-br from-[#0f1a33] via-[#152440] to-[#1a2d52] py-9 sm:py-10">
           {!heroImageFailed ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src="/blog.jpg"
               alt=""
               aria-hidden
-              className="absolute inset-0 h-full w-full object-cover"
-              fetchPriority="high"
-              decoding="auto"
+              fill
+              preload
+              sizes="100vw"
+              className="object-cover"
               onError={() => setHeroImageFailed(true)}
             />
           ) : null}

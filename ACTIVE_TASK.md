@@ -6,11 +6,18 @@ Fase 10 está **COMPLETADA**. Stripe Live está preparado con los productos y Pr
 
 ## Tareas activas antes del lanzamiento
 
-1. Desplegar y verificar cabeceras, origen canónico, límites de webhooks y denegación de rutas internas en Production y Preview.
-2. Revisar el diseño público de opiniones de escuelas: layout, responsive, estados sin opiniones y estrellas.
-3. Auditar la consistencia de datos públicos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
-4. Medir y mejorar rendimiento con Lighthouse, Vercel Speed Insights y PageSpeed: LCP, CLS, INP, imágenes, fuentes y JavaScript.
-5. Configurar dominio definitivo, DNS, SSL y variables Production; validar rutas, emails, Stripe, Supabase y webhooks antes de retirar Hostinger.
+1. Revisar el diseño público de opiniones de escuelas: layout, responsive, estados sin opiniones y estrellas.
+2. Auditar la consistencia de datos públicos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
+3. Configurar dominio definitivo, DNS, SSL y variables Production; validar rutas, emails, Stripe, Supabase y webhooks antes de retirar Hostinger.
+4. Completar QA final móvil y escritorio de superficies públicas, Career Planner, AeroComms Free/Pro y Customer Portal.
+5. Activar/contrastar Vercel Speed Insights y PageSpeed sobre el dominio definitivo; repetir medidas de producto con sesión real.
+
+## Cierre técnico reciente — Rendimiento pre-lanzamiento
+
+- Auditoría Lighthouse/build/bundle completada en rutas públicas y de producto representativas; informe: `docs/ai/performance/flypath-production-performance-audit.md`.
+- Home: las miniaturas de recursos dejan de descargar PNG originales; transferencia móvil local **6,21 MiB → 676 KiB** (-89 %) y escritorio **7,54 MiB → 820 KiB**, sin cambios visibles.
+- Modal Pre-PPL diferido hasta interacción e imágenes de blog migradas a `next/image` con `sizes` responsivos.
+- Validación: 771 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos. Despliegue Production y QA remota completados: la home baja de 6,24 MiB a 709 KiB (-89 %), sin errores de consola ni desbordamiento móvil. Pendiente no bloqueante: métricas de campo con Vercel Speed Insights y PageSpeed sobre el dominio definitivo.
 
 ## Hardening web local pendiente de despliegue
 

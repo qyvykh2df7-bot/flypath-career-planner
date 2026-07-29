@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, FileText, Mail, Plane } from "lucide-react";
 import type { BlogPostMeta } from "@/lib/blog-types";
@@ -50,12 +51,12 @@ export function HomeBlogNewsletterSection({
               <article className="mt-4 flex flex-1 overflow-hidden rounded-[20px] border border-[#071224]/[0.07] bg-white shadow-[0_12px_32px_rgba(7,18,36,0.06)]">
                 <div className="relative w-[34%] min-w-[108px] max-w-[148px] shrink-0 self-stretch bg-[#eef2f8] sm:min-w-[120px] sm:max-w-[160px]">
                   {latestPost.coverImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={latestPost.coverImage}
                       alt={latestPost.title}
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 34vw, 160px"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="flex h-full min-h-[132px] w-full items-center justify-center">

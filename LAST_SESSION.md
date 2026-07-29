@@ -1,10 +1,19 @@
 # Última sesión — actualización de Fase 10.5: Production Launch & Hardening
 
-**Fecha:** 2026-07-23
+**Fecha:** 2026-07-29
 **Rama:** `main`
 **Estado:** Fase 10 está completada. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la separación Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com por su checkout. La fase actual es 10.5: Production Launch & Hardening.
 
-## Hardening web previo al lanzamiento — dependencias corregidas, pendiente de despliegue
+## Cierre — Optimización de rendimiento pre-lanzamiento
+
+- Auditoría realizada sobre build Webpack, Lighthouse móvil/escritorio, bundles, imágenes, fuentes, renderizado y peticiones de home, comparador, ficha, opiniones, shop, login, Career Planner y AeroComms.
+- Hallazgo dominante: la home descargaba cuatro PNG originales de 1–2 MiB para miniaturas. `HomeResourcesShowcase` usa ahora `next/image` con tamaños responsivos; Lighthouse móvil local pasa de **6,21 MiB a 676 KiB** (-89 %) y escritorio de **7,54 MiB a 820 KiB**, con score móvil caliente 91 → 92, LCP 3,57 s → 3,32 s, TBT 4 ms → 0 ms y CLS 0,001 → 0,000.
+- Pre-PPL carga su modal solo al interactuar. Las imágenes de hero, tarjetas y artículos del blog pasan al pipeline de Next sin alterar encuadres, fallback ni contenido.
+- Career Planner mantiene sus PDF como imports bajo demanda; no se tocaron AeroComms, pagos, autenticación, entitlements, catálogo ni cachés privadas.
+- Validación local: 771 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos. Deployment Production `dpl_AgUdS8Zz5cbuxUb8dtViheBkPQWx` validado: home móvil 6,24 MiB → 709 KiB (-89 %), Performance 96, TBT 0 ms y CLS 0,001; rutas públicas representativas entre 90 y 98. QA visual móvil a 390 px sin desbordamiento ni errores de consola. Pendiente no bloqueante: métricas de campo con Vercel Speed Insights/PageSpeed y medición de producto con sesión real.
+- Documento técnico: `docs/ai/performance/flypath-production-performance-audit.md`.
+
+## Hardening web previo al lanzamiento — completado y desplegado
 
 - Se añadió `FLYPATH_CANONICAL_ORIGIN` como único origen server-side para retornos Stripe, confirmaciones por email, URLs absolutas, tracking y validación same-origin. La URL no se deriva de `Host`; Production y Preview ya tienen la variable sensible configurada, y local usa su valor no versionado.
 - Se definieron CSP de producción sin `unsafe-eval`, HSTS, anti-embedding, `nosniff`, referrer policy, permissions policy y Cross-Origin Resource/Opener Policy. La excepción `unsafe-inline` queda documentada para la inyección actual de Next.js/next-font.

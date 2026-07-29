@@ -32,7 +32,15 @@ La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su últ
 
 ## Siguiente bloque — Fase 10.5: Production Launch & Hardening
 
-El siguiente trabajo es preparar el lanzamiento público: cerrar el diseño público de opiniones de escuelas; auditar la consistencia de escuelas, precios, costes, extras, riesgos y fuentes del comparador; medir rendimiento con Lighthouse, Vercel Speed Insights y PageSpeed; y configurar el dominio definitivo, DNS, SSL y variables Production antes de retirar Hostinger. Después se ejecutará el QA final de todas las superficies comerciales y de producto.
+El siguiente trabajo es preparar el lanzamiento público: cerrar el diseño público de opiniones de escuelas; auditar la consistencia de escuelas, precios, costes, extras, riesgos y fuentes del comparador; configurar el dominio definitivo, DNS, SSL y variables Production antes de retirar Hostinger; y completar el QA final de todas las superficies comerciales y de producto. La optimización inicial de rendimiento ya está cerrada; queda monitorización de campo con Vercel Speed Insights/PageSpeed y medición con sesión real de las superficies de producto.
+
+## Optimización de rendimiento pre-lanzamiento
+
+- Auditoría completada con Lighthouse, build Webpack, inspección de bundles, recursos, fuentes y renderizado de rutas públicas y de producto representativas.
+- La home usa ahora imágenes responsivas de Next para sus mockups: transferencia móvil local **6,21 MiB → 676 KiB** y escritorio **7,54 MiB → 820 KiB**, sin rediseño ni degradación visual. Production validó la misma corrección: **6,24 MiB → 709 KiB** en móvil (-89 %), sin errores de consola ni desbordamiento a 390 px.
+- Pre-PPL solo carga su modal al abrirlo; blog usa el pipeline de imágenes de Next en hero, tarjetas y artículos.
+- Career Planner mantiene la generación PDF bajo demanda; AeroComms, pagos, autenticación, entitlements y cachés privadas no se modificaron.
+- Detalle y métricas: `docs/ai/performance/flypath-production-performance-audit.md`.
 
 ## Hardening web previo al lanzamiento — validado localmente
 
