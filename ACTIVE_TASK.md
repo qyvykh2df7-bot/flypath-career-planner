@@ -1,10 +1,24 @@
 # Continuidad — Fase 10.5: Production Launch & Hardening
 
+## Estado actual
+
+Fase 10 está **COMPLETADA**. Stripe Live está preparado con los productos y Price IDs de AeroComms Pro, Career Planner Premium y Cómo ser Piloto; Checkout, webhooks, Customer Portal, entitlements y separación Test/Live están validados. Fase 10.5 es la fase activa de preparación del lanzamiento público.
+
+## Tareas activas antes del lanzamiento
+
+1. Revisar el diseño público de opiniones de escuelas: layout, responsive, estados sin opiniones y estrellas.
+2. Auditar la consistencia de datos públicos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
+3. Medir y mejorar rendimiento con Lighthouse, Vercel Speed Insights y PageSpeed: LCP, CLS, INP, imágenes, fuentes y JavaScript.
+4. Configurar dominio definitivo, DNS, SSL y variables Production; validar rutas, emails, Stripe, Supabase y webhooks antes de retirar Hostinger.
+
+La auditoría legal inicial, los informes reales del Career Planner, los enlaces Amazon de logbooks y la revisión de restos visibles no tienen bloqueos confirmados. Las rutas preview/mock son herramientas internas de diseño.
+
 ## Estado de la plataforma
 
 - Fases 4, 5 y 6: completadas e integradas en `main`.
 - Fase 10: **COMPLETADA**. La infraestructura de pagos, monetización, entitlements, mentorías y el gating Free/Pro de AeroComms están cerrados.
 - Fase 7: CLOSED / COMPLETED / DEPLOYED. Migración remota aplicada, QA funcional aprobado y deployment completado.
+- Validación técnica de continuidad: 698 tests correctos, TypeScript y lint focalizado correctos.
 
 ## Cierre de Fase 8
 

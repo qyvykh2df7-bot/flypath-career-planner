@@ -47,6 +47,14 @@ function reviewMeta(review: PublicSchoolReviewPage["reviews"][number]): string {
     .join(" · ");
 }
 
+export function getVerifiedReviewCountLabel(total: number): string {
+  return `${total} ${total === 1 ? "opinión verificada" : "opiniones verificadas"}`;
+}
+
+export function shouldShowWouldChooseAgain(total: number, percentage: number | null): boolean {
+  return total >= 3 && percentage !== null;
+}
+
 export function PublicSchoolReviews({ schoolSlug, schoolName, onLeaveReview }: PublicSchoolReviewsProps) {
   const [result, setResult] = useState<{ key: string; data: PublicSchoolReviewPage | null; failed: boolean }>({ key: "", data: null, failed: false });
   const [page, setPage] = useState(1);
@@ -95,15 +103,14 @@ export function PublicSchoolReviews({ schoolSlug, schoolName, onLeaveReview }: P
           </div>
         ) : (
           <>
-            <div className="grid gap-4 border-b border-slate-100 pb-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
-              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Media general</p><p className="mt-1 text-4xl font-bold tabular-nums text-[#0f1a33]">{formatScore(data.aggregates.averageOverall)}<span className="text-xl font-semibold text-slate-500">/10</span></p></div>
-              <div className="text-sm text-slate-600"><p>{data.total} {data.total === 1 ? "opinión aprobada" : "opiniones aprobadas"}</p>{data.aggregates.wouldChooseAgainPercent !== null ? <p className="mt-1">{formatScore(data.aggregates.wouldChooseAgainPercent)}% volvería a elegirla</p> : null}</div>
+            <div className="grid gap-3 border-b border-slate-100 pb-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end">
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Media general</p><p className="mt-0.5 text-5xl font-bold leading-none tabular-nums text-[#0f1a33] sm:text-6xl">{formatScore(data.aggregates.averageOverall)}<span className="ml-0.5 text-xl font-semibold text-slate-500 sm:text-2xl">/10</span></p></div>
+              <div className="text-sm text-slate-600"><p>{getVerifiedReviewCountLabel(data.total)}</p>{shouldShowWouldChooseAgain(data.total, data.aggregates.wouldChooseAgainPercent) ? <p className="mt-1">{formatScore(data.aggregates.wouldChooseAgainPercent)}% volvería a elegirla</p> : null}</div>
             </div>
-            <dl className="mt-5 grid gap-2 sm:grid-cols-2">
+            <dl className="mt-4 grid gap-2 sm:grid-cols-2">
               {Object.entries(RATING_LABELS).map(([key, label]) => <div key={key} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm"><dt className="text-slate-700">{label}</dt><dd className="font-semibold tabular-nums text-[#0f1a33]">{formatScore(data.aggregates.averages[key as keyof typeof data.aggregates.averages] ?? null)}/10</dd></div>)}
             </dl>
-            <div className="mt-5"><p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">Distribución general</p><div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-10">{Object.entries(data.aggregates.distribution).map(([score, count]) => <div key={score} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-center"><p className="text-xs font-semibold text-[#0f1a33]">{score}</p><p className="mt-1 text-xs text-slate-500">{count}</p></div>)}</div></div>
-            <ol className="mt-6 space-y-3">{data.reviews.map((review) => <li key={review.reviewId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_0_rgba(15,26,51,0.03)]"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold text-[#0f1a33]">{review.displayAuthor}</p><p className="mt-1 text-xs text-slate-500">{reviewMeta(review)}{formatDate(review.approvedAt) ? ` · ${formatDate(review.approvedAt)}` : ""}</p></div><span className="rounded-lg border border-[#c9a454]/30 bg-[#fff8e8] px-2 py-1 text-sm font-semibold tabular-nums text-[#7a5a16]">{review.ratings.general}/10</span></div><dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3"><div><dt className="text-xs text-slate-500">Lo mejor</dt><dd className="mt-1 leading-relaxed text-slate-700">{review.bestPart}</dd></div><div><dt className="text-xs text-slate-500">A mejorar</dt><dd className="mt-1 leading-relaxed text-slate-700">{review.improvements}</dd></div><div><dt className="text-xs text-slate-500">Consejo</dt><dd className="mt-1 leading-relaxed text-slate-700">{review.advice}</dd></div></dl></li>)}</ol>
+            <ol className="mt-6 space-y-3">{data.reviews.map((review) => <li key={review.reviewId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_0_rgba(15,26,51,0.03)]"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold text-[#0f1a33]">{review.displayAuthor}</p><p className="mt-1 text-xs text-slate-500">{reviewMeta(review)}{formatDate(review.approvedAt) ? ` · ${formatDate(review.approvedAt)}` : ""}</p></div><span className="rounded-lg border border-[#c9a454]/30 bg-[#fff8e8] px-2 py-1 text-sm font-semibold tabular-nums text-[#7a5a16]">{review.ratings.general}/10</span></div><dl className="mt-4 grid divide-y divide-slate-100 text-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">{[["Lo mejor", review.bestPart], ["A mejorar", review.improvements], ["Consejo", review.advice]].map(([label, value]) => <div key={label} className="py-3 first:pt-0 last:pb-0 sm:px-4 sm:py-0 sm:first:pl-0 sm:last:pr-0"><dt className="text-xs text-slate-500">{label}</dt><dd className="mt-1 leading-relaxed text-slate-700">{value}</dd></div>)}</dl></li>)}</ol>
             {data.totalPages > 1 ? <nav aria-label="Paginación de opiniones" className="mt-5 flex items-center justify-between gap-3"><button type="button" disabled={data.page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-45"><ChevronLeft className="h-4 w-4" aria-hidden />Anterior</button><p className="text-sm text-slate-500">Página {data.page} de {data.totalPages}</p><button type="button" disabled={data.page >= data.totalPages} onClick={() => setPage((current) => current + 1)} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-45">Siguiente<ChevronRight className="h-4 w-4" aria-hidden /></button></nav> : null}
           </>
         )}

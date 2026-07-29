@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: COMPLETADA.** 10B–10G y el gating Free/Pro de AeroComms están cerrados. 10F (sincronización operativa de mentorías Cal.com) está desplegado, con migración remota, webhook firmado y Ping Production validados. La QA de una reserva real queda **bloqueada externamente** hasta que Cal.com corrija su checkout de pago: ejecuta `stripe.confirmPayment()` sin un Payment Element montado. Stripe live sigue desactivado.
+**Estado: COMPLETADA.** 10B–10G y el gating Free/Pro de AeroComms están cerrados. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la arquitectura Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F (sincronización operativa de mentorías Cal.com) está desplegado, con migración remota, webhook firmado y Ping Production validados. La QA de una reserva real queda **bloqueada externamente** hasta que Cal.com corrija su checkout de pago: ejecuta `stripe.confirmPayment()` sin un Payment Element montado.
 
 ### Objetivos
 
@@ -544,7 +544,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Los CTAs de mentorías de la página de mentorías, pricing, escuelas, shop, blog y free report usan `FLYPATH_MENTORIA_CALCOM_URL`, abren Cal.com de forma segura y conservan el tracking existente. Commit: `0cd06b9 feat(mentorship): connect frontend CTAs to calcom`.
 - **Bloqueo externo:** Cal.com crea el PaymentIntent y muestra el precio de 44,95 EUR, pero su frontend ejecuta `stripe.confirmPayment()` sin un Payment Element montado. No es un problema de FlyPath, del backend Stripe ni del webhook.
 - Próxima acción cuando Cal.com corrija su checkout: crear una reserva real de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y orden temporal.
-- Cierre final de Fase 10 validado con 690 tests, TypeScript, lint focalizado y `git diff --check` correctos; worktree limpio.
+- Cierre final de Fase 10 validado con 698 tests, TypeScript, lint focalizado y `git diff --check` correctos.
 
 ### AeroComms Free / Pro gating completado
 
@@ -573,6 +573,25 @@ Preparar FlyPath para el lanzamiento público.
 - Preparar dominio definitivo, DNS, SSL y variables Production; retirar Hostinger tras validación.
 - Ejecutar QA final de login, perfil, Warhome, formularios, emails, Career Planner, guía, AeroComms Free/Pro, Customer Portal, mentorías Cal.com y móvil.
 - Realizar el lanzamiento público.
+
+### Pendientes reales antes del lanzamiento público
+
+1. **Diseño público de opiniones de escuelas**
+   - Revisar layout visual y responsive.
+   - Completar estados sin opiniones.
+   - Revisar presentación de estrellas y valoración.
+2. **Auditoría de datos del comparador**
+   - Revisar escuelas, precios, costes, extras, riesgos y fuentes.
+   - Confirmar la consistencia de todos los datos públicos.
+3. **Rendimiento y velocidad web**
+   - Lighthouse, Vercel Speed Insights y PageSpeed.
+   - Revisar LCP, CLS, INP, imágenes, fuentes y JavaScript.
+4. **Dominio definitivo y migración final**
+   - Configurar dominio, DNS, SSL y variables Production en Vercel.
+   - Validar rutas, emails, Stripe, Supabase y webhooks.
+   - Retirar Hostinger tras la validación.
+
+La auditoría legal inicial está revisada. Los informes gratuito y para padres usan datos reales del Planner; sus rutas preview/mock son herramientas internas de diseño y no bloquean el lanzamiento. Los logbooks del Shop tienen enlaces Amazon. La auditoría de restos visibles no encontró bloqueos confirmados; los textos internos de funcionalidades futuras se mantienen porque no afectan al flujo público actual.
 
 ---
 
@@ -669,8 +688,8 @@ Fase 6   Login, cuentas y perfiles      ████████████  Co
 Fase 7   Persistencia de AeroComms      ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 9   Backend de opiniones           ████████████  CLOSED / COMPLETED / DEPLOY READY
-Fase 10  Pagos y entitlements           ████████████  En cierre operativo antes de lanzamiento público
-Fase 10.5 Production Launch & Hardening ░░░░░░░░░░░░  Pendiente
+Fase 10  Pagos y entitlements           ████████████  Completada
+Fase 10.5 Production Launch & Hardening ░░░░░░░░░░░░  Actual / en curso
 Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
 Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
 Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase

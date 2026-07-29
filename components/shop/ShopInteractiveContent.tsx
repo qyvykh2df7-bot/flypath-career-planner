@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ComponentType, type MouseEvent } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -13,44 +13,41 @@ import {
   Users,
 } from "lucide-react";
 
-const TOAST_MS = 2800;
-const AMAZON_TOAST = "Enlace de Amazon próximamente";
-
 const LOGBOOKS = [
   {
     id: "blue",
     title: "Pilot Logbook Blue",
     description: "EASA FCL.050 Compliant",
     imageSrc: "/azul_logbook2.jpg",
-    href: "#",
+    href: "https://www.amazon.es/Pilot-Logbook-FCL-050-Compliant-Requirements/dp/B0DZWT2S6M",
   },
   {
     id: "black-deluxe",
     title: "Pilot Logbook Black Deluxe",
     description: "EASA FCL.050 Compliant",
     imageSrc: "/black_deluxe_negro.jpg",
-    href: "#",
+    href: "https://www.amazon.es/Pilot-Logbook-FCL-050-Compliant-Requirements/dp/B0FT2LL8GF",
   },
   {
     id: "green",
     title: "Pilot Logbook Green",
     description: "EASA FCL.050 Compliant",
     imageSrc: "/verde_logbook1.jpg",
-    href: "#",
+    href: "https://www.amazon.es/Pilot-Logbook-FCL-050-Compliant-Requirements/dp/B0DVTBJF6X",
   },
   {
     id: "pink",
     title: "Pilot Logbook Pink",
     description: "EASA FCL.050 Compliant",
     imageSrc: "/rosa_logbook1.jpg",
-    href: "#",
+    href: "https://www.amazon.es/Pilot-Logbook-FCL-050-Compliant-Requirements/dp/B0DZVDYRP3",
   },
   {
     id: "navigation",
     title: "Flight Navigation Logbook",
     description: "VFR & IFR Planner",
     imageSrc: "/flight_navigation_logbook.jpg",
-    href: "#",
+    href: "https://www.amazon.es/Flight-Navigation-Logbook-Planner-Frequencies/dp/B0FJWZQTNB",
   },
 ] as const;
 
@@ -238,13 +235,11 @@ function LogbookCard({
   description,
   imageSrc,
   href,
-  onAmazonClick,
 }: {
   title: string;
   description: string;
   imageSrc: string;
   href: string;
-  onAmazonClick: (e: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200/75 bg-white shadow-sm">
@@ -259,7 +254,6 @@ function LogbookCard({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={(e) => onAmazonClick(e, href)}
           className="mt-3 inline-flex min-h-[40px] w-fit items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] font-semibold text-[#0f1a33] transition hover:border-[#c9a454]/40 hover:bg-[#fffdf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a454]/35"
         >
           Ver en Amazon
@@ -271,7 +265,6 @@ function LogbookCard({
 }
 
 export function ShopInteractiveContent() {
-  const [toast, setToast] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<ShopCategory>("todos");
 
   const showGuide = activeCategory === "todos" || activeCategory === "guia";
@@ -280,31 +273,8 @@ export function ShopInteractiveContent() {
   const showLogbooks = activeCategory === "todos" || activeCategory === "logbooks";
   const showServiciosSection = showMentorias || showClases;
 
-  const handleAmazonClick = useCallback((e: MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (href === "#") {
-      e.preventDefault();
-      setToast(AMAZON_TOAST);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast((t) => (t === toast ? null : t)), TOAST_MS);
-    return () => window.clearTimeout(id);
-  }, [toast]);
-
   return (
     <>
-      {toast ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed right-3 top-3 z-50 max-w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-[#c9a454]/35 bg-[#0f1a33] px-4 py-2.5 text-[15px] text-white shadow-lg sm:right-5 sm:top-5"
-        >
-          {toast}
-        </div>
-      ) : null}
-
       {/* Categorías rápidas */}
       <section
         id="recursos-flypath"
@@ -434,7 +404,6 @@ export function ShopInteractiveContent() {
                   description={book.description}
                   imageSrc={book.imageSrc}
                   href={book.href}
-                  onAmazonClick={handleAmazonClick}
                 />
               ))}
             </div>

@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase 10 — Pagos, monetización y entitlements: CLOSED / COMPLETED.** 10B–10G están cerrados en `main`. AeroComms Pro requiere una cuenta FlyPath, usa Stripe Checkout server-side a **5,99 EUR/mes**, activa el acceso exclusivamente mediante el entitlement `aerocomms_pro` confirmado por webhook y permite gestionar la suscripción desde Stripe Customer Portal. Incluye cancelación al final del periodo, gracia de 48 horas ante `invoice.payment_failed` y revocación inmediata ante reembolso o disputa. Las suscripciones históricas de 7,37 EUR conservan su Price legacy para seguir sincronizando renovaciones, cancelaciones y reembolsos. 10F sincroniza operativamente las mentorías de Cal.com mediante webhook firmado y CTAs de frontend con migración remota y ruta Production activas. La QA de una reserva real queda bloqueada externamente: el checkout de Cal.com intenta confirmar el pago sin un Payment Element montado. Validación final: 690 tests, TypeScript y lint correctos; worktree limpio. Stripe live sigue desactivado.
+**Fase actual: 10.5 — Production Launch & Hardening.** La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**: Stripe Live preparado con productos y Price IDs de AeroComms Pro, Career Planner Premium y la guía Cómo ser Piloto; Checkout, webhooks, Customer Portal, entitlements y separación Test/Live validados. También está integrada la sincronización operativa de mentorías con Cal.com; su QA de reserva real sigue bloqueada por un problema externo del checkout de Cal.com. Antes del lanzamiento quedan el diseño público de opiniones de escuelas, la auditoría de datos del comparador, rendimiento y la migración al dominio definitivo. Validación técnica: 698 tests, TypeScript y lint correctos.
 
 ## Comandos
 
@@ -23,7 +23,7 @@ Copia `.env.example` a `.env.local` y rellena:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (solo servidor; nunca en cliente)
-- `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` (solo Stripe test y solo servidor)
+- `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` (solo servidor; el entorno Test/Live se separa por configuración)
 
 ## Documentación operativa
 

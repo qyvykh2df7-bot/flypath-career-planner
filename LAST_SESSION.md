@@ -1,8 +1,16 @@
-# Última sesión — cierre de Fase 10 y comienzo de Production Launch & Hardening
+# Última sesión — actualización de Fase 10.5: Production Launch & Hardening
 
-**Fecha:** 2026-07-22
+**Fecha:** 2026-07-23
 **Rama:** `main`
-**Estado:** Fase 10 está completada. 10B–10G, la integración 10F y el gating Free/Pro de AeroComms están cerrados; los commits previos `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb` están publicados en `main`. Las migraciones Supabase Production están aplicadas hasta `20260712280000`. AeroComms Pro está activo en sandbox mediante el entitlement `aerocomms_pro`, Checkout y Customer Portal; Stripe live sigue desactivado. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com. La fase actual es 10.5: Production Launch & Hardening.
+**Estado:** Fase 10 está completada. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la separación Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com por su checkout. La fase actual es 10.5: Production Launch & Hardening.
+
+## Continuidad de Fase 10.5
+
+- Diseño público de opiniones de escuelas: revisar layout, responsive, estados sin opiniones y presentación de estrellas.
+- Auditoría de datos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
+- Rendimiento: Lighthouse, Vercel Speed Insights, PageSpeed, LCP, CLS, INP, imágenes, fuentes y JavaScript.
+- Dominio definitivo: Vercel, DNS, SSL, variables Production, validación integral y retirada de Hostinger.
+- La auditoría legal inicial está revisada. Los informes gratuito y para padres usan datos reales; las rutas preview/mock son herramientas internas de diseño. Los logbooks tienen enlaces Amazon y la auditoría de restos visibles no encontró bloqueos confirmados.
 
 ## Cierre — AeroComms Free / Pro gating
 
@@ -35,7 +43,7 @@
 
 ## Validación final de Fase 10
 
-- 690 tests correctos, TypeScript, lint focalizado y `git diff --check` correctos.
+- 698 tests correctos, TypeScript, lint focalizado y `git diff --check` correctos.
 - Worktree limpio tras `6e079cb feat(aerocomms): add stripe customer portal management`.
 
 ## Siguiente bloque — Fase 10.5: Production Launch & Hardening

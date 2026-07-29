@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ComparisonSchoolHeader } from "@/components/schools/ComparisonSchoolHeader";
 import { SchoolReviewComparisonSummary } from "@/components/schools/SchoolReviewComparisonSummary";
 import {
-  confidenceLabel,
   dataStatusLabel,
   summarizeComparison,
 } from "@/lib/schools/schoolUtils";
@@ -4238,72 +4237,6 @@ export function ComparisonResults({ schools }: Props) {
                       </span>
                     ))}
                   </div>
-                </section>
-
-                {/* Bloque compacto solo con confianza del dato + recuento de datos pendientes.
-                  Se han retirado "Lectura FlyPath", "E. Riesgos / Red flags" y "F. Preguntas clave" porque
-                  ahora viven en el bloque global "Conclusión FlyPath" debajo del comparador. */}
-                <section className="rounded-xl border border-slate-200 bg-white p-2.5">
-                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">E. Confianza del dato</p>
-                  <p className="mt-1.5 text-[15px] text-slate-600">
-                    Confianza:{" "}
-                    <span className="font-semibold">
-                      {isAdventiaUniversity || isEasBarcelonaModular || isBfsModular
-                        ? "Baja"
-                        : isFteJerezModular
-                          ? "Media"
-                          : isQualityFly
-                            ? "Media-alta (75/100)"
-                            : isAerodynamicsModular
-                              ? "Baja (45/100)"
-                              : isAerodynamics
-                                ? "Baja-media (50/100)"
-                                : isBaaModular
-                                  ? "Baja-media (50/100)"
-                                  : isBaa
-                                    ? "Media (65/100)"
-                                    : isPanamediaModular
-                                      ? "Baja-media (55/100)"
-                                      : isPanamedia
-                                        ? "Media (60/100)"
-                                        : isFaa
-                                          ? "Media (60/100)"
-                                          : isWafa
-                                            ? "Media-baja (55/100)"
-                                            : isApa && apaMode === "atpl_premium"
-                                              ? "Baja-media (50/100)"
-                                              : isApa
-                                                ? "Media-baja (55/100)"
-                                                : isFby && fbyMode === "integrated"
-                                                  ? "Media-alta (75/100)"
-                                                  : isFby
-                                                    ? "Media (65/100)"
-                                                    : isAeroLink
-                                                      ? "Media (60/100)"
-                                                      : isAtlantic
-                                                        ? "Media (60/100)"
-                                                        : isCanaviaModular
-                                                          ? "Media-alta (75/100)"
-                                                          : isCanavia
-                                                            ? "Alta (85/100)"
-                                                            : isCorflightModular
-                                                              ? "Baja (50/100)"
-                                                              : isCorflight
-                                                                ? "Baja-media (55/100)"
-                                                                : isLeap
-                                                                  ? "Alta (85/100)"
-                                                                  : (() => {
-                        const score = school.scores.dataConfidenceScore;
-                        const hasReliableScore = typeof score === "number" && Number.isFinite(score) && score > 0;
-                        return hasReliableScore
-                          ? `${confidenceLabel(school.dataConfidence)} (${score}/100)`
-                          : confidenceLabel(school.dataConfidence);
-                      })()}
-                    </span>
-                  </p>
-                  {school.pendingData.length > 0 ? (
-                    <p className="mt-1 text-[15px] text-slate-500">Datos pendientes: {school.pendingData.length}</p>
-                  ) : null}
                 </section>
               </div>
             </article>
