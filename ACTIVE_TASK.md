@@ -13,6 +13,13 @@ Fase 10 está **COMPLETADA**. Stripe Live está preparado con los productos y Pr
 
 La auditoría legal inicial, los informes reales del Career Planner, los enlaces Amazon de logbooks y la revisión de restos visibles no tienen bloqueos confirmados. Las rutas preview/mock son herramientas internas de diseño.
 
+## Cierre técnico reciente — APIs de voz AeroComms
+
+- Hardening completado y desplegado: migración `20260712310000_add_aerocomms_voice_rate_limits.sql`, RLS cerrada, RPC atómica exclusiva de `service_role`, autorización server-side y cuotas separadas para anónimo, Free y Pro.
+- `AEROCOMMS_VOICE_RATE_LIMIT_SALT` está presente como variable sensible en Production y Preview; no se versiona.
+- QA Production: TTS/STT válidos, validaciones `400`/`413` y límite STT anónimo `429` verificados. La comprobación real con cuentas Free y Pro queda pendiente de QA manual.
+- Seguimiento no bloqueante: multipart en streaming, purga de filas de cuota inactivas y prueba de concurrencia contra Supabase.
+
 ## Estado de la plataforma
 
 - Fases 4, 5 y 6: completadas e integradas en `main`.

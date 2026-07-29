@@ -560,6 +560,15 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 **Estado: Actual**
 
+### Hardening de APIs de voz AeroComms completado
+
+- Migración `20260712310000_add_aerocomms_voice_rate_limits.sql` aplicada en Supabase Production.
+- TTS y STT usan identidad resuelta en servidor, entitlement real para Pro y cuota distribuida mediante RPC privada; no confían en `localStorage` ni flags cliente.
+- Cuotas activas: anónimo TTS 8/10 min y STT 2/h; Free autenticado TTS 30/10 min y STT 8/h; Pro TTS 90/10 min y STT 100/h.
+- `AEROCOMMS_VOICE_RATE_LIMIT_SALT` está configurado como variable sensible en Production y Preview. Fallos de configuración o infraestructura responden `503` antes de llamar a OpenAI.
+- QA Production: TTS/STT válidos, validaciones de body/MIME y `429` de STT anónimo verificados. QA por cuenta Free/Pro pendiente.
+- Mejoras posteriores no bloqueantes: parsing multipart en streaming, limpieza periódica de filas de cuota y prueba de concurrencia real contra Supabase.
+
 ### Objetivo
 
 Preparar FlyPath para el lanzamiento público.

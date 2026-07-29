@@ -1,19 +1,9 @@
 import { startNoiseOverlay } from "./audioNoise";
 import { getTtsProfile } from "./ttsProfiles";
 
-export type ServerTtsVoiceType = "controller" | "atis";
-
 export type ServerTtsOptions = {
-  /** Resolves voiceType/voice/styleInstruction/noise settings from ttsProfiles.ts. */
+  /** Resolves the complete, server-owned generation profile from ttsProfiles.ts. */
   profileId?: string;
-  /** Selects a default voice from VOICE_TTS_VOICE_CONTROLLER / VOICE_TTS_VOICE_ATIS. Overrides the profile's voiceType if set. */
-  voiceType?: ServerTtsVoiceType;
-  /** Explicit OpenAI voice name — overrides profileId/voiceType defaults when set. */
-  voice?: string;
-  /** Explicit pace/style instruction — overrides the profile's styleInstruction when set. */
-  styleInstruction?: string;
-  /** Audio format returned by the server. Defaults to "mp3". */
-  format?: "mp3" | "wav";
 };
 
 // Safe clamp range for HTMLAudioElement.playbackRate. Product decision: no training
@@ -95,9 +85,6 @@ export async function speakWithServerTts(text: string, options: ServerTtsOptions
   const myGeneration = generation;
 
   const profile = getTtsProfile(options.profileId);
-  const voiceType = options.voiceType ?? profile?.voiceType;
-  const voice = options.voice ?? profile?.voice;
-  const styleInstruction = options.styleInstruction ?? profile?.styleInstruction;
   const noiseType = profile?.noiseType ?? "none";
   const noiseVolume = profile?.noiseVolume ?? 0;
 
@@ -109,10 +96,6 @@ export async function speakWithServerTts(text: string, options: ServerTtsOptions
       body: JSON.stringify({
         text: trimmed,
         profileId: options.profileId,
-        voiceType,
-        voice,
-        styleInstruction,
-        format: options.format ?? "mp3",
       }),
     });
   } catch {

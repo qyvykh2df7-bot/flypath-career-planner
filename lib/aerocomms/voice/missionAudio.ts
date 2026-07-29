@@ -203,10 +203,6 @@ export async function playMissionAudio(text: string, profileId: string): Promise
       body: JSON.stringify({
         text: trimmed,
         profileId,
-        voiceType: profile?.voiceType,
-        voice: profile?.voice,
-        styleInstruction: profile?.styleInstruction,
-        format: "mp3",
       }),
     });
   } catch (err) {

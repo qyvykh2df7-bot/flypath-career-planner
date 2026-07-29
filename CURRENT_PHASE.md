@@ -34,6 +34,12 @@ La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su últ
 
 El siguiente trabajo es preparar el lanzamiento público: cerrar el diseño público de opiniones de escuelas; auditar la consistencia de escuelas, precios, costes, extras, riesgos y fuentes del comparador; medir rendimiento con Lighthouse, Vercel Speed Insights y PageSpeed; y configurar el dominio definitivo, DNS, SSL y variables Production antes de retirar Hostinger. Después se ejecutará el QA final de todas las superficies comerciales y de producto.
 
+## Hardening de APIs de voz AeroComms
+
+**Completado y desplegado en Production.** La migración `20260712310000_add_aerocomms_voice_rate_limits.sql` está aplicada. TTS y STT validan inputs antes de OpenAI, resuelven identidad y entitlement en servidor, consumen cuota distribuida en Supabase y fallan con `503` si falta autenticación, configuración o infraestructura. Las cuotas son: anónimo TTS 8/10 min y STT 2/h; Free autenticado TTS 30/10 min y STT 8/h; Pro TTS 90/10 min y STT 100/h. `AEROCOMMS_VOICE_RATE_LIMIT_SALT` está configurado como variable sensible en Vercel Production y Preview, sin valor versionado.
+
+La QA remota confirmó TTS y STT válidos, rechazos de formato/body y el `429` de cuota anónima STT. Free y Pro remoto quedan como comprobación manual por cuenta. Hardening posterior no bloqueante: parser multipart en streaming, limpieza programada de cuotas y prueba de concurrencia real contra Supabase.
+
 La ruta Production y el Ping firmado están validados. La QA de una reserva real está bloqueada externamente: el frontend de checkout de Cal.com ejecuta `stripe.confirmPayment()` sin un Payment Element montado, aunque crea correctamente el PaymentIntent y presenta métodos elegibles. Cuando Cal.com lo corrija, debe completarse una reserva real y validarse creación, pago, cancelación, reprogramación, duplicados y eventos fuera de orden.
 
 La validación del gating deja 698 tests correctos, TypeScript y lint focalizado correctos. La auditoría legal inicial, los informes reales del Planner, los logbooks con enlaces Amazon y la auditoría de restos visibles no presentan bloqueos confirmados. Commits previos de Fase 10: `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb`.

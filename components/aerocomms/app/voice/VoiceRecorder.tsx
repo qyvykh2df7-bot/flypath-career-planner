@@ -12,8 +12,6 @@ type VoiceRecorderProps = {
   disabled?: boolean;
   /** "browser" (default) uses the Web Speech API. "server" records audio and sends it to /api/aerocomms/voice/transcribe. */
   mode?: VoiceRecorderMode;
-  /** Optional generic domain context passed to the server transcription model — never the literal expected answer. */
-  serverPrompt?: string;
   /** Server mode only — auto-stops the recording after this many ms. Defaults to 12s. */
   maxDurationMs?: number;
   /**
@@ -30,11 +28,6 @@ type VoiceRecorderProps = {
 };
 
 const DEFAULT_MAX_DURATION_MS = 12000;
-// Exact message returned by /api/aerocomms/voice/transcribe when OPENAI_API_KEY is missing server-side.
-// Used to detect a misconfigured backend (vs. an ordinary transient failure) so the recorder
-// can transparently fall back to on-device browser STT for the rest of this component's life.
-const SERVER_NOT_CONFIGURED_MESSAGE = "Server transcription is not configured.";
-
 // Silence auto-stop (server mode only) — RMS levels on a 0..1 normalized time-domain signal.
 // SPEECH threshold marks "the user has started talking"; SILENCE threshold (set a little lower,
 // for hysteresis) marks "quiet enough to count toward the silence timer". Ambiguous levels in
@@ -83,7 +76,6 @@ function MicIcon() {
 export function VoiceRecorder({
   disabled,
   mode = "browser",
-  serverPrompt,
   maxDurationMs = DEFAULT_MAX_DURATION_MS,
   silenceDurationMs = DEFAULT_SILENCE_DURATION_MS,
   onStateChange,
@@ -96,10 +88,6 @@ export function VoiceRecorder({
   // Server mode only: distinguishes "capturing audio" (tap-to-stop available) from
   // "uploading/transcribing" (button disabled, prevents double submit).
   const [serverPhase, setServerPhase] = useState<"idle" | "recording" | "uploading">("idle");
-  // Set once the backend reports it is not configured (missing OPENAI_API_KEY). From then on
-  // this component instance silently uses browser STT — browser STT is a fallback only, never
-  // the default, and this never overrides an explicit mode="browser" caller.
-  const [serverConfigUnavailable, setServerConfigUnavailable] = useState(false);
   // mounted=false on both server and first client render — guarantees identical HTML.
   const [mounted, setMounted] = useState(false);
 
@@ -172,11 +160,10 @@ export function VoiceRecorder({
   // server mode needs MediaRecorder support. Both need microphone access either way.
   const serverCapable = mic.isSupported && typeof MediaRecorder !== "undefined";
   const browserCapable = mic.isSupported && provider.stt.isSupported();
-  // Every Train mic exercise requests "server" by default. Browser STT only kicks in as a
-  // fallback when server mode is unavailable on this device or the backend isn't configured —
-  // it never overrides an explicit mode="browser" caller.
+  // Every Train mic exercise requests "server" by default. Browser STT only kicks in when
+  // MediaRecorder is unavailable on this device; it never bypasses server quotas on failure.
   const effectiveMode: VoiceRecorderMode =
-    mode === "server" && (!serverCapable || serverConfigUnavailable) && browserCapable ? "browser" : mode;
+    mode === "server" && !serverCapable && browserCapable ? "browser" : mode;
   const unsupported = effectiveMode === "server" ? !serverCapable : !browserCapable;
 
   const setVoiceState = (state: VoiceUiState) => {
@@ -351,7 +338,7 @@ export function VoiceRecorder({
       setVoiceState("processing");
       const transcribeStartedAt = performance.now();
       try {
-        const { transcript } = await transcribeAudioWithServer(blob, { language: "en", prompt: serverPrompt });
+        const { transcript } = await transcribeAudioWithServer(blob, { language: "en" });
         const transcribeMs = Math.round(performance.now() - transcribeStartedAt);
         if (process.env.NODE_ENV !== "production") {
           const blobKB = (blob.size / 1024).toFixed(1);
@@ -365,9 +352,6 @@ export function VoiceRecorder({
         onResult({ transcript, timing: { recordingMs, transcribeMs, stopReason } });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Voice recognition failed.";
-        // Misconfigured backend (no API key) — not a transient failure. Fall back to browser
-        // STT for the rest of this component's life instead of retrying the server every time.
-        if (message === SERVER_NOT_CONFIGURED_MESSAGE) setServerConfigUnavailable(true);
         setActive(false);
         setServerPhase("idle");
         setVoiceState("error");

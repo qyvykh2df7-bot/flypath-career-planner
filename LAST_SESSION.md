@@ -4,6 +4,14 @@
 **Rama:** `main`
 **Estado:** Fase 10 está completada. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la separación Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com por su checkout. La fase actual es 10.5: Production Launch & Hardening.
 
+## Cierre — Hardening de APIs de voz AeroComms
+
+- Migración `20260712310000_add_aerocomms_voice_rate_limits.sql` aplicada y verificada en Supabase Production: tabla privada con RLS, clave primaria e índice; RPC con `SECURITY DEFINER`, `search_path` fijo y `EXECUTE` solo para `service_role`.
+- Production y Preview tienen `AEROCOMMS_VOICE_RATE_LIMIT_SALT` como variable sensible. El valor no está en Git ni se documenta.
+- Producción validada con TTS/STT válidos, solicitudes inválidas y una cuota anónima STT agotada de forma controlada. Las respuestas fueron `200`, `400`, `413` y `429` según el caso; no se realizaron pagos ni acciones sobre datos de usuario.
+- Cuotas activas: anónimo TTS 8/10 min y STT 2/h; Free TTS 30/10 min y STT 8/h; Pro TTS 90/10 min y STT 100/h. Los fallos de auth, RPC o configuración quedan cerrados con `503` antes de OpenAI.
+- Pendiente no bloqueante: parser multipart en streaming, limpieza automática de cuotas antiguas y prueba de concurrencia real contra Supabase. Falta QA manual con una cuenta Free y una Pro.
+
 ## Continuidad de Fase 10.5
 
 - Diseño público de opiniones de escuelas: revisar layout, responsive, estados sin opiniones y presentación de estrellas.

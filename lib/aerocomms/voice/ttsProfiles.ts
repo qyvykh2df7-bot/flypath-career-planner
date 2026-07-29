@@ -11,18 +11,10 @@ export type TtsProfileCacheFields = {
   voiceType: TtsVoiceType;
   /**
    * OpenAI voice name for this profile (CONTROLLER_VOICE, currently "ash", for
-   * controller profiles; "nova" for ATIS — see the CONTROLLER_VOICE constant
-   * below to change the controller voice everywhere in one place). This is sent
-   * as an explicit `voice` override to /api/aerocomms/voice/speak (see serverTts.ts),
-   * which takes priority over the VOICE_TTS_VOICE_CONTROLLER / VOICE_TTS_VOICE_ATIS
-   * env vars in app/api/aerocomms/voice/speak/route.ts's resolveVoice(). Resolution order
-   * there is: explicit request `voice` (i.e. this field, for every current call
-   * site) > env var for the resolved voiceType > hardcoded DEFAULT_CONTROLLER_VOICE
-   * ("onyx") / DEFAULT_ATIS_VOICE ("nova"). In practice this means: to change the
-   * base voice for ALL controller profiles, edit CONTROLLER_VOICE below (the
-   * source of truth today) rather than only setting the env var — the env var
-   * only takes effect for a request with no `profileId` and no explicit `voice`,
-   * which no current call site makes.
+   * controller profiles; "nova" for ATIS). The browser sends only the profile ID;
+   * /api/aerocomms/voice/speak resolves the voice and style from this server-owned
+   * catalogue. To change the base controller voice everywhere, update
+   * CONTROLLER_VOICE below.
    */
   voice: string;
   /** Natural-language style instruction sent to the TTS model (gpt-4o-mini-tts only). Tone/clarity only — see playbackRate for reliable pace control. */
@@ -73,9 +65,8 @@ function defineProfile(id: string, fields: TtsProfileCacheFields & TtsProfilePla
  * ("deep and authoritative") consistently mumbled/clipped short number words (e.g.
  * "five" collapsing toward "fai") in testing, especially at raised playbackRate; ash
  * ("clear and articulate") reads numbers and callsigns more distinctly. See
- * app/api/aerocomms/voice/speak/route.ts for how this flows to the OpenAI request, and the
- * VOICE_TTS_VOICE_CONTROLLER doc comment on the `voice` field above for the full
- * resolution order.
+ * app/api/aerocomms/voice/speak/route.ts resolves this server-owned profile before
+ * making the OpenAI request.
  */
 const CONTROLLER_VOICE = "ash";
 

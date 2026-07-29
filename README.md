@@ -6,7 +6,7 @@ Plataforma FlyPath para aspirantes a piloto: Career Planner, comparador de escue
 
 ## Estado actual
 
-**Fase actual: 10.5 — Production Launch & Hardening.** La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**: Stripe Live preparado con productos y Price IDs de AeroComms Pro, Career Planner Premium y la guía Cómo ser Piloto; Checkout, webhooks, Customer Portal, entitlements y separación Test/Live validados. También está integrada la sincronización operativa de mentorías con Cal.com; su QA de reserva real sigue bloqueada por un problema externo del checkout de Cal.com. Antes del lanzamiento quedan el diseño público de opiniones de escuelas, la auditoría de datos del comparador, rendimiento y la migración al dominio definitivo. Validación técnica: 698 tests, TypeScript y lint correctos.
+**Fase actual: 10.5 — Production Launch & Hardening.** La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**: Stripe Live preparado con productos y Price IDs de AeroComms Pro, Career Planner Premium y la guía Cómo ser Piloto; Checkout, webhooks, Customer Portal, entitlements y separación Test/Live validados. Las APIs de voz de AeroComms ya tienen validación cerrada, cuotas distribuidas y fallo cerrado ante infraestructura no disponible. También está integrada la sincronización operativa de mentorías con Cal.com; su QA de reserva real sigue bloqueada por un problema externo del checkout de Cal.com. Antes del lanzamiento quedan el diseño público de opiniones de escuelas, la auditoría de datos del comparador, rendimiento y la migración al dominio definitivo. Validación técnica: 755 tests, TypeScript y lint correctos.
 
 ## Comandos
 

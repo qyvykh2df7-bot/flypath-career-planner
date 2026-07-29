@@ -73,10 +73,6 @@ export async function speak(text: string, options: SpeakOptions = {}, mode: TtsM
     try {
       await speakWithServerTts(trimmed, {
         profileId: options.profileId,
-        voiceType: options.voiceType,
-        voice: options.voice,
-        styleInstruction: options.styleInstruction,
-        format: options.format,
       });
       return;
     } catch {
