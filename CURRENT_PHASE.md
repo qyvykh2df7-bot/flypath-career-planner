@@ -6,9 +6,19 @@
 
 ## Fase actual
 
-**Fase 10.5 — Production Launch & Hardening: ACTUAL.**
+**Fase 11 — CRM y automatizaciones: ACTUAL.**
 
-La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su último cierre interno es el gating Free/Pro de AeroComms.
+La Fase 10.5 — Production Launch & Hardening está **COMPLETADA**. Producción opera en `https://www.flypath.es`; el apex redirige a `www`, y el dominio y correo permanecen en Hostinger sin hosting web.
+
+## Cierre de Fase 10.5
+
+- Seguridad pre-lanzamiento, optimización de rendimiento, Analytics, Speed Insights y SEO técnico cerrados.
+- `FLYPATH_CANONICAL_ORIGIN`, Supabase y los webhooks de Stripe, Cal.com y Resend usan el dominio definitivo.
+- Producción desplegada y validada. Commits de cierre relevantes: `64f4808`, `d1a5db0`, `e9e738f`, `c405d26` y `2a1e2c5`.
+
+## Primer bloque — Auditoría CRM y automatizaciones
+
+Auditar el sistema existente de leads, contactos, consentimiento, emails y automatizaciones, sin cambiar código ni crear migraciones. La auditoría debe aprovechar primero las tablas existentes para centralizar leads, usuarios, productos e intereses, unificar captación, registrar funnel, preparar automatizaciones y prevenir duplicados entre formularios.
 
 ## Cierre técnico reciente — SEO e indexación
 
@@ -30,7 +40,7 @@ La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su últ
 
 **10G — AeroComms Pro Subscription Billing** está **CLOSED / COMPLETED**. El commit `1c84833 feat(aerocomms): complete pro subscription billing flow` está publicado en `main` y las migraciones Production están aplicadas hasta `20260712280000`. AeroComms Pro exige una cuenta FlyPath y su precio actual cerrado es **5,99 EUR/mes**. Stripe Checkout se inicia solo en servidor; el webhook es la única fuente de verdad para crear y actualizar el entitlement `aerocomms_pro`. La activación real llega tras webhook y el retorno post-checkout muestra un modal de verificación. QA sandbox validó Checkout, activación, cancelación al final de periodo, fallo de pago con Test Clock, refund y webhook `200`. `invoice.payment_failed` deja la suscripción en `past_due` y mantiene el grant activo exactamente 48 horas desde el evento; refund y dispute lo revocan de inmediato. Las suscripciones históricas de 7,37 EUR se mantienen en un Price legacy no disponible para nuevas altas, para que sus eventos Stripe sigan validándose correctamente. Los hotfixes cubren la ambigüedad `product_price_id`, el cálculo de gracia y el backfill histórico de grants. El cierre añade `POST /api/stripe/customer-portal` y el botón “Gestionar suscripción” en Perfil Pro: valida la cuenta, su suscripción `aerocomms_pro` y el cliente Stripe vinculado antes de abrir Stripe Billing Portal. El portal sandbox permite cancelar al final de periodo, actualizar método de pago y consultar facturas; los cambios siguen entrando por webhook. Commit: `6e079cb feat(aerocomms): add stripe customer portal management`.
 
-**10F — sincronización operativa de mentorías con Cal.com** está **CLOSED con bloqueo externo documentado**. La migración `20260712220000_create_calcom_mentorship_booking_sync.sql` está aplicada en remoto; `mentorship_bookings` y `cal_webhook_events` mantienen RLS y acceso exclusivo de `service_role`. `/api/webhooks/calcom` está desplegado en Production, valida sobre body crudo la firma HMAC SHA-256 con `CALCOM_WEBHOOK_SECRET` y solo procesa `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`. La RPC atómica deduplica por hash y descarta eventos del proveedor fuera de orden. Los CTAs de mentorías de la página, pricing, escuelas, shop, blog y free report usan `FLYPATH_MENTORIA_CALCOM_URL`, con apertura externa segura y tracking conservado (`0cd06b9 feat(mentorship): connect frontend CTAs to calcom`). Cal.com sigue siendo la fuente de verdad de agenda, Meet, emails y Stripe conectado a Cal.com; FlyPath no crea productos, precios, pedidos, Checkout, pagos internos, entitlements ni emails propios para mentorías, ni vincula reservas a `auth.users` o `leads` por coincidencia de email.
+**10F — sincronización operativa de mentorías con Cal.com** está **CLOSED / COMPLETED**. La migración `20260712220000_create_calcom_mentorship_booking_sync.sql` está aplicada en remoto; `mentorship_bookings` y `cal_webhook_events` mantienen RLS y acceso exclusivo de `service_role`. `/api/webhooks/calcom` está desplegado en Production, valida sobre body crudo la firma HMAC SHA-256 con `CALCOM_WEBHOOK_SECRET` y solo procesa `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`. La RPC atómica deduplica por hash y descarta eventos del proveedor fuera de orden. Los CTAs de mentorías de la página, pricing, escuelas, shop, blog y free report usan `FLYPATH_MENTORIA_CALCOM_URL`, con apertura externa segura y tracking conservado (`0cd06b9 feat(mentorship): connect frontend CTAs to calcom`). Cal.com es la fuente de verdad de agenda, Meet, emails y pago; FlyPath conserva la proyección operativa privada sin crear productos, precios, pedidos, Checkout, pagos internos, entitlements ni asociaciones automáticas por email.
 
 ## Cierre de AeroComms Free / Pro gating
 
@@ -40,9 +50,9 @@ La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su últ
 - `localStorage` ya no puede autorizar Pro. Las rutas directas, Today, avance de sesiones y navegación aplican la misma regla.
 - Candados y CTA “Desbloquear AeroComms Pro” mantienen visible el valor premium. El override interno requiere una bandera explícita y queda anulado en producción.
 
-## Siguiente bloque — Fase 10.5: Production Launch & Hardening
+## Alcance de la fase actual
 
-El siguiente trabajo es preparar el lanzamiento público: cerrar el diseño público de opiniones de escuelas; auditar la consistencia de escuelas, precios, costes, extras, riesgos y fuentes del comparador; configurar el dominio definitivo, DNS, SSL y variables Production antes de retirar Hostinger; y completar el QA final de todas las superficies comerciales y de producto. La optimización inicial de rendimiento ya está cerrada; queda monitorización de campo con Vercel Speed Insights/PageSpeed y medición con sesión real de las superficies de producto.
+Fase 11 comienza con inventario y auditoría, no con implementación. Warhome / Warboard / Command Center permanece como Fase 12, después de definir el modelo CRM y las automatizaciones sobre la infraestructura ya disponible.
 
 ## Optimización de rendimiento pre-lanzamiento
 
@@ -52,7 +62,7 @@ El siguiente trabajo es preparar el lanzamiento público: cerrar el diseño púb
 - Career Planner mantiene la generación PDF bajo demanda; AeroComms, pagos, autenticación, entitlements y cachés privadas no se modificaron.
 - Detalle y métricas: `docs/ai/performance/flypath-production-performance-audit.md`.
 
-## Hardening web previo al lanzamiento — validado localmente
+## Hardening web previo al lanzamiento — completado y desplegado
 
 - `FLYPATH_CANONICAL_ORIGIN` ya centraliza los retornos Stripe, enlaces de confirmación, contexto server-side y validación same-origin. Production y Preview lo tienen configurado como variable sensible; nunca se deriva una URL pública desde `Host`.
 - La configuración global añade CSP cerrada, anti-embedding, HSTS, `nosniff`, política de referrer, permissions policy y aislamiento de recursos. `/review/*`, previews y herramientas QA devuelven `404` fuera de desarrollo/test y no son indexables.
@@ -73,7 +83,7 @@ La QA remota confirmó TTS y STT válidos, rechazos de formato/body y el `429` d
 
 `PUBLIC_FORM_RATE_LIMIT_SALT` está configurado como variable sensible en local, Production y Preview, sin valor versionado. Newsletter y el consentimiento explícito del Career Planner pasan a doble opt-in: no se activa marketing hasta confirmar un token opaco de 48 horas, almacenado solo como hash. Pre-PPL, mentorías y opiniones no activan marketing. La limpieza futura se puede realizar mediante la RPC privada `purge_public_form_security_data`; falta programarla junto con el hardening posterior no bloqueante.
 
-La ruta Production y el Ping firmado están validados. La QA de una reserva real está bloqueada externamente: el frontend de checkout de Cal.com ejecuta `stripe.confirmPayment()` sin un Payment Element montado, aunque crea correctamente el PaymentIntent y presenta métodos elegibles. Cuando Cal.com lo corrija, debe completarse una reserva real y validarse creación, pago, cancelación, reprogramación, duplicados y eventos fuera de orden.
+La ruta Production y el Ping firmado están validados. Cal.com gestiona correctamente la reserva y el pago de mentorías; FlyPath recibe la proyección operativa mediante el webhook firmado.
 
 La validación del gating deja 698 tests correctos, TypeScript y lint focalizado correctos. La auditoría legal inicial, los informes reales del Planner, los logbooks con enlaces Amazon y la auditoría de restos visibles no presentan bloqueos confirmados. Commits previos de Fase 10: `bdf0ed3`, `ba98336`, `0cd06b9`, `a4ac5fa` y `6e079cb`.
 
@@ -85,7 +95,7 @@ Validación local de 10E: 605 pruebas correctas, TypeScript y `git diff --check`
 
 - No hay cuenta FlyPath obligatoria para pagar. Career Planner Premium y las guías digitales podrán comprarse como invitado; la confirmación real siempre llegará por webhook y la entrega tendrá recuperación segura.
 - AeroComms Pro requiere una cuenta FlyPath tanto para la compra como para el uso. El entitlement server-side sustituye el indicador Pro editable de `localStorage`.
-- Pre-PPL conserva waitlist hasta terminarse. Mentorías pasan por Cal.com: FlyPath ya recibe su proyección operativa por webhook firmado; la única QA pendiente depende de que Cal.com corrija su checkout. La guía física abre Amazon y no crea un checkout FlyPath.
+- Pre-PPL conserva waitlist hasta terminarse. Mentorías pasan por Cal.com y FlyPath recibe su proyección operativa por webhook firmado. La guía física abre Amazon y no crea un checkout FlyPath.
 - EUR es la moneda inicial. Reembolso digital total: revocación de acceso/entrega; parcial: revisión manual inicial.
 
 ## Cierre técnico de Fase 9

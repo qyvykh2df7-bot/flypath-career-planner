@@ -1,8 +1,8 @@
-# Continuidad — Fase 10.5: Production Launch & Hardening
+# Continuidad — Fase 11: CRM y automatizaciones
 
 ## Estado actual
 
-Fase 10 está **COMPLETADA**. Stripe Live está preparado con los productos y Price IDs de AeroComms Pro, Career Planner Premium y Cómo ser Piloto; Checkout, webhooks, Customer Portal, entitlements y separación Test/Live están validados. Fase 10.5 es la fase activa de preparación del lanzamiento público.
+La Fase 10.5 — Production Launch & Hardening está **COMPLETADA**. FlyPath está desplegado y validado en `https://www.flypath.es`; el apex redirige a `www`. El dominio y el correo continúan en Hostinger, mientras que el hosting web fue retirado tras la migración a Vercel.
 
 ## Cierre técnico reciente — SEO e indexación
 
@@ -13,22 +13,25 @@ Fase 10 está **COMPLETADA**. Stripe Live está preparado con los productos y Pr
 - QA Production completado: redirección `308` apex → `www`, sitemap público de 63 URLs únicas y rutas internas conforme a la política.
 - Documento de continuidad: `docs/ai/seo/flypath-canonical-metadata-and-indexing.md`.
 
-## Tareas activas antes del lanzamiento
+## Cierre de Fase 10.5
 
-1. Revisar el diseño público de opiniones de escuelas: layout, responsive, estados sin opiniones y estrellas.
-2. Auditar la consistencia de datos públicos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
-3. Configurar dominio definitivo, DNS, SSL y variables Production; validar rutas, emails, Stripe, Supabase y webhooks antes de retirar Hostinger.
-4. Completar QA final móvil y escritorio de superficies públicas, Career Planner, AeroComms Free/Pro y Customer Portal.
-5. Activar/contrastar Vercel Speed Insights y PageSpeed sobre el dominio definitivo; repetir medidas de producto con sesión real.
+- Dominio final, DNS, SSL, origen canónico, URLs de Supabase y webhooks externos validados en Production.
+- Seguridad pre-lanzamiento, rendimiento, Vercel Analytics, Speed Insights y SEO técnico cerrados.
+- Producción validada; `main` está alineada con `origin/main`.
+- Commits relevantes: `64f4808`, `d1a5db0`, `e9e738f`, `c405d26` y `2a1e2c5`.
+
+## Primer bloque — Auditoría CRM y automatizaciones
+
+Auditar, sin modificar código ni crear migraciones, el sistema actual de leads, contactos, consentimiento, emails y automatizaciones. El objetivo es reutilizar las tablas existentes antes de diseñar cambios: centralizar leads, usuarios, productos e intereses; unificar orígenes de captación; registrar el estado del funnel; preparar automatizaciones de email y evitar duplicados entre formularios.
 
 ## Cierre técnico reciente — Rendimiento pre-lanzamiento
 
 - Auditoría Lighthouse/build/bundle completada en rutas públicas y de producto representativas; informe: `docs/ai/performance/flypath-production-performance-audit.md`.
 - Home: las miniaturas de recursos dejan de descargar PNG originales; transferencia móvil local **6,21 MiB → 676 KiB** (-89 %) y escritorio **7,54 MiB → 820 KiB**, sin cambios visibles.
 - Modal Pre-PPL diferido hasta interacción e imágenes de blog migradas a `next/image` con `sizes` responsivos.
-- Validación: 771 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos. Despliegue Production y QA remota completados: la home baja de 6,24 MiB a 709 KiB (-89 %), sin errores de consola ni desbordamiento móvil. Pendiente no bloqueante: métricas de campo con Vercel Speed Insights y PageSpeed sobre el dominio definitivo.
+- Validación: 771 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos. Despliegue Production y QA remota completados: la home baja de 6,24 MiB a 709 KiB (-89 %), sin errores de consola ni desbordamiento móvil. Vercel Analytics y Speed Insights están activos para las métricas de campo sobre el dominio definitivo.
 
-## Hardening web local pendiente de despliegue
+## Hardening web previo al lanzamiento — completado y desplegado
 
 - `FLYPATH_CANONICAL_ORIGIN` está configurada localmente y como variable sensible de Vercel en Production/Preview. Centraliza enlaces absolutos y evita confiar en hosts enviados por clientes.
 - CSP sin `unsafe-eval` en producción, HSTS, `nosniff`, anti-embedding, referrer policy, permissions policy y resource policy ya están definidos.
@@ -116,22 +119,13 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - La implementación 10F está cerrada: migración `20260712220000_create_calcom_mentorship_booking_sync.sql` aplicada, webhook `/api/webhooks/calcom` desplegado en Production, HMAC, idempotencia y Ping firmados validados.
 - Los CTAs de mentorías de página, pricing, escuelas, shop, blog y free report apuntan al evento Cal.com mediante `FLYPATH_MENTORIA_CALCOM_URL`; el tracking existente se conserva. Commit: `0cd06b9`.
 - Cal.com mantiene agenda, reserva, Meet, emails operativos y pago Stripe; FlyPath conserva sólo la proyección operativa privada y no usa Commerce propio para mentorías.
-- **Bloqueo externo:** el checkout de Cal.com crea correctamente el PaymentIntent de 44,95 EUR, pero ejecuta `stripe.confirmPayment()` sin un Payment Element montado y no permite completar una reserva real.
-- Próxima acción cuando Cal.com corrija ese checkout: crear una reserva de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y eventos tardíos.
+- Cal.com gestiona la reserva y el pago de mentorías de forma operativa; FlyPath conserva únicamente la proyección privada sincronizada por webhook.
 
-## Siguiente bloque — Fase 10.5: Production Launch & Hardening
+## Alcance inicial de Fase 11
 
-Antes de la Fase 11, completar:
-
-- revisión de páginas públicas, CTAs, enlaces y placeholders;
-- términos, privacidad, cookies, aviso legal y contacto;
-- diseño responsive de opiniones de escuelas y estados sin opiniones;
-- auditoría de rendimiento, dominio, DNS, SSL y variables Production;
-- QA final de login, perfil, Warhome, formularios, emails, Career Planner, guía, AeroComms Free/Pro, Customer Portal, Cal.com y móvil;
-- lanzamiento público.
-- Mantener fuera de alcance: Stripe live, Commerce de mentorías, productos/precios/pedidos/pagos FlyPath, entitlements, emails FlyPath, tracking de marketing, Warhome UI y asociación automática por email con cuentas o leads.
-- Gating ya cerrado: 30% inicial aproximado de cada bloque Cadet y primera misión Free; resto bloqueado hasta resolver el entitlement `aerocomms_pro`. Las rutas directas y recomendaciones respetan el mismo contrato y `localStorage` no autoriza Pro.
-- Validación del gating: 698 tests, TypeScript y lint focalizado correctos; QA visual de escritorio y móvil completada.
+- Mantener separadas identidad, lead, consentimiento, actividad y compra.
+- No iniciar todavía Warhome / Warboard / Command Center.
+- No crear una migración ni implementar automatizaciones hasta terminar la auditoría del modelo actual.
 
 - `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.
 - El producto interno existente `como_ser_piloto_guide` usa el precio cerrado `como_ser_piloto_guide_eur`: **14,95 EUR**, `one_time`, activo. El script de sincronización reutiliza o crea un único Product/Price de Stripe sandbox y vincula ese precio interno de forma idempotente.

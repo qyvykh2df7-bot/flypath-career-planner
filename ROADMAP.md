@@ -467,7 +467,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10 — Pagos, monetización y entitlements
 
-**Estado: COMPLETADA.** 10B–10G y el gating Free/Pro de AeroComms están cerrados. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la arquitectura Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F (sincronización operativa de mentorías Cal.com) está desplegado, con migración remota, webhook firmado y Ping Production validados. La QA de una reserva real queda **bloqueada externamente** hasta que Cal.com corrija su checkout de pago: ejecuta `stripe.confirmPayment()` sin un Payment Element montado.
+**Estado: COMPLETADA.** 10B–10G y el gating Free/Pro de AeroComms están cerrados. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la arquitectura Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F (sincronización operativa de mentorías Cal.com) está desplegado, con migración remota, webhook firmado, Ping Production y flujo operativo de reserva y pago validados.
 
 ### Objetivos
 
@@ -534,7 +534,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - El perfil Pro expone “Gestionar suscripción” con estados de carga y error. No acepta `customer_id` ni destinos de retorno desde el navegador.
 - Commit final de gestión: `6e079cb feat(aerocomms): add stripe customer portal management`.
 
-### 10F cerrado con bloqueo externo — sincronización operativa de mentorías Cal.com
+### 10F cerrado — sincronización operativa de mentorías Cal.com
 
 - `20260712220000_create_calcom_mentorship_booking_sync.sql` está aplicada en Supabase remoto. Crea `mentorship_bookings` y `cal_webhook_events`, con RLS cerrada, permisos exclusivos de `service_role`, constraints de estado y ledger por hash de body.
 - `/api/webhooks/calcom` verifica `x-cal-signature-256` sobre el body crudo con HMAC SHA-256 y `CALCOM_WEBHOOK_SECRET`. Solo permite `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED` y `BOOKING_RESCHEDULED`.
@@ -542,8 +542,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - La proyección conserva referencias Cal.com, asistente, fechas, zona horaria y estados operativos. No persiste payloads, enlaces Meet, notas, Commerce FlyPath, leads, suscripciones ni identificadores de pago propios.
 - Production sirve la ruta y `CALCOM_WEBHOOK_SECRET` está configurado; el Ping firmado llega correctamente al endpoint.
 - Los CTAs de mentorías de la página de mentorías, pricing, escuelas, shop, blog y free report usan `FLYPATH_MENTORIA_CALCOM_URL`, abren Cal.com de forma segura y conservan el tracking existente. Commit: `0cd06b9 feat(mentorship): connect frontend CTAs to calcom`.
-- **Bloqueo externo:** Cal.com crea el PaymentIntent y muestra el precio de 44,95 EUR, pero su frontend ejecuta `stripe.confirmPayment()` sin un Payment Element montado. No es un problema de FlyPath, del backend Stripe ni del webhook.
-- Próxima acción cuando Cal.com corrija su checkout: crear una reserva real de QA y validar `BOOKING_CREATED`, `BOOKING_PAID`, `BOOKING_CANCELLED`, `BOOKING_RESCHEDULED`, idempotencia y orden temporal.
+- Cal.com gestiona agenda, reserva, Meet, emails operativos y pago; FlyPath conserva la proyección operativa privada sincronizada por webhook.
 - Cierre final de Fase 10 validado con 698 tests, TypeScript, lint focalizado y `git diff --check` correctos.
 
 ### AeroComms Free / Pro gating completado
@@ -558,7 +557,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 ## Fase 10.5 — Production Launch & Hardening
 
-**Estado: Actual**
+**Estado: Completada.**
 
 ### SEO técnico e indexación completados
 
@@ -593,7 +592,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - La home ya no descarga los PNG originales de sus miniaturas: `next/image` y `sizes` reducen la transferencia móvil local de **6,21 MiB a 676 KiB** (-89 %) y la de escritorio de **7,54 MiB a 820 KiB**, conservando el diseño y los mockups. En Production, la home pasó de **6,24 MiB a 709 KiB** en móvil (-89 %), sin regresión de TBT o CLS.
 - El formulario modal Pre-PPL se carga bajo demanda y las imágenes de portada/tarjetas del blog usan el pipeline optimizado de Next.
 - Las rutas públicas siguen prerenderizadas cuando corresponde; datos privados, sesión, pagos, entitlements y progreso siguen dinámicos y no se cachean públicamente.
-- Documento de medición y decisiones: `docs/ai/performance/flypath-production-performance-audit.md`. Pendiente no bloqueante: Vercel Speed Insights, PageSpeed sobre dominio definitivo y mediciones con sesión real de producto.
+- Documento de medición y decisiones: `docs/ai/performance/flypath-production-performance-audit.md`. Vercel Analytics y Speed Insights están activos para la monitorización continua del dominio definitivo.
 
 ### Hardening de formularios públicos y marketing completado
 
@@ -603,66 +602,33 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Newsletter Home y el consentimiento explícito del Career Planner aplican doble opt-in con token opaco hasheado y caducidad de 48 h. Pre-PPL, mentorías y opiniones no crean consentimiento de marketing automático.
 - Seguimiento no bloqueante: programar `purge_public_form_security_data`, evaluar multipart streaming y probar concurrencia real contra la RPC de cuota.
 
-### Objetivo
+### Cierre de lanzamiento
 
-Preparar FlyPath para el lanzamiento público.
-
-### Alcance
-
-- Finalizar páginas públicas: home, CTAs, enlaces y retirada de placeholders.
-- Completar términos y condiciones, privacidad, cookies, aviso legal y contacto.
-- Completar el diseño público de opiniones de escuelas, responsive y estados sin opiniones.
-- Auditar rendimiento con Vercel Speed Insights, Lighthouse y PageSpeed: LCP, CLS, INP, imágenes, fuentes y JavaScript.
-- Preparar dominio definitivo, DNS, SSL y variables Production; retirar Hostinger tras validación.
-- Ejecutar QA final de login, perfil, Warhome, formularios, emails, Career Planner, guía, AeroComms Free/Pro, Customer Portal, mentorías Cal.com y móvil.
-- Realizar el lanzamiento público.
-
-### Pendientes reales antes del lanzamiento público
-
-1. **Diseño público de opiniones de escuelas**
-   - Revisar layout visual y responsive.
-   - Completar estados sin opiniones.
-   - Revisar presentación de estrellas y valoración.
-2. **Auditoría de datos del comparador**
-   - Revisar escuelas, precios, costes, extras, riesgos y fuentes.
-   - Confirmar la consistencia de todos los datos públicos.
-3. **Monitorización de rendimiento en producción**
-   - Activar/contrastar Vercel Speed Insights y PageSpeed sobre el dominio definitivo.
-   - Repetir las mediciones de producto con sesión real y vigilar LCP, CLS e INP de campo.
-4. **Dominio definitivo y migración final**
-   - Configurar dominio, DNS, SSL y variables Production en Vercel.
-   - Validar rutas, emails, Stripe, Supabase y webhooks.
-   - Retirar Hostinger tras la validación.
-
-La auditoría legal inicial está revisada. Los informes gratuito y para padres usan datos reales del Planner; sus rutas preview/mock son herramientas internas de diseño y no bloquean el lanzamiento. Los logbooks del Shop tienen enlaces Amazon. La auditoría de restos visibles no encontró bloqueos confirmados; los textos internos de funcionalidades futuras se mantienen porque no afectan al flujo público actual.
+- Producción opera en `https://www.flypath.es`; el apex redirige permanentemente a `www`.
+- Hostinger mantiene dominio, correo y registros DNS de email. El hosting web se retiró tras validar Vercel.
+- `FLYPATH_CANONICAL_ORIGIN`, Supabase Site URL y Redirect URLs, y los webhooks de Stripe, Cal.com y Resend usan el dominio definitivo.
+- Seguridad pre-lanzamiento, rendimiento, Vercel Analytics, Speed Insights y SEO técnico quedaron desplegados y validados.
+- Commits de cierre relevantes: `64f4808 fix(security): complete pre-launch web hardening`, `d1a5db0 perf(launch): optimize FlyPath production performance`, `e9e738f chore(analytics): enable Vercel Speed Insights`, `c405d26 chore(analytics): enable Vercel Web Analytics` y `2a1e2c5 fix(seo): finalize canonical metadata and indexing`.
 
 ---
 
-## Fase 11 — CRM y automatizaciones avanzadas
+## Fase 11 — CRM y automatizaciones
 
-**Estado: Pendiente, con infraestructura parcialmente preparada.** Comenzar después del lanzamiento público y recopilación inicial de datos reales.
+**Estado: Actual.**
 
-Amplía el trabajo existente de Backend Core, Leads, Warhome MVP, Emails Operativos y las tablas de secuencias y automatizaciones.
+Amplía el trabajo existente de Backend Core, Leads, Emails Operativos y las tablas de secuencias y automatizaciones, sin iniciar todavía Warhome / Warboard / Command Center.
+
+### Primer bloque — Auditoría del sistema actual
+
+Auditar leads, contactos, consentimiento, emails y automatizaciones sin modificar código ni crear migraciones. Identificar qué tablas y relaciones existentes pueden reutilizarse antes de diseñar cambios.
 
 ### Objetivos
 
-- Edición de `status` y `funnel_stage`.
-- Responsables.
-- Próximas acciones.
-- Recordatorios.
-- Notas internas.
-- Historial comercial.
-- Segmentaciones.
-- Deduplicación avanzada.
-- Vista unificada de usuario, lead, compras y actividad.
-- Secuencias.
-- Journeys.
-- Campañas.
-- Recuperación de inactivos.
-- Abandono de checkout.
-- Preferencias y bajas.
-- Control de frecuencia.
-- Métricas de conversión.
+- Centralizar leads, usuarios, productos e intereses sin fusionar conceptos distintos.
+- Unificar orígenes de captación y registrar el estado del funnel.
+- Preparar automatizaciones de email sobre consentimiento real.
+- Evitar duplicados entre formularios y fuentes existentes.
+- Reutilizar la infraestructura actual antes de proponer nuevas tablas.
 
 ### Infraestructura existente
 
@@ -674,7 +640,7 @@ Amplía el trabajo existente de Backend Core, Leads, Warhome MVP, Emails Operati
 
 ---
 
-## Fase 12 — Warhome / Warboard completo
+## Fase 12 — Warhome / Warboard / Command Center
 
 **Estado: Pendiente, con Warhome MVP ya completado**
 
@@ -732,8 +698,8 @@ Fase 7   Persistencia de AeroComms      ████████████  CL
 Fase 8   Usuarios y actividad AeroComms ████████████  CLOSED / COMPLETED / DEPLOYED
 Fase 9   Backend de opiniones           ████████████  CLOSED / COMPLETED / DEPLOY READY
 Fase 10  Pagos y entitlements           ████████████  Completada
-Fase 10.5 Production Launch & Hardening ░░░░░░░░░░░░  Actual / en curso
-Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Pendiente (infraestructura parcial)
-Fase 12  Warhome / Warboard completo    ░░░░░░░░░░░░  Pendiente (MVP completado)
+Fase 10.5 Production Launch & Hardening ████████████  Completada
+Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Actual / auditoría inicial
+Fase 12  Warhome / Warboard / Command   ░░░░░░░░░░░░  Pendiente (MVP completado)
 Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase
 ```

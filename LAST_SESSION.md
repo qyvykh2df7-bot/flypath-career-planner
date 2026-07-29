@@ -1,8 +1,8 @@
-# Última sesión — actualización de Fase 10.5: Production Launch & Hardening
+# Última sesión — cierre de Fase 10.5 y transición a Fase 11
 
 **Fecha:** 2026-07-29
 **Rama:** `main`
-**Estado:** Fase 10 está completada. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la separación Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com por su checkout. La fase actual es 10.5: Production Launch & Hardening.
+**Estado:** Fase 10.5 — Production Launch & Hardening está completada. Producción opera en `https://www.flypath.es`; el apex redirige a `www`, el hosting web de Hostinger se retiró y se conservan dominio, correo y registros DNS de email. La fase actual es Fase 11 — CRM y automatizaciones.
 
 ## Cierre — SEO técnico e indexación
 
@@ -20,7 +20,7 @@
 - Hallazgo dominante: la home descargaba cuatro PNG originales de 1–2 MiB para miniaturas. `HomeResourcesShowcase` usa ahora `next/image` con tamaños responsivos; Lighthouse móvil local pasa de **6,21 MiB a 676 KiB** (-89 %) y escritorio de **7,54 MiB a 820 KiB**, con score móvil caliente 91 → 92, LCP 3,57 s → 3,32 s, TBT 4 ms → 0 ms y CLS 0,001 → 0,000.
 - Pre-PPL carga su modal solo al interactuar. Las imágenes de hero, tarjetas y artículos del blog pasan al pipeline de Next sin alterar encuadres, fallback ni contenido.
 - Career Planner mantiene sus PDF como imports bajo demanda; no se tocaron AeroComms, pagos, autenticación, entitlements, catálogo ni cachés privadas.
-- Validación local: 771 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos. Deployment Production `dpl_AgUdS8Zz5cbuxUb8dtViheBkPQWx` validado: home móvil 6,24 MiB → 709 KiB (-89 %), Performance 96, TBT 0 ms y CLS 0,001; rutas públicas representativas entre 90 y 98. QA visual móvil a 390 px sin desbordamiento ni errores de consola. Pendiente no bloqueante: métricas de campo con Vercel Speed Insights/PageSpeed y medición de producto con sesión real.
+- Validación local: 771 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos. Deployment Production `dpl_AgUdS8Zz5cbuxUb8dtViheBkPQWx` validado: home móvil 6,24 MiB → 709 KiB (-89 %), Performance 96, TBT 0 ms y CLS 0,001; rutas públicas representativas entre 90 y 98. QA visual móvil a 390 px sin desbordamiento ni errores de consola. Vercel Analytics y Speed Insights están activos para las métricas de campo.
 - Documento técnico: `docs/ai/performance/flypath-production-performance-audit.md`.
 
 ## Hardening web previo al lanzamiento — completado y desplegado
@@ -32,7 +32,7 @@
 - Validación local: 771 tests, TypeScript, lint focalizado, `git diff --check` y build Webpack correctos.
 - `next` y `eslint-config-next` pasaron de `16.2.4` a `16.2.12`; React y React DOM permanecen en `19.2.4`. También se actualizaron de forma compatible `vitest` a `3.2.6`, `vite` a `7.3.5`, `esbuild` a `0.28.1`, `js-yaml` a `3.15.0` y los árboles de `postcss`/`sharp` requeridos por Next.
 - `npm audit --omit=dev` ahora informa **0 vulnerabilidades**. El audit completo conserva solo un High de `brace-expansion` y un Low de `esbuild`, transitivos de ESLint/Vite para desarrollo y no presentes en el deployment.
-- Deployment Production `dpl_66uEFUVQSeAFSGADCrfVDCvYtD1S` quedó `Ready`. La QA remota confirmó cabeceras, `404` de rutas internas, `200` de opiniones/escuelas y `413` real para los límites de Stripe, Cal.com y Resend. Pendiente: commit y push.
+- Deployment Production `dpl_66uEFUVQSeAFSGADCrfVDCvYtD1S` quedó `Ready`. La QA remota confirmó cabeceras, `404` de rutas internas, `200` de opiniones/escuelas y `413` real para los límites de Stripe, Cal.com y Resend. El cierre quedó publicado en `main`.
 
 ## Cierre — Hardening de formularios públicos
 
@@ -51,13 +51,11 @@
 - Cuotas activas: anónimo TTS 8/10 min y STT 2/h; Free TTS 30/10 min y STT 8/h; Pro TTS 90/10 min y STT 100/h. Los fallos de auth, RPC o configuración quedan cerrados con `503` antes de OpenAI.
 - Pendiente no bloqueante: parser multipart en streaming, limpieza automática de cuotas antiguas y prueba de concurrencia real contra Supabase. Falta QA manual con una cuenta Free y una Pro.
 
-## Continuidad de Fase 10.5
+## Cierre de Fase 10.5
 
-- Diseño público de opiniones de escuelas: revisar layout, responsive, estados sin opiniones y presentación de estrellas.
-- Auditoría de datos del comparador: escuelas, precios, costes, extras, riesgos y fuentes.
-- Rendimiento: Lighthouse, Vercel Speed Insights, PageSpeed, LCP, CLS, INP, imágenes, fuentes y JavaScript.
-- Dominio definitivo: Vercel, DNS, SSL, variables Production, validación integral y retirada de Hostinger.
-- La auditoría legal inicial está revisada. Los informes gratuito y para padres usan datos reales; las rutas preview/mock son herramientas internas de diseño. Los logbooks tienen enlaces Amazon y la auditoría de restos visibles no encontró bloqueos confirmados.
+- `FLYPATH_CANONICAL_ORIGIN`, Supabase Site URL y Redirect URLs, y los webhooks de Stripe, Cal.com y Resend apuntan al dominio definitivo.
+- Seguridad pre-lanzamiento, rendimiento, Vercel Analytics, Speed Insights, canonicals, Open Graph, Twitter metadata, sitemap y exclusión de rutas internas quedaron validados.
+- Producción fue desplegada y comprobada. Commits relevantes: `64f4808`, `d1a5db0`, `e9e738f`, `c405d26` y `2a1e2c5`.
 
 ## Cierre — AeroComms Free / Pro gating
 
@@ -85,21 +83,19 @@
 - `/api/webhooks/calcom` está desplegado en Production, usa body crudo, HMAC SHA-256 con `CALCOM_WEBHOOK_SECRET`, filtra el event type de mentorías y admite creación, pago, cancelación y reprogramación. El Ping firmado llega correctamente al endpoint.
 - `0cd06b9 feat(mentorship): connect frontend CTAs to calcom` conecta los CTAs de mentorías de página, pricing, escuelas, shop, blog y free report al evento real mediante `FLYPATH_MENTORIA_CALCOM_URL`, sin perder el tracking existente.
 - Cal.com conserva agenda, calendario, Meet, emails operativos y pago Stripe. FlyPath no crea Commerce de mentorías, productos, precios, pedidos, pagos internos, entitlements, emails ni asociaciones automáticas por email.
-- **Bloqueo externo:** el checkout de Cal.com crea el PaymentIntent de 44,95 EUR y tiene métodos elegibles, pero su frontend ejecuta `stripe.confirmPayment()` sin un Payment Element montado. No es un fallo de FlyPath, Stripe backend ni webhook.
-- Próxima acción cuando Cal.com publique la corrección: realizar una reserva real de QA y validar los cuatro eventos, idempotencia y protección frente a eventos fuera de orden.
+- Cal.com gestiona agenda, reserva, Meet, emails operativos y pago; FlyPath recibe la proyección operativa privada mediante el webhook firmado.
 
 ## Validación final de Fase 10
 
 - 698 tests correctos, TypeScript, lint focalizado y `git diff --check` correctos.
 - Worktree limpio tras `6e079cb feat(aerocomms): add stripe customer portal management`.
 
-## Siguiente bloque — Fase 10.5: Production Launch & Hardening
+## Próxima sesión — Fase 11: Auditoría CRM y automatizaciones
 
-- Cerrar páginas públicas, CTAs, enlaces, placeholders y textos legales.
-- Completar el diseño responsive de opiniones y sus estados sin opiniones.
-- Auditar rendimiento, imágenes, fuentes, JavaScript, dominio, DNS, SSL y variables Production.
-- Ejecutar QA final de login, perfil, Warhome, formularios, emails, Career Planner, guía, AeroComms Free/Pro, Customer Portal, Cal.com y móvil.
-- Preparar el lanzamiento público.
+- Inventariar leads, contactos, perfiles, consentimiento, `email_jobs`, secuencias y automatizaciones existentes.
+- Identificar qué datos de usuarios, productos, intereses y origen de captación ya pueden centralizarse sin nuevas tablas.
+- Definir estados del funnel, prevención de duplicados entre formularios y la base para automatizaciones de email.
+- No modificar código ni crear migraciones durante este primer bloque. Warhome / Warboard / Command Center sigue fuera de alcance hasta Fase 12.
 
 ## Decisiones de Fase 10
 
@@ -159,7 +155,7 @@
 - La RPC `apply_calcom_mentorship_webhook_event` es `SECURITY DEFINER`, fija `search_path`, se ejecuta solo con `service_role`, deduplica por hash y descarta eventos con fecha de proveedor anterior a la última aplicada.
 - Cal.com sigue siendo fuente de verdad de disponibilidad, reserva, calendario, Meet, emails y pago Stripe conectado a Cal.com. FlyPath no usa Commerce, no crea productos, precios, pedidos, Checkout, pagos internos, entitlements, emails ni marketing para mentorías.
 - Referencia técnica: `docs/ai/payments/flypath-phase-10-calcom-mentorship-sync.md`.
-- La implementación, despliegue Production y Ping firmado quedaron validados. La reserva real sigue pendiente sólo por el bloqueo externo del checkout de Cal.com.
+- La implementación, despliegue Production, Ping firmado y flujo operativo de reserva y pago de Cal.com quedaron validados.
 
 ## Cierre de Fase 9
 
