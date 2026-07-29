@@ -1,16 +1,23 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SchoolDetailBody } from "@/components/schools/SchoolDetailBody";
 import { getPublicSchoolReviewSummaries } from "@/lib/school-reviews/public";
+import { createSchoolDetailMetadata } from "@/lib/schools/school-detail-metadata";
 import { loadComparableSchoolBySlug } from "@/lib/schools/school-detail-source";
 
 /** SSR para poder leer Supabase en runtime cuando el flag está activo. */
 export const dynamic = "force-dynamic";
 
-export default async function SchoolDetailPage({
-  params,
-}: {
+type SchoolDetailPageProps = {
   params: Promise<{ slug: string }>;
-}) {
+};
+
+export async function generateMetadata({ params }: SchoolDetailPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  return createSchoolDetailMetadata(await loadComparableSchoolBySlug(slug));
+}
+
+export default async function SchoolDetailPage({ params }: SchoolDetailPageProps) {
   const { slug } = await params;
   const school = await loadComparableSchoolBySlug(slug);
   if (!school) notFound();

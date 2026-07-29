@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/(.*)", headers: getSecurityHeaders() },
+      { source: "/dashboard", headers: INTERNAL_ROUTE_HEADERS },
+      { source: "/premium-report-thumb", headers: INTERNAL_ROUTE_HEADERS },
+      { source: "/aerocomms/app/:path*", headers: INTERNAL_ROUTE_HEADERS },
       { source: "/review/:path*", headers: INTERNAL_ROUTE_HEADERS },
       { source: "/free-report-preview", headers: INTERNAL_ROUTE_HEADERS },
       { source: "/parents-report-preview", headers: INTERNAL_ROUTE_HEADERS },

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { WarhomeShell } from "@/components/warhome/WarhomeShell";
 import {
@@ -6,6 +7,10 @@ import {
   WARHOME_PUBLIC_EXIT_PATH,
 } from "@/lib/warhome/access";
 import { getWarhomeAuthorization } from "@/lib/warhome/auth";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function WarhomeProtectedLayout({
   children,

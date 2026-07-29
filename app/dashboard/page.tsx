@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, CircleDashed, Clock } from "lucide-react";
 import { FlyPathPlatformHeader } from "@/components/FlyPathPlatformHeader";
 import { PLATFORM_HOME } from "@/lib/platform-navigation";
+import { internalRouteRobots, requireInternalRoute } from "@/lib/security/internal-routes";
+
+export const metadata = { robots: internalRouteRobots };
 
 const DASHBOARD_TOOL_CARDS = [
   {
@@ -83,6 +86,8 @@ function StatusIcon({ kind }: { kind: PlatformStatusKind }) {
 }
 
 export default function DashboardPage() {
+  requireInternalRoute();
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-[#0f1a33]">
       <FlyPathPlatformHeader pageTitle="Mi dashboard" currentModuleId="dashboard" />

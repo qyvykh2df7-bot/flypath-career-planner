@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { LegalPageShell } from "@/components/legal/LegalPageShell";
+import { createPublicPageMetadata } from "@/lib/seo/public-metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Contacto | FlyPath",
   description: "Canales de contacto y soporte de FlyPath.",
-};
+  path: "/contacto",
+});
 
 export default function ContactPage() {
   return (

@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!post) return {};
 
   const pageTitle = `${post.title} | Blog FlyPath`;
-  const canonical = `/blog/${post.slug}`;
+  const canonical = absoluteUrl(`/blog/${post.slug}`);
   const ogImage = post.coverImage ? absoluteUrl(post.coverImage) : undefined;
 
   return {
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: post.title,
       description: post.description,
       type: "article",
-      url: absoluteUrl(canonical),
+      url: canonical,
       publishedTime: post.date,
       ...(ogImage ? { images: [{ url: ogImage, alt: post.title }] } : {}),
     },

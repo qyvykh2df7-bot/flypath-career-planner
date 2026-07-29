@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPageShell } from "@/components/legal/LegalPageShell";
+import { createPublicPageMetadata } from "@/lib/seo/public-metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Política de privacidad | FlyPath",
   description: "Información sobre el tratamiento de datos personales en FlyPath.",
-};
+  path: "/politica-de-privacidad",
+});
 
 export default function PrivacyPolicyPage() {
   return (

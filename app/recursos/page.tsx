@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { PlatformHubShell } from "@/components/PlatformHubShell";
+import { createPublicPageMetadata } from "@/lib/seo/public-metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Recursos | FlyPath",
   description:
     "Productos, servicios y contenido editorial de FlyPath: guías, mentorías, logbooks y artículos para apoyar decisiones y formación.",
-  robots: { index: true, follow: true },
-};
+  path: "/recursos",
+  imagePath: "/recursoslanding.jpg",
+  imageAlt: "Recursos para futuros pilotos de FlyPath",
+});
 
 export default function RecursosHubPage() {
   return (

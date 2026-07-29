@@ -15,6 +15,7 @@ import { getFlyPathAccountProfile } from "@/lib/account/profile";
 export const metadata: Metadata = {
   title: "AeroComms | FlyPath",
   description: "AI-powered aviation communications training app.",
+  robots: { index: false, follow: false },
 };
 
 // viewport-fit=cover lets env(safe-area-inset-bottom) resolve to the actual

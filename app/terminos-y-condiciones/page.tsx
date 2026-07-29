@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPageShell } from "@/components/legal/LegalPageShell";
+import { createPublicPageMetadata } from "@/lib/seo/public-metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Términos y condiciones | FlyPath",
   description: "Condiciones de uso de los servicios y contenidos de FlyPath.",
-};
+  path: "/terminos-y-condiciones",
+});
 
 export default function TermsAndConditionsPage() {
   return (

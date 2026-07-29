@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { KeyRound } from "lucide-react";
 import { getSafeFlyPathLoginNext } from "@/lib/auth/login-navigation";
+import { createPublicPageMetadata } from "@/lib/seo/public-metadata";
 import { LoginOtpForm } from "./LoginOtpForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Iniciar sesión | FlyPath",
+  description: "Accede a tu cuenta FlyPath.",
+  path: "/login",
   robots: { index: false, follow: false },
-};
+});
 
 type LoginPageProps = {
   searchParams: Promise<{ next?: string | string[] }>;

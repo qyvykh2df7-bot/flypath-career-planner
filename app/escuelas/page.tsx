@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { PlatformHubShell } from "@/components/PlatformHubShell";
+import { createPublicPageMetadata } from "@/lib/seo/public-metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPublicPageMetadata({
   title: "Escuelas | FlyPath",
   description:
     "La decisión de escuela condiciona precio final, calendario, extras incluidos y riesgos contractuales. Aquí comparas opciones y contrastas experiencias reales de alumnos.",
-  robots: { index: true, follow: true },
-};
+  path: "/escuelas",
+  imagePath: "/landingescuelas.webp",
+  imageAlt: "Escuelas de vuelo y comparador de FlyPath",
+});
 
 export default function EscuelasHubPage() {
   return (

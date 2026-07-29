@@ -4,6 +4,15 @@
 
 Fase 10 está **COMPLETADA**. Stripe Live está preparado con los productos y Price IDs de AeroComms Pro, Career Planner Premium y Cómo ser Piloto; Checkout, webhooks, Customer Portal, entitlements y separación Test/Live están validados. Fase 10.5 es la fase activa de preparación del lanzamiento público.
 
+## Cierre técnico reciente — SEO e indexación
+
+- Canonicals absolutos, Open Graph y Twitter definidos desde el origen canónico en todas las rutas públicas relevantes.
+- Fichas públicas de escuelas con metadata dinámica; sitemap limitado a páginas públicas y fichas válidas.
+- `/dashboard` y `/premium-report-thumb` se cierran con `404` en producción; `/aerocomms/app/*` conserva funcionalidad con `noindex, nofollow`.
+- Validación local: 778 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos.
+- QA Production completado: redirección `308` apex → `www`, sitemap público de 63 URLs únicas y rutas internas conforme a la política.
+- Documento de continuidad: `docs/ai/seo/flypath-canonical-metadata-and-indexing.md`.
+
 ## Tareas activas antes del lanzamiento
 
 1. Revisar el diseño público de opiniones de escuelas: layout, responsive, estados sin opiniones y estrellas.

@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 import { getAllPosts } from "@/lib/blog";
 import { SITE_URL } from "@/lib/site";
+import { getComparableSchools } from "@/lib/schools/schoolUtils";
 
 const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/career-planner", changeFrequency: "weekly", priority: 0.95 },
-  { path: "/dashboard", changeFrequency: "weekly", priority: 0.82 },
   { path: "/escuelas", changeFrequency: "weekly", priority: 0.88 },
   { path: "/aerocomms", changeFrequency: "weekly", priority: 0.88 },
   { path: "/recursos", changeFrequency: "weekly", priority: 0.85 },
@@ -15,6 +15,10 @@ const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[numb
   { path: "/mentorias", changeFrequency: "monthly", priority: 0.85 },
   { path: "/schools", changeFrequency: "weekly", priority: 0.8 },
   { path: "/opiniones-escuelas", changeFrequency: "weekly", priority: 0.75 },
+  { path: "/contacto", changeFrequency: "yearly", priority: 0.4 },
+  { path: "/politica-de-privacidad", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/politica-de-cookies", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/terminos-y-condiciones", changeFrequency: "yearly", priority: 0.3 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -38,5 +42,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     };
   });
 
-  return [...staticEntries, ...postEntries];
+  const schoolEntries: MetadataRoute.Sitemap = getComparableSchools().map((school) => {
+    const parsed = new Date(school.lastUpdatedAt);
+    return {
+      url: `${base}/schools/${school.slug}`,
+      lastModified: Number.isNaN(parsed.getTime()) ? now : parsed,
+      changeFrequency: "monthly" as const,
+      priority: 0.65,
+    };
+  });
+
+  return [...staticEntries, ...schoolEntries, ...postEntries];
 }

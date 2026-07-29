@@ -4,6 +4,16 @@
 **Rama:** `main`
 **Estado:** Fase 10 está completada. Stripe Live está preparado con productos y Price IDs para AeroComms Pro, Career Planner Premium y Cómo ser Piloto; la separación Test/Live, Checkout, webhooks, Customer Portal y entitlements están validados. 10F está desplegado y sólo queda bloqueada externamente la QA de reserva real de Cal.com por su checkout. La fase actual es 10.5: Production Launch & Hardening.
 
+## Cierre — SEO técnico e indexación
+
+- Se centralizó `metadataBase`, canonical, Open Graph y Twitter sobre `FLYPATH_CANONICAL_ORIGIN`; ninguna URL SEO pública depende de `Host`, previews o Vercel.
+- Las rutas públicas principales, legales, blog y fichas de escuelas tienen metadata específica. La ficha usa datos públicos, canonical `/schools/{slug}` y queda `noindex` si no existe.
+- El sitemap elimina `/dashboard` y las rutas internas, privadas, QA y preview; añade las fichas comparables públicas de escuelas.
+- `/dashboard` y `/premium-report-thumb` solo están disponibles en desarrollo/test y responden `404` en producción. La app real de AeroComms mantiene su uso normal y añade `noindex, nofollow`.
+- Validación local: 778 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos.
+- QA Production del deployment `dpl_6UvzDTHyiekhuA39qj4XbKaFqLgX`: apex `308` a `www`, 63 URLs únicas y públicas en sitemap, metadata social/canonical correcta e imágenes OG `200`.
+- Documento técnico: `docs/ai/seo/flypath-canonical-metadata-and-indexing.md`.
+
 ## Cierre — Optimización de rendimiento pre-lanzamiento
 
 - Auditoría realizada sobre build Webpack, Lighthouse móvil/escritorio, bundles, imágenes, fuentes, renderizado y peticiones de home, comparador, ficha, opiniones, shop, login, Career Planner y AeroComms.

@@ -560,6 +560,16 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 **Estado: Actual**
 
+### SEO técnico e indexación completados
+
+- `FLYPATH_CANONICAL_ORIGIN` es la única fuente server-side de `metadataBase`, URLs canónicas, Open Graph y Twitter; no se deriva metadata de `Host`, previews ni dominios de Vercel.
+- Las rutas públicas relevantes, incluidas fichas comparables de escuelas, tienen canonical absoluto y metadata social con assets públicos existentes.
+- El sitemap incluye solo superficies públicas reales, artículos y fichas comparables; se retiraron dashboard, rutas privadas, previews, QA y rutas de app interna.
+- `/dashboard` y `/premium-report-thumb` son herramientas de desarrollo/test y responden `404` en producción. `/aerocomms/app/*` continúa disponible para producto, con `noindex, nofollow`.
+- Validación local: 778 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos.
+- QA Production: redirección `308` del apex a `www`, metadata social/canonical correcta, imágenes OG `200` y sitemap de 63 URLs públicas únicas bajo el dominio final.
+- Contrato y comprobaciones operativas: `docs/ai/seo/flypath-canonical-metadata-and-indexing.md`.
+
 ### Hardening de APIs de voz AeroComms completado
 
 - Migración `20260712310000_add_aerocomms_voice_rate_limits.sql` aplicada en Supabase Production.

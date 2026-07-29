@@ -10,6 +10,16 @@
 
 La Fase 10 — Pagos, monetización y entitlements está **COMPLETADA**. Su último cierre interno es el gating Free/Pro de AeroComms.
 
+## Cierre técnico reciente — SEO e indexación
+
+- El origen canónico server-side `FLYPATH_CANONICAL_ORIGIN` alimenta ahora `metadataBase`, canonicals absolutos, Open Graph y Twitter sin depender de `Host` ni de URLs de Vercel.
+- Home, hubs públicos, comparador, fichas de escuelas, opiniones, Shop, AeroComms, login, Career Planner, guía, mentorías, recursos, legales y blog tienen canonical y metadata social propios. Las fichas usan nombre y descripción públicos de la escuela; una ficha inexistente es `noindex` y mantiene `404`.
+- El sitemap conserva solo superficies públicas reales, incluye fichas comparables y elimina `/dashboard` y cualquier ruta privada, preview, QA o de app interna.
+- `/dashboard` y `/premium-report-thumb` son solo de desarrollo/test y devuelven `404` en producción. `/aerocomms/app/*` sigue funcional, pero queda `noindex, nofollow`.
+- Validación local: 778 tests, TypeScript, lint focalizado, build Webpack, `git diff --check` y `npm audit --omit=dev` correctos.
+- QA Production del deployment `dpl_6UvzDTHyiekhuA39qj4XbKaFqLgX`: apex `308` directo a `www`, canonicals y social metadata correctos, 63 URLs únicas bajo `www` en sitemap, assets sociales `200` y rutas internas con la política prevista.
+- Referencia técnica: `docs/ai/seo/flypath-canonical-metadata-and-indexing.md`.
+
 **10B — catálogo comercial, pedidos, pagos y entitlements** está aplicado y validado en Supabase remoto mediante `20260712170000_create_commerce_foundation.sql`, con contratos puros en `lib/commerce/` y documentación técnica. La validación confirmó RLS y ACL cerradas, índices de idempotencia, compatibilidad con `products` y una prueba sintética revertida sin datos residuales. Esta base no activa Stripe: define el modelo transaccional, los compradores invitados, la reclamación segura y el acceso efectivo resuelto en servidor.
 
 **10C — Checkout seguro para pagos únicos** está **CLOSED / COMPLETED / TESTED** solo en Stripe sandbox. `20260712180000_add_career_planner_test_checkout.sql` prepara pedidos e intentos idempotentes para Career Planner Premium: 5,95 EUR, pago único, tanto invitado como autenticado. El CTA abre Stripe Checkout sin que el cliente pueda decidir valores comerciales. La pantalla de éxito no confirma pagos, no descarga el PDF y no concede acceso. El catálogo sandbox se sincroniza de forma idempotente; un duplicado histórico está archivado e inactivo, sin vínculo con el catálogo FlyPath.
