@@ -35,3 +35,4 @@ Copia `.env.example` a `.env.local` y rellena:
 | [ROADMAP.md](./ROADMAP.md) | Roadmap por fases |
 | [BACKLOG.md](./BACKLOG.md) | Mejoras pospuestas y pendientes |
 | [LAST_SESSION.md](./LAST_SESSION.md) | Último handoff operativo |
+| [Content OS PilotFeliu](./docs/ai/content-os/pilotfeliu-content-os-command-center.md) | Especificación funcional de la herramienta interna de contenido |

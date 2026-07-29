@@ -6,7 +6,7 @@ import {
 } from "./navigation";
 
 describe("Warhome navigation", () => {
-  it("marca Resumen, Leads, Usuarios, Emails y Opiniones según el pathname", () => {
+  it("marca los módulos disponibles según el pathname", () => {
     expect(getActiveWarhomeNavigationId("/warhome")).toBe("summary");
     expect(getActiveWarhomeNavigationId("/warhome/leads")).toBe("leads");
     expect(getActiveWarhomeNavigationId("/warhome/leads/example")).toBe("leads");
@@ -15,6 +15,8 @@ describe("Warhome navigation", () => {
     expect(getActiveWarhomeNavigationId("/warhome/emails")).toBe("emails");
     expect(getActiveWarhomeNavigationId("/warhome/reviews")).toBe("reviews");
     expect(getActiveWarhomeNavigationId("/warhome/reviews/example")).toBe("reviews");
+    expect(getActiveWarhomeNavigationId("/warhome/content")).toBe("content");
+    expect(getActiveWarhomeNavigationId("/warhome/content/library/example")).toBe("content");
   });
 
   it("expone títulos estables para las rutas disponibles", () => {
@@ -23,6 +25,7 @@ describe("Warhome navigation", () => {
     expect(getWarhomePageDetails("/warhome/users").title).toBe("Usuarios");
     expect(getWarhomePageDetails("/warhome/emails").title).toBe("Emails");
     expect(getWarhomePageDetails("/warhome/reviews").title).toBe("Opiniones");
+    expect(getWarhomePageDetails("/warhome/content/ideas").title).toBe("Content OS");
   });
 
   it("mantiene los módulos deshabilitados sin enlaces a rutas inexistentes", () => {
@@ -35,7 +38,6 @@ describe("Warhome navigation", () => {
       "settings",
       "analytics",
       "products",
-      "content",
       "campaigns",
       "agents",
       "tasks",

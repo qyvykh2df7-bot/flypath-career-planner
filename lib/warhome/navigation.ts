@@ -64,6 +64,14 @@ export const WARHOME_NAVIGATION: readonly WarhomeNavigationItem[] = [
     icon: "reviews",
   },
   {
+    id: "content",
+    label: "Content OS",
+    href: "/warhome/content",
+    availability: "available",
+    group: "mvp",
+    icon: "content",
+  },
+  {
     id: "notes",
     label: "Notas",
     href: null,
@@ -94,14 +102,6 @@ export const WARHOME_NAVIGATION: readonly WarhomeNavigationItem[] = [
     availability: "future",
     group: "future",
     icon: "products",
-  },
-  {
-    id: "content",
-    label: "Contenido",
-    href: null,
-    availability: "future",
-    group: "future",
-    icon: "content",
   },
   {
     id: "campaigns",
@@ -154,6 +154,10 @@ const WARHOME_PAGE_DETAILS: Record<string, WarhomePageDetails> = {
   "/warhome/reviews": {
     title: "Opiniones",
     subtitle: "Moderación privada de opiniones verificadas de escuelas.",
+  },
+  "/warhome/content": {
+    title: "Content OS",
+    subtitle: "Planificación y operación de contenido PilotFeliu.",
   },
 };
 

@@ -616,11 +616,23 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 
 **Estado: Actual.**
 
-Amplía el trabajo existente de Backend Core, Leads, Emails Operativos y las tablas de secuencias y automatizaciones, sin iniciar todavía Warhome / Warboard / Command Center.
+Consolida la base CRM existente y prepara los datos operativos. La fase no se convierte en un proyecto CRM completo antes de avanzar parcialmente con Content OS PilotFeliu.
 
-### Primer bloque — Auditoría del sistema actual
+### Completado — Auditoría del sistema actual
 
-Auditar leads, contactos, consentimiento, emails y automatizaciones sin modificar código ni crear migraciones. Identificar qué tablas y relaciones existentes pueden reutilizarse antes de diseñar cambios.
+- Auditorías CRM realizadas sobre leads, usuarios, emails, consentimiento, productos, compras, eventos, automatizaciones y Warhome.
+- Warhome MVP existente como superficie interna para leads, usuarios, emails y moderación de opiniones.
+- Base de leads, usuarios, emails, consentimientos y tracking base documentada y separada por fuente de verdad.
+- Relaciones y duplicidades potenciales identificadas antes de crear tablas o migraciones.
+
+### Pendiente — Consolidación CRM y automatizaciones
+
+- Automatizaciones de email sobre consentimiento real.
+- Secuencias y journeys.
+- Analytics de negocio MVP: visitas, fuentes, eventos, leads, ventas y conversiones.
+- Unificación operativa de orígenes y prevención de duplicados usando primero las tablas existentes.
+
+El diseño funcional de Content OS PilotFeliu permanece documentado, pero su primer módulo de creación de contenido se adelanta parcialmente en 12A por prioridad de negocio.
 
 ### Objetivos
 
@@ -642,15 +654,46 @@ Auditar leads, contactos, consentimiento, emails y automatizaciones sin modifica
 
 ## Fase 12 — Warhome / Warboard / Command Center
 
-**Estado: Pendiente, con Warhome MVP ya completado**
+**Estado: Pendiente, con Warhome MVP y 12A Content OS completados**
 
 Centro operativo completo de FlyPath.
+
+### 12A — Content OS PilotFeliu (adelantado)
+
+**Motivo:** herramienta interna necesaria para comenzar la creación y organización de contenido.
+
+Content OS PilotFeliu es un módulo privado dentro de Warhome, que sigue siendo un Command Center interno de FlyPath. No es una aplicación separada, no tiene acceso público y no sustituye el desarrollo futuro completo del Command Center.
+
+Alcance adelantado:
+
+- Calendario editorial semanal y mensual.
+- Gestión del roster personal.
+- Planificación asistida por IA.
+- Banco de ideas.
+- Biblioteca de contenido.
+- Fichas de vídeos.
+- Objetivos de contenido: crecimiento, comunidad, autoridad y conversión.
+- Métricas iniciales introducidas manualmente.
+- Agentes IA semi-autónomos: la IA propone y PilotFeliu revisa y aprueba.
+
+Estado del MVP 12A:
+
+- Rutas y navegación privadas dentro de Warhome.
+- Banco de ideas con estados y conversión atómica a pieza.
+- Biblioteca y ficha operativa de contenido.
+- Calendario semanal/mensual con bloques de grabación, edición y publicación.
+- Métricas manuales por fecha.
+- Contrato de propuestas IA preparado, sin agentes activos.
+- Migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` aplicada en Supabase remoto y QA sintético remoto completado; validación actual: 800 tests correctos, TypeScript, lint, build Webpack y `git diff --check` correctos.
+- Roster y planificación IA quedan para el siguiente bloque; no forman parte del MVP manual aplicado.
+
+La especificación funcional se mantiene en [Content OS PilotFeliu - AI Content Command Center](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El adelanto de 12A no activa implementación del Command Center completo, no crea una base separada y no modifica el alcance de AeroComms.
 
 ### Objetivos
 
 - Negocio, usuarios, leads, ventas, ingresos, productos y funnels.
 - Métricas de AeroComms, Career Planner, guías, mentorías, comparador y opiniones.
-- Content OS.
+- Content OS PilotFeliu y su módulo adelantado 12A, a partir de su [especificación funcional](./docs/ai/content-os/pilotfeliu-content-os-command-center.md).
 - Redes sociales.
 - Ads & Promotions.
 - Tareas y operaciones.
@@ -699,7 +742,7 @@ Fase 8   Usuarios y actividad AeroComms ████████████  CL
 Fase 9   Backend de opiniones           ████████████  CLOSED / COMPLETED / DEPLOY READY
 Fase 10  Pagos y entitlements           ████████████  Completada
 Fase 10.5 Production Launch & Hardening ████████████  Completada
-Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Actual / auditoría inicial
-Fase 12  Warhome / Warboard / Command   ░░░░░░░░░░░░  Pendiente (MVP completado)
+Fase 11  CRM y automatizaciones         ░░░░░░░░░░░░  Actual / consolidación y automatizaciones
+Fase 12  Warhome / Warboard / Command   ░░░░░░░░░░░░  12A MVP completado / resto pendiente
 Fase 13  Revisión final AeroComms       ░░░░░░░░░░░░  Pospuesta / última fase
 ```

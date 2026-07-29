@@ -4,6 +4,12 @@
 **Rama:** `main`
 **Estado:** Fase 10.5 — Production Launch & Hardening está completada. Producción opera en `https://www.flypath.es`; el apex redirige a `www`, el hosting web de Hostinger se retiró y se conservan dominio, correo y registros DNS de email. La fase actual es Fase 11 — CRM y automatizaciones.
 
+## Prioridad actual — Fase 11 y 12A Content OS
+
+La auditoría profunda de CRM y Warhome queda documentada en `docs/audits/crm-audit-report.md` y `docs/audits/warhome-crm-deep-audit.md`. Fase 11 mantiene la prioridad sobre automatizaciones de email, secuencias/journeys y analytics de negocio MVP, reutilizando la infraestructura existente.
+
+La especificación funcional de Content OS PilotFeliu está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado dentro de Warhome: calendario editorial semanal/mensual, banco de ideas, biblioteca, fichas, objetivos y métricas manuales. Reutiliza la protección de Warhome y Supabase existente. La migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` está aplicada en remoto y el QA sintético remoto está completado. Roster, planificación IA, agentes semi-autónomos, APIs externas y automatizaciones sociales siguen pendientes y no están activos. Validación actual: 800 tests correctos, TypeScript, lint, build Webpack y `git diff --check` correctos.
+
 ## Cierre — SEO técnico e indexación
 
 - Se centralizó `metadataBase`, canonical, Open Graph y Twitter sobre `FLYPATH_CANONICAL_ORIGIN`; ninguna URL SEO pública depende de `Host`, previews o Vercel.
@@ -90,12 +96,11 @@
 - 698 tests correctos, TypeScript, lint focalizado y `git diff --check` correctos.
 - Worktree limpio tras `6e079cb feat(aerocomms): add stripe customer portal management`.
 
-## Próxima sesión — Fase 11: Auditoría CRM y automatizaciones
+## Próxima sesión — cierre documental y commit de 12A Content OS
 
-- Inventariar leads, contactos, perfiles, consentimiento, `email_jobs`, secuencias y automatizaciones existentes.
-- Identificar qué datos de usuarios, productos, intereses y origen de captación ya pueden centralizarse sin nuevas tablas.
-- Definir estados del funnel, prevención de duplicados entre formularios y la base para automatizaciones de email.
-- No modificar código ni crear migraciones durante este primer bloque. Warhome / Warboard / Command Center sigue fuera de alcance hasta Fase 12.
+- Actualizar la documentación de estado para reflejar el MVP 12A completado.
+- Preparar el commit del bloque tras revisar que no incluya cambios ajenos.
+- Mantener roster, agentes, integraciones externas y el Command Center completo para sus bloques posteriores.
 
 ## Decisiones de Fase 10
 

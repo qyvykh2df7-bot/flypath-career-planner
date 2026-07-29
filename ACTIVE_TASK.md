@@ -20,9 +20,18 @@ La Fase 10.5 — Production Launch & Hardening está **COMPLETADA**. FlyPath est
 - Producción validada; `main` está alineada con `origin/main`.
 - Commits relevantes: `64f4808`, `d1a5db0`, `e9e738f`, `c405d26` y `2a1e2c5`.
 
-## Primer bloque — Auditoría CRM y automatizaciones
+## Estado de Fase 11 — CRM y automatizaciones
 
-Auditar, sin modificar código ni crear migraciones, el sistema actual de leads, contactos, consentimiento, emails y automatizaciones. El objetivo es reutilizar las tablas existentes antes de diseñar cambios: centralizar leads, usuarios, productos e intereses; unificar orígenes de captación; registrar el estado del funnel; preparar automatizaciones de email y evitar duplicados entre formularios.
+Las auditorías CRM ya están completadas. Warhome MVP, leads, usuarios, emails, consentimientos y tracking base quedan como infraestructura existente documentada.
+
+Pendiente:
+
+- Automatizaciones de email.
+- Secuencias y journeys.
+- Analytics de negocio MVP: visitas, fuentes, eventos, leads, ventas y conversiones.
+- Consolidar los datos operativos usando primero las tablas existentes, sin convertir esta fase en un CRM completo antes de avanzar.
+
+Como referencia funcional queda [Content OS PilotFeliu - AI Content Command Center](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). Su MVP 12A está completado dentro de Warhome con calendario, ideas, biblioteca, fichas y métricas manuales. La migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` está aplicada en Supabase remoto y el QA sintético remoto está completado. Roster, agentes IA, APIs externas y automatizaciones sociales no están activos. No sustituye el desarrollo futuro completo del Command Center. Validación actual: 800 tests correctos, TypeScript, lint, build Webpack y `git diff --check` correctos.
 
 ## Cierre técnico reciente — Rendimiento pre-lanzamiento
 
@@ -121,11 +130,12 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Cal.com mantiene agenda, reserva, Meet, emails operativos y pago Stripe; FlyPath conserva sólo la proyección operativa privada y no usa Commerce propio para mentorías.
 - Cal.com gestiona la reserva y el pago de mentorías de forma operativa; FlyPath conserva únicamente la proyección privada sincronizada por webhook.
 
-## Alcance inicial de Fase 11
+## Alcance actual de Fase 11
 
 - Mantener separadas identidad, lead, consentimiento, actividad y compra.
-- No iniciar todavía Warhome / Warboard / Command Center.
-- No crear una migración ni implementar automatizaciones hasta terminar la auditoría del modelo actual.
+- Completar automatizaciones, secuencias, journeys y analytics de negocio MVP sobre la infraestructura existente.
+- Content OS PilotFeliu se gestiona como 12A adelantado: MVP completado dentro de Warhome, con migración remota aplicada y QA sintético validado. Roster, agentes IA, integraciones y automatizaciones avanzadas quedan para sus siguientes bloques; el resto de Warhome / Warboard / Command Center continúa en Fase 12.
+- No crear una migración ni implementar automatizaciones nuevas sin mantener las fuentes de verdad y evitar duplicados.
 
 - `20260712210000_add_como_ser_piloto_guide_checkout_delivery.sql` está aplicada en remoto. Añade RPCs service-role-only para preparar, confirmar, expirar, fallar, comprobar y consumir la entrega de la guía sin mezclarla con Career Planner.
 - El producto interno existente `como_ser_piloto_guide` usa el precio cerrado `como_ser_piloto_guide_eur`: **14,95 EUR**, `one_time`, activo. El script de sincronización reutiliza o crea un único Product/Price de Stripe sandbox y vincula ese precio interno de forma idempotente.

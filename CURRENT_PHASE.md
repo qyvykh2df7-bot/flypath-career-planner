@@ -16,9 +16,20 @@ La Fase 10.5 — Production Launch & Hardening está **COMPLETADA**. Producción
 - `FLYPATH_CANONICAL_ORIGIN`, Supabase y los webhooks de Stripe, Cal.com y Resend usan el dominio definitivo.
 - Producción desplegada y validada. Commits de cierre relevantes: `64f4808`, `d1a5db0`, `e9e738f`, `c405d26` y `2a1e2c5`.
 
-## Primer bloque — Auditoría CRM y automatizaciones
+## Estado de Fase 11 — CRM y automatizaciones
 
-Auditar el sistema existente de leads, contactos, consentimiento, emails y automatizaciones, sin cambiar código ni crear migraciones. La auditoría debe aprovechar primero las tablas existentes para centralizar leads, usuarios, productos e intereses, unificar captación, registrar funnel, preparar automatizaciones y prevenir duplicados entre formularios.
+Las auditorías CRM ya están realizadas. Warhome MVP, leads, usuarios, emails, consentimientos y tracking base quedan documentados como infraestructura existente y separada por fuente de verdad.
+
+Pendiente en Fase 11:
+
+- Automatizaciones de email.
+- Secuencias y journeys.
+- Analytics de negocio MVP: visitas, fuentes, eventos, leads, ventas y conversiones.
+- Consolidación operativa usando primero las tablas existentes, sin convertir la fase en un CRM completo antes de avanzar.
+
+## Bloque adelantado 12A — Content OS PilotFeliu
+
+La especificación de la herramienta interna personal de contenido está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado como módulo privado dentro de Warhome: calendario semanal/mensual, banco de ideas, biblioteca, fichas y métricas manuales. La migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` está aplicada en Supabase remoto y el QA sintético remoto está completado. Roster, agentes IA, APIs externas y automatizaciones sociales no están activos. El Command Center completo sigue siendo posterior.
 
 ## Cierre técnico reciente — SEO e indexación
 
@@ -52,7 +63,7 @@ Auditar el sistema existente de leads, contactos, consentimiento, emails y autom
 
 ## Alcance de la fase actual
 
-Fase 11 comienza con inventario y auditoría, no con implementación. Warhome / Warboard / Command Center permanece como Fase 12, después de definir el modelo CRM y las automatizaciones sobre la infraestructura ya disponible.
+Fase 11 continúa con la consolidación CRM y las automatizaciones pendientes. Content OS PilotFeliu dispone ya de un MVP 12A completado y validado dentro de Warhome. Sus siguientes bloques son roster, agentes IA, integraciones y automatizaciones avanzadas; Warhome / Warboard / Command Center completo permanece en Fase 12.
 
 ## Optimización de rendimiento pre-lanzamiento
 

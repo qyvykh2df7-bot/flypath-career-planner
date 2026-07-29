@@ -19,12 +19,21 @@ const clientFiles = [
   "components/warhome/WarhomeReviewDetail.tsx",
   "components/warhome/WarhomeNavItem.tsx",
   "components/warhome/WarhomeSidebar.tsx",
+  "components/warhome/content/ContentCalendar.tsx",
+  "components/warhome/content/ContentCalendarEventForm.tsx",
+  "components/warhome/content/ContentIdeaWorkspace.tsx",
+  "components/warhome/content/ContentItemForm.tsx",
+  "components/warhome/content/ContentMetricsPanel.tsx",
   "app/warhome/(protected)/leads/[leadId]/page.tsx",
   "app/warhome/(protected)/emails/page.tsx",
   "app/warhome/(protected)/users/page.tsx",
   "app/warhome/(protected)/users/[userId]/page.tsx",
   "app/warhome/(protected)/reviews/page.tsx",
   "app/warhome/(protected)/reviews/[reviewId]/page.tsx",
+  "app/warhome/(protected)/content/page.tsx",
+  "app/warhome/(protected)/content/ideas/page.tsx",
+  "app/warhome/(protected)/content/library/page.tsx",
+  "app/warhome/(protected)/content/library/[contentId]/page.tsx",
 ];
 
 describe("Warhome client security", () => {

@@ -1,0 +1,381 @@
+# Content OS PilotFeliu - AI Content Command Center
+
+## Estado y propósito
+
+**Estado:** MVP 12A completado dentro de Warhome. La migración está aplicada en Supabase remoto y el QA sintético remoto está completado; no hay agentes ni automatizaciones activas.
+
+Content OS PilotFeliu es una herramienta interna y personal para PilotFeliu. No es un producto SaaS ni una superficie para clientes de FlyPath. Su objetivo es ordenar la creación de contenido de la marca personal y convertirla en una práctica sostenible que ayude a crecer la audiencia y, cuando corresponda, aumente ventas y leads de FlyPath.
+
+La especificación sigue siendo el contrato funcional. La auditoría CRM de Fase 11 está completada y Content OS se ha adelantado como bloque 12A dentro de Warhome, sin activar el resto del Command Center.
+
+## Implementación MVP 12A
+
+La primera implementación reutiliza la autenticación y autorización privadas de Warhome y mantiene todas las lecturas y escrituras de Supabase en servidor.
+
+Superficies:
+
+- `/warhome/content`: calendario semanal por defecto y mensual como vista secundaria.
+- `/warhome/content/ideas`: banco de ideas.
+- `/warhome/content/library`: biblioteca e histórico.
+- `/warhome/content/library/new`: alta de una pieza.
+- `/warhome/content/library/[contentId]`: ficha, planificación y métricas.
+
+Modelo:
+
+- `content_items`: catálogo privado existente, ampliado para las piezas PilotFeliu.
+- `content_ideas`: ideas manuales y propuestas futuras.
+- `content_calendar_events`: bloques de grabación, edición y publicación.
+- `content_metrics`: snapshots manuales por pieza y fecha.
+
+Las métricas del MVP son snapshots acumulados. El histórico se conserva por fecha y las superficies de resumen muestran el snapshot más reciente, no la suma entre snapshots.
+
+La migración `20260729120000_create_content_os_pilotfeliu_mvp.sql` está aplicada en Supabase remoto. Mantiene RLS cerrada, revoca acceso a `PUBLIC`, `anon` y `authenticated`, y limita la promoción atómica de ideas a `service_role` y administradores activos de Warhome.
+
+Las columnas `proposal_source` y `proposal_status` preparan el flujo futuro **IA propone -> PilotFeliu revisa -> PilotFeliu decide**. En el MVP las altas manuales quedan aprobadas; no existe generación automática.
+
+### Límites editoriales del MVP
+
+La ficha inicial cubre los campos operativos cerrados para 12A: título, plataforma, objetivo, categoría, hook, guion, CTA, estado, fechas y notas. La persistencia aplica los mismos límites de longitud que el contrato y los formularios para conservar la integridad del contenido.
+
+Quedan diferidos expresamente, sin perder su sitio en la evolución del módulo: audiencia, estructura detallada, cámara, planos, brief de edición, copy, hashtags y retención. No son un requisito cerrado del MVP manual; se incorporarán junto con producción asistida y análisis de plataformas, para no convertir la primera versión en una ficha editorial sobredimensionada.
+
+Los eventos de calendario pertenecen explícitamente al único workspace privado actual, `pilotfeliu`. Cuando se asocian a una pieza, la relación exige además que ambas pertenezcan al mismo workspace; los bloques independientes siguen siendo válidos en ese espacio. Esta separación evita que un futuro módulo interno reutilice sus bloques por accidente, sin introducir equipos, multiusuario ni permisos adicionales.
+
+## Arquitectura dentro de FlyPath
+
+Warhome forma parte de FlyPath Career Planner. Es un Command Center interno y privado, no una aplicación separada. Content OS PilotFeliu es un módulo dentro de Warhome y su entrada está en la barra lateral del Warhome.
+
+Estructura conceptual:
+
+```text
+FlyPath Career Planner
+└── Warhome
+    ├── Dashboard
+    ├── CRM
+    ├── Leads
+    ├── Productos
+    ├── Analytics
+    └── Content OS PilotFeliu
+```
+
+No existe una aplicación separada para Content OS y no existe acceso público.
+
+## Uso privado
+
+- Warhome y Content OS son exclusivamente para PilotFeliu.
+- La primera versión no se diseña para equipos.
+- No necesita multiusuario.
+- No necesita roles ni permisos de usuarios internos.
+
+La autorización reutiliza la protección interna de Warhome. Content OS no introduce usuarios, roles ni permisos paralelos.
+
+## Modelo operativo de agentes IA
+
+Los agentes funcionan de forma semi-autónoma:
+
+**IA propone -> PilotFeliu revisa -> PilotFeliu decide.**
+
+Los agentes pueden:
+
+- preparar propuestas;
+- generar planes;
+- analizar datos;
+- recomendar acciones.
+
+Los agentes no pueden:
+
+- publicar automáticamente;
+- mover el calendario sin aprobación;
+- ejecutar acciones comerciales sensibles;
+- modificar datos críticos sin aprobación.
+
+## 1. Visión del módulo
+
+El módulo debe reunir en un mismo sistema:
+
+- la planificación de tiempo disponible;
+- el banco de ideas y experiencias;
+- la producción de cada pieza;
+- la publicación por plataforma;
+- el aprendizaje a partir de resultados.
+
+La IA propone, estructura y prioriza. PilotFeliu conserva siempre la decisión final: puede mover, editar, rechazar o no publicar una propuesta. El sistema no bloquea horarios ni publica contenido automáticamente.
+
+## 2. Alcance
+
+### Incluido
+
+- TikTok PilotFeliu.
+- Instagram PilotFeliu.
+- Instagram FlyPath.
+- YouTube.
+
+### Excluido
+
+- AeroComms.
+- Un producto SaaS o cuentas de terceros.
+- Publicación automática.
+- Bloqueo automático de calendario.
+- Cambios a CRM, Warhome, base de datos, pagos o automatizaciones mientras este documento sea solo diseño.
+
+## 3. Identidad de marca
+
+La marca personal se apoya en:
+
+- piloto de medio radio;
+- ambición y evolución profesional;
+- resiliencia, mentalidad y cercanía;
+- historias y cambios personales;
+- lifestyle, viajes y deporte.
+
+### Límites editoriales y profesionales
+
+- No tratar política.
+- No exponer familia.
+- No exponer patrimonio ni dinero personal.
+- No crear conflictos con la compañía ni revelar información profesional sensible.
+- Respetar siempre las restricciones profesionales, operativas y de seguridad de aviación.
+
+Estos límites deben condicionar las propuestas de ideas, guiones, copies y recomendaciones de IA.
+
+## 4. Objetivos del contenido
+
+Cada pieza debe tener al menos un objetivo principal explícito.
+
+| Objetivo | Qué busca | Señales de aprendizaje |
+| --- | --- | --- |
+| Crecimiento | Alcance y nuevos seguidores. | Visualizaciones, alcance, compartidos, seguidores ganados. |
+| Comunidad | Conexión personal mediante reflexiones, historias y conversaciones. | Comentarios, guardados, compartidos y visitas al perfil. |
+| Autoridad | Demostrar experiencia como piloto, educar y aportar contexto de aviación. | Retención, guardados, comentarios cualificados y visitas al perfil. |
+| Conversión | Generar ventas o leads de FlyPath de forma natural y relevante. | Leads y ventas asociadas. |
+
+Una pieza puede contribuir a más de un objetivo, pero el sistema debe evitar que la planificación se limite a conversión.
+
+## 5. Plataformas y cadencia orientativa
+
+| Plataforma | Papel | Cadencia orientativa | Tratamiento editorial |
+| --- | --- | --- | --- |
+| TikTok PilotFeliu | Motor principal de crecimiento. | 4-5 videos por semana. | Contenido directo, historias, aviación, reflexiones y tendencias compatibles con la marca. |
+| Instagram PilotFeliu | Lifestyle y marca personal. | Fotos o carruseles cada 2-3 días. | Vida personal pública, viajes, deporte, reflexiones y momentos profesionales permitidos. |
+| Instagram FlyPath | Producto, educación y aviación. | Publicaciones cada 2-3 días. | Productos, formación y contenido educativo; PilotFeliu no es el protagonista principal. |
+| YouTube | Videos largos y profundos. | Aproximadamente uno cada 3 semanas. | Piezas cuidadas sobre aviación, carrera, historias o educación. |
+
+Las frecuencias son objetivos de planificación, no obligaciones automáticas. La disponibilidad real de roster, viajes y vida personal debe tener prioridad.
+
+## 6. Pilares de contenido
+
+### Aviación
+
+- Vida de piloto.
+- Carrera y formación.
+- Escuelas y decisiones de formación.
+- Costes y planificación profesional.
+- Curiosidades y educación aeronáutica.
+
+### Marca personal
+
+- Historias y reflexiones.
+- Retos y aprendizajes.
+- Cambios vitales y evolución personal.
+- Mentalidad, resiliencia y ambición.
+
+### Lifestyle
+
+- Madrid.
+- Viajes.
+- Deporte.
+- Jeep.
+- Experiencias compatibles con los límites de marca.
+
+### Deporte
+
+- Pádel.
+- Tenis.
+- Gym.
+- CrossFit.
+- Golf.
+- Escalada.
+- Nuevas experiencias deportivas.
+
+Cada idea debe poder relacionarse con uno o varios pilares, sin forzar la relación si no aporta valor.
+
+## 7. Equipo de creación
+
+Equipo disponible:
+
+- iPhone.
+- Sony ZV-E10.
+- Micrófono inalámbrico Rode.
+- Trípode alto.
+- Trípode bajo.
+- Foco.
+
+### Reglas de uso
+
+- iPhone para contenido rápido, espontáneo y de baja fricción.
+- Sony ZV-E10 para contenido cuidado, lifestyle y YouTube.
+- La planificación de producción puede recomendar cámara, audio, luz y planos, pero no debe impedir grabar con el equipo disponible.
+
+## 8. Calendario Content OS
+
+El calendario es la pantalla principal del módulo.
+
+### Vistas
+
+- Vista semanal por defecto.
+- Vista mensual disponible.
+- Calendario vacío al inicio, sin bloques de ejemplo obligatorios.
+
+### Flujo de trabajo
+
+El MVP permite crear, editar, asociar y mover manualmente bloques de grabación, edición y publicación. La integración de roster y el botón para generar propuestas quincenales quedan preparados como evolución posterior:
+
+1. PilotFeliu introduce roster y compromisos relevantes.
+2. Pulsa generar calendario.
+3. La IA propone las dos semanas siguientes.
+4. PilotFeliu mueve, edita o rechaza bloques antes de usarlos.
+
+### Propuestas de la IA
+
+La IA puede sugerir cuándo:
+
+- grabar;
+- editar;
+- publicar.
+
+No puede:
+
+- bloquear horarios automáticamente;
+- publicar automáticamente;
+- asumir disponibilidad no introducida por el usuario.
+
+La planificación debe aspirar a conservar un margen aproximado de una semana de contenido preparado, sin tratarlo como una cuota rígida.
+
+## 9. Modelo de contenido
+
+### Banco de ideas
+
+El banco conserva material sin necesidad de convertirlo inmediatamente en producción:
+
+- ideas rápidas;
+- experiencias;
+- comentarios;
+- tendencias;
+- reflexiones.
+
+El objetivo es reducir la pérdida de ideas y ofrecer a la IA un contexto reutilizable para proponer contenido.
+
+### Content Library
+
+Cada video o pieza producida debe poder registrar:
+
+- título;
+- hook;
+- objetivo;
+- audiencia;
+- guion;
+- estructura;
+- CTA;
+- plataforma;
+- cámara;
+- planos;
+- edición;
+- copy;
+- hashtags;
+- fecha de publicación.
+
+La biblioteca no sustituye al banco de ideas: una idea pasa a ser una pieza solo cuando PilotFeliu decide producirla.
+
+## 10. Métricas y Analytics
+
+### Modelo híbrido
+
+En el MVP, PilotFeliu introducirá manualmente las métricas después de publicar. El diseño queda preparado para incorporar integraciones o APIs de plataformas en el futuro.
+
+Datos a registrar, cuando estén disponibles:
+
+- visualizaciones;
+- likes;
+- comentarios;
+- compartidos;
+- seguidores ganados;
+- retención.
+
+El sistema podrá ampliar el registro con visitas al perfil, leads y ventas asociadas cuando exista una fuente fiable o una atribución explícita.
+
+El objetivo es aprender qué contenido genera crecimiento, comunidad y ventas. Las atribuciones a leads o ventas deben tratarse como señales operativas, no como una certeza automática cuando no exista una relación verificable.
+
+## Atribución de leads y ventas
+
+### Primera versión
+
+La primera versión utilizará atribución simple mediante un origen declarado por el usuario, por ejemplo mediante la pregunta: **"¿Cómo nos conociste?"**
+
+Opciones previstas:
+
+- TikTok PilotFeliu.
+- Instagram PilotFeliu.
+- Instagram FlyPath.
+- YouTube.
+- Google.
+- Recomendación.
+- Otro.
+
+La respuesta será una señal de origen declarada, no una prueba de causalidad ni una vinculación automática entre contenido, usuario y compra.
+
+### Futuro
+
+El diseño queda preparado para incorporar:
+
+- UTMs;
+- campañas;
+- tracking más avanzado.
+
+## 11. Agentes IA previstos
+
+| Agente | Responsabilidad | Inputs | Outputs |
+| --- | --- | --- | --- |
+| Content Strategist | Definir mezcla de objetivos, plataformas y pilares. | Calendario, objetivos, histórico de contenido y métricas. | Prioridades, cadencia propuesta y huecos de contenido. |
+| Idea Generator | Convertir experiencias, tendencias y pilares en ideas accionables. | Banco de ideas, pilares, límites de marca y contexto reciente. | Ideas tituladas con objetivo, plataforma y justificación breve. |
+| Script Writer | Estructurar guiones sin perder la voz personal. | Idea aprobada, audiencia, objetivo, plataforma y límites. | Hook, guion, estructura, CTA y variantes. |
+| Production Planner | Traducir una pieza aprobada a una grabación viable. | Guion, disponibilidad, equipo y plataforma. | Cámara, planos, audio, luz, checklist y bloque de grabación sugerido. |
+| Editor Assistant | Ayudar a organizar la edición y la adaptación por canal. | Material, guion, formato de plataforma y objetivo. | Brief de edición, ritmo, textos en pantalla, copy y hashtags. |
+| Analytics Agent | Convertir resultados en aprendizaje práctico. | Métricas por pieza, objetivos y periodo comparado. | Patrones, hipótesis y recomendaciones de contenido. |
+| Lifestyle Planner | Detectar oportunidades de contenido en vida personal permitida. | Roster, compromisos, viajes, deporte y límites de marca. | Oportunidades de grabación y propuestas de bajo esfuerzo. |
+| FlyPath Growth Agent | Relacionar contenido de FlyPath con necesidades educativas y comerciales reales. | Productos, intereses, campañas aprobadas y consentimiento aplicable. | Ideas y CTA de conversión no invasivos. |
+| Brand Manager | Proteger coherencia, tono y límites de marca. | Borradores, guiones, copies, límites y reglas profesionales. | Avisos, ajustes de tono y validación editorial propuesta. |
+
+Los agentes son asistentes de propuesta. Ninguno publica, compra publicidad, contacta usuarios ni modifica datos comerciales por sí solo.
+
+## 12. Automatizaciones futuras
+
+Cuando el modelo esté implementado y validado, podrá preparar:
+
+- generación quincenal de calendario;
+- análisis semanal;
+- propuestas de contenido;
+- avisos si falta roster;
+- recomendaciones de oportunidades.
+
+Estas automatizaciones deben ser revisables y no ejecutar publicación ni cambios de agenda de forma automática.
+
+## 13. Roadmap de construcción
+
+| Fase | Objetivo | Resultado esperado |
+| --- | --- | --- |
+| 1. Documentación y diseño funcional | Consolidar visión, límites, flujos y agentes. | Completada. Esta especificación es la referencia. |
+| 2. Base de datos de contenidos | Diseñar y crear el modelo mínimo para ideas, piezas, planificación y métricas. | Completada; migración aplicada en remoto y QA sintético validado. |
+| 3. Calendario interactivo | Crear calendario semanal/mensual y el flujo manual de planificación. | Completado dentro de Warhome para crear, asociar, mover, editar y eliminar bloques. |
+| 4. Sistema de agentes | Conectar asistentes de estrategia, ideas, guion, producción, edición, analytics, lifestyle, crecimiento y marca. | Propuestas trazables y siempre revisables. |
+| 5. Analytics y conexión con ventas | Registrar rendimiento y relacionar, cuando sea verificable, contenido con leads y ventas. | Aprendizaje por objetivo sin atribución engañosa. |
+| 6. Automatizaciones avanzadas | Añadir generación quincenal, análisis semanal, avisos y recomendaciones. | Operación asistida, no autónoma. |
+
+## Almacenamiento
+
+Content OS utiliza la infraestructura Supabase existente de FlyPath. No tiene una base de datos separada.
+
+La auditoría CRM confirmó que `content_items` ya era el catálogo privado adecuado. El MVP lo amplía y crea únicamente las entidades operativas que faltaban, evitando duplicar identidad, CRM, ventas o analítica comercial.
+
+## Estado del diseño
+
+Las decisiones funcionales principales de Content OS PilotFeliu quedan cerradas. El MVP manual está completado dentro de Warhome, con migración remota aplicada y QA sintético remoto validado. Roster, integraciones, APIs de plataformas y automatizaciones avanzadas siguen sus bloques de construcción correspondientes.
