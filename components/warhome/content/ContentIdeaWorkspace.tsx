@@ -158,6 +158,23 @@ function IdeaCard({ idea }: { idea: ContentOsIdea }) {
           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-400">
             {idea.description}
           </p>
+          {idea.proposalSource === "ai" && idea.strategyHook ? (
+            <div className="mt-4 border-l-2 border-violet-300/25 pl-3">
+              <p className="text-xs font-semibold uppercase text-violet-200">
+                Hook propuesto
+              </p>
+              <p className="mt-1 text-sm leading-6 text-slate-300">
+                {idea.strategyHook}
+              </p>
+              {idea.strategyPlatforms.length ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  {idea.strategyPlatforms
+                    .map((platform) => CONTENT_OS_PLATFORM_LABELS[platform])
+                    .join(" · ")}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {idea.contentItemId ? (
           <Link

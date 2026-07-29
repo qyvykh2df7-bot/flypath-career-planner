@@ -39,11 +39,13 @@ describe("Content OS server-only data layer", () => {
   it("valida estrictamente los DTOs devueltos por Supabase", async () => {
     const ideasQuery = {
       select: vi.fn(() => ({
-        order: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue({
-            data: [{ id: "not-a-uuid", title: "Unsafe" }],
-            error: null,
-          }),
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            limit: vi.fn().mockResolvedValue({
+              data: [{ id: "not-a-uuid", title: "Unsafe" }],
+              error: null,
+            }),
+          })),
         })),
       })),
     };
@@ -64,26 +66,50 @@ describe("Content OS server-only data layer", () => {
   it("devuelve únicamente el contrato operativo de ideas", async () => {
     const ideasQuery = {
       select: vi.fn(() => ({
-        order: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue({
-            data: [
-              {
-                id: "11111111-1111-4111-8111-111111111111",
-                title: "Idea segura",
-                description: "Descripción",
-                category: "aviation",
-                platform: "youtube",
-                objective: "authority",
-                status: "approved",
-                proposal_source: "manual",
-                proposal_status: "approved",
-                created_at: "2026-07-29T10:00:00.000Z",
-                updated_at: "2026-07-29T10:00:00.000Z",
-                provider_payload: "never expose",
-              },
-            ],
-            error: null,
-          }),
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            limit: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: "11111111-1111-4111-8111-111111111111",
+                  title: "Idea segura",
+                  description: "Descripción",
+                  category: "aviation",
+                  platform: "youtube",
+                  objective: "authority",
+                  status: "approved",
+                  proposal_source: "manual",
+                  proposal_status: "approved",
+                  created_at: "2026-07-29T10:00:00.000Z",
+                  updated_at: "2026-07-29T10:00:00.000Z",
+                  provider_payload: "never expose",
+                },
+                {
+                  id: "22222222-2222-4222-8222-222222222222",
+                  title: "Propuesta pendiente",
+                  description: "Todavía requiere revisión",
+                  category: "aviation",
+                  platform: "youtube",
+                  objective: "growth",
+                  status: "new",
+                  proposal_source: "ai",
+                  proposal_status: "proposed",
+                  strategy_idea: "Idea propuesta",
+                  strategy_hook: "Hook propuesto",
+                  strategy_platforms: ["youtube"],
+                  strategy_format: "tutorial",
+                  strategy_duration_seconds: 600,
+                  strategy_product_key: null,
+                  strategy_cta: "CTA",
+                  strategy_priority: "medium",
+                  strategy_pillar: "training",
+                  created_at: "2026-07-29T11:00:00.000Z",
+                  updated_at: "2026-07-29T11:00:00.000Z",
+                },
+              ],
+              error: null,
+            }),
+          })),
         })),
       })),
     };
@@ -119,13 +145,50 @@ describe("Content OS server-only data layer", () => {
     const ideaQuery = {
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          maybeSingle: vi.fn().mockResolvedValue({ data: { status: "discarded" }, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { status: "discarded", proposal_status: "approved" },
+            error: null,
+          }),
         })),
       })),
     };
     const rpc = vi.fn();
     mocks.getSupabaseAdmin.mockReturnValue({
       from: vi.fn((table: string) => (table === "content_items" ? existingItemQuery : ideaQuery)),
+      rpc,
+    });
+
+    await expect(
+      promoteContentOsIdea("11111111-1111-4111-8111-111111111111"),
+    ).rejects.toBeInstanceOf(ContentOsIdeaPromotionError);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("rechaza una propuesta IA pendiente antes de invocar la RPC", async () => {
+    const existingItemQuery = {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          })),
+        })),
+      })),
+    };
+    const ideaQuery = {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { status: "new", proposal_status: "proposed" },
+            error: null,
+          }),
+        })),
+      })),
+    };
+    const rpc = vi.fn();
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn((table: string) =>
+        table === "content_items" ? existingItemQuery : ideaQuery,
+      ),
       rpc,
     });
 
@@ -146,7 +209,10 @@ describe("Content OS server-only data layer", () => {
     const ideaQuery = {
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          maybeSingle: vi.fn().mockResolvedValue({ data: { status: "approved" }, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { status: "approved", proposal_status: "approved" },
+            error: null,
+          }),
         })),
       })),
     };

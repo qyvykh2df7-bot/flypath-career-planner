@@ -36,7 +36,7 @@ import {
 const CONTENT_ITEM_SELECT =
   "id,source_idea_id,title,summary,platform,objective,category,hook,script,cta,notes,status,planned_recording_on,planned_publish_on,published_at,proposal_source,proposal_status,created_at,updated_at";
 const CONTENT_IDEA_SELECT =
-  "id,title,description,category,platform,objective,status,proposal_source,proposal_status,created_at,updated_at";
+  "id,title,description,category,platform,objective,status,proposal_source,proposal_status,strategy_idea,strategy_hook,strategy_platforms,strategy_format,strategy_duration_seconds,strategy_product_key,strategy_cta,strategy_priority,strategy_pillar,created_at,updated_at";
 const CONTENT_EVENT_SELECT =
   "id,content_item_id,title,event_type,starts_at,ends_at,timezone,notes,proposal_source,proposal_status,created_at,updated_at";
 const CONTENT_METRIC_SELECT =
@@ -237,6 +237,14 @@ function mapIdea(value: unknown, itemId: string | null): ContentOsIdea | null {
   const approval = proposalStatus(row.proposal_status);
   const createdAt = timestamp(row.created_at);
   const updatedAt = timestamp(row.updated_at);
+  const strategyPlatforms = Array.isArray(row.strategy_platforms)
+    ? row.strategy_platforms
+    : [];
+  const strategyDurationSeconds =
+    row.strategy_duration_seconds === null ||
+    row.strategy_duration_seconds === undefined
+      ? null
+      : nonnegativeInteger(row.strategy_duration_seconds);
 
   if (
     !id ||
@@ -250,7 +258,15 @@ function mapIdea(value: unknown, itemId: string | null): ContentOsIdea | null {
     !source ||
     !approval ||
     !createdAt ||
-    !updatedAt
+    !updatedAt ||
+    strategyPlatforms.some(
+      (entry) =>
+        typeof entry !== "string" ||
+        !includesValue(CONTENT_OS_PLATFORMS, entry),
+    ) ||
+    (row.strategy_duration_seconds !== null &&
+      row.strategy_duration_seconds !== undefined &&
+      strategyDurationSeconds === null)
   ) {
     return null;
   }
@@ -265,6 +281,15 @@ function mapIdea(value: unknown, itemId: string | null): ContentOsIdea | null {
     status: status as ContentOsIdeaStatus,
     proposalSource: source,
     proposalStatus: approval,
+    strategyIdea: optionalText(row.strategy_idea),
+    strategyHook: optionalText(row.strategy_hook),
+    strategyPlatforms: strategyPlatforms as ContentOsPlatform[],
+    strategyFormat: optionalText(row.strategy_format),
+    strategyDurationSeconds,
+    strategyProductKey: optionalText(row.strategy_product_key),
+    strategyCta: optionalText(row.strategy_cta),
+    strategyPriority: optionalText(row.strategy_priority),
+    strategyPillar: optionalText(row.strategy_pillar),
     createdAt,
     updatedAt,
     contentItemId: itemId,
@@ -355,14 +380,22 @@ async function getExistingContentOsItemIdForIdea(ideaId: string): Promise<string
 async function assertContentOsIdeaPromotable(ideaId: string): Promise<string | null> {
   const [existingItemId, ideaResult] = await Promise.all([
     getExistingContentOsItemIdForIdea(ideaId),
-    getSupabaseAdmin().from("content_ideas").select("status").eq("id", ideaId).maybeSingle(),
+    getSupabaseAdmin()
+      .from("content_ideas")
+      .select("status,proposal_status")
+      .eq("id", ideaId)
+      .maybeSingle(),
   ]);
   if (ideaResult.error) throw new ContentOsDataError();
 
   // A previous successful promotion remains idempotent even if the idea was later discarded.
   if (existingItemId) return existingItemId;
   if (!ideaResult.data) throw new ContentOsNotFoundError();
-  if (!isRecord(ideaResult.data) || text(ideaResult.data.status) === "discarded") {
+  if (
+    !isRecord(ideaResult.data) ||
+    text(ideaResult.data.status) === "discarded" ||
+    text(ideaResult.data.proposal_status) !== "approved"
+  ) {
     throw new ContentOsIdeaPromotionError();
   }
   return null;
@@ -390,7 +423,12 @@ export async function getContentOsIdeas(): Promise<ContentOsIdea[]> {
   await requireContentOsAdmin();
   const admin = getSupabaseAdmin();
   const [ideasResult, itemsResult] = await Promise.all([
-    admin.from("content_ideas").select(CONTENT_IDEA_SELECT).order("updated_at", { ascending: false }).limit(300),
+    admin
+      .from("content_ideas")
+      .select(CONTENT_IDEA_SELECT)
+      .eq("proposal_status", "approved")
+      .order("updated_at", { ascending: false })
+      .limit(300),
     admin
       .from("content_items")
       .select("id,source_idea_id")
@@ -415,12 +453,14 @@ export async function getContentOsIdeas(): Promise<ContentOsIdea[]> {
     }),
   );
 
-  return ideasResult.data.map((row) => {
-    const rowId = isRecord(row) ? text(row.id) : null;
-    const idea = mapIdea(row, rowId ? itemByIdea.get(rowId) ?? null : null);
-    if (!idea) throw new ContentOsDataError();
-    return idea;
-  });
+  return ideasResult.data
+    .map((row) => {
+      const rowId = isRecord(row) ? text(row.id) : null;
+      const idea = mapIdea(row, rowId ? itemByIdea.get(rowId) ?? null : null);
+      if (!idea) throw new ContentOsDataError();
+      return idea;
+    })
+    .filter((idea) => idea.proposalStatus === "approved");
 }
 
 export async function getContentOsLibrary(): Promise<ContentOsItem[]> {

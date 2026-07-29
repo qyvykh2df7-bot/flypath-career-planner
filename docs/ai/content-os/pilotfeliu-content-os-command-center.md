@@ -2,7 +2,7 @@
 
 ## Estado y propósito
 
-**Estado:** MVP 12A completado dentro de Warhome. La migración está aplicada en Supabase remoto y el QA sintético remoto está completado; no hay agentes ni automatizaciones activas.
+**Estado:** MVP 12A completado dentro de Warhome. El AI Content Strategist 12A.6.3 está implementado y auditado localmente, listo para commit; su migración aún requiere aplicación y QA sintético en Supabase remoto. No hay agentes ni automatizaciones activas.
 
 Content OS PilotFeliu es una herramienta interna y personal para PilotFeliu. No es un producto SaaS ni una superficie para clientes de FlyPath. Su objetivo es ordenar la creación de contenido de la marca personal y convertirla en una práctica sostenible que ayude a crecer la audiencia y, cuando corresponda, aumente ventas y leads de FlyPath.
 
@@ -42,6 +42,45 @@ La disponibilidad registra trabajo, descanso, viaje y franjas disponibles para g
 El planificador crea propuestas editoriales de hasta dos semanas a partir del roster, ideas y contenido pendiente. Una propuesta nunca modifica el calendario al generarse: requiere aprobación manual transaccional. Antes de aprobarla se rechazan conflictos con eventos existentes y solapamientos internos. La generación tiene un intervalo mínimo configurable para evitar ejecuciones repetidas accidentales.
 
 Este bloque no introduce un agente autónomo, memoria avanzada, ejecución continua, publicación automática, APIs sociales ni movimientos de calendario sin aprobación.
+
+## Bloque 12A.6.3 — AI Content Strategist MVP
+
+El AI Content Strategist MVP está completado en la aplicación y auditado como una
+segunda herramienta de propuesta, separada del planificador. Su pregunta operativa es qué contenido
+debería crearse a partir de la marca, la audiencia, los productos y el histórico;
+no cuándo debe entrar en calendario.
+
+La configuración estratégica incorpora:
+
+- la identidad y los límites profesionales de PilotFeliu;
+- futuros pilotos, estudiantes, pilotos jóvenes y público interesado en aviación;
+- guía, Career Planner, AeroComms y mentorías con su función comercial;
+- pilares editoriales evolutivos de aviación, carrera, formación, escuelas,
+  errores, consejo profesional, inglés, fraseología, historias y comunidad;
+- una mezcla configurable de crecimiento, autoridad, comunidad y conversión,
+  con reparto inicial 40/30/20/10.
+
+Cada generación produce diez propuestas estructuradas con título, desarrollo,
+hook, explicación, plataformas, formato, duración, objetivo, producto opcional,
+CTA, prioridad y pilar. El histórico de ideas y piezas, incluidas las publicadas,
+se incorpora como contexto y se aplica una deduplicación básica por título
+normalizado.
+
+Las propuestas se persisten en el banco existente con estado pendiente. Una RPC
+transaccional e idempotente permite guardarlas o rechazarlas. Solo una propuesta
+aprobada entra en el banco operativo y puede ser consumida posteriormente por el
+Planner IA o convertirse en pieza. Nunca crea eventos de calendario.
+
+La capa usa salida JSON estructurada, `store: false`, autorización Warhome,
+`service_role` solo en servidor y un límite independiente de generación. No
+persiste prompts, respuestas crudas, memoria de conversación ni datos del
+proveedor.
+
+La migración local
+`20260729140000_add_content_os_ai_strategist.sql` amplía `content_ideas` con los
+metadatos estratégicos, añade la protección de coste y las RPC de creación y
+revisión. La auditoría final está aprobada; todavía no está aplicada en Supabase
+remoto y requiere QA sintético tras su aplicación.
 
 ### Límites editoriales del MVP
 
@@ -405,7 +444,7 @@ Estas automatizaciones deben ser revisables y no ejecutar publicación ni cambio
 | 1. Documentación y diseño funcional | Consolidar visión, límites, flujos y agentes. | Completada. Esta especificación es la referencia. |
 | 2. Base de datos de contenidos | Diseñar y crear el modelo mínimo para ideas, piezas, planificación y métricas. | Completada; migración aplicada en remoto y QA sintético validado. |
 | 3. Calendario interactivo | Crear calendario semanal/mensual y el flujo manual de planificación. | Completado dentro de Warhome para crear, asociar, mover, editar y eliminar bloques. |
-| 4. Sistema de agentes | Conectar progresivamente asistentes de estrategia, ideas, guion, producción, edición, analytics, lifestyle, crecimiento y marca. | Primera herramienta de planificación implementada como propuesta revisable; agentes autónomos pendientes. |
+| 4. Sistema de agentes | Conectar progresivamente asistentes de estrategia, ideas, guion, producción, edición, analytics, lifestyle, crecimiento y marca. | Planificador y Content Strategist MVP implementados como herramientas de propuesta revisable; migración remota del Strategist y agentes autónomos pendientes. |
 | 5. Analytics y conexión con ventas | Registrar rendimiento y relacionar, cuando sea verificable, contenido con leads y ventas. | Aprendizaje por objetivo sin atribución engañosa. |
 | 6. Automatizaciones avanzadas | Añadir generación quincenal, análisis semanal, avisos y recomendaciones. | Operación asistida, no autónoma. |
 
@@ -417,4 +456,4 @@ La auditoría CRM confirmó que `content_items` ya era el catálogo privado adec
 
 ## Estado del diseño
 
-Las decisiones funcionales principales de Content OS PilotFeliu quedan cerradas. El MVP manual, el roster y el primer asistente planificador están completados dentro de Warhome, con las migraciones remotas aplicadas y QA sintético remoto validado. La validación actual registra 823 tests correctos. No existen todavía agentes autónomos, APIs de plataformas, publicación automática ni automatizaciones sociales.
+Las decisiones funcionales principales de Content OS PilotFeliu quedan cerradas. El MVP manual, el roster y el primer asistente planificador están completados dentro de Warhome, con sus migraciones remotas aplicadas y QA sintético remoto validado. El Content Strategist MVP está implementado y auditado con veredicto aprobado; quedan pendientes únicamente la aplicación remota de su migración y el QA sintético posterior. La validación actual registra 843 tests correctos. No existen agentes autónomos, memoria avanzada, APIs de plataformas, publicación automática ni automatizaciones sociales.

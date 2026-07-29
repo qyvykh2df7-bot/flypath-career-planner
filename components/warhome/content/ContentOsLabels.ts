@@ -10,6 +10,12 @@ import type {
   ContentOsAvailabilityType,
   ContentOsPlanningProposalStatus,
 } from "@/lib/warhome/content-os-planning-contract";
+import type {
+  ContentOsStrategyFormat,
+  ContentOsStrategyPillar,
+  ContentOsStrategyPriority,
+  ContentOsStrategyProduct,
+} from "@/lib/warhome/content-os-strategy-contract";
 
 export const CONTENT_OS_PLATFORM_LABELS: Record<ContentOsPlatform, string> = {
   tiktok_pilotfeliu: "TikTok PilotFeliu",
@@ -72,4 +78,52 @@ export const CONTENT_OS_PLANNING_STATUS_LABELS: Record<
   proposed: "Pendiente de revisión",
   approved: "Aprobada",
   rejected: "Rechazada",
+};
+
+export const CONTENT_OS_STRATEGY_PILLAR_LABELS: Record<
+  ContentOsStrategyPillar,
+  string
+> = {
+  pilot_life: "Vida de piloto",
+  aviation_career: "Carrera aeronáutica",
+  training: "Formación",
+  schools_and_decisions: "Escuelas y decisiones",
+  common_mistakes: "Errores comunes",
+  professional_advice: "Consejos profesionales",
+  aviation_english: "Inglés aeronáutico",
+  atc_phraseology: "ATC / fraseología",
+  personal_stories: "Historias personales",
+  community: "Comunidad",
+  product_sales: "Venta de productos",
+};
+
+export const CONTENT_OS_STRATEGY_FORMAT_LABELS: Record<
+  ContentOsStrategyFormat,
+  string
+> = {
+  talking_head: "Talking head",
+  story: "Historia",
+  tutorial: "Tutorial",
+  list: "Lista",
+  opinion: "Opinión",
+  comparison: "Comparación",
+};
+
+export const CONTENT_OS_STRATEGY_PRODUCT_LABELS: Record<
+  ContentOsStrategyProduct,
+  string
+> = {
+  guide: "Guía Cómo ser Piloto",
+  career_planner: "Career Planner",
+  aerocomms: "AeroComms",
+  mentorships: "Mentorías",
+};
+
+export const CONTENT_OS_STRATEGY_PRIORITY_LABELS: Record<
+  ContentOsStrategyPriority,
+  string
+> = {
+  high: "Alta",
+  medium: "Media",
+  low: "Baja",
 };

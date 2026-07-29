@@ -33,6 +33,15 @@ import {
   isContentOsPlanningDecision,
   parseContentOsAvailabilityForm,
 } from "@/lib/warhome/content-os-planning-contract";
+import {
+  createContentOsStrategyProposals,
+  ContentOsStrategistRateLimitError,
+  reviewContentOsStrategyProposal,
+} from "@/lib/warhome/content-os-strategy";
+import {
+  isContentOsStrategyDecision,
+  parseContentOsStrategyBalanceForm,
+} from "@/lib/warhome/content-os-strategy-contract";
 
 export type ContentOsActionState = {
   status: "idle" | "success" | "error";
@@ -51,9 +60,71 @@ function revalidateContentOs(contentItemId?: string): void {
   revalidatePath("/warhome/content");
   revalidatePath("/warhome/content/availability");
   revalidatePath("/warhome/content/planner");
+  revalidatePath("/warhome/content/strategist");
   revalidatePath("/warhome/content/ideas");
   revalidatePath("/warhome/content/library");
   if (contentItemId) revalidatePath(`/warhome/content/library/${contentItemId}`);
+}
+
+export async function createContentOsStrategyProposalsAction(
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  const balance = parseContentOsStrategyBalanceForm(formData);
+  if (!balance) return { status: "error", message: INVALID_INPUT_MESSAGE };
+
+  try {
+    await createContentOsStrategyProposals(balance);
+  } catch (error) {
+    if (error instanceof ContentOsStrategistRateLimitError) {
+      return {
+        status: "error",
+        message: "Espera un momento antes de generar otra estrategia.",
+      };
+    }
+    console.error("[Warhome Content OS] AI strategy generation failed");
+    return {
+      status: "error",
+      message: "No se han podido preparar las ideas. Inténtalo de nuevo.",
+    };
+  }
+
+  revalidateContentOs();
+  return {
+    status: "success",
+    message: "Propuestas preparadas para revisión.",
+  };
+}
+
+export async function reviewContentOsStrategyProposalAction(
+  proposalId: string,
+  decision: string,
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  void formData;
+  if (
+    !isContentOsUuid(proposalId) ||
+    !isContentOsStrategyDecision(decision)
+  ) {
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  try {
+    await reviewContentOsStrategyProposal(proposalId, decision);
+  } catch {
+    console.error("[Warhome Content OS] AI strategy review failed");
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  revalidateContentOs();
+  return {
+    status: "success",
+    message:
+      decision === "approved"
+        ? "Idea guardada en el banco."
+        : "Propuesta rechazada.",
+  };
 }
 
 export async function createContentOsAvailabilityAction(

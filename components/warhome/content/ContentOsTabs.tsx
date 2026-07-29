@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BrainCircuit,
   CalendarDays,
   Clapperboard,
   Library,
@@ -14,13 +15,25 @@ const tabs = [
   { href: "/warhome/content/library", label: "Biblioteca", icon: Library },
   { href: "/warhome/content/availability", label: "Disponibilidad", icon: Timer },
   { href: "/warhome/content/planner", label: "Planificador IA", icon: Sparkles },
+  {
+    href: "/warhome/content/strategist",
+    label: "Strategist IA",
+    icon: BrainCircuit,
+  },
   { href: "/warhome/content/library/new", label: "Nueva pieza", icon: Clapperboard },
 ] as const;
 
 export function ContentOsTabs({
   active,
 }: {
-  active: "calendar" | "ideas" | "library" | "availability" | "planner" | "new";
+  active:
+    | "calendar"
+    | "ideas"
+    | "library"
+    | "availability"
+    | "planner"
+    | "strategist"
+    | "new";
 }) {
   const activeHref = {
     calendar: "/warhome/content",
@@ -28,6 +41,7 @@ export function ContentOsTabs({
     library: "/warhome/content/library",
     availability: "/warhome/content/availability",
     planner: "/warhome/content/planner",
+    strategist: "/warhome/content/strategist",
     new: "/warhome/content/library/new",
   }[active];
 

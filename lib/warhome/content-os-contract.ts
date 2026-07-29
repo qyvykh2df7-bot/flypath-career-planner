@@ -72,6 +72,15 @@ export type ContentOsIdea = {
   status: ContentOsIdeaStatus;
   proposalSource: ContentOsProposalSource;
   proposalStatus: ContentOsProposalStatus;
+  strategyIdea: string | null;
+  strategyHook: string | null;
+  strategyPlatforms: ContentOsPlatform[];
+  strategyFormat: string | null;
+  strategyDurationSeconds: number | null;
+  strategyProductKey: string | null;
+  strategyCta: string | null;
+  strategyPriority: string | null;
+  strategyPillar: string | null;
   createdAt: string;
   updatedAt: string;
   contentItemId: string | null;
