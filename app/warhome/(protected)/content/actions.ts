@@ -14,6 +14,10 @@ import {
   updateContentOsItem,
   upsertContentOsMetric,
 } from "@/lib/warhome/content-os";
+import { upsertContentOsBrandProfile } from "@/lib/warhome/content-os-brand";
+import { parseContentOsBrandProfileForm } from "@/lib/warhome/content-os-brand-contract";
+import { importContentOsHistoricalItem } from "@/lib/warhome/content-os-history";
+import { parseContentOsHistoricalItemForm } from "@/lib/warhome/content-os-history-contract";
 import {
   createContentOsAiProposal,
   createContentOsAvailability,
@@ -61,9 +65,28 @@ function revalidateContentOs(contentItemId?: string): void {
   revalidatePath("/warhome/content/availability");
   revalidatePath("/warhome/content/planner");
   revalidatePath("/warhome/content/strategist");
+  revalidatePath("/warhome/content/brand");
   revalidatePath("/warhome/content/ideas");
   revalidatePath("/warhome/content/library");
   if (contentItemId) revalidatePath(`/warhome/content/library/${contentItemId}`);
+}
+
+export async function updateContentOsBrandProfileAction(
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  const input = parseContentOsBrandProfileForm(formData);
+  if (!input) return { status: "error", message: INVALID_INPUT_MESSAGE };
+
+  try {
+    await upsertContentOsBrandProfile(input);
+  } catch {
+    console.error("[Warhome Content OS] Brand DNA update failed");
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  revalidateContentOs();
+  return { status: "success", message: "Brand DNA actualizado." };
 }
 
 export async function createContentOsStrategyProposalsAction(
@@ -314,6 +337,25 @@ export async function createContentOsItemAction(
     contentItemId = await createContentOsItem(input);
   } catch {
     console.error("[Warhome Content OS] Content creation failed");
+    return { status: "error", message: SAVE_ERROR_MESSAGE };
+  }
+
+  revalidateContentOs(contentItemId);
+  redirect(`/warhome/content/library/${contentItemId}`);
+}
+
+export async function importContentOsHistoricalItemAction(
+  _previousState: ContentOsActionState,
+  formData: FormData,
+): Promise<ContentOsActionState> {
+  const input = parseContentOsHistoricalItemForm(formData);
+  if (!input) return { status: "error", message: INVALID_INPUT_MESSAGE };
+
+  let contentItemId: string;
+  try {
+    contentItemId = await importContentOsHistoricalItem(input);
+  } catch {
+    console.error("[Warhome Content OS] Historical import failed");
     return { status: "error", message: SAVE_ERROR_MESSAGE };
   }
 

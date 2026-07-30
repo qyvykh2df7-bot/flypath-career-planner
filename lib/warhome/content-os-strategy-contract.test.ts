@@ -6,6 +6,7 @@ import {
   parseContentOsStrategyOutput,
   type ContentOsStrategyContext,
 } from "./content-os-strategy-contract";
+import { DEFAULT_CONTENT_OS_BRAND_PROFILE } from "./content-os-brand-contract";
 
 function formData(values: Record<string, string>): FormData {
   const data = new FormData();
@@ -14,14 +15,21 @@ function formData(values: Record<string, string>): FormData {
 }
 
 const context: ContentOsStrategyContext = {
+  brand: DEFAULT_CONTENT_OS_BRAND_PROFILE,
   balance: CONTENT_OS_DEFAULT_OBJECTIVE_BALANCE,
   history: [
     {
       title: "Cómo elegir escuela de vuelo",
       objective: "authority",
       category: "aviation",
+      platform: "youtube",
+      hook: "Hook histórico",
+      contentPillar: "training",
+      relatedProductKey: null,
+      contentOrigin: "historical",
       status: "published",
       published: true,
+      metrics: null,
     },
   ],
 };

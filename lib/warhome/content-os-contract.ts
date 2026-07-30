@@ -47,6 +47,9 @@ export const CONTENT_OS_LIMITS = {
   itemScript: 30_000,
   itemCta: 1_000,
   itemNotes: 10_000,
+  itemSummary: 5_000,
+  itemSourceUrl: 2_000,
+  itemPillar: 100,
   calendarTitle: 160,
   calendarNotes: 5_000,
   metricValue: 1_000_000_000,
@@ -94,6 +97,7 @@ export type ContentOsMetricSnapshot = {
   likes: number;
   comments: number;
   shares: number;
+  saves: number;
   followersGained: number;
   leadsGenerated: number;
   salesAttributed: number;
@@ -111,13 +115,19 @@ export type ContentOsItem = {
   sourceIdeaId: string | null;
   title: string;
   summary: string | null;
-  platform: ContentOsPlatform;
-  objective: ContentOsObjective;
+  platform:
+    | ContentOsPlatform
+    | "other";
+  objective: ContentOsObjective | null;
   category: ContentOsCategory | null;
   hook: string;
   script: string;
   cta: string;
   notes: string | null;
+  contentOrigin: "planned" | "historical";
+  sourceUrl: string | null;
+  contentPillar: string | null;
+  relatedProductKey: string | null;
   status: ContentOsItemStatus;
   plannedRecordingOn: string | null;
   plannedPublishOn: string | null;
@@ -190,6 +200,7 @@ export type ContentOsMetricInput = {
   likes: number;
   comments: number;
   shares: number;
+  saves: number;
   followersGained: number;
   leadsGenerated: number;
   salesAttributed: number;
@@ -213,6 +224,7 @@ export const CONTENT_OS_EMPTY_METRICS: ContentOsMetricTotals = {
   likes: 0,
   comments: 0,
   shares: 0,
+  saves: 0,
   followersGained: 0,
   leadsGenerated: 0,
   salesAttributed: 0,
@@ -497,6 +509,7 @@ export function parseContentOsMetricForm(formData: FormData): ContentOsMetricInp
     likes: nonnegativeInteger(formString(formData, "likes")),
     comments: nonnegativeInteger(formString(formData, "comments")),
     shares: nonnegativeInteger(formString(formData, "shares")),
+    saves: nonnegativeInteger(formString(formData, "saves")),
     followersGained: nonnegativeInteger(formString(formData, "followersGained")),
     leadsGenerated: nonnegativeInteger(formString(formData, "leadsGenerated")),
     salesAttributed: nonnegativeInteger(formString(formData, "salesAttributed")),
@@ -512,6 +525,7 @@ export function parseContentOsMetricForm(formData: FormData): ContentOsMetricInp
     likes: values.likes as number,
     comments: values.comments as number,
     shares: values.shares as number,
+    saves: values.saves as number,
     followersGained: values.followersGained as number,
     leadsGenerated: values.leadsGenerated as number,
     salesAttributed: values.salesAttributed as number,
@@ -584,6 +598,7 @@ export function getLatestContentOsMetrics(
     likes: latest.likes,
     comments: latest.comments,
     shares: latest.shares,
+    saves: latest.saves,
     followersGained: latest.followersGained,
     leadsGenerated: latest.leadsGenerated,
     salesAttributed: latest.salesAttributed,

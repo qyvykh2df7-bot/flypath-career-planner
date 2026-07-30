@@ -10,6 +10,15 @@ La auditoría profunda de CRM y Warhome queda documentada en `docs/audits/crm-au
 
 La especificación funcional de Content OS PilotFeliu está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado dentro de Warhome: calendario editorial semanal/mensual, banco de ideas, biblioteca, fichas, objetivos y métricas manuales. Reutiliza la protección de Warhome y Supabase existente. 12A.6.1/12A.6.2 queda cerrado con roster manual y el primer planificador IA MVP con propuestas separadas, revisión obligatoria, protección contra solapamientos, intervalo configurable y aprobación transaccional. 12A.6.3 queda completado con el AI Content Strategist: propone diez ideas estructuradas, usa histórico y productos, respeta un balance configurable y solo incorpora propuestas aprobadas al banco. La migración `20260729140000_add_content_os_ai_strategist.sql` está aplicada en remoto y el QA sintético validó generación, revisión, idempotencia, permisos, limpieza y ausencia de eventos de calendario. La suite local registra 844 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, publicación automática, APIs externas ni automatizaciones sociales.
 
+12A.7 queda completado: una configuración Brand DNA privada reemplaza el
+contexto estático del Strategist y la biblioteca diferencia producción futura
+de contenido histórico publicado. La importación histórica guarda contexto
+editorial y un snapshot opcional de métricas en una operación atómica. La
+migración `20260729150000_add_content_os_brand_dna_and_historical_library.sql`
+está aplicada en remoto; el QA sintético validó Brand DNA, histórico, métricas,
+aislamiento del calendario, Strategist, permisos y limpieza. La validación local
+registra 858 tests correctos, TypeScript, lint focalizado y build Webpack.
+
 ## Cierre — SEO técnico e indexación
 
 - Se centralizó `metadataBase`, canonical, Open Graph y Twitter sobre `FLYPATH_CANONICAL_ORIGIN`; ninguna URL SEO pública depende de `Host`, previews o Vercel.

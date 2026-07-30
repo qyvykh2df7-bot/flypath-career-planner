@@ -3,8 +3,8 @@ import { ArrowRight, BarChart3, CalendarDays, Library } from "lucide-react";
 import type { ContentOsItem } from "@/lib/warhome/content-os-contract";
 import {
   CONTENT_OS_ITEM_STATUS_LABELS,
+  CONTENT_OS_LIBRARY_PLATFORM_LABELS,
   CONTENT_OS_OBJECTIVE_LABELS,
-  CONTENT_OS_PLATFORM_LABELS,
 } from "./ContentOsLabels";
 
 function compactNumber(value: number): string {
@@ -23,25 +23,9 @@ function formatDate(value: string | null): string {
   }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
-export function ContentLibrary({ items }: { items: ContentOsItem[] }) {
-  if (!items.length) {
-    return (
-      <div className="mt-8 flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.1] bg-[#0d192a]/60 px-6 text-center">
-        <Library className="h-9 w-9 text-slate-600" aria-hidden />
-        <h2 className="mt-4 text-lg font-semibold text-white">Biblioteca vacía</h2>
-        <p className="mt-2 text-sm text-slate-500">Crea una pieza o conviértela desde el banco de ideas.</p>
-        <Link
-          href="/warhome/content/library/new"
-          className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-[#d6ae4f] px-4 text-sm font-semibold text-[#091524]"
-        >
-          Nueva pieza
-        </Link>
-      </div>
-    );
-  }
-
+function ContentLibraryGrid({ items }: { items: ContentOsItem[] }) {
   return (
-    <div className="mt-8 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
       {items.map((item) => (
         <article
           key={item.id}
@@ -49,25 +33,37 @@ export function ContentLibrary({ items }: { items: ContentOsItem[] }) {
         >
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="rounded border border-[#d6ae4f]/25 bg-[#d6ae4f]/10 px-2 py-1 font-medium text-[#e3bc62]">
-              {CONTENT_OS_ITEM_STATUS_LABELS[item.status]}
+              {item.contentOrigin === "historical"
+                ? "Histórico publicado"
+                : CONTENT_OS_ITEM_STATUS_LABELS[item.status]}
             </span>
-            <span className="text-slate-500">{CONTENT_OS_PLATFORM_LABELS[item.platform]}</span>
+            <span className="text-slate-500">
+              {CONTENT_OS_LIBRARY_PLATFORM_LABELS[item.platform]}
+            </span>
           </div>
           <h2 className="mt-4 text-lg font-semibold leading-6 text-white">{item.title}</h2>
-          <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">{item.hook}</p>
+          <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
+            {item.hook || item.summary || "Sin descripción editorial"}
+          </p>
 
           <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-white/[0.07] pt-4 text-xs">
             <div>
               <dt className="text-slate-600">Objetivo</dt>
               <dd className="mt-1 font-medium text-slate-300">
-                {CONTENT_OS_OBJECTIVE_LABELS[item.objective]}
+                {item.objective
+                  ? CONTENT_OS_OBJECTIVE_LABELS[item.objective]
+                  : "Sin definir"}
               </dd>
             </div>
             <div>
               <dt className="text-slate-600">Publicación</dt>
               <dd className="mt-1 inline-flex items-center gap-1.5 font-medium text-slate-300">
                 <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-                {formatDate(item.plannedPublishOn)}
+                {formatDate(
+                  item.contentOrigin === "historical"
+                    ? item.publishedAt?.slice(0, 10) ?? null
+                    : item.plannedPublishOn,
+                )}
               </dd>
             </div>
           </dl>
@@ -87,6 +83,81 @@ export function ContentLibrary({ items }: { items: ContentOsItem[] }) {
           </div>
         </article>
       ))}
+    </div>
+  );
+}
+
+export function ContentLibrary({ items }: { items: ContentOsItem[] }) {
+  if (!items.length) {
+    return (
+      <div className="mt-8 flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.1] bg-[#0d192a]/60 px-6 text-center">
+        <Library className="h-9 w-9 text-slate-600" aria-hidden />
+        <h2 className="mt-4 text-lg font-semibold text-white">Biblioteca vacía</h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Crea una pieza, impórtala o conviértela desde el banco de ideas.
+        </p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/warhome/content/library/new"
+            className="inline-flex min-h-10 items-center rounded-lg bg-[#d6ae4f] px-4 text-sm font-semibold text-[#091524]"
+          >
+            Nueva pieza
+          </Link>
+          <Link
+            href="/warhome/content/library/import"
+            className="inline-flex min-h-10 items-center rounded-lg border border-white/[0.1] px-4 text-sm font-semibold text-slate-200"
+          >
+            Importar contenido publicado
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const planned = items.filter((item) => item.contentOrigin === "planned");
+  const historical = items.filter((item) => item.contentOrigin === "historical");
+
+  return (
+    <div className="mt-8 space-y-10">
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">En producción</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Piezas que se están preparando o programando.
+            </p>
+          </div>
+          <span className="text-xs tabular-nums text-slate-500">{planned.length}</span>
+        </div>
+        {planned.length ? (
+          <ContentLibraryGrid items={planned} />
+        ) : (
+          <p className="rounded-lg border border-dashed border-white/[0.1] px-5 py-8 text-center text-sm text-slate-500">
+            Sin piezas futuras
+          </p>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Histórico publicado</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Contenido anterior usado como contexto editorial.
+            </p>
+          </div>
+          <span className="text-xs tabular-nums text-slate-500">
+            {historical.length}
+          </span>
+        </div>
+        {historical.length ? (
+          <ContentLibraryGrid items={historical} />
+        ) : (
+          <p className="rounded-lg border border-dashed border-white/[0.1] px-5 py-8 text-center text-sm text-slate-500">
+            Aún no hay contenido histórico importado
+          </p>
+        )}
+      </section>
     </div>
   );
 }

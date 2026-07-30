@@ -5,7 +5,6 @@ import {
   CONTENT_OS_OBJECTIVES,
   CONTENT_OS_PLATFORMS,
 } from "@/lib/warhome/content-os-contract";
-import { PILOTFELIU_CONTENT_STRATEGY } from "@/lib/warhome/content-os-strategy-config";
 import {
   CONTENT_OS_STRATEGY_FORMATS,
   CONTENT_OS_STRATEGY_PILLARS,
@@ -34,7 +33,22 @@ export class ContentOsStrategistUnavailableError extends Error {
 function strategistInput(context: ContentOsStrategyContext): string {
   const targets = getContentOsStrategyObjectiveTargets(context.balance);
   return JSON.stringify({
-    strategicContext: PILOTFELIU_CONTENT_STRATEGY,
+    strategicContext: {
+      brand: {
+        name: context.brand.brandName,
+        description: context.brand.brandDescription,
+        audiences: context.brand.audiences,
+        products: context.brand.products,
+        contentPillars: context.brand.contentPillars,
+        objectives: context.brand.objectives,
+        tone: {
+          style: context.brand.toneStyle,
+          personality: context.brand.tonePersonality,
+          communication: context.brand.toneCommunication,
+          avoid: context.brand.toneAvoid,
+        },
+      },
+    },
     requestedMix: {
       percentages: context.balance,
       exactProposalCounts: targets,
@@ -43,8 +57,14 @@ function strategistInput(context: ContentOsStrategyContext): string {
       title: entry.title,
       objective: entry.objective,
       category: entry.category,
+      platform: entry.platform,
+      hook: entry.hook,
+      contentPillar: entry.contentPillar,
+      relatedProductKey: entry.relatedProductKey,
+      contentOrigin: entry.contentOrigin,
       status: entry.status,
       published: entry.published,
+      metrics: entry.metrics,
     })),
     proposalCount: CONTENT_OS_STRATEGY_LIMITS.proposalCount,
   });

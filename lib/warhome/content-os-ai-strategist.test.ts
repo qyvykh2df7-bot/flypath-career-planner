@@ -10,10 +10,35 @@ import {
   CONTENT_OS_DEFAULT_OBJECTIVE_BALANCE,
   type ContentOsStrategyContext,
 } from "./content-os-strategy-contract";
+import { DEFAULT_CONTENT_OS_BRAND_PROFILE } from "./content-os-brand-contract";
 
 const context: ContentOsStrategyContext = {
+  brand: DEFAULT_CONTENT_OS_BRAND_PROFILE,
   balance: CONTENT_OS_DEFAULT_OBJECTIVE_BALANCE,
-  history: [],
+  history: [
+    {
+      title: "Vídeo histórico",
+      objective: "authority",
+      category: "aviation",
+      platform: "youtube",
+      hook: "Hook histórico",
+      contentPillar: "training",
+      relatedProductKey: "guide",
+      contentOrigin: "historical",
+      status: "published",
+      published: true,
+      metrics: {
+        views: 12_000,
+        likes: 800,
+        comments: 40,
+        shares: 75,
+        saves: 120,
+        followersGained: 90,
+        leadsGenerated: 12,
+        salesAttributed: 3,
+      },
+    },
+  ],
 };
 
 const objectives = [
@@ -75,6 +100,25 @@ describe("Content OS AI strategist", () => {
         },
       }),
     );
+    const providerInput = JSON.parse(
+      String((create.mock.calls[0]?.[0] as { input: string }).input),
+    ) as {
+      strategicContext: { brand: { name: string; tone: { avoid: string } } };
+      existingContent: Array<{
+        title: string;
+        contentOrigin: string;
+        metrics: { saves: number };
+      }>;
+    };
+    expect(providerInput.strategicContext.brand.name).toBe("PilotFeliu");
+    expect(providerInput.strategicContext.brand.tone.avoid).toContain(
+      "Política",
+    );
+    expect(providerInput.existingContent[0]).toMatchObject({
+      title: "Vídeo histórico",
+      contentOrigin: "historical",
+      metrics: { saves: 120 },
+    });
     const request = create.mock.calls[0]?.[0] as {
       text: { format: { schema: unknown } };
     };

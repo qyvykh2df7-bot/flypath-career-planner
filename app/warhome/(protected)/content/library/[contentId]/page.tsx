@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CalendarDays } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ContentItemForm } from "@/components/warhome/content/ContentItemForm";
+import { ContentHistoricalItemSummary } from "@/components/warhome/content/ContentHistoricalItemSummary";
 import { ContentMetricsPanel } from "@/components/warhome/content/ContentMetricsPanel";
 import { ContentOsLoadError } from "@/components/warhome/content/ContentOsLoadError";
 import { ContentOsPageHeader } from "@/components/warhome/content/ContentOsPageHeader";
@@ -68,9 +69,13 @@ export default async function ContentOsItemPage({ params }: ContentOsItemPagePro
       </Link>
 
       <div className="mt-3 grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
-        <section className="rounded-lg border border-white/[0.08] bg-[#0d192a] p-5 sm:p-6">
-          <ContentItemForm item={detail.item} />
-        </section>
+        {detail.item.contentOrigin === "historical" ? (
+          <ContentHistoricalItemSummary item={detail.item} />
+        ) : (
+          <section className="rounded-lg border border-white/[0.08] bg-[#0d192a] p-5 sm:p-6">
+            <ContentItemForm item={detail.item} />
+          </section>
+        )}
         <div className="space-y-6">
           <ContentMetricsPanel detail={detail} />
           <section className="rounded-lg border border-white/[0.08] bg-[#0d192a]">

@@ -24,6 +24,14 @@ export const CONTENT_OS_PLATFORM_LABELS: Record<ContentOsPlatform, string> = {
   youtube: "YouTube",
 };
 
+export const CONTENT_OS_LIBRARY_PLATFORM_LABELS: Record<
+  ContentOsPlatform | "other",
+  string
+> = {
+  ...CONTENT_OS_PLATFORM_LABELS,
+  other: "Otra",
+};
+
 export const CONTENT_OS_OBJECTIVE_LABELS: Record<ContentOsObjective, string> = {
   growth: "Crecimiento",
   community: "Comunidad",

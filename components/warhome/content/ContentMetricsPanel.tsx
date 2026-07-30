@@ -29,6 +29,7 @@ const fields = [
   ["likes", "Likes"],
   ["comments", "Comentarios"],
   ["shares", "Compartidos"],
+  ["saves", "Guardados"],
   ["followersGained", "Seguidores ganados"],
   ["leadsGenerated", "Leads generados"],
   ["salesAttributed", "Ventas asociadas"],

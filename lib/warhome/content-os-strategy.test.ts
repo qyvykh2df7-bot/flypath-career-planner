@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getSupabaseAdmin: vi.fn(),
   requireWarhomeAdmin: vi.fn(),
   generateContentOsStrategy: vi.fn(),
+  loadContentOsBrandProfile: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -15,6 +16,9 @@ vi.mock("@/lib/warhome/auth", () => ({
 }));
 vi.mock("@/lib/warhome/content-os-ai-strategist", () => ({
   generateContentOsStrategy: mocks.generateContentOsStrategy,
+}));
+vi.mock("@/lib/warhome/content-os-brand", () => ({
+  loadContentOsBrandProfile: mocks.loadContentOsBrandProfile,
 }));
 
 import {
@@ -30,6 +34,26 @@ beforeEach(() => {
   mocks.requireWarhomeAdmin.mockResolvedValue({
     userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     role: "owner",
+  });
+  mocks.loadContentOsBrandProfile.mockResolvedValue({
+    workspaceKey: "pilotfeliu",
+    brandName: "PilotFeliu",
+    brandDescription: "Piloto comercial.",
+    audiences: ["Futuros pilotos"],
+    products: {
+      guide: "Guía",
+      career_planner: "Planner",
+      aerocomms: "AeroComms",
+      mentorships: "Mentorías",
+    },
+    contentPillars: ["Vida de piloto"],
+    objectives: ["growth", "authority", "community", "conversion"],
+    toneStyle: "Directo",
+    tonePersonality: "Cercano",
+    toneCommunication: "Claro",
+    toneAvoid: "Información sensible",
+    createdAt: null,
+    updatedAt: null,
   });
 });
 
@@ -77,6 +101,7 @@ describe("Content OS strategy server layer", () => {
   it("detiene una generación repetida antes de llamar al proveedor IA", async () => {
     const ideasLimit = vi.fn().mockResolvedValue({ data: [], error: null });
     const itemsLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+    const metricsLimit = vi.fn().mockResolvedValue({ data: [], error: null });
     const rpc = vi.fn().mockResolvedValue({
       data: null,
       error: { message: "content_os_strategist_rate_limited" },
@@ -89,13 +114,19 @@ describe("Content OS strategy server layer", () => {
                 order: () => ({ limit: ideasLimit }),
               }),
             }
-          : {
+          : table === "content_items"
+            ? {
               select: () => ({
                 eq: () => ({
                   order: () => ({ limit: itemsLimit }),
                 }),
               }),
-            },
+              }
+            : {
+                select: () => ({
+                  order: () => ({ limit: metricsLimit }),
+                }),
+              },
       ),
       rpc,
     });

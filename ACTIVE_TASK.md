@@ -33,6 +33,15 @@ Pendiente:
 
 Como referencia funcional queda [Content OS PilotFeliu - AI Content Command Center](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). Su MVP 12A está completado dentro de Warhome con calendario, ideas, biblioteca, fichas y métricas manuales. Las migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql` y `20260729130000_add_content_os_roster_and_ai_planner.sql` están aplicadas en Supabase remoto y el QA sintético remoto está completado. El bloque 12A.6 queda cerrado con roster manual y un planificador IA MVP de dos semanas que guarda propuestas separadas, evita solapamientos y solo crea calendario tras aprobación; incorpora un intervalo configurable contra repeticiones accidentales. La validación actual registra 823 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, APIs externas ni automatizaciones sociales.
 
+El bloque 12A.7 está completado: Brand DNA editable, importación de contenido
+histórico publicado, métricas opcionales y contexto dinámico para el
+Strategist. La migración
+`20260729150000_add_content_os_brand_dna_and_historical_library.sql` está
+aplicada en Supabase remoto; el QA sintético validó persistencia, aislamiento
+del calendario, consumo del Strategist, permisos y limpieza de datos de prueba.
+La validación local registra 858 tests correctos, TypeScript, lint focalizado y
+build Webpack. No se debe iniciar AI Analyst ni conectar APIs sociales.
+
 ## Cierre técnico reciente — Rendimiento pre-lanzamiento
 
 - Auditoría Lighthouse/build/bundle completada en rutas públicas y de producto representativas; informe: `docs/ai/performance/flypath-production-performance-audit.md`.

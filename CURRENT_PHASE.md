@@ -31,6 +31,13 @@ Pendiente en Fase 11:
 
 La especificación de la herramienta interna personal de contenido está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado como módulo privado dentro de Warhome: calendario semanal/mensual, banco de ideas, biblioteca, fichas y métricas manuales. Las migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql`, `20260729130000_add_content_os_roster_and_ai_planner.sql` y `20260729140000_add_content_os_ai_strategist.sql` están aplicadas en Supabase remoto y su QA sintético está completado. Los bloques 12A.6.1/12A.6.2 quedan cerrados con roster manual y un planificador IA MVP de propuestas revisables, protección de solapamientos, intervalo configurable contra repeticiones accidentales y aprobación transaccional. El AI Content Strategist 12A.6.3 propone ideas completas según marca, audiencia, productos, histórico y un balance configurable, pero requiere revisión antes de incorporarlas al banco. La validación local registra 844 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, APIs externas, publicación automática ni automatizaciones sociales. El Command Center completo sigue siendo posterior.
 
+12A.7 Brand DNA + Historical Content Library está completado: Brand DNA editable
+alimenta al Strategist y la biblioteca separa piezas futuras de publicaciones
+históricas importadas con métricas opcionales. La migración
+`20260729150000_add_content_os_brand_dna_and_historical_library.sql` está
+aplicada en remoto y el QA sintético está completado. La validación local del
+bloque registra 858 tests correctos, TypeScript, lint focalizado y build Webpack.
+
 ## Cierre técnico reciente — SEO e indexación
 
 - El origen canónico server-side `FLYPATH_CANONICAL_ORIGIN` alimenta ahora `metadataBase`, canonicals absolutos, Open Graph y Twitter sin depender de `Host` ni de URLs de Vercel.

@@ -18,6 +18,7 @@ import {
   type ContentOsProposalStatus,
 } from "@/lib/warhome/content-os-contract";
 import { generateContentOsStrategy } from "@/lib/warhome/content-os-ai-strategist";
+import { loadContentOsBrandProfile } from "@/lib/warhome/content-os-brand";
 import {
   CONTENT_OS_DEFAULT_OBJECTIVE_BALANCE,
   CONTENT_OS_STRATEGY_FORMATS,
@@ -192,6 +193,10 @@ function mapStrategyProposal(value: unknown): ContentOsStrategyProposal | null {
 
 function mapHistoryEntry(
   value: unknown,
+  metricsByItem: ReadonlyMap<
+    string,
+    ContentOsStrategyContext["history"][number]["metrics"]
+  > = new Map(),
 ): ContentOsStrategyContext["history"][number] | null {
   const row = isRecord(value) ? value : null;
   if (!row) return null;
@@ -202,10 +207,21 @@ function mapHistoryEntry(
       ? null
       : text(row.category);
   const status = text(row.status);
+  const id = text(row.id);
+  const platform = row.platform == null ? null : text(row.platform);
+  const hook = row.hook == null ? null : text(row.hook);
+  const contentPillar =
+    row.content_pillar == null ? null : text(row.content_pillar);
+  const relatedProductKey =
+    row.related_product_key == null ? null : text(row.related_product_key);
+  const origin =
+    row.content_origin === "historical" || row.content_origin === "planned"
+      ? row.content_origin
+      : "idea";
   if (
     !title ||
-    !objective ||
-    !includesValue(CONTENT_OS_OBJECTIVES, objective) ||
+    (objective !== null &&
+      !includesValue(CONTENT_OS_OBJECTIVES, objective)) ||
     (category !== null && !includesValue(CONTENT_OS_CATEGORIES, category)) ||
     !status
   ) {
@@ -213,18 +229,72 @@ function mapHistoryEntry(
   }
   return {
     title,
-    objective: objective as ContentOsObjective,
+    objective: objective as ContentOsObjective | null,
     category: category as ContentOsCategory | null,
+    platform:
+      platform === "other" ||
+      (platform !== null && includesValue(CONTENT_OS_PLATFORMS, platform))
+        ? platform
+        : null,
+    hook,
+    contentPillar,
+    relatedProductKey:
+      relatedProductKey !== null &&
+      includesValue(CONTENT_OS_STRATEGY_PRODUCTS, relatedProductKey)
+        ? relatedProductKey
+        : null,
+    contentOrigin: origin,
     status,
     published: status === "published",
+    metrics: id ? metricsByItem.get(id) ?? null : null,
   };
+}
+
+function mapStrategyMetric(
+  value: unknown,
+): [
+  string,
+  NonNullable<ContentOsStrategyContext["history"][number]["metrics"]>,
+] | null {
+  const row = isRecord(value) ? value : null;
+  const contentItemId = row ? text(row.content_item_id) : null;
+  const fields = row
+    ? {
+        views: row.views,
+        likes: row.likes,
+        comments: row.comments,
+        shares: row.shares,
+        saves: row.saves,
+        followersGained: row.followers_gained,
+        leadsGenerated: row.leads_generated,
+        salesAttributed: row.sales_attributed,
+      }
+    : null;
+  if (
+    !contentItemId ||
+    !fields ||
+    Object.values(fields).some(
+      (entry) =>
+        typeof entry !== "number" ||
+        !Number.isSafeInteger(entry) ||
+        entry < 0,
+    )
+  ) {
+    return null;
+  }
+  return [
+    contentItemId,
+    fields as NonNullable<
+      ContentOsStrategyContext["history"][number]["metrics"]
+    >,
+  ];
 }
 
 async function loadStrategyContext(
   balance: ContentOsStrategyObjectiveBalance,
 ): Promise<ContentOsStrategyContext> {
   const admin = getSupabaseAdmin();
-  const [ideasResult, itemsResult] = await Promise.all([
+  const [ideasResult, itemsResult, metricsResult, brand] = await Promise.all([
     admin
       .from("content_ideas")
       .select("title,objective,category,status")
@@ -232,23 +302,45 @@ async function loadStrategyContext(
       .limit(300),
     admin
       .from("content_items")
-      .select("title,objective,category,status")
+      .select(
+        "id,title,objective,category,status,platform,hook,content_origin,content_pillar,related_product_key",
+      )
       .eq("workspace_key", CONTENT_OS_WORKSPACE_KEY)
       .order("updated_at", { ascending: false })
       .limit(300),
+    admin
+      .from("content_metrics")
+      .select(
+        "content_item_id,recorded_on,views,likes,comments,shares,saves,followers_gained,leads_generated,sales_attributed",
+      )
+      .order("recorded_on", { ascending: false })
+      .limit(1_000),
+    loadContentOsBrandProfile(),
   ]);
   if (
     ideasResult.error ||
     itemsResult.error ||
+    metricsResult.error ||
     !Array.isArray(ideasResult.data) ||
-    !Array.isArray(itemsResult.data)
+    !Array.isArray(itemsResult.data) ||
+    !Array.isArray(metricsResult.data)
   ) {
     throw new ContentOsDataError();
   }
 
+  const metricsByItem = new Map<
+    string,
+    ContentOsStrategyContext["history"][number]["metrics"]
+  >();
+  for (const row of metricsResult.data) {
+    const metric = mapStrategyMetric(row);
+    if (!metric) throw new ContentOsDataError();
+    if (!metricsByItem.has(metric[0])) metricsByItem.set(metric[0], metric[1]);
+  }
+
   const history = [
     ...ideasResult.data.map((row) => mapHistoryEntry(row)),
-    ...itemsResult.data.map((row) => mapHistoryEntry(row)),
+    ...itemsResult.data.map((row) => mapHistoryEntry(row, metricsByItem)),
   ];
   if (history.some((entry) => entry === null)) throw new ContentOsDataError();
 
@@ -259,7 +351,7 @@ async function loadStrategyContext(
   for (const entry of history) {
     if (entry) uniqueHistory.set(normalizedTitle(entry.title), entry);
   }
-  return { balance, history: [...uniqueHistory.values()] };
+  return { brand, balance, history: [...uniqueHistory.values()] };
 }
 
 async function loadStrategyProposals(): Promise<ContentOsStrategyProposal[]> {

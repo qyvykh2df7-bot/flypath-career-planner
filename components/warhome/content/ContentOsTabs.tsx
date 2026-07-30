@@ -7,6 +7,7 @@ import {
   Lightbulb,
   Sparkles,
   Timer,
+  Fingerprint,
 } from "lucide-react";
 
 const tabs = [
@@ -20,6 +21,7 @@ const tabs = [
     label: "Strategist IA",
     icon: BrainCircuit,
   },
+  { href: "/warhome/content/brand", label: "Brand DNA", icon: Fingerprint },
   { href: "/warhome/content/library/new", label: "Nueva pieza", icon: Clapperboard },
 ] as const;
 
@@ -33,6 +35,7 @@ export function ContentOsTabs({
     | "availability"
     | "planner"
     | "strategist"
+    | "brand"
     | "new";
 }) {
   const activeHref = {
@@ -42,6 +45,7 @@ export function ContentOsTabs({
     availability: "/warhome/content/availability",
     planner: "/warhome/content/planner",
     strategist: "/warhome/content/strategist",
+    brand: "/warhome/content/brand",
     new: "/warhome/content/library/new",
   }[active];
 

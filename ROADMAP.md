@@ -691,6 +691,14 @@ Estado del MVP 12A:
   estructuradas, deduplicación básica y revisión manual antes de entrar en el
   banco operativo. La migración `20260729140000_add_content_os_ai_strategist.sql`
   está aplicada en remoto y el QA sintético quedó completado.
+- 12A.7 Brand DNA + Historical Content Library completado: configuración
+  estratégica editable, biblioteca separada entre piezas futuras e histórico
+  publicado, importación con métricas opcionales y consumo del contexto por el
+  Strategist. La migración
+  `20260729150000_add_content_os_brand_dna_and_historical_library.sql` está
+  aplicada en remoto y su QA sintético validó persistencia, aislamiento del
+  calendario, Strategist, permisos y limpieza. Validación local: 858 tests,
+  TypeScript, lint focalizado y build Webpack correctos.
 - Migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql` y
   `20260729130000_add_content_os_roster_and_ai_planner.sql` aplicadas en Supabase
   remoto y QA sintético remoto completado; validación local actual: 844 tests correctos,

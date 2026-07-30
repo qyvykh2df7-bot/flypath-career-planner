@@ -82,6 +82,38 @@ metadatos estratégicos, añade la protección de coste y las RPC de creación y
 revisión. La auditoría final está aprobada; la migración está aplicada en
 Supabase remoto y el QA sintético está completado.
 
+## Bloque 12A.7 — Brand DNA e histórico editorial
+
+La mejora 12A.7 está implementada, aplicada en Supabase remoto y validada
+mediante QA sintético. La migración correspondiente es
+`20260729150000_add_content_os_brand_dna_and_historical_library.sql`.
+
+Brand DNA mantiene una única configuración privada para el workspace
+`pilotfeliu`: identidad, descripción, audiencias, contexto de los cuatro
+productos, pilares, objetivos y cuatro campos de tono. Se edita desde Warhome y
+el AI Content Strategist recibe esta configuración guardada como contexto; la
+configuración estática anterior deja de ser la fuente operativa.
+
+La biblioteca distingue explícitamente:
+
+- `planned`: piezas futuras creadas o promovidas desde ideas;
+- `historical`: publicaciones ya existentes, siempre con estado `published`.
+
+El flujo “Importar contenido publicado” guarda título, plataforma, fecha, URL y
+contexto editorial opcional. También puede crear en la misma transacción un
+snapshot inicial con visualizaciones, likes, comentarios, compartidos,
+guardados, seguidores, leads y ventas. El histórico se muestra separado de la
+producción futura y enriquece el contexto del Strategist, pero no entra en el
+Planner ni crea calendario.
+
+La migración mantiene RLS cerrada, acceso exclusivo de `service_role` y
+validación de administrador Warhome dentro de las RPC de edición de Brand DNA e
+importación histórica. No añade APIs sociales, publicación automática, AI
+Analyst ni autonomía. El QA remoto validó persistencia de Brand DNA, importación
+histórica con métricas, aislamiento del calendario, consumo real del Strategist,
+permisos y limpieza de los datos sintéticos. La validación local del bloque
+registra 858 tests, TypeScript, lint focalizado y build Webpack correctos.
+
 ### Límites editoriales del MVP
 
 La ficha inicial cubre los campos operativos cerrados para 12A: título, plataforma, objetivo, categoría, hook, guion, CTA, estado, fechas y notas. La persistencia aplica los mismos límites de longitud que el contrato y los formularios para conservar la integridad del contenido.

@@ -8,6 +8,7 @@ import {
   type ContentOsPlatform,
   type ContentOsProposalStatus,
 } from "@/lib/warhome/content-os-contract";
+import type { ContentOsBrandProfile } from "@/lib/warhome/content-os-brand-contract";
 
 export const CONTENT_OS_STRATEGY_PILLARS = [
   "pilot_life",
@@ -106,13 +107,29 @@ export type ContentOsStrategyOutput = {
 
 export type ContentOsStrategyHistoryEntry = {
   title: string;
-  objective: ContentOsObjective;
+  objective: ContentOsObjective | null;
   category: ContentOsCategory | null;
+  platform: ContentOsPlatform | "other" | null;
+  hook: string | null;
+  contentPillar: string | null;
+  relatedProductKey: ContentOsStrategyProduct | null;
+  contentOrigin: "idea" | "planned" | "historical";
   status: string;
   published: boolean;
+  metrics: {
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    saves: number;
+    followersGained: number;
+    leadsGenerated: number;
+    salesAttributed: number;
+  } | null;
 };
 
 export type ContentOsStrategyContext = {
+  brand: ContentOsBrandProfile;
   balance: ContentOsStrategyObjectiveBalance;
   history: ContentOsStrategyHistoryEntry[];
 };

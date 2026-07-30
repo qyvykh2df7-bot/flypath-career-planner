@@ -32,15 +32,19 @@ import {
   type ContentOsProposalSource,
   type ContentOsProposalStatus,
 } from "@/lib/warhome/content-os-contract";
+import {
+  CONTENT_OS_LIBRARY_PLATFORMS,
+  type ContentOsLibraryPlatform,
+} from "@/lib/warhome/content-os-history-contract";
 
 const CONTENT_ITEM_SELECT =
-  "id,source_idea_id,title,summary,platform,objective,category,hook,script,cta,notes,status,planned_recording_on,planned_publish_on,published_at,proposal_source,proposal_status,created_at,updated_at";
+  "id,source_idea_id,title,summary,platform,objective,category,hook,script,cta,notes,status,planned_recording_on,planned_publish_on,published_at,content_origin,source_url,content_pillar,related_product_key,proposal_source,proposal_status,created_at,updated_at";
 const CONTENT_IDEA_SELECT =
   "id,title,description,category,platform,objective,status,proposal_source,proposal_status,strategy_idea,strategy_hook,strategy_platforms,strategy_format,strategy_duration_seconds,strategy_product_key,strategy_cta,strategy_priority,strategy_pillar,created_at,updated_at";
 const CONTENT_EVENT_SELECT =
   "id,content_item_id,title,event_type,starts_at,ends_at,timezone,notes,proposal_source,proposal_status,created_at,updated_at";
 const CONTENT_METRIC_SELECT =
-  "id,content_item_id,recorded_on,views,likes,comments,shares,followers_gained,leads_generated,sales_attributed,created_at,updated_at";
+  "id,content_item_id,recorded_on,views,likes,comments,shares,saves,followers_gained,leads_generated,sales_attributed,created_at,updated_at";
 const CONTENT_OS_WORKSPACE_KEY = "pilotfeliu";
 
 type RawRecord = Record<string, unknown>;
@@ -121,6 +125,7 @@ function mapMetric(value: unknown): ContentOsMetricSnapshot | null {
     likes: nonnegativeInteger(row.likes),
     comments: nonnegativeInteger(row.comments),
     shares: nonnegativeInteger(row.shares),
+    saves: nonnegativeInteger(row.saves),
     followersGained: nonnegativeInteger(row.followers_gained),
     leadsGenerated: nonnegativeInteger(row.leads_generated),
     salesAttributed: nonnegativeInteger(row.sales_attributed),
@@ -145,6 +150,7 @@ function mapMetric(value: unknown): ContentOsMetricSnapshot | null {
     likes: values.likes as number,
     comments: values.comments as number,
     shares: values.shares as number,
+    saves: values.saves as number,
     followersGained: values.followersGained as number,
     leadsGenerated: values.leadsGenerated as number,
     salesAttributed: values.salesAttributed as number,
@@ -172,18 +178,24 @@ function mapItem(
   const publishedAt = row.published_at === null ? null : timestamp(row.published_at);
   const plannedRecordingOn = row.planned_recording_on === null ? null : text(row.planned_recording_on);
   const plannedPublishOn = row.planned_publish_on === null ? null : text(row.planned_publish_on);
+  const contentOrigin = text(row.content_origin);
 
   if (
     !id ||
     !isContentOsUuid(id) ||
-    !includesValue(CONTENT_OS_PLATFORMS, platform ?? "") ||
-    !includesValue(CONTENT_OS_OBJECTIVES, objective ?? "") ||
+    !includesValue(CONTENT_OS_LIBRARY_PLATFORMS, platform ?? "") ||
+    (objective !== null &&
+      !includesValue(CONTENT_OS_OBJECTIVES, objective)) ||
     (category !== null && !includesValue(CONTENT_OS_CATEGORIES, category)) ||
     !includesValue(CONTENT_OS_ITEM_STATUSES, status ?? "") ||
     !source ||
     !approval ||
     !createdAt ||
     !updatedAt ||
+    (contentOrigin !== "planned" && contentOrigin !== "historical") ||
+    (contentOrigin === "planned" &&
+      (!includesValue(CONTENT_OS_PLATFORMS, platform ?? "") ||
+        objective === null)) ||
     (row.published_at !== null && !publishedAt) ||
     (plannedRecordingOn !== null && !isContentOsDate(plannedRecordingOn)) ||
     (plannedPublishOn !== null && !isContentOsDate(plannedPublishOn))
@@ -192,23 +204,33 @@ function mapItem(
   }
 
   const title = text(row.title);
-  const hook = text(row.hook);
-  const script = text(row.script);
-  const cta = text(row.cta);
-  if (!title?.trim() || !hook?.trim() || !script?.trim() || !cta?.trim()) return null;
+  const hook = text(row.hook) ?? "";
+  const script = text(row.script) ?? "";
+  const cta = text(row.cta) ?? "";
+  if (
+    !title?.trim() ||
+    (contentOrigin === "planned" &&
+      (!hook.trim() || !script.trim() || !cta.trim()))
+  ) {
+    return null;
+  }
 
   return {
     id,
     sourceIdeaId: optionalText(row.source_idea_id),
     title,
     summary: optionalText(row.summary),
-    platform: platform as ContentOsPlatform,
-    objective: objective as ContentOsObjective,
+    platform: platform as ContentOsLibraryPlatform,
+    objective: objective as ContentOsObjective | null,
     category: category as ContentOsCategory | null,
     hook,
     script,
     cta,
     notes: optionalText(row.notes),
+    contentOrigin,
+    sourceUrl: optionalText(row.source_url),
+    contentPillar: optionalText(row.content_pillar),
+    relatedProductKey: optionalText(row.related_product_key),
     status: status as ContentOsItemStatus,
     plannedRecordingOn,
     plannedPublishOn,
@@ -554,6 +576,7 @@ export async function getContentOsCalendarWorkspace(
       .from("content_items")
       .select(CONTENT_ITEM_SELECT)
       .eq("workspace_key", CONTENT_OS_WORKSPACE_KEY)
+      .eq("content_origin", "planned")
       .neq("status", "archived")
       .order("updated_at", { ascending: false })
       .limit(300),
@@ -660,6 +683,7 @@ export async function createContentOsItem(input: ContentOsItemInput): Promise<st
       visibility: "internal",
       language_code: "es",
       workspace_key: CONTENT_OS_WORKSPACE_KEY,
+      content_origin: "planned",
       platform: input.platform,
       objective: input.objective,
       category: input.category,
@@ -837,6 +861,7 @@ export async function upsertContentOsMetric(
       likes: input.likes,
       comments: input.comments,
       shares: input.shares,
+      saves: input.saves,
       followers_gained: input.followersGained,
       leads_generated: input.leadsGenerated,
       sales_attributed: input.salesAttributed,
