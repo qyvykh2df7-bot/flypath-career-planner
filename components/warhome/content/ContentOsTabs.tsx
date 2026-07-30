@@ -5,6 +5,7 @@ import {
   Clapperboard,
   Library,
   Lightbulb,
+  Plug,
   Sparkles,
   Timer,
   Fingerprint,
@@ -22,6 +23,11 @@ const tabs = [
     icon: BrainCircuit,
   },
   { href: "/warhome/content/brand", label: "Brand DNA", icon: Fingerprint },
+  {
+    href: "/warhome/content/integrations/tiktok",
+    label: "Integraciones",
+    icon: Plug,
+  },
   { href: "/warhome/content/library/new", label: "Nueva pieza", icon: Clapperboard },
 ] as const;
 
@@ -36,6 +42,7 @@ export function ContentOsTabs({
     | "planner"
     | "strategist"
     | "brand"
+    | "integrations"
     | "new";
 }) {
   const activeHref = {
@@ -46,6 +53,7 @@ export function ContentOsTabs({
     planner: "/warhome/content/planner",
     strategist: "/warhome/content/strategist",
     brand: "/warhome/content/brand",
+    integrations: "/warhome/content/integrations/tiktok",
     new: "/warhome/content/library/new",
   }[active];
 
