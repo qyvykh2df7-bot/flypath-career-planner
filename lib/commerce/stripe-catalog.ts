@@ -2,14 +2,14 @@ import "server-only";
 
 import type { StripeMode } from "./stripe";
 
-export type StripeCatalogProductKey = "aerocomms_pro" | "career_planner" | "como_ser_piloto_guide";
+export type StripeCatalogProductKey = "aerocomms_pro" | "career_planner" | "como_ser_piloto_guide" | "preppl_guide";
 
 export type StripeCatalogBinding = {
   stripeProductId: string;
   stripePriceId: string;
 };
 
-type StripeCatalog = Record<StripeCatalogProductKey, Record<StripeMode, StripeCatalogBinding>>;
+type StripeCatalog = Record<StripeCatalogProductKey, Partial<Record<StripeMode, StripeCatalogBinding>>>;
 
 /**
  * Provider identifiers are server-only and selected exclusively from the mode
@@ -47,6 +47,14 @@ const STRIPE_CATALOG: StripeCatalog = {
       stripePriceId: "price_1TwJ6cKuujVRKb0PPKY1Y8El",
     },
   },
+  preppl_guide: {
+    // Pre-PPL has no Test catalog binding yet. It fails closed there instead of
+    // ever accepting a Live price from a Test runtime.
+    live: {
+      stripeProductId: "prod_V2HDiunAEOVO9p",
+      stripePriceId: "price_1U2Cf6KuujVRKb0PVULrzLEY",
+    },
+  },
 };
 
 const AEROCOMMS_PRO_TEST_LEGACY_PRICE_ID = "price_1TvgG4KuujVRKb0PkofwZMz7";
@@ -55,7 +63,11 @@ export function getStripeCatalogBinding(
   productKey: StripeCatalogProductKey,
   mode: StripeMode,
 ): StripeCatalogBinding {
-  return STRIPE_CATALOG[productKey][mode];
+  const binding = STRIPE_CATALOG[productKey][mode];
+  if (!binding) {
+    throw new Error("Stripe catalog binding unavailable for this mode");
+  }
+  return binding;
 }
 
 export function isStripeCatalogPriceId(

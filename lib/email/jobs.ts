@@ -4,12 +4,13 @@ import type { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 import { isTransactionalTemplateKey, type TransactionalTemplateKey } from "./templates";
 
-export const EMAIL_JOB_SELECT = "id,lead_id,school_review_id,template_key,status,attempt_count,max_attempts";
+export const EMAIL_JOB_SELECT = "id,lead_id,school_review_id,order_id,template_key,status,attempt_count,max_attempts";
 
 export type TransactionalEmailJob = {
   id: string;
   leadId: string | null;
   schoolReviewId?: string | null;
+  orderId?: string | null;
   templateKey: TransactionalTemplateKey;
   status: "pending" | "processing" | "sent" | "failed" | "cancelled";
   attemptCount: number;
@@ -48,6 +49,7 @@ function mapTransactionalJob(value: unknown): TransactionalEmailJob | null {
     typeof value.id !== "string" ||
     (typeof value.lead_id !== "string" && value.lead_id !== null) ||
     (typeof value.school_review_id !== "string" && value.school_review_id !== null && value.school_review_id !== undefined) ||
+    (typeof value.order_id !== "string" && value.order_id !== null && value.order_id !== undefined) ||
     typeof value.attempt_count !== "number" ||
     typeof value.max_attempts !== "number"
   ) {
@@ -58,6 +60,7 @@ function mapTransactionalJob(value: unknown): TransactionalEmailJob | null {
     id: value.id,
     leadId: value.lead_id,
     schoolReviewId: typeof value.school_review_id === "string" ? value.school_review_id : null,
+    orderId: typeof value.order_id === "string" ? value.order_id : null,
     templateKey: value.template_key,
     status: value.status,
     attemptCount: value.attempt_count,
@@ -74,6 +77,7 @@ export async function createTransactionalEmailJob(
   input: {
     leadId?: string | null;
     schoolReviewId?: string | null;
+    orderId?: string | null;
     templateKey: TransactionalTemplateKey;
     idempotencyKey: string;
     scheduledFor?: string;
@@ -88,6 +92,7 @@ export async function createTransactionalEmailJob(
       idempotency_key: input.idempotencyKey,
       lead_id: input.leadId ?? null,
       ...(input.schoolReviewId ? { school_review_id: input.schoolReviewId } : {}),
+      ...(input.orderId ? { order_id: input.orderId } : {}),
       status: "pending",
       scheduled_for: scheduledFor,
       enrollment_id: null,
@@ -113,6 +118,7 @@ export async function createTransactionalEmailJob(
   if (
     duplicateError || !existingJob || existingJob.leadId !== (input.leadId ?? null)
     || (existingJob.schoolReviewId ?? null) !== (input.schoolReviewId ?? null)
+    || (existingJob.orderId ?? null) !== (input.orderId ?? null)
   ) {
     throw new EmailJobPersistenceError();
   }

@@ -52,6 +52,13 @@ export const PLATFORM_NAV_SECTIONS: PlatformNavSection[] = [
     items: [],
   },
   {
+    id: "pre-ppl",
+    label: "Pre-PPL",
+    hubHref: "/pre-ppl",
+    status: "available",
+    items: [],
+  },
+  {
     id: "escuelas",
     label: "Escuelas",
     hubHref: "/escuelas",
@@ -96,4 +103,3 @@ export const PLATFORM_NAV_SECTIONS: PlatformNavSection[] = [
 export function isPlatformNavCurrent(currentModuleId: string, targetId: string): boolean {
   return currentModuleId === targetId;
 }
-

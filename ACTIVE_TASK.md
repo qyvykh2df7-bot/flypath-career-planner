@@ -125,7 +125,7 @@ Fase 8 está **CLOSED / COMPLETED / DEPLOYED**:
 - Hotfix de compatibilidad PDF cerrado: `PREMIUM_PDF_PAGE_IMAGES` usa PNG/JPEG reales para el informe premium, conserva los WebP de las previews web y elimina los avisos `Not valid image extension`. El PDF real de 11 páginas se validó visualmente; no cambió Stripe, pagos, webhook ni lógica comercial.
 - Validación local: 583 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores nuevos.
 - Validación de cierre 10C: 554 pruebas correctas, TypeScript y `git diff --check` correctos; lint focalizado sin errores.
-- Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro requiere cuenta FlyPath para compra y uso, con acceso exclusivo por entitlement; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL sigue en waitlist.
+- Las decisiones de canal son: Career Planner y guías digitales con Stripe como invitado; AeroComms Pro requiere cuenta FlyPath para compra y uso, con acceso exclusivo por entitlement; Mentorías mediante Cal.com; guía física mediante Amazon; Pre-PPL está disponible en digital con entrega protegida.
 
 ## Cierre — 10E
 

@@ -492,7 +492,7 @@ Backend y QA manual end-to-end completados; preparado para el siguiente desplieg
 - Pagar no exige una cuenta FlyPath global.
 - **Career Planner Premium:** Stripe Checkout directo, compra invitada permitida y pago confirmado exclusivamente por webhook. El PDF se descarga en el navegador y tendrá recuperación segura si falla la descarga o se cierra la pestaña.
 - **AeroComms Pro:** requiere una cuenta FlyPath y usa Stripe Checkout de suscripción. El acceso se resuelve solo con el entitlement server-side `aerocomms_pro`; `localStorage` no es una fuente de autorización.
-- **Guías digitales:** compra invitada con Stripe Checkout, confirmación por webhook y enlace de descarga seguro. Pre-PPL seguirá como waitlist hasta estar terminado; después usará este mismo flujo.
+- **Guías digitales:** compra invitada con Stripe Checkout, confirmación por webhook y enlace de descarga seguro. Pre-PPL usa este mismo flujo con el precio cerrado de 23,95 EUR.
 - **Mentorías:** el CTA lleva a Cal.com; Cal.com gestiona agenda, reserva, Google Meet, emails operativos y pago mediante Stripe. FlyPath recibe una proyección operativa mediante webhook firmado de Cal.com, no crea Checkout, pedidos ni pagos propios y no vincula por email una reserva con una cuenta o lead.
 - **Guía física:** CTA externo a Amazon; Amazon gestiona pago, envío, dirección, devoluciones y facturación. FlyPath solo registra el clic de salida.
 - Moneda inicial: **EUR**. Un reembolso digital total revoca el acceso o invalida la entrega; los reembolsos parciales pasan inicialmente a revisión manual.

@@ -127,7 +127,7 @@ local registra 887 tests correctos.
 
 - Una cuenta FlyPath no es obligatoria para pagar. Career Planner Premium y guías digitales admitirán Stripe Checkout como invitado; un webhook validará el pago en servidor y la entrega deberá recuperarse con seguridad.
 - AeroComms Pro requiere una cuenta FlyPath para comprar y utilizar el acceso. El entitlement server-side reemplaza el estado Pro local editable.
-- Pre-PPL sigue como waitlist. Mentorías usan Cal.com para agenda y pago; la sincronización operativa se implementó en local mediante webhook firmado y no usa Commerce FlyPath. La guía física dirige a Amazon y FlyPath solo registra el clic externo.
+- Pre-PPL está disponible como guía digital con Stripe Checkout, webhook y entrega protegida. Mentorías usan Cal.com para agenda y pago; la sincronización operativa se implementó en local mediante webhook firmado y no usa Commerce FlyPath. La guía física dirige a Amazon y FlyPath solo registra el clic externo.
 - La moneda inicial es EUR. El reembolso digital total revoca acceso/entrega; el parcial se revisa manualmente al inicio.
 
 ## Cierre — 10B

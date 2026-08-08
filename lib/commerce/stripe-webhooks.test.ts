@@ -5,10 +5,14 @@ const mocks = vi.hoisted(() => ({
   retrieve: vi.fn(),
   rpc: vi.fn(),
   getAdmin: vi.fn(),
+  queuePrePplPurchaseEmail: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: mocks.getAdmin }));
+vi.mock("./pre-ppl-guide-purchase-email", () => ({
+  recordAndQueuePrePplPurchaseEmail: mocks.queuePrePplPurchaseEmail,
+}));
 vi.mock("./stripe", () => ({
   getStripeConfiguration: () => ({ mode: "test" }),
   getStripeClient: () => ({
@@ -63,6 +67,21 @@ function paidGuideSession(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function paidPrePplSession(overrides: Record<string, unknown> = {}) {
+  return paidSession({
+    amount_total: 2395,
+    metadata: {
+      checkout_attempt_id: attemptId,
+      order_id: orderId,
+      product_price_id: priceId,
+      flypath_checkout_product: "preppl_guide",
+    },
+    line_items: { data: [{ price: { id: "price_live_preppl_guide" } }] },
+    customer_details: { email: "buyer@example.com" },
+    ...overrides,
+  });
+}
+
 describe("Career Planner Stripe webhook boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -70,6 +89,7 @@ describe("Career Planner Stripe webhook boundary", () => {
     mocks.rpc.mockResolvedValue({ error: null });
     mocks.getAdmin.mockReturnValue({ rpc: mocks.rpc });
     mocks.retrieve.mockResolvedValue(paidSession());
+    mocks.queuePrePplPurchaseEmail.mockResolvedValue("sent");
   });
 
   it("accepts only a Stripe-verified signature", () => {
@@ -135,6 +155,36 @@ describe("Career Planner Stripe webhook boundary", () => {
       p_stripe_price_id: "price_test_como_ser_piloto_guide",
     }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.objectContaining({ p_product_key: "career_planner" }));
+  });
+
+  it("settles Pre-PPL only at its closed amount and product boundary", async () => {
+    mocks.retrieve.mockResolvedValue(paidPrePplSession());
+    await expect(processCareerPlannerStripeWebhook(event("checkout.session.completed"), "{}"))
+      .resolves.toBe("processed");
+    expect(mocks.rpc).toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.objectContaining({
+      p_product_key: "preppl_guide",
+      p_amount: 2395,
+      p_stripe_price_id: "price_live_preppl_guide",
+    }));
+    expect(mocks.queuePrePplPurchaseEmail).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ stripeMode: "test", orderId, purchaserEmail: "buyer@example.com" }),
+    );
+
+    mocks.retrieve.mockResolvedValue(paidPrePplSession({ amount_total: 2396 }));
+    await processCareerPlannerStripeWebhook(event("checkout.session.completed"), "{}");
+    expect(mocks.rpc).toHaveBeenCalledWith("record_career_planner_stripe_webhook_ignored", expect.objectContaining({
+      p_error_code: "checkout_validation_failed",
+    }));
+  });
+
+  it("keeps settlement valid but asks Stripe to retry a recoverable Pre-PPL email delivery", async () => {
+    mocks.retrieve.mockResolvedValue(paidPrePplSession());
+    mocks.queuePrePplPurchaseEmail.mockResolvedValue("pending");
+
+    await expect(processCareerPlannerStripeWebhook(event("checkout.session.completed"), "{}"))
+      .rejects.toMatchObject({ kind: "unavailable" });
+    expect(mocks.rpc).toHaveBeenCalledWith("settle_stripe_catalog_checkout_v2", expect.anything());
   });
 
   it("records payment success as redundant so it cannot create a second payment", async () => {

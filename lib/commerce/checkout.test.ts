@@ -4,6 +4,8 @@ import {
   CAREER_PLANNER_PREMIUM_CHECKOUT_KEY,
   COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY,
   COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT,
+  PRE_PPL_GUIDE_CHECKOUT_KEY,
+  PRE_PPL_GUIDE_UNIT_AMOUNT,
   CommerceCheckoutValidationError,
   getCommerceOneTimeProduct,
   isStripeCheckoutUrl,
@@ -17,6 +19,18 @@ describe("closed FlyPath one-time Checkout input", () => {
     });
     expect(parseCommerceCheckoutRequest({ productKey: COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY })).toEqual({
       productKey: COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY,
+    });
+    expect(parseCommerceCheckoutRequest({ productKey: PRE_PPL_GUIDE_CHECKOUT_KEY })).toEqual({
+      productKey: PRE_PPL_GUIDE_CHECKOUT_KEY,
+    });
+  });
+
+  it("keeps Pre-PPL's EUR amount in trusted catalog configuration", () => {
+    expect(getCommerceOneTimeProduct(PRE_PPL_GUIDE_CHECKOUT_KEY)).toMatchObject({
+      productKey: "preppl_guide",
+      priceKey: "preppl_guide_eur",
+      unitAmount: PRE_PPL_GUIDE_UNIT_AMOUNT,
+      currency: "EUR",
     });
   });
 

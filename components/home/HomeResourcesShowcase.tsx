@@ -1,9 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import {
   createTrackingCtaMetadata,
@@ -12,11 +11,6 @@ import {
 } from "@/lib/tracking/client";
 import type { TrackingCtaId } from "@/lib/tracking/events";
 import { initializeTrackingContext } from "@/lib/tracking/session";
-
-const PrePplWaitlistModal = dynamic(
-  () => import("@/components/home/PrePplWaitlistModal").then((module) => module.PrePplWaitlistModal),
-  { ssr: false },
-);
 
 type ResourceType = "HERRAMIENTA" | "GUÍA" | "APP" | "MENTORÍA";
 
@@ -30,7 +24,6 @@ type HomeResource = {
   mockupSrc: string;
   mockupAlt: string;
   ctaId: TrackingCtaId;
-  waitlist?: boolean;
 };
 
 const HOME_RESOURCES: HomeResource[] = [
@@ -61,11 +54,10 @@ const HOME_RESOURCES: HomeResource[] = [
     type: "GUÍA",
     title: "Pre-PPL",
     description: "Conceptos básicos antes de empezar tu formación.",
-    cta: "Unirme a la lista de espera",
-    href: "#",
-    ctaId: "home_resource_preppl_waitlist",
-    waitlist: true,
-    mockupSrc: "/aerocomms/mockups/preppl.png",
+    cta: "Ver guía",
+    href: "/pre-ppl",
+    ctaId: "home_resource_preppl_guide",
+    mockupSrc: "/aerocomms/mockups/prepplhome.png",
     mockupAlt: "Portada de la guía Pre-PPL",
   },
   {
@@ -115,14 +107,7 @@ function ResourceTypeChip({ type }: { type: ResourceType }) {
   );
 }
 
-function ResourceCard({
-  resource,
-  onWaitlistClick,
-}: {
-  resource: HomeResource;
-  onWaitlistClick?: () => void;
-}) {
-  const isPlaceholderLink = resource.href === "#";
+function ResourceCard({ resource }: { resource: HomeResource }) {
   const trackResourceClick = () => {
     const metadata = createTrackingCtaMetadata(resource.ctaId);
     if (metadata) trackCtaClicked(metadata);
@@ -139,18 +124,14 @@ function ResourceCard({
 
   return (
     <article className="flex w-[min(78vw,280px)] shrink-0 snap-start flex-col overflow-hidden rounded-[24px] border border-[#071224]/[0.07] bg-white shadow-[0_16px_44px_rgba(7,18,36,0.07)] sm:w-[300px] lg:w-[calc((min(76rem,100vw-3rem)-4*1.25rem)/5)] lg:min-w-[220px] lg:max-w-[280px]">
-      {isPlaceholderLink ? (
-        <div className={mockupAreaClass}>{mockupContent}</div>
-      ) : (
-        <Link
-          href={resource.href}
-          onClick={trackResourceClick}
-          aria-label={`${resource.cta}: ${resource.title}`}
-          className={`${mockupAreaClass} block cursor-pointer transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/30 focus-visible:ring-offset-2`}
-        >
-          {mockupContent}
-        </Link>
-      )}
+      <Link
+        href={resource.href}
+        onClick={trackResourceClick}
+        aria-label={`${resource.cta}: ${resource.title}`}
+        className={`${mockupAreaClass} block cursor-pointer transition-opacity hover:opacity-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/30 focus-visible:ring-offset-2`}
+      >
+        {mockupContent}
+      </Link>
       <div className="flex flex-1 flex-col border-t border-[#071224]/[0.05] bg-white px-5 pb-6 pt-4">
         <h3 className="text-[17px] font-semibold leading-snug tracking-tight text-[#071224] sm:text-[18px]">
           {resource.title}
@@ -158,45 +139,20 @@ function ResourceCard({
         <p className="mt-2 flex-1 text-[14px] leading-relaxed text-[#4B5563]">
           {resource.description}
         </p>
-        {resource.waitlist && onWaitlistClick ? (
-          <button
-            type="button"
-            onClick={() => {
-              trackResourceClick();
-              onWaitlistClick();
-            }}
-            className={`mt-4 inline-flex w-fit items-center gap-1.5 text-left text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}
-          >
-            <span className="leading-snug">
-              Unirme a la
-              <br />
-              lista de espera
-            </span>
-            <ArrowRight className="h-4 w-4 shrink-0 text-current" aria-hidden />
-          </button>
-        ) : isPlaceholderLink ? (
-          <span className={`mt-4 inline-flex w-fit items-center gap-1.5 text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}>
-            {resource.cta}
-            <ArrowRight className="h-4 w-4 shrink-0 text-current" aria-hidden />
-          </span>
-        ) : (
-          <Link
-            href={resource.href}
-            onClick={trackResourceClick}
-            className={`group mt-4 inline-flex w-fit items-center gap-1.5 text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}
-          >
-            {resource.cta}
-            <ArrowRight className="h-4 w-4 shrink-0 text-current" aria-hidden />
-          </Link>
-        )}
+        <Link
+          href={resource.href}
+          onClick={trackResourceClick}
+          className={`group mt-4 inline-flex w-fit items-center gap-1.5 text-[14px] font-semibold ${RESOURCE_CTA_CLASS}`}
+        >
+          {resource.cta}
+          <ArrowRight className="h-4 w-4 shrink-0 text-current" aria-hidden />
+        </Link>
       </div>
     </article>
   );
 }
 
 export function HomeResourcesShowcase() {
-  const [waitlistModalOpen, setWaitlistModalOpen] = useState(false);
-
   useEffect(() => {
     initializeTrackingContext();
     trackPageViewed("home");
@@ -218,23 +174,12 @@ export function HomeResourcesShowcase() {
           <div className="-mx-6 overflow-x-auto overflow-y-hidden px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
             <div className="flex w-max gap-4 sm:gap-5">
               {HOME_RESOURCES.map((resource) => (
-                <ResourceCard
-                  key={resource.id}
-                  resource={resource}
-                  onWaitlistClick={
-                    resource.waitlist ? () => setWaitlistModalOpen(true) : undefined
-                  }
-                />
+                <ResourceCard key={resource.id} resource={resource} />
               ))}
             </div>
           </div>
         </div>
       </div>
-
-      <PrePplWaitlistModal
-        open={waitlistModalOpen}
-        onClose={() => setWaitlistModalOpen(false)}
-      />
     </section>
   );
 }

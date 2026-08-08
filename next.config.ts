@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   // the traced server bundle of its protected download route.
   outputFileTracingIncludes: {
     "/api/commerce/guide/download": ["./private-assets/commerce/como-ser-piloto-guide.pdf"],
+    "/api/commerce/pre-ppl/download": ["./private-assets/commerce/pre-ppl-guide.pdf"],
   },
   async headers() {
     return [

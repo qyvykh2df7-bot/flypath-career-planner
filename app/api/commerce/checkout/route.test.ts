@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   createCheckout: vi.fn(),
   createGuideCheckout: vi.fn(),
+  createPrePplCheckout: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -12,6 +13,9 @@ vi.mock("@/lib/commerce/career-planner-checkout", async (importOriginal) => {
 });
 vi.mock("@/lib/commerce/como-ser-piloto-guide-checkout", () => ({
   createComoSerPilotoGuideCheckout: mocks.createGuideCheckout,
+}));
+vi.mock("@/lib/commerce/pre-ppl-guide-checkout", () => ({
+  createPrePplGuideCheckout: mocks.createPrePplCheckout,
 }));
 
 import { POST } from "./route";
@@ -34,6 +38,7 @@ describe("POST /api/commerce/checkout", () => {
     vi.clearAllMocks();
     mocks.createCheckout.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_123" });
     mocks.createGuideCheckout.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_test_guide" });
+    mocks.createPrePplCheckout.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_live_preppl" });
   });
 
   it("uses a separate server-owned intent and creator for the closed guide key", async () => {
@@ -43,6 +48,16 @@ describe("POST /api/commerce/checkout", () => {
     expect(mocks.createGuideCheckout).toHaveBeenCalledWith(expect.objectContaining({ requestOrigin: origin }));
     expect(mocks.createCheckout).not.toHaveBeenCalled();
     expect(response.headers.get("set-cookie")).toContain("flypath_checkout_intent_como_ser_piloto_guide=");
+  });
+
+  it("uses a separate server-owned intent and creator for the closed Pre-PPL key", async () => {
+    const response = await POST(request({ productKey: "preppl_guide" }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ url: "https://checkout.stripe.com/c/pay/cs_live_preppl" });
+    expect(mocks.createPrePplCheckout).toHaveBeenCalledWith(expect.objectContaining({ requestOrigin: origin }));
+    expect(mocks.createCheckout).not.toHaveBeenCalled();
+    expect(mocks.createGuideCheckout).not.toHaveBeenCalled();
+    expect(response.headers.get("set-cookie")).toContain("flypath_checkout_intent_preppl_guide=");
   });
 
   it("accepts only the closed product key and returns only the hosted Checkout URL", async () => {

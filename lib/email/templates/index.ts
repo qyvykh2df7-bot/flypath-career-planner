@@ -16,6 +16,10 @@ import {
 import { MENTORSHIP_INTERNAL_ALERT_TEMPLATE_KEY } from "./mentorship-internal-alert";
 import { SCHOOL_REVIEW_VERIFICATION_TEMPLATE_KEY } from "./school-review-verification";
 import { MARKETING_OPT_IN_CONFIRMATION_TEMPLATE_KEY } from "./marketing-opt-in-confirmation";
+import {
+  getPrePplPurchaseConfirmationTemplate,
+  PREPPL_PURCHASE_CONFIRMATION_TEMPLATE_KEY,
+} from "./preppl-purchase-confirmation";
 
 export const TRANSACTIONAL_TEMPLATE_KEYS = [
   CAREER_PLANNER_CONFIRMATION_TEMPLATE_KEY,
@@ -24,6 +28,7 @@ export const TRANSACTIONAL_TEMPLATE_KEYS = [
   MENTORSHIP_INTERNAL_ALERT_TEMPLATE_KEY,
   SCHOOL_REVIEW_VERIFICATION_TEMPLATE_KEY,
   MARKETING_OPT_IN_CONFIRMATION_TEMPLATE_KEY,
+  PREPPL_PURCHASE_CONFIRMATION_TEMPLATE_KEY,
 ] as const;
 
 export type TransactionalTemplateKey = (typeof TRANSACTIONAL_TEMPLATE_KEYS)[number];
@@ -48,6 +53,8 @@ export function getTransactionalEmailTemplate(
       throw new Error("School review verification requires server-only template input");
     case MARKETING_OPT_IN_CONFIRMATION_TEMPLATE_KEY:
       throw new Error("Marketing opt-in confirmation requires server-only template input");
+    case PREPPL_PURCHASE_CONFIRMATION_TEMPLATE_KEY:
+      return getPrePplPurchaseConfirmationTemplate();
   }
 }
 
@@ -58,6 +65,7 @@ export {
   MENTORSHIP_INTERNAL_ALERT_TEMPLATE_KEY,
   SCHOOL_REVIEW_VERIFICATION_TEMPLATE_KEY,
   MARKETING_OPT_IN_CONFIRMATION_TEMPLATE_KEY,
+  PREPPL_PURCHASE_CONFIRMATION_TEMPLATE_KEY,
 };
 
 export type { TransactionalEmailTemplate } from "./career-planner-confirmation";

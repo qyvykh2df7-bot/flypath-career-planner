@@ -177,7 +177,7 @@ describe("tracking server validation", () => {
       "home_quick_access_mentorship",
       "home_resource_career_planner",
       "home_resource_pilot_guide",
-      "home_resource_preppl_waitlist",
+      "home_resource_preppl_guide",
       "home_resource_aerocomms",
       "home_resource_mentorship",
       "aerocomms_hero_try_app",

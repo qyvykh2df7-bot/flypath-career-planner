@@ -9,6 +9,7 @@ import {
 } from "./jobs";
 
 const LEAD_ID = "4d3c2b1a-1234-4abc-8def-1234567890ab";
+const ORDER_ID = "9d3c2b1a-1234-4abc-8def-1234567890ab";
 const KEY_A = "5d3c2b1a-1234-4abc-8def-1234567890ab";
 const KEY_B = "6d3c2b1a-1234-4abc-8def-1234567890ab";
 const JOB = {
@@ -76,6 +77,28 @@ describe("transactional email jobs", () => {
         { leadId: LEAD_ID, templateKey: "career_planner_confirmation", idempotencyKey: KEY_B },
       ),
     ).resolves.toMatchObject({ created: true });
+  });
+
+  it("creates one purchase-confirmation job bound to the settled order", async () => {
+    const orderJob = {
+      ...JOB,
+      lead_id: null,
+      order_id: ORDER_ID,
+      template_key: "preppl_purchase_confirmation",
+    };
+    const admin = createAdmin({ data: orderJob, error: null });
+
+    await expect(createTransactionalEmailJob(admin as never, {
+      orderId: ORDER_ID,
+      templateKey: "preppl_purchase_confirmation",
+      idempotencyKey: KEY_A,
+    })).resolves.toMatchObject({ created: true, job: { orderId: ORDER_ID, leadId: null } });
+
+    expect(admin.insert).toHaveBeenCalledWith(expect.objectContaining({
+      order_id: ORDER_ID,
+      lead_id: null,
+      template_key: "preppl_purchase_confirmation",
+    }));
   });
 
   it("returns a failed job to pending while attempts remain, without storing provider details", async () => {

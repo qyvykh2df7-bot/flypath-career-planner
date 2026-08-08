@@ -21,6 +21,11 @@ describe("server-only Stripe catalog", () => {
     });
     expect(getStripeCatalogBinding("career_planner", "live").stripePriceId).toBe("price_1TwJ6gKuujVRKb0PzHL9PjjN");
     expect(getStripeCatalogBinding("como_ser_piloto_guide", "live").stripePriceId).toBe("price_1TwJ6cKuujVRKb0PPKY1Y8El");
+    expect(getStripeCatalogBinding("preppl_guide", "live")).toEqual({
+      stripeProductId: "prod_V2HDiunAEOVO9p",
+      stripePriceId: "price_1U2Cf6KuujVRKb0PVULrzLEY",
+    });
+    expect(() => getStripeCatalogBinding("preppl_guide", "test")).toThrow("Stripe catalog binding unavailable");
   });
 
   it("never accepts a Price ID from the other provider mode", () => {

@@ -10,6 +10,7 @@ import {
   createCareerPlannerPremiumCheckout,
 } from "@/lib/commerce/career-planner-checkout";
 import { createComoSerPilotoGuideCheckout } from "@/lib/commerce/como-ser-piloto-guide-checkout";
+import { createPrePplGuideCheckout } from "@/lib/commerce/pre-ppl-guide-checkout";
 import { isCommerceUuid } from "@/lib/commerce/contracts";
 import { StripeConfigurationError, StripeProviderError } from "@/lib/commerce/stripe";
 import {
@@ -66,7 +67,9 @@ export async function POST(request: Request) {
   let intentId = existingIntent && isCommerceUuid(existingIntent) ? existingIntent : randomUUID();
   const createCheckout = checkoutRequest.productKey === "career_planner_premium"
     ? createCareerPlannerPremiumCheckout
-    : createComoSerPilotoGuideCheckout;
+    : checkoutRequest.productKey === "como_ser_piloto_guide"
+      ? createComoSerPilotoGuideCheckout
+      : createPrePplGuideCheckout;
 
   try {
     let checkout;

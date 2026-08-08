@@ -33,6 +33,7 @@ import {
   getMarketingOptInConfirmationTemplate,
   MARKETING_OPT_IN_CONFIRMATION_TEMPLATE_KEY,
 } from "./templates/marketing-opt-in-confirmation";
+import { PREPPL_PURCHASE_CONFIRMATION_TEMPLATE_KEY } from "./templates/preppl-purchase-confirmation";
 
 const TRANSACTIONAL_EMAIL_WORKER = "lead_capture_request";
 
@@ -80,6 +81,28 @@ async function getLeadRecipient(
 
   if (subscriptionError) throw new TransactionalEmailDataError();
   return technicalSuppression ? null : lead.email;
+}
+
+async function getOrderRecipient(
+  admin: EmailAdminClient,
+  orderId: string,
+): Promise<string | null> {
+  const { data: order, error } = await admin
+    .from("orders")
+    .select("purchaser_email")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (
+    error
+    || !isRecord(order)
+    || typeof order.purchaser_email !== "string"
+    || !order.purchaser_email.trim()
+  ) {
+    throw new TransactionalEmailDataError();
+  }
+
+  return order.purchaser_email;
 }
 
 export async function queueSchoolReviewVerification(
@@ -162,14 +185,22 @@ export async function queueMentorshipInternalAlert(
   });
 }
 
+export async function queuePrePplPurchaseConfirmation(
+  admin: EmailAdminClient,
+  input: { orderId: string; idempotencyKey: string },
+): Promise<TransactionalEmailDispatchResult> {
+  return queueTransactionalTemplate(admin, PREPPL_PURCHASE_CONFIRMATION_TEMPLATE_KEY, input);
+}
+
 async function queueTransactionalTemplate(
   admin: EmailAdminClient,
   templateKey: TransactionalTemplateKey,
-  input: { leadId: string; idempotencyKey: string },
+  input: { leadId?: string; orderId?: string; idempotencyKey: string },
   options: { template?: TransactionalEmailTemplate; recipientEmail?: string } = {},
 ): Promise<TransactionalEmailDispatchResult> {
   const { job } = await createTransactionalEmailJob(admin, {
-    leadId: input.leadId,
+    ...(input.leadId ? { leadId: input.leadId } : {}),
+    ...(input.orderId ? { orderId: input.orderId } : {}),
     templateKey,
     idempotencyKey: input.idempotencyKey,
   });
@@ -194,7 +225,10 @@ export async function sendTransactionalEmail(
   const recipientEmail =
     template.recipient.kind === "internal"
       ? options.recipientEmail ?? null
-      : options.recipientEmail ?? (job.leadId ? await getLeadRecipient(admin, job.leadId) : null);
+      : options.recipientEmail
+        ?? (template.recipient.kind === "order"
+          ? (job.orderId ? await getOrderRecipient(admin, job.orderId) : null)
+          : (job.leadId ? await getLeadRecipient(admin, job.leadId) : null));
 
   if (!recipientEmail) {
     if (job.status === "pending") await cancelTransactionalEmailJob(admin, job.id, now());

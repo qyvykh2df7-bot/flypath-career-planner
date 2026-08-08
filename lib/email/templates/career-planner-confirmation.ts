@@ -9,6 +9,7 @@ export type TransactionalEmailTemplate = {
   text: string;
   recipient:
     | { kind: "lead" }
+    | { kind: "order" }
     | { kind: "internal" };
 };
 

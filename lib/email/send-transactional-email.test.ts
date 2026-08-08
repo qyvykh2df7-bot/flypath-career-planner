@@ -45,8 +45,7 @@ vi.mock("@/lib/email/templates", () => ({
         : "Tu Career Planner de FlyPath está listo",
     html: "<p>Fijo</p>",
     text: "Fijo",
-    recipient:
-      { kind: "lead" },
+    recipient: { kind: templateKey === "preppl_purchase_confirmation" ? "order" : "lead" },
   })),
 }));
 vi.mock("@/lib/email/templates/mentorship-internal-alert", () => ({
@@ -63,6 +62,7 @@ import {
   queueCareerPlannerConfirmation,
   queueMentorshipInternalAlert,
   queueMentorshipRequestConfirmation,
+  queuePrePplPurchaseConfirmation,
   queuePrepplWaitlistConfirmation,
   queueSchoolReviewVerification,
   sendTransactionalEmail,
@@ -76,6 +76,8 @@ const JOB = {
   attemptCount: 0,
   maxAttempts: 3,
 };
+
+const ORDER_ID = "4d3c2b1a-1234-4abc-8def-1234567890ab";
 
 function createAdmin(subscriptionStatus: string | null) {
   const technicalSuppression = ["bounced", "complained", "blocked"].includes(subscriptionStatus ?? "")
@@ -250,6 +252,43 @@ describe("transactional email dispatch", () => {
         idempotencyKey: "4d3c2b1a-1234-4abc-8def-1234567890ab",
       }),
     );
+  });
+
+  it("uses the order recipient for Pre-PPL purchase email without changing marketing consent", async () => {
+    const provider = { send: vi.fn().mockResolvedValue({ providerMessageId: "resend-id" }) };
+    const purchaseJob = {
+      ...JOB,
+      leadId: null,
+      orderId: ORDER_ID,
+      templateKey: "preppl_purchase_confirmation" as const,
+    };
+    mocks.createTransactionalEmailJob.mockResolvedValue({ job: purchaseJob, created: true });
+    mocks.claimTransactionalEmailJob.mockResolvedValue({ ...purchaseJob, status: "processing", attemptCount: 1 });
+    mocks.getResendEmailProvider.mockReturnValue(provider);
+    const admin = {
+      from: vi.fn((table: string) => {
+        if (table !== "orders") throw new Error("marketing tables must not be queried");
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { purchaser_email: "buyer@example.com" }, error: null }),
+            })),
+          })),
+        };
+      }),
+    };
+
+    await expect(queuePrePplPurchaseConfirmation(admin as never, {
+      orderId: ORDER_ID,
+      idempotencyKey: ORDER_ID,
+    })).resolves.toBe("sent");
+
+    expect(mocks.createTransactionalEmailJob).toHaveBeenCalledWith(admin, expect.objectContaining({
+      orderId: ORDER_ID,
+      templateKey: "preppl_purchase_confirmation",
+    }));
+    expect(provider.send).toHaveBeenCalledWith(expect.objectContaining({ to: "buyer@example.com" }));
+    expect(admin.from).toHaveBeenCalledWith("orders");
   });
 
   it("creates, claims, and sends a school review verification job with its explicit recipient", async () => {

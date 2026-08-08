@@ -63,6 +63,7 @@ export const TRACKING_PAGE_IDS = [
   "mentorship",
   "career_planner",
   "aerocomms",
+  "pre_ppl",
 ] as const;
 
 export type TrackingPageId = (typeof TRACKING_PAGE_IDS)[number];
@@ -153,9 +154,19 @@ export const TRACKING_CTA_DEFINITIONS = {
     sourceContext: "home_resources",
     metadataKeys: ["cta_id", "target", "source_context"],
   },
-  home_resource_preppl_waitlist: {
-    target: "preppl_waitlist",
+  home_resource_preppl_guide: {
+    target: "pre_ppl_guide",
     sourceContext: "home_resources",
+    metadataKeys: ["cta_id", "target", "source_context"],
+  },
+  preppl_digital_checkout: {
+    target: "pre_ppl_digital_checkout",
+    sourceContext: "pre_ppl_landing",
+    metadataKeys: ["cta_id", "target", "source_context"],
+  },
+  preppl_physical_amazon: {
+    target: "pre_ppl_physical_amazon",
+    sourceContext: "pre_ppl_landing",
     metadataKeys: ["cta_id", "target", "source_context"],
   },
   home_resource_aerocomms: {

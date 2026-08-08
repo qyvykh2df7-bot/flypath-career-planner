@@ -6,9 +6,14 @@ export const COMO_SER_PILOTO_GUIDE_CHECKOUT_KEY = "como_ser_piloto_guide";
 export const COMO_SER_PILOTO_GUIDE_PRICE_KEY = "como_ser_piloto_guide_eur";
 export const COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT = 1495;
 export const COMO_SER_PILOTO_GUIDE_CURRENCY = "EUR";
+export const PRE_PPL_GUIDE_CHECKOUT_KEY = "preppl_guide";
+export const PRE_PPL_GUIDE_PRICE_KEY = "preppl_guide_eur";
+export const PRE_PPL_GUIDE_UNIT_AMOUNT = 2395;
+export const PRE_PPL_GUIDE_CURRENCY = "EUR";
 export const COMMERCE_CHECKOUT_REQUEST_MAX_BODY_SIZE = 1_024;
 export const CAREER_PLANNER_CHECKOUT_INTENT_COOKIE = "flypath_checkout_intent_career_planner";
 export const COMO_SER_PILOTO_GUIDE_CHECKOUT_INTENT_COOKIE = "flypath_checkout_intent_como_ser_piloto_guide";
+export const PRE_PPL_GUIDE_CHECKOUT_INTENT_COOKIE = "flypath_checkout_intent_preppl_guide";
 
 export const COMMERCE_ONE_TIME_PRODUCTS = {
   [CAREER_PLANNER_PREMIUM_CHECKOUT_KEY]: {
@@ -26,6 +31,14 @@ export const COMMERCE_ONE_TIME_PRODUCTS = {
     unitAmount: COMO_SER_PILOTO_GUIDE_UNIT_AMOUNT,
     currency: COMO_SER_PILOTO_GUIDE_CURRENCY,
     checkoutIntentCookie: COMO_SER_PILOTO_GUIDE_CHECKOUT_INTENT_COOKIE,
+  },
+  [PRE_PPL_GUIDE_CHECKOUT_KEY]: {
+    checkoutKey: PRE_PPL_GUIDE_CHECKOUT_KEY,
+    productKey: PRE_PPL_GUIDE_CHECKOUT_KEY,
+    priceKey: PRE_PPL_GUIDE_PRICE_KEY,
+    unitAmount: PRE_PPL_GUIDE_UNIT_AMOUNT,
+    currency: PRE_PPL_GUIDE_CURRENCY,
+    checkoutIntentCookie: PRE_PPL_GUIDE_CHECKOUT_INTENT_COOKIE,
   },
 } as const;
 
