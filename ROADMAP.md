@@ -699,13 +699,24 @@ Estado del MVP 12A:
   aplicada en remoto y su QA sintético validó persistencia, aislamiento del
   calendario, Strategist, permisos y limpieza. Validación local: 858 tests,
   TypeScript, lint focalizado y build Webpack correctos.
+- 12A.8 TikTok Content Intelligence MVP con migración aplicada en Supabase remoto:
+  conexión OAuth
+  privada, tokens cifrados server-side, sincronización idempotente de vídeos y
+  métricas públicas, fallback manual por URL y análisis IA sujeto a revisión
+  humana antes de entrar en la biblioteca. La migración
+  `20260729160000_add_content_os_tiktok_intelligence.sql` está aplicada. El QA
+  sintético remoto validó RLS, ACL, locks exclusivos de sincronización y refresh,
+  deduplicación, reintentos IA limitados, revisión humana y limpieza sin datos
+  residuales. Sigue pendiente configurar la aplicación TikTok, redirect URI y
+  secretos server-side para conectar una cuenta real. No existe publicación
+  automática, respuesta a comentarios ni AI Analyst. Validación local actual:
+  887 tests, TypeScript, lint focalizado y build Webpack correctos.
 - Migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql` y
   `20260729130000_add_content_os_roster_and_ai_planner.sql` aplicadas en Supabase
-  remoto y QA sintético remoto completado; validación local actual: 844 tests correctos,
-  TypeScript, lint focalizado, build Webpack y `git diff --check` correctos.
+  remoto y QA sintético remoto completado.
 - No hay agentes
-  autónomos, memoria avanzada, ejecución continua, publicación automática, APIs
-  sociales ni cambios de calendario sin aprobación.
+  autónomos, memoria avanzada, ejecución continua, publicación automática ni
+  cambios de calendario sin aprobación.
 
 La especificación funcional se mantiene en [Content OS PilotFeliu - AI Content Command Center](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El adelanto de 12A no activa implementación del Command Center completo, no crea una base separada y no modifica el alcance de AeroComms.
 

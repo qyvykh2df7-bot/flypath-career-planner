@@ -2,7 +2,7 @@
 
 ## Estado y propósito
 
-**Estado:** MVP 12A completado dentro de Warhome. El AI Content Strategist 12A.6.3 está implementado, auditado, migrado en Supabase remoto y validado mediante QA sintético. No hay agentes ni automatizaciones activas.
+**Estado:** MVP 12A completado dentro de Warhome. El AI Content Strategist 12A.6.3, Brand DNA 12A.7 y TikTok Content Intelligence 12A.8 están aplicados y validados sintéticamente en remoto. TikTok queda pendiente de configuración OAuth y QA con una cuenta real. No hay agentes autónomos ni automatizaciones activas.
 
 Content OS PilotFeliu es una herramienta interna y personal para PilotFeliu. No es un producto SaaS ni una superficie para clientes de FlyPath. Su objetivo es ordenar la creación de contenido de la marca personal y convertirla en una práctica sostenible que ayude a crecer la audiencia y, cuando corresponda, aumente ventas y leads de FlyPath.
 
@@ -113,6 +113,51 @@ Analyst ni autonomía. El QA remoto validó persistencia de Brand DNA, importaci
 histórica con métricas, aislamiento del calendario, consumo real del Strategist,
 permisos y limpieza de los datos sintéticos. La validación local del bloque
 registra 858 tests, TypeScript, lint focalizado y build Webpack correctos.
+
+## Bloque 12A.8 — TikTok Content Intelligence MVP
+
+La integración está implementada localmente como una superficie privada en
+`/warhome/content/integrations/tiktok`. Usa OAuth web de TikTok con los scopes
+cerrados `user.info.basic` y `video.list`, protección `state` en cookie
+`HttpOnly` y credenciales exclusivamente server-side. Los access y refresh
+tokens se cifran con AES-256-GCM antes de persistirse; nunca se envían al cliente
+ni se guardan en claro. La desconexión revoca el acceso mediante OAuth antes de
+retirar las credenciales locales.
+
+La sincronización pagina los vídeos públicos de la cuenta y actualiza de forma
+idempotente un staging privado por ID TikTok. Conserva URL, caption, hashtags
+derivados, fecha, duración y las métricas disponibles en Display API:
+visualizaciones, likes, comentarios y compartidos. TikTok no expone guardados o
+favoritos mediante esta API; el campo permanece nullable y puede completarse en
+la importación manual por URL.
+
+El análisis utiliza Brand DNA y una salida JSON estructurada con `store: false`.
+Solo recibe caption, URL, duración y métricas; no descarga ni afirma analizar el
+audio o la imagen del vídeo. Propone título, resumen, hook, pilar, objetivo y
+producto relacionado. El resultado permanece en una cola independiente:
+
+`TikTok importado -> análisis IA -> revisión humana -> biblioteca histórica`
+
+Solo la confirmación manual crea la pieza `historical` y su snapshot de métricas
+mediante una RPC atómica. Rechazar no crea contenido y una propuesta pendiente
+no entra en el Planner ni en el calendario. Una vez confirmada, la pieza pasa a
+la biblioteca existente y el Strategist la consume por el flujo histórico ya
+implantado.
+
+La migración
+`20260729160000_add_content_os_tiktok_intelligence.sql` está aplicada en
+Supabase remoto: crea `content_tiktok_connections`, `content_tiktok_videos` y
+las RPC privadas de conexión, upsert, análisis, revisión y locks de sync/refresh.
+El QA sintético remoto validó RLS/ACL, deduplicación, rotación exclusiva,
+reintentos IA con máximo de tres intentos y cooldown, revisión humana, métricas
+parciales como `NULL` y limpieza sin residuos. La activación real aún requiere
+registrar la aplicación y redirect URI en TikTok, aprobar los scopes
+`user.info.basic` y `video.list`, y configurar las variables server-side. TikTok
+Display API no aporta guardados/favoritos, seguidores ganados, retención, leads
+ni ventas; esos valores permanecen manuales o `NULL`. No hay publicación,
+respuesta a comentarios, generación de vídeos, AI Analyst ni automatización
+autónoma. La validación local actual registra 887 tests correctos, TypeScript,
+lint focalizado, build Webpack y `git diff --check`.
 
 ### Límites editoriales del MVP
 
@@ -488,4 +533,4 @@ La auditoría CRM confirmó que `content_items` ya era el catálogo privado adec
 
 ## Estado del diseño
 
-Las decisiones funcionales principales de Content OS PilotFeliu quedan cerradas. El MVP manual, el roster, el primer asistente planificador y el Content Strategist MVP están completados dentro de Warhome, con sus migraciones remotas aplicadas y QA sintético remoto validado. La validación actual registra 844 tests correctos. No existen agentes autónomos, memoria avanzada, APIs de plataformas, publicación automática ni automatizaciones sociales.
+Las decisiones funcionales principales de Content OS PilotFeliu quedan cerradas. El MVP manual, el roster, el primer asistente planificador, el Content Strategist, Brand DNA y TikTok Content Intelligence están completados dentro de Warhome, con sus migraciones remotas aplicadas y QA sintético remoto validado. TikTok mantiene pendiente solo la configuración OAuth y el QA con una cuenta real. La validación actual registra 887 tests correctos. No existen agentes autónomos, memoria avanzada, publicación automática ni automatizaciones sociales.

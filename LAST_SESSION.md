@@ -1,6 +1,6 @@
 # Última sesión — cierre de Fase 10.5 y transición a Fase 11
 
-**Fecha:** 2026-07-29
+**Fecha:** 2026-07-30
 **Rama:** `main`
 **Estado:** Fase 10.5 — Production Launch & Hardening está completada. Producción opera en `https://www.flypath.es`; el apex redirige a `www`, el hosting web de Hostinger se retiró y se conservan dominio, correo y registros DNS de email. La fase actual es Fase 11 — CRM y automatizaciones.
 
@@ -8,7 +8,7 @@
 
 La auditoría profunda de CRM y Warhome queda documentada en `docs/audits/crm-audit-report.md` y `docs/audits/warhome-crm-deep-audit.md`. Fase 11 mantiene la prioridad sobre automatizaciones de email, secuencias/journeys y analytics de negocio MVP, reutilizando la infraestructura existente.
 
-La especificación funcional de Content OS PilotFeliu está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado dentro de Warhome: calendario editorial semanal/mensual, banco de ideas, biblioteca, fichas, objetivos y métricas manuales. Reutiliza la protección de Warhome y Supabase existente. 12A.6.1/12A.6.2 queda cerrado con roster manual y el primer planificador IA MVP con propuestas separadas, revisión obligatoria, protección contra solapamientos, intervalo configurable y aprobación transaccional. 12A.6.3 queda completado con el AI Content Strategist: propone diez ideas estructuradas, usa histórico y productos, respeta un balance configurable y solo incorpora propuestas aprobadas al banco. La migración `20260729140000_add_content_os_ai_strategist.sql` está aplicada en remoto y el QA sintético validó generación, revisión, idempotencia, permisos, limpieza y ausencia de eventos de calendario. La suite local registra 844 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, publicación automática, APIs externas ni automatizaciones sociales.
+La especificación funcional de Content OS PilotFeliu está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado dentro de Warhome: calendario editorial semanal/mensual, banco de ideas, biblioteca, fichas, objetivos y métricas manuales. Reutiliza la protección de Warhome y Supabase existente. 12A.6.1/12A.6.2 queda cerrado con roster manual y el primer planificador IA MVP con propuestas separadas, revisión obligatoria, protección de solapamientos, intervalo configurable y aprobación transaccional. 12A.6.3 queda completado con el AI Content Strategist: propone diez ideas estructuradas, usa histórico y productos, respeta un balance configurable y solo incorpora propuestas aprobadas al banco. Brand DNA 12A.7 y TikTok 12A.8 están aplicados y validados sintéticamente en remoto. TikTok queda pendiente de configurar OAuth y conectar una cuenta real. La suite local registra 887 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, publicación automática ni automatizaciones sociales.
 
 12A.7 queda completado: una configuración Brand DNA privada reemplaza el
 contexto estático del Strategist y la biblioteca diferencia producción futura
@@ -18,6 +18,18 @@ migración `20260729150000_add_content_os_brand_dna_and_historical_library.sql`
 está aplicada en remoto; el QA sintético validó Brand DNA, histórico, métricas,
 aislamiento del calendario, Strategist, permisos y limpieza. La validación local
 registra 858 tests correctos, TypeScript, lint focalizado y build Webpack.
+
+12A.8 TikTok Content Intelligence está aplicado en Supabase remoto dentro de
+Warhome. Incluye OAuth con `state`, tokens AES-256-GCM solo server-side,
+sincronización idempotente de vídeos y métricas públicas, importación manual por
+URL, análisis estructurado con Brand DNA y revisión obligatoria antes de crear
+contenido histórico. La migración
+`20260729160000_add_content_os_tiktok_intelligence.sql` y el QA sintético remoto
+están completados, incluidos RLS/ACL, locks de sincronización/refresh,
+deduplicación, reintentos IA y limpieza. La aplicación TikTok, sus scopes y
+secretos aún deben configurarse para conectar una cuenta real. No se ha activado
+ninguna publicación, respuesta, generación de vídeo ni AI Analyst. La validación
+local registra 887 tests correctos.
 
 ## Cierre — SEO técnico e indexación
 

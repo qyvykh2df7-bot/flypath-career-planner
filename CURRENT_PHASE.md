@@ -29,7 +29,7 @@ Pendiente en Fase 11:
 
 ## Bloque adelantado 12A — Content OS PilotFeliu
 
-La especificación de la herramienta interna personal de contenido está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado como módulo privado dentro de Warhome: calendario semanal/mensual, banco de ideas, biblioteca, fichas y métricas manuales. Las migraciones `20260729120000_create_content_os_pilotfeliu_mvp.sql`, `20260729130000_add_content_os_roster_and_ai_planner.sql` y `20260729140000_add_content_os_ai_strategist.sql` están aplicadas en Supabase remoto y su QA sintético está completado. Los bloques 12A.6.1/12A.6.2 quedan cerrados con roster manual y un planificador IA MVP de propuestas revisables, protección de solapamientos, intervalo configurable contra repeticiones accidentales y aprobación transaccional. El AI Content Strategist 12A.6.3 propone ideas completas según marca, audiencia, productos, histórico y un balance configurable, pero requiere revisión antes de incorporarlas al banco. La validación local registra 844 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, APIs externas, publicación automática ni automatizaciones sociales. El Command Center completo sigue siendo posterior.
+La especificación de la herramienta interna personal de contenido está en [docs/ai/content-os/pilotfeliu-content-os-command-center.md](./docs/ai/content-os/pilotfeliu-content-os-command-center.md). El MVP 12A está completado como módulo privado dentro de Warhome: calendario semanal/mensual, banco de ideas, biblioteca, fichas y métricas manuales. Las migraciones base, Planner, Strategist, Brand DNA y TikTok están aplicadas en Supabase remoto y su QA sintético está completado. Los bloques 12A.6.1/12A.6.2 quedan cerrados con roster manual y un planificador IA MVP de propuestas revisables, protección de solapamientos, intervalo configurable contra repeticiones accidentales y aprobación transaccional. El AI Content Strategist 12A.6.3 propone ideas completas según marca, audiencia, productos, histórico y un balance configurable, pero requiere revisión antes de incorporarlas al banco. TikTok 12A.8 queda pendiente solo de configurar OAuth y conectar una cuenta real. La validación local registra 887 tests correctos. No hay agentes autónomos, memoria avanzada, ejecución continua, publicación automática ni automatizaciones sociales. El Command Center completo sigue siendo posterior.
 
 12A.7 Brand DNA + Historical Content Library está completado: Brand DNA editable
 alimenta al Strategist y la biblioteca separa piezas futuras de publicaciones
@@ -37,6 +37,17 @@ históricas importadas con métricas opcionales. La migración
 `20260729150000_add_content_os_brand_dna_and_historical_library.sql` está
 aplicada en remoto y el QA sintético está completado. La validación local del
 bloque registra 858 tests correctos, TypeScript, lint focalizado y build Webpack.
+
+12A.8 TikTok Content Intelligence está aplicado en Supabase remoto dentro de
+Warhome: OAuth privado, credenciales server-side, tokens cifrados, sincronización
+idempotente, métricas públicas, importación manual y análisis IA revisable antes
+de crear histórico. La migración
+`20260729160000_add_content_os_tiktok_intelligence.sql` y el QA sintético remoto
+están completados: RLS/ACL, locks de sync/refresh, deduplicación, límite de tres
+reintentos IA con cooldown, revisión humana y limpieza fueron verificados. Queda
+pendiente registrar/configurar la aplicación TikTok, redirect URI y secretos
+server-side para una conexión real. No publica, responde comentarios, genera
+vídeos ni inicia AI Analyst. La validación actual registra 887 tests correctos.
 
 ## Cierre técnico reciente — SEO e indexación
 

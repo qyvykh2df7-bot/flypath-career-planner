@@ -7,12 +7,9 @@ import {
   type AuthenticatedWarhomeUser,
 } from "@/lib/warhome/auth";
 import { WARHOME_HOME_PATH, WARHOME_LOGIN_PATH } from "@/lib/warhome/access";
+import type { WarhomeLoginState } from "@/lib/warhome/action-contract";
 
 const GENERIC_LOGIN_ERROR = "No hemos podido acceder. Comprueba tus credenciales.";
-
-export type WarhomeLoginState = {
-  error: string | null;
-};
 
 function getCredentials(formData: FormData): { email: string; password: string } | null {
   const email = formData.get("email");

@@ -2,10 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { saveAuthenticatedFlyPathProfileName } from "@/lib/account/update-profile-name";
-
-export type SaveAeroCommsAccountNameResult =
-  | { status: "success"; fullName: string }
-  | { status: "error" };
+import type { SaveAeroCommsAccountNameResult } from "@/lib/aerocomms/account-name-action-contract";
 
 /** Explicitly promotes an AeroComms local name into the signed-in account. */
 export async function saveAeroCommsAccountName(

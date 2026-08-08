@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { ArrowRight, Lightbulb, Sparkles } from "lucide-react";
 import {
-  CONTENT_OS_INITIAL_ACTION_STATE,
   createContentOsIdeaAction,
   promoteContentOsIdeaAction,
   updateContentOsIdeaAction,
 } from "@/app/warhome/(protected)/content/actions";
+import { CONTENT_OS_INITIAL_ACTION_STATE } from "@/lib/warhome/content-os-action-state";
 import {
   CONTENT_OS_CATEGORIES,
   CONTENT_OS_IDEA_STATUSES,

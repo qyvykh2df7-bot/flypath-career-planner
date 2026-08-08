@@ -3,9 +3,9 @@
 import { useActionState } from "react";
 import { BarChart3 } from "lucide-react";
 import {
-  CONTENT_OS_INITIAL_ACTION_STATE,
   upsertContentOsMetricAction,
 } from "@/app/warhome/(protected)/content/actions";
+import { CONTENT_OS_INITIAL_ACTION_STATE } from "@/lib/warhome/content-os-action-state";
 import {
   CONTENT_OS_LIMITS,
   type ContentOsItemDetail,
@@ -111,7 +111,9 @@ export function ContentMetricsPanel({ detail }: { detail: ContentOsItemDetail })
                   <td className="px-4 py-3 font-medium">{metric.recordedOn}</td>
                   {fields.map(([name]) => (
                     <td key={name} className="px-3 py-3 text-right tabular-nums">
-                      {metric[name].toLocaleString("es-ES")}
+                      {metric[name] === null
+                        ? "Sin dato"
+                        : metric[name].toLocaleString("es-ES")}
                     </td>
                   ))}
                 </tr>

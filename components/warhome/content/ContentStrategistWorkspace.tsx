@@ -12,10 +12,10 @@ import {
   X,
 } from "lucide-react";
 import {
-  CONTENT_OS_INITIAL_ACTION_STATE,
   createContentOsStrategyProposalsAction,
   reviewContentOsStrategyProposalAction,
 } from "@/app/warhome/(protected)/content/actions";
+import { CONTENT_OS_INITIAL_ACTION_STATE } from "@/lib/warhome/content-os-action-state";
 import type {
   ContentOsStrategistWorkspace,
   ContentOsStrategyProposal,

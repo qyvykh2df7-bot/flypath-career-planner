@@ -219,4 +219,29 @@ describe("Content OS contract", () => {
       salesAttributed: 1,
     });
   });
+
+  it("distingue una métrica TikTok ausente de un valor real igual a cero", () => {
+    const snapshot: ContentOsMetricSnapshot = {
+      id: "33333333-3333-4333-8333-333333333333",
+      contentItemId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      recordedOn: "2026-07-30",
+      views: 0,
+      likes: null,
+      comments: null,
+      shares: 0,
+      saves: null,
+      followersGained: null,
+      leadsGenerated: null,
+      salesAttributed: null,
+      createdAt: "2026-07-30T10:00:00.000Z",
+      updatedAt: "2026-07-30T10:00:00.000Z",
+    };
+    expect(getLatestContentOsMetrics([snapshot])).toMatchObject({
+      views: 0,
+      likes: null,
+      shares: 0,
+      saves: null,
+    });
+    expect(getLatestContentOsMetrics([]).views).toBeNull();
+  });
 });

@@ -7,7 +7,8 @@ import {
   CONTENT_OS_OBJECTIVE_LABELS,
 } from "./ContentOsLabels";
 
-function compactNumber(value: number): string {
+function compactNumber(value: number | null): string {
+  if (value === null) return "Sin dato";
   return new Intl.NumberFormat("es-ES", { notation: "compact", maximumFractionDigits: 1 }).format(
     value,
   );

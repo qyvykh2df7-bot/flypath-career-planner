@@ -93,14 +93,14 @@ export type ContentOsMetricSnapshot = {
   id: string;
   contentItemId: string;
   recordedOn: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  followersGained: number;
-  leadsGenerated: number;
-  salesAttributed: number;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saves: number | null;
+  followersGained: number | null;
+  leadsGenerated: number | null;
+  salesAttributed: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -220,14 +220,14 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const LOCAL_DATE_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 
 export const CONTENT_OS_EMPTY_METRICS: ContentOsMetricTotals = {
-  views: 0,
-  likes: 0,
-  comments: 0,
-  shares: 0,
-  saves: 0,
-  followersGained: 0,
-  leadsGenerated: 0,
-  salesAttributed: 0,
+  views: null,
+  likes: null,
+  comments: null,
+  shares: null,
+  saves: null,
+  followersGained: null,
+  leadsGenerated: null,
+  salesAttributed: null,
 };
 
 function includesValue<T extends readonly string[]>(values: T, value: string): value is T[number] {

@@ -3,11 +3,11 @@
 import { useActionState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import {
-  CONTENT_OS_INITIAL_ACTION_STATE,
   createContentOsCalendarEventAction,
   deleteContentOsCalendarEventAction,
   updateContentOsCalendarEventAction,
 } from "@/app/warhome/(protected)/content/actions";
+import { CONTENT_OS_INITIAL_ACTION_STATE } from "@/lib/warhome/content-os-action-state";
 import {
   CONTENT_OS_EVENT_TYPES,
   CONTENT_OS_LIMITS,

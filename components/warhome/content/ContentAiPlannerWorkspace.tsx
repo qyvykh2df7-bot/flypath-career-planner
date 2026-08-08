@@ -11,10 +11,10 @@ import {
   X,
 } from "lucide-react";
 import {
-  CONTENT_OS_INITIAL_ACTION_STATE,
   createContentOsAiProposalAction,
   reviewContentOsAiProposalAction,
 } from "@/app/warhome/(protected)/content/actions";
+import { CONTENT_OS_INITIAL_ACTION_STATE } from "@/lib/warhome/content-os-action-state";
 import type { ContentOsPlannerWorkspace } from "@/lib/warhome/content-os-planning-contract";
 import {
   CONTENT_OS_EVENT_TYPE_LABELS,

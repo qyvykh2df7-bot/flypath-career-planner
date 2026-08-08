@@ -2,10 +2,8 @@
 
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
-import {
-  initialUpdateFlyPathProfileNameState,
-  updateFlyPathProfileName,
-} from "./actions";
+import { updateFlyPathProfileName } from "./actions";
+import { initialUpdateFlyPathProfileNameState } from "@/lib/account/profile-name-action-state";
 
 type AccountProfileFormProps = {
   email: string | null;

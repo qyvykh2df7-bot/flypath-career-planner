@@ -117,14 +117,14 @@ export type ContentOsStrategyHistoryEntry = {
   status: string;
   published: boolean;
   metrics: {
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-    saves: number;
-    followersGained: number;
-    leadsGenerated: number;
-    salesAttributed: number;
+    views: number | null;
+    likes: number | null;
+    comments: number | null;
+    shares: number | null;
+    saves: number | null;
+    followersGained: number | null;
+    leadsGenerated: number | null;
+    salesAttributed: number | null;
   } | null;
 };
 

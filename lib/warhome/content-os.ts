@@ -104,6 +104,11 @@ function nonnegativeInteger(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
+function nullableNonnegativeInteger(value: unknown): number | null | undefined {
+  if (value === null) return null;
+  return nonnegativeInteger(value) ?? undefined;
+}
+
 function proposalSource(value: unknown): ContentOsProposalSource | null {
   return value === "manual" || value === "ai" ? value : null;
 }
@@ -121,14 +126,14 @@ function mapMetric(value: unknown): ContentOsMetricSnapshot | null {
   const createdAt = timestamp(row.created_at);
   const updatedAt = timestamp(row.updated_at);
   const values = {
-    views: nonnegativeInteger(row.views),
-    likes: nonnegativeInteger(row.likes),
-    comments: nonnegativeInteger(row.comments),
-    shares: nonnegativeInteger(row.shares),
-    saves: nonnegativeInteger(row.saves),
-    followersGained: nonnegativeInteger(row.followers_gained),
-    leadsGenerated: nonnegativeInteger(row.leads_generated),
-    salesAttributed: nonnegativeInteger(row.sales_attributed),
+    views: nullableNonnegativeInteger(row.views),
+    likes: nullableNonnegativeInteger(row.likes),
+    comments: nullableNonnegativeInteger(row.comments),
+    shares: nullableNonnegativeInteger(row.shares),
+    saves: nullableNonnegativeInteger(row.saves),
+    followersGained: nullableNonnegativeInteger(row.followers_gained),
+    leadsGenerated: nullableNonnegativeInteger(row.leads_generated),
+    salesAttributed: nullableNonnegativeInteger(row.sales_attributed),
   };
 
   if (
@@ -137,7 +142,7 @@ function mapMetric(value: unknown): ContentOsMetricSnapshot | null {
     !isContentOsDate(recordedOn ?? "") ||
     !createdAt ||
     !updatedAt ||
-    Object.values(values).some((entry) => entry === null)
+    Object.values(values).some((entry) => entry === undefined)
   ) {
     return null;
   }
@@ -146,14 +151,14 @@ function mapMetric(value: unknown): ContentOsMetricSnapshot | null {
     id,
     contentItemId,
     recordedOn: recordedOn as string,
-    views: values.views as number,
-    likes: values.likes as number,
-    comments: values.comments as number,
-    shares: values.shares as number,
-    saves: values.saves as number,
-    followersGained: values.followersGained as number,
-    leadsGenerated: values.leadsGenerated as number,
-    salesAttributed: values.salesAttributed as number,
+    views: values.views as number | null,
+    likes: values.likes as number | null,
+    comments: values.comments as number | null,
+    shares: values.shares as number | null,
+    saves: values.saves as number | null,
+    followersGained: values.followersGained as number | null,
+    leadsGenerated: values.leadsGenerated as number | null,
+    salesAttributed: values.salesAttributed as number | null,
     createdAt,
     updatedAt,
   };

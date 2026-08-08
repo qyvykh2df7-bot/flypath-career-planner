@@ -275,9 +275,10 @@ function mapStrategyMetric(
     !fields ||
     Object.values(fields).some(
       (entry) =>
-        typeof entry !== "number" ||
-        !Number.isSafeInteger(entry) ||
-        entry < 0,
+        entry !== null &&
+        (typeof entry !== "number" ||
+          !Number.isSafeInteger(entry) ||
+          entry < 0),
     )
   ) {
     return null;

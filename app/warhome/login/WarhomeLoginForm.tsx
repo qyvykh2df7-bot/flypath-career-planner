@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { LockKeyhole } from "lucide-react";
-import { loginWarhome, type WarhomeLoginState } from "@/lib/warhome/actions";
+import { loginWarhome } from "@/lib/warhome/actions";
+import type { WarhomeLoginState } from "@/lib/warhome/action-contract";
 
 const initialWarhomeLoginState: WarhomeLoginState = { error: null };
 

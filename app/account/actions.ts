@@ -2,16 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { saveAuthenticatedFlyPathProfileName } from "@/lib/account/update-profile-name";
-
-export type UpdateFlyPathProfileNameState = {
-  status: "idle" | "success" | "error";
-  message: string | null;
-};
-
-export const initialUpdateFlyPathProfileNameState: UpdateFlyPathProfileNameState = {
-  status: "idle",
-  message: null,
-};
+import type { UpdateFlyPathProfileNameState } from "@/lib/account/profile-name-action-state";
 
 export async function updateFlyPathProfileName(
   _previousState: UpdateFlyPathProfileNameState,

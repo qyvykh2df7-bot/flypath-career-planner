@@ -46,16 +46,7 @@ import {
   isContentOsStrategyDecision,
   parseContentOsStrategyBalanceForm,
 } from "@/lib/warhome/content-os-strategy-contract";
-
-export type ContentOsActionState = {
-  status: "idle" | "success" | "error";
-  message: string | null;
-};
-
-export const CONTENT_OS_INITIAL_ACTION_STATE: ContentOsActionState = {
-  status: "idle",
-  message: null,
-};
+import type { ContentOsActionState } from "@/lib/warhome/content-os-action-state";
 
 const INVALID_INPUT_MESSAGE = "Revisa los campos e inténtalo de nuevo.";
 const SAVE_ERROR_MESSAGE = "No se ha podido guardar. Inténtalo de nuevo.";

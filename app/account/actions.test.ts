@@ -8,10 +8,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/account/update-profile-name", () => ({ saveAuthenticatedFlyPathProfileName: mocks.saveAuthenticatedFlyPathProfileName }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
-import {
-  initialUpdateFlyPathProfileNameState,
-  updateFlyPathProfileName,
-} from "./actions";
+import { updateFlyPathProfileName } from "./actions";
+import { initialUpdateFlyPathProfileNameState } from "@/lib/account/profile-name-action-state";
 
 beforeEach(() => {
   vi.clearAllMocks();
